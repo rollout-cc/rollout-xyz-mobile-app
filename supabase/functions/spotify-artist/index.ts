@@ -72,22 +72,47 @@ Deno.serve(async (req: Request) => {
     const images = artist.images ?? [];
     const largestImage = images.length > 0 ? images[0].url : null;
 
-    // Scrape monthly listeners from Spotify's public artist page
+    // Scrape monthly listeners and header/banner image from Spotify's public artist page
     let monthlyListeners = 0;
+    let bannerUrl: string | null = null;
     try {
       const pageResp = await fetch(`https://open.spotify.com/artist/${spotifyId}`, {
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; bot)" },
+        headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
       });
       if (pageResp.ok) {
         const html = await pageResp.text();
-        // Look for monthly listeners in the page source
-        const match = html.match(/"monthlyListeners"\s*:\s*(\d+)/);
-        if (match) {
-          monthlyListeners = parseInt(match[1], 10);
+        // Monthly listeners
+        const listenersMatch = html.match(/"monthlyListeners"\s*:\s*(\d+)/);
+        if (listenersMatch) {
+          monthlyListeners = parseInt(listenersMatch[1], 10);
+        }
+        // Header/banner image - look for the visual/header image patterns in embedded data
+        // Spotify embeds header images as "headerImage" or in "extractedColors" with wide images
+        const headerMatch = html.match(/"headerImage"\s*:\s*\{\s*"url"\s*:\s*"([^"]+)"/);
+        if (headerMatch) {
+          bannerUrl = headerMatch[1];
+        }
+        // Fallback: look for wide banner images in the visuals data
+        if (!bannerUrl) {
+          const visualsMatch = html.match(/"visuals"\s*:\s*\{[^}]*"headerImage"\s*:\s*\{[^}]*"sources"\s*:\s*\[\s*\{\s*"url"\s*:\s*"([^"]+)"/);
+          if (visualsMatch) {
+            bannerUrl = visualsMatch[1];
+          }
+        }
+        // Another pattern: look for wide i.scdn.co images (typically 2660x1140 or similar banner dims)
+        if (!bannerUrl) {
+          const allImages = [...html.matchAll(/https:\/\/i\.scdn\.co\/image\/[a-f0-9]+/g)].map(m => m[0]);
+          // Try to find the banner by checking for unique images not in the profile images list
+          const profileImageUrls = new Set(images.map((img: any) => img.url));
+          const uniqueImages = allImages.filter(url => !profileImageUrls.has(url));
+          // The header image is typically the first unique wide image referenced
+          if (uniqueImages.length > 0) {
+            bannerUrl = uniqueImages[0];
+          }
         }
       }
     } catch (e) {
-      console.warn("Could not scrape monthly listeners:", e);
+      console.warn("Could not scrape artist page:", e);
     }
 
     return new Response(JSON.stringify({
@@ -97,7 +122,7 @@ Deno.serve(async (req: Request) => {
       followers: artist.followers?.total ?? 0,
       genres: artist.genres ?? [],
       images,
-      banner_url: largestImage,
+      banner_url: bannerUrl,
       popularity: artist.popularity ?? 0,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
