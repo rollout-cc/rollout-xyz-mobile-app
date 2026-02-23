@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { useArtists, useCreateArtist } from "@/hooks/useArtists";
-import { useTeams } from "@/hooks/useTeams";
+import { useTeams, useCreateTeam } from "@/hooks/useTeams";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -28,6 +28,7 @@ export default function Roster() {
   const selectedTeamId = teams[0]?.id ?? null;
   const { data: artists = [], isLoading } = useArtists(selectedTeamId);
   const createArtist = useCreateArtist();
+  const createTeam = useCreateTeam();
 
   const [showAddArtist, setShowAddArtist] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,11 +60,17 @@ export default function Roster() {
     return () => clearTimeout(debounceRef.current);
   }, [searchQuery]);
 
+  const ensureTeam = async (): Promise<string> => {
+    if (selectedTeamId) return selectedTeamId;
+    const team = await createTeam.mutateAsync("My Team");
+    return team.id;
+  };
+
   const handleAddToRoster = async (artist: SpotifyArtist) => {
-    if (!selectedTeamId) return;
     try {
+      const teamId = await ensureTeam();
       await createArtist.mutateAsync({
-        team_id: selectedTeamId,
+        team_id: teamId,
         name: artist.name,
         avatar_url: artist.images?.[0]?.url,
         spotify_id: artist.id,
@@ -76,10 +83,11 @@ export default function Roster() {
   };
 
   const handleCreateNewArtist = async () => {
-    if (!selectedTeamId || !searchQuery.trim()) return;
+    if (!searchQuery.trim()) return;
     try {
+      const teamId = await ensureTeam();
       await createArtist.mutateAsync({
-        team_id: selectedTeamId,
+        team_id: teamId,
         name: searchQuery.trim(),
       });
       toast.success(`${searchQuery.trim()} created!`);
