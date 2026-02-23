@@ -4,10 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Trash2, CalendarIcon, Share2, Check, Copy, List, BarChart3 } from "lucide-react";
+import { Plus, Trash2, CalendarIcon, Share2, Check, Copy, List, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
-import { format, parse, differenceInDays, addDays, startOfDay } from "date-fns";
+import { format, parse, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, isSameDay, isToday } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -97,7 +97,7 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
               view === "chart" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <BarChart3 className="h-3.5 w-3.5" /> Chart
+            <CalendarDays className="h-3.5 w-3.5" /> Calendar
           </button>
         </div>
         <ShareTimelineButton artist={artist} />
@@ -120,119 +120,124 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
           ))}
         </div>
       ) : (
-        <GanttChart milestones={milestones} />
+        <CalendarView milestones={milestones} />
       )}
     </div>
   );
 }
 
-/* ── Gantt Chart View ── */
-function GanttChart({ milestones }: { milestones: any[] }) {
-  const today = startOfDay(new Date());
+/* ── Calendar View ── */
+function CalendarView({ milestones }: { milestones: any[] }) {
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  const { rangeStart, rangeEnd, totalDays } = useMemo(() => {
-    const dates = milestones.map((m) => parse(m.date, "yyyy-MM-dd", new Date()));
-    const min = dates.reduce((a, b) => (a < b ? a : b), today);
-    const max = dates.reduce((a, b) => (a > b ? a : b), today);
-    // Add padding: 7 days before/after
-    const start = addDays(min < today ? min : today, -7);
-    const end = addDays(max > today ? max : today, 14);
-    return { rangeStart: start, rangeEnd: end, totalDays: differenceInDays(end, start) || 1 };
-  }, [milestones, today]);
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(currentMonth);
+  const calStart = startOfWeek(monthStart);
+  const calEnd = endOfWeek(monthEnd);
 
-  // Generate month labels
-  const monthLabels = useMemo(() => {
-    const labels: { label: string; left: number }[] = [];
-    let current = rangeStart;
-    let lastMonth = -1;
-    for (let i = 0; i <= totalDays; i++) {
-      const d = addDays(rangeStart, i);
-      if (d.getMonth() !== lastMonth) {
-        lastMonth = d.getMonth();
-        labels.push({ label: format(d, "MMM yyyy"), left: (i / totalDays) * 100 });
-      }
-    }
-    return labels;
-  }, [rangeStart, totalDays]);
+  // Build array of days
+  const days: Date[] = [];
+  let d = calStart;
+  while (d <= calEnd) {
+    days.push(d);
+    d = addDays(d, 1);
+  }
 
-  const todayPos = (differenceInDays(today, rangeStart) / totalDays) * 100;
+  // Map milestones by date string
+  const milestonesByDate = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    milestones.forEach((m) => {
+      const key = m.date; // yyyy-MM-dd
+      if (!map[key]) map[key] = [];
+      map[key].push(m);
+    });
+    return map;
+  }, [milestones]);
 
-  // Color palette for milestone dots
   const colors = [
     "bg-primary", "bg-chart-2", "bg-chart-3", "bg-chart-4", "bg-chart-5",
   ];
 
+  // Assign consistent colors per milestone
+  const colorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    milestones.forEach((m, i) => {
+      map[m.id] = colors[i % colors.length];
+    });
+    return map;
+  }, [milestones]);
+
+  const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
   return (
     <div className="mt-4 rounded-lg border border-border overflow-hidden">
-      {/* Month header */}
-      <div className="relative h-8 bg-muted/50 border-b border-border">
-        {monthLabels.map((m, i) => (
-          <span
-            key={i}
-            className="absolute top-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider"
-            style={{ left: `${m.left}%`, paddingLeft: 8 }}
-          >
-            {m.label}
-          </span>
+      {/* Month navigation header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-muted/30 border-b border-border">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <h3 className="text-sm font-semibold">{format(currentMonth, "MMMM yyyy")}</h3>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Day-of-week header */}
+      <div className="grid grid-cols-7 border-b border-border">
+        {weekDays.map((wd) => (
+          <div key={wd} className="text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground py-2">
+            {wd}
+          </div>
         ))}
       </div>
 
-      {/* Chart body */}
-      <div className="relative min-h-[200px]">
-        {/* Today line */}
-        {todayPos >= 0 && todayPos <= 100 && (
-          <div
-            className="absolute top-0 bottom-0 w-px bg-primary/40 z-10"
-            style={{ left: `${todayPos}%` }}
-          >
-            <span className="absolute -top-0 -translate-x-1/2 text-[9px] font-medium text-primary bg-background px-1 rounded">
-              Today
-            </span>
-          </div>
-        )}
-
-        {/* Milestone rows */}
-        {milestones.map((m: any, idx: number) => {
-          const mDate = parse(m.date, "yyyy-MM-dd", new Date());
-          const pos = (differenceInDays(mDate, rangeStart) / totalDays) * 100;
-          const color = colors[idx % colors.length];
-          const isPast = mDate < today;
+      {/* Calendar grid */}
+      <div className="grid grid-cols-7">
+        {days.map((day, idx) => {
+          const key = format(day, "yyyy-MM-dd");
+          const events = milestonesByDate[key] || [];
+          const inMonth = isSameMonth(day, currentMonth);
+          const todayCell = isToday(day);
 
           return (
             <div
-              key={m.id}
-              className="relative flex items-center h-12 border-b border-border last:border-b-0 group"
+              key={idx}
+              className={cn(
+                "min-h-[80px] sm:min-h-[100px] border-b border-r border-border p-1 transition-colors",
+                !inMonth && "bg-muted/20",
+                todayCell && "bg-primary/5",
+                idx % 7 === 0 && "border-l-0",
+              )}
             >
-              {/* Background track */}
-              <div className="absolute inset-0">
-                {/* Dot on the timeline */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div
-                      className={cn(
-                        "absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-3.5 w-3.5 rounded-full border-2 border-background shadow-sm transition-transform hover:scale-125 z-20",
-                        color,
-                        isPast && "opacity-60"
-                      )}
-                      style={{ left: `${Math.max(1, Math.min(99, pos))}%` }}
-                    />
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">
-                    <p className="font-medium">{m.title}</p>
-                    <p className="text-muted-foreground">{format(mDate, "MMM d, yyyy")}</p>
-                  </TooltipContent>
-                </Tooltip>
+              <div className={cn(
+                "text-xs font-medium mb-1 flex items-center justify-center w-6 h-6 rounded-full",
+                todayCell && "bg-primary text-primary-foreground",
+                !inMonth && "text-muted-foreground/40",
+                inMonth && !todayCell && "text-foreground",
+              )}>
+                {format(day, "d")}
               </div>
-
-              {/* Label */}
-              <div className="relative z-10 px-3 flex items-center gap-2 pointer-events-none">
-                <div className={cn("h-2 w-2 rounded-full shrink-0", color, isPast && "opacity-60")} />
-                <span className={cn("text-xs font-medium truncate max-w-[180px]", isPast && "text-muted-foreground")}>
-                  {m.title}
-                </span>
-                <span className="text-[10px] text-muted-foreground">
-                  {format(mDate, "MMM d")}
-                </span>
+              <div className="space-y-0.5">
+                {events.slice(0, 3).map((ev: any) => (
+                  <Tooltip key={ev.id}>
+                    <TooltipTrigger asChild>
+                      <div className={cn(
+                        "text-[10px] sm:text-xs font-medium truncate rounded px-1 py-0.5 text-white cursor-default",
+                        colorMap[ev.id] || "bg-primary",
+                      )}>
+                        {ev.title}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs max-w-[200px]">
+                      <p className="font-medium">{ev.title}</p>
+                      {ev.description && <p className="text-muted-foreground mt-0.5">{ev.description}</p>}
+                      <p className="text-muted-foreground">{format(parse(ev.date, "yyyy-MM-dd", new Date()), "EEEE, MMMM d, yyyy")}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+                {events.length > 3 && (
+                  <div className="text-[9px] text-muted-foreground px-1">+{events.length - 3} more</div>
+                )}
               </div>
             </div>
           );
