@@ -237,29 +237,68 @@ export type Database = {
         Row: {
           artist_id: string
           created_at: string
+          date_of_birth: string | null
           dietary_restrictions: string | null
+          dress_size: string | null
+          favorite_brands: string | null
+          first_name: string | null
+          hat_size: string | null
           id: string
+          ktn_number: string | null
+          last_name: string | null
           member_name: string | null
           notes: string | null
+          pant_size: string | null
           passport_name: string | null
+          preferred_airline: string | null
+          preferred_seat: string | null
+          shirt_size: string | null
+          shoe_size: string | null
+          tsa_precheck_number: string | null
         }
         Insert: {
           artist_id: string
           created_at?: string
+          date_of_birth?: string | null
           dietary_restrictions?: string | null
+          dress_size?: string | null
+          favorite_brands?: string | null
+          first_name?: string | null
+          hat_size?: string | null
           id?: string
+          ktn_number?: string | null
+          last_name?: string | null
           member_name?: string | null
           notes?: string | null
+          pant_size?: string | null
           passport_name?: string | null
+          preferred_airline?: string | null
+          preferred_seat?: string | null
+          shirt_size?: string | null
+          shoe_size?: string | null
+          tsa_precheck_number?: string | null
         }
         Update: {
           artist_id?: string
           created_at?: string
+          date_of_birth?: string | null
           dietary_restrictions?: string | null
+          dress_size?: string | null
+          favorite_brands?: string | null
+          first_name?: string | null
+          hat_size?: string | null
           id?: string
+          ktn_number?: string | null
+          last_name?: string | null
           member_name?: string | null
           notes?: string | null
+          pant_size?: string | null
           passport_name?: string | null
+          preferred_airline?: string | null
+          preferred_seat?: string | null
+          shirt_size?: string | null
+          shoe_size?: string | null
+          tsa_precheck_number?: string | null
         }
         Relationships: [
           {
