@@ -129,24 +129,58 @@ Deno.serve(async (req: Request) => {
       console.warn("Could not scrape artist page:", e);
     }
 
-    // If scraping failed for monthly listeners, try the Spotify partner API (about page)
+    // If scraping failed, try Spotify's embed page (more reliable for monthly listeners)
     if (monthlyListeners === 0) {
       try {
-        const token = await getSpotifyToken();
-        // Try the undocumented but commonly available "about" endpoint
-        const aboutResp = await fetch(
-          `https://spclient.wg.spotify.com/open-backend-2/v1/artists/${spotifyId}`,
-          { headers: { Authorization: "Bearer " + token } }
-        );
-        if (aboutResp.ok) {
-          const aboutData = await aboutResp.json();
-          if (aboutData?.monthlyListeners) {
-            monthlyListeners = aboutData.monthlyListeners;
+        const embedResp = await fetch(`https://open.spotify.com/embed/artist/${spotifyId}`, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          },
+        });
+        if (embedResp.ok) {
+          const embedHtml = await embedResp.text();
+          // The embed page often contains monthly listeners in a different format
+          const embedPatterns = [
+            /(\d[\d,]+)\s*monthly\s*listener/i,
+            /"monthlyListeners"\s*:\s*"?([\d,]+)"?/,
+            /"listeners"\s*:\s*"?([\d,]+)"?/,
+          ];
+          for (const pattern of embedPatterns) {
+            const match = embedHtml.match(pattern);
+            if (match) {
+              monthlyListeners = parseInt(match[1].replace(/,/g, ""), 10);
+              if (monthlyListeners > 0) break;
+            }
           }
         }
-      } catch (_) {
-        // Silently fail - this endpoint may not be available
-      }
+      } catch (_) {}
+    }
+
+    // Last resort: try the access token based internal endpoint
+    if (monthlyListeners === 0) {
+      try {
+        // Fetch from the public artist "about" page which sometimes has the data
+        const aboutPageResp = await fetch(`https://open.spotify.com/intl-en/artist/${spotifyId}/about`, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+          },
+        });
+        if (aboutPageResp.ok) {
+          const aboutHtml = await aboutPageResp.text();
+          const aboutPatterns = [
+            /(\d[\d,]+)\s*monthly\s*listener/i,
+            /"monthlyListeners"\s*:\s*"?([\d,]+)"?/,
+          ];
+          for (const pattern of aboutPatterns) {
+            const match = aboutHtml.match(pattern);
+            if (match) {
+              monthlyListeners = parseInt(match[1].replace(/,/g, ""), 10);
+              if (monthlyListeners > 0) break;
+            }
+          }
+        }
+      } catch (_) {}
     }
 
     return new Response(JSON.stringify({
