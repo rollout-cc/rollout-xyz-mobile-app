@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, ChevronDown, ChevronUp, Hash } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronUp, Hash, FolderPlus, ListPlus, Calendar, DollarSign, User } from "lucide-react";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
 
@@ -45,6 +45,12 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
     setExpandedCampaigns(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const isEmpty = campaigns.length === 0 && tasks.length === 0;
+
+  if (isEmpty) {
+    return <EmptyWorkState artistId={artistId} teamId={teamId} />;
+  }
+
   return (
     <div className="mt-4">
       <div className="flex items-center justify-between mb-4">
@@ -56,13 +62,13 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
       </div>
 
       {/* Active Tasks */}
-      <div className="border border-border rounded-lg mb-2">
-        <button onClick={() => setActiveExpanded(!activeExpanded)} className="flex items-center justify-between w-full p-3 text-left hover:bg-accent/50 rounded-lg">
-          <span className="font-semibold">Active Tasks <span className="text-muted-foreground font-normal text-sm ml-1">{activeTasks.length}</span></span>
-          {activeExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+      <div className="border border-border rounded-lg mb-3 overflow-hidden">
+        <button onClick={() => setActiveExpanded(!activeExpanded)} className="flex items-center justify-between w-full px-4 py-3 text-left bg-muted/50 hover:bg-muted transition-colors">
+          <span className="text-lg font-bold">Active Tasks <span className="text-muted-foreground font-normal text-sm ml-2 bg-muted px-2 py-0.5 rounded-full">{activeTasks.length}</span></span>
+          {activeExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
         </button>
         {activeExpanded && (
-          <div className="px-3 pb-3">
+          <div className="p-4">
             <InlineTaskInput artistId={artistId} teamId={teamId} campaigns={campaigns} />
             {unsortedTasks.map((t: any) => (
               <TaskRow key={t.id} task={t} artistId={artistId} />
@@ -74,19 +80,19 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
       {/* Campaign sections */}
       {campaigns.map((c: any) => {
         const cTasks = campaignTasks(c.id);
-        const isExpanded = expandedCampaigns[c.id] ?? false;
+        const isExpanded = expandedCampaigns[c.id] ?? true;
         return (
-          <div key={c.id} className="border border-border rounded-lg mb-2">
-            <button onClick={() => toggleCampaign(c.id)} className="flex items-center justify-between w-full p-3 text-left hover:bg-accent/50 rounded-lg">
-              <span className="font-semibold flex items-center gap-2">
-                <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+          <div key={c.id} className="border border-border rounded-lg mb-3 overflow-hidden">
+            <button onClick={() => toggleCampaign(c.id)} className="flex items-center justify-between w-full px-4 py-3 text-left bg-muted/50 hover:bg-muted transition-colors">
+              <span className="text-lg font-bold flex items-center gap-2">
+                <Hash className="h-4 w-4 text-muted-foreground" />
                 <CampaignName campaign={c} artistId={artistId} />
-                <span className="text-muted-foreground font-normal text-sm">{cTasks.length}</span>
+                <span className="text-muted-foreground font-normal text-sm bg-muted px-2 py-0.5 rounded-full">{cTasks.length}</span>
               </span>
-              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {isExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
             </button>
             {isExpanded && (
-              <div className="px-3 pb-3">
+              <div className="p-4">
                 <InlineTaskInput artistId={artistId} teamId={teamId} campaigns={campaigns} defaultCampaignId={c.id} />
                 {cTasks.map((t: any) => <TaskRow key={t.id} task={t} artistId={artistId} />)}
                 {cTasks.length === 0 && <p className="text-sm text-muted-foreground py-2">No tasks yet.</p>}
@@ -98,13 +104,99 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
 
       {/* Completed */}
       {showCompleted && completedTasks.length > 0 && (
-        <div className="border border-border rounded-lg mb-2">
-          <div className="p-3"><span className="font-semibold text-muted-foreground">Completed <span className="font-normal text-sm ml-1">{completedTasks.length}</span></span></div>
-          <div className="px-3 pb-3">
+        <div className="border border-border rounded-lg mb-3 overflow-hidden">
+          <div className="px-4 py-3 bg-muted/50"><span className="text-lg font-bold text-muted-foreground">Completed <span className="font-normal text-sm ml-2 bg-muted px-2 py-0.5 rounded-full">{completedTasks.length}</span></span></div>
+          <div className="p-4">
             {completedTasks.map((t: any) => <TaskRow key={t.id} task={t} artistId={artistId} />)}
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* Empty state with prominent New Campaign / New Task buttons */
+function EmptyWorkState({ artistId, teamId }: { artistId: string; teamId: string }) {
+  const queryClient = useQueryClient();
+  const campaignInputRef = useRef<HTMLInputElement>(null);
+  const taskInputRef = useRef<HTMLInputElement>(null);
+  const [mode, setMode] = useState<"idle" | "campaign" | "task">("idle");
+
+  const createCampaign = useMutation({
+    mutationFn: async (name: string) => {
+      const { error } = await supabase.from("initiatives").insert({ artist_id: artistId, name: name.trim() });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["initiatives", artistId] });
+      setMode("idle");
+      toast.success("Campaign created");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const createTask = useMutation({
+    mutationFn: async (title: string) => {
+      const { error } = await supabase.from("tasks").insert({ artist_id: artistId, team_id: teamId, title: title.trim() });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
+      setMode("idle");
+      toast.success("Task created");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  if (mode === "campaign") {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <input
+          ref={campaignInputRef}
+          autoFocus
+          placeholder="Campaign name, press Enter"
+          className="text-lg bg-transparent border-b-2 border-primary outline-none py-2 px-1 w-72 text-center text-foreground placeholder:text-muted-foreground"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) createCampaign.mutate((e.target as HTMLInputElement).value);
+            if (e.key === "Escape") setMode("idle");
+          }}
+          onBlur={() => setMode("idle")}
+        />
+        <p className="text-sm text-muted-foreground">Press Enter to create</p>
+      </div>
+    );
+  }
+
+  if (mode === "task") {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <input
+          ref={taskInputRef}
+          autoFocus
+          placeholder="Task name, press Enter"
+          className="text-lg bg-transparent border-b-2 border-primary outline-none py-2 px-1 w-72 text-center text-foreground placeholder:text-muted-foreground"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) createTask.mutate((e.target as HTMLInputElement).value);
+            if (e.key === "Escape") setMode("idle");
+          }}
+          onBlur={() => setMode("idle")}
+        />
+        <p className="text-sm text-muted-foreground">Press Enter to create</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center py-20 gap-6 text-center">
+      <p className="text-muted-foreground text-lg">No campaigns or tasks yet</p>
+      <div className="flex items-center gap-3">
+        <Button variant="default" size="lg" className="gap-2 text-base" onClick={() => { setMode("campaign"); setTimeout(() => campaignInputRef.current?.focus(), 50); }}>
+          <FolderPlus className="h-5 w-5" /> New Campaign
+        </Button>
+        <Button variant="outline" size="lg" className="gap-2 text-base" onClick={() => { setMode("task"); setTimeout(() => taskInputRef.current?.focus(), 50); }}>
+          <ListPlus className="h-5 w-5" /> New Task
+        </Button>
+      </div>
     </div>
   );
 }
@@ -123,7 +215,7 @@ function CampaignName({ campaign, artistId }: { campaign: any; artistId: string 
     <InlineField
       value={campaign.name}
       onSave={(v) => update.mutate(v)}
-      className="font-semibold"
+      className="text-lg font-bold"
     />
   );
 }
@@ -133,13 +225,16 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId }: {
 }) {
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
+  const descRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
+  const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(false);
 
   const addTask = useMutation({
-    mutationFn: async (parsed: { title: string; due_date?: string; expense_amount?: number; initiative_id?: string }) => {
+    mutationFn: async (parsed: { title: string; description?: string; due_date?: string; expense_amount?: number; initiative_id?: string }) => {
       const { error } = await supabase.from("tasks").insert({
         artist_id: artistId, team_id: teamId, title: parsed.title,
+        description: parsed.description || null,
         due_date: parsed.due_date || null, expense_amount: parsed.expense_amount || null,
         initiative_id: parsed.initiative_id || defaultCampaignId || null,
       });
@@ -148,6 +243,7 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId }: {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
       setValue("");
+      setDescription("");
       setTimeout(() => inputRef.current?.focus(), 50);
     },
     onError: (e: any) => toast.error(e.message),
@@ -180,28 +276,60 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId }: {
       title = title.replace(dateMatch[0], "").trim();
     }
 
-    addTask.mutate({ title, due_date, expense_amount, initiative_id });
-  }, [value, campaigns, addTask]);
+    addTask.mutate({ title, description: description.trim() || undefined, due_date, expense_amount, initiative_id });
+  }, [value, description, campaigns, addTask]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && value.trim()) { e.preventDefault(); parseAndSubmit(); }
-    if (e.key === "Escape") { setValue(""); setIsActive(false); inputRef.current?.blur(); }
+    if (e.key === "Escape") { setValue(""); setDescription(""); setIsActive(false); inputRef.current?.blur(); }
+  };
+
+  const handleCancel = () => {
+    setValue("");
+    setDescription("");
+    setIsActive(false);
   };
 
   return (
-    <div className="mb-2">
-      <div className="flex items-center gap-2 p-2 rounded border border-dashed border-border hover:border-foreground/30 transition-colors">
-        <Checkbox disabled className="opacity-30" />
-        <input ref={inputRef} value={value} onChange={(e) => setValue(e.target.value)} onFocus={() => setIsActive(true)} onBlur={() => { if (!value) setIsActive(false); }} onKeyDown={handleKeyDown}
-          placeholder="Type a task and press Enter ($ cost, # campaign, 'due tomorrow')"
-          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60" />
+    <div className="mb-4">
+      <div className={`rounded-lg border transition-colors ${isActive ? "border-border bg-card shadow-sm" : "border-dashed border-border hover:border-foreground/30"}`}>
+        <div className="flex items-start gap-3 p-3">
+          <Checkbox disabled className="opacity-30 mt-1" />
+          <div className="flex-1">
+            <input
+              ref={inputRef}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onFocus={() => setIsActive(true)}
+              onKeyDown={handleKeyDown}
+              placeholder="Task name (use @ to assign, # to pick campaign, $ for budget, 'due tomorrow')"
+              className="w-full bg-transparent text-base outline-none placeholder:text-muted-foreground/60"
+            />
+            {isActive && (
+              <>
+                <input
+                  ref={descRef}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Description"
+                  className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/40 mt-2"
+                />
+                <div className="flex items-center gap-3 mt-3 text-muted-foreground">
+                  <button className="hover:text-foreground transition-colors" title="Assign"><User className="h-4 w-4" /></button>
+                  <button className="hover:text-foreground transition-colors" title="Due date"><Calendar className="h-4 w-4" /></button>
+                  <button className="hover:text-foreground transition-colors" title="Campaign"><Hash className="h-4 w-4" /></button>
+                  <button className="hover:text-foreground transition-colors" title="Cost"><DollarSign className="h-4 w-4" /></button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
       {isActive && value && (
-        <div className="flex gap-2 mt-1 text-xs text-muted-foreground pl-8">
-          <span>Press <kbd className="px-1 py-0.5 rounded bg-muted text-foreground">Enter</kbd> to save</span>
-          <span>·</span><span><kbd className="px-1 py-0.5 rounded bg-muted text-foreground">$</kbd> cost</span>
-          <span>·</span><span><kbd className="px-1 py-0.5 rounded bg-muted text-foreground">#</kbd> campaign</span>
-          <span>·</span><span><kbd className="px-1 py-0.5 rounded bg-muted text-foreground">due</kbd> date</span>
+        <div className="flex justify-end gap-2 mt-2">
+          <Button variant="ghost" size="sm" onClick={handleCancel}>Cancel</Button>
+          <Button size="sm" onClick={parseAndSubmit} className="gap-1">✓ Save</Button>
         </div>
       )}
     </div>
@@ -238,26 +366,30 @@ function TaskRow({ task, artistId }: { task: any; artistId: string }) {
   });
 
   return (
-    <div className="flex items-center gap-3 p-2 rounded hover:bg-accent/50 group">
+    <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-accent/50 group border-b border-border last:border-b-0">
       <Checkbox checked={task.is_completed} onCheckedChange={() => toggleTask.mutate()} />
-      <div className={`flex-1 text-sm ${task.is_completed ? "line-through text-muted-foreground" : ""}`}>
-        <InlineField value={task.title} onSave={(v) => updateTask.mutate({ title: v })} />
+      <div className={`flex-1 text-base ${task.is_completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
+        <InlineField value={task.title} onSave={(v) => updateTask.mutate({ title: v })} className="text-base" />
       </div>
-      <InlineField
-        value={task.expense_amount != null && task.expense_amount > 0 ? `$${task.expense_amount.toLocaleString()}` : ""}
-        placeholder=""
-        onSave={(v) => {
-          const num = parseFloat(v.replace(/[^0-9.]/g, ""));
-          updateTask.mutate({ expense_amount: isNaN(num) ? null : num });
-        }}
-        className="text-xs font-medium text-primary w-20 text-right"
-      />
-      <InlineField
-        value={task.due_date ?? ""}
-        placeholder=""
-        onSave={(v) => updateTask.mutate({ due_date: v || null })}
-        className="text-xs text-muted-foreground w-24"
-      />
+      {task.due_date && (
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Calendar className="h-3 w-3" />
+          <InlineField value={task.due_date} onSave={(v) => updateTask.mutate({ due_date: v || null })} className="text-xs text-muted-foreground" />
+        </span>
+      )}
+      {task.expense_amount != null && task.expense_amount > 0 && (
+        <span className="flex items-center gap-1 text-xs font-medium text-foreground">
+          <DollarSign className="h-3 w-3" />
+          <InlineField
+            value={`${task.expense_amount.toLocaleString()}`}
+            onSave={(v) => {
+              const num = parseFloat(v.replace(/[^0-9.]/g, ""));
+              updateTask.mutate({ expense_amount: isNaN(num) ? null : num });
+            }}
+            className="text-xs font-medium w-16 text-right"
+          />
+        </span>
+      )}
       <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 h-7 w-7" onClick={() => deleteTask.mutate()}>
         <Trash2 className="h-3.5 w-3.5" />
       </Button>
