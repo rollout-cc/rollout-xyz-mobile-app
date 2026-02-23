@@ -3,9 +3,25 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, ChevronDown, ChevronUp, FolderPlus, ListPlus, Calendar, DollarSign, User } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronUp, FolderPlus, ListPlus, Calendar, DollarSign, User, MoreHorizontal, Archive, Trash } from "lucide-react";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface WorkTabProps {
   artistId: string;
@@ -94,13 +110,18 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
         const isNewlyCreated = newCampaignId === c.id;
         return (
           <div key={c.id} className="border border-border rounded-lg mb-3 overflow-hidden">
-            <button onClick={() => toggleCampaign(c.id)} className="flex items-center justify-between w-full px-4 py-3 text-left bg-muted/50 hover:bg-muted transition-colors">
-              <span className="text-lg font-bold flex items-center gap-2">
-                <CampaignName campaign={c} artistId={artistId} />
-                <span className="text-muted-foreground font-normal text-sm bg-muted px-2 py-0.5 rounded-full">{cTasks.length}</span>
-              </span>
-              {isExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
-            </button>
+            <div className="flex items-center justify-between w-full px-4 py-3 bg-muted/50 hover:bg-muted transition-colors">
+              <button onClick={() => toggleCampaign(c.id)} className="flex items-center gap-2 flex-1 text-left">
+                <span className="text-lg font-bold flex items-center gap-2">
+                  <CampaignName campaign={c} artistId={artistId} />
+                  <span className="text-muted-foreground font-normal text-sm bg-muted px-2 py-0.5 rounded-full">{cTasks.length}</span>
+                </span>
+              </button>
+              <div className="flex items-center gap-1">
+                <CampaignActions campaign={c} artistId={artistId} taskCount={cTasks.length} />
+                {isExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
+              </div>
+            </div>
             {isExpanded && (
               <div className="p-4">
                 <InlineTaskInput artistId={artistId} teamId={teamId} campaigns={campaigns} defaultCampaignId={c.id} autoFocus={isNewlyCreated} />
@@ -191,6 +212,82 @@ function EmptyWorkState({ artistId, teamId, onCampaignCreated }: { artistId: str
         </Button>
       </div>
     </div>
+  );
+}
+
+function CampaignActions({ campaign, artistId, taskCount }: { campaign: any; artistId: string; taskCount: number }) {
+  const queryClient = useQueryClient();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const deleteCampaign = useMutation({
+    mutationFn: async () => {
+      // Delete all tasks in this campaign first
+      const { error: tasksError } = await supabase.from("tasks").delete().eq("initiative_id", campaign.id);
+      if (tasksError) throw tasksError;
+      // Then delete the campaign
+      const { error } = await supabase.from("initiatives").delete().eq("id", campaign.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["initiatives", artistId] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
+      toast.success("Campaign and its tasks deleted");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const archiveCampaign = useMutation({
+    mutationFn: async () => {
+      // Mark all tasks in this campaign as completed
+      const { error: tasksError } = await supabase
+        .from("tasks")
+        .update({ is_completed: true, completed_at: new Date().toISOString() })
+        .eq("initiative_id", campaign.id)
+        .eq("is_completed", false);
+      if (tasksError) throw tasksError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
+      toast.success("Campaign archived — all tasks marked complete");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="h-7 w-7 flex items-center justify-center rounded hover:bg-accent transition-colors" onClick={(e) => e.stopPropagation()}>
+            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="bg-background z-50">
+          <DropdownMenuItem onClick={() => archiveCampaign.mutate()}>
+            <Archive className="h-4 w-4 mr-2" /> Archive Campaign
+          </DropdownMenuItem>
+          <DropdownMenuItem className="text-destructive" onClick={() => setShowDeleteConfirm(true)}>
+            <Trash className="h-4 w-4 mr-2" /> Delete Campaign
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{campaign.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this campaign and {taskCount} task{taskCount !== 1 ? "s" : ""} within it. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteCampaign.mutate()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
