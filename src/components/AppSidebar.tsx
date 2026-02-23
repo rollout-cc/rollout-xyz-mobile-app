@@ -59,7 +59,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
       <Sidebar className="w-44 border-r border-border bg-sidebar">
         <SidebarContent className="flex flex-col h-full p-0">
           <div className="px-4 pt-4 pb-2">
-            <img src={rolloutLogo} alt="Rollout" className="h-6" />
+            <img src={rolloutLogo} alt="Rollout" className="w-full" />
           </div>
 
           {/* Team Switcher */}
