@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-type TopPanel = "budgets" | "objectives" | "information" | null;
+type ActiveView = "work" | "links" | "timelines" | "budgets" | "objectives" | "information";
 
 export default function ArtistDetail() {
   const { artistId } = useParams<{ artistId: string }>();
@@ -23,7 +23,7 @@ export default function ArtistDetail() {
   const { data: artist, isLoading } = useArtistDetail(artistId!);
   const { data: spotifyData } = useSpotifyArtist(artist?.spotify_id);
   const totalBudget = useTotalBudget(artistId!);
-  const [topPanel, setTopPanel] = useState<TopPanel>(null);
+  const [activeView, setActiveView] = useState<ActiveView>("work");
 
   // Get completed tasks count
   const { data: completedCount = 0 } = useQuery({
@@ -62,8 +62,9 @@ export default function ArtistDetail() {
   const bannerUrl = spotifyData?.banner_url || artist.banner_url || artist.avatar_url;
   const monthlyListeners = spotifyData?.monthly_listeners || spotifyData?.followers || 0;
 
-  const togglePanel = (panel: TopPanel) => {
-    setTopPanel(prev => prev === panel ? null : panel);
+  const isTopView = (v: ActiveView) => ["budgets", "objectives", "information"].includes(v);
+  const toggleTopView = (v: ActiveView) => {
+    setActiveView(prev => prev === v ? "work" : v);
   };
 
   return (
@@ -76,25 +77,25 @@ export default function ArtistDetail() {
           </Button>
           <div className="flex items-center gap-1 ml-4">
             <Button
-              variant={topPanel === "budgets" ? "default" : "outline"}
+              variant={activeView === "budgets" ? "default" : "outline"}
               size="sm"
-              onClick={() => togglePanel("budgets")}
+              onClick={() => toggleTopView("budgets")}
               className="gap-1"
             >
               <DollarSign className="h-3.5 w-3.5" /> Budgets
             </Button>
             <Button
-              variant={topPanel === "objectives" ? "default" : "outline"}
+              variant={activeView === "objectives" ? "default" : "outline"}
               size="sm"
-              onClick={() => togglePanel("objectives")}
+              onClick={() => toggleTopView("objectives")}
               className="gap-1"
             >
               <Target className="h-3.5 w-3.5" /> Objectives
             </Button>
             <Button
-              variant={topPanel === "information" ? "default" : "outline"}
+              variant={activeView === "information" ? "default" : "outline"}
               size="sm"
-              onClick={() => togglePanel("information")}
+              onClick={() => toggleTopView("information")}
               className="gap-1"
             >
               <Star className="h-3.5 w-3.5" /> Information
@@ -147,43 +148,32 @@ export default function ArtistDetail() {
         </div>
       </div>
 
-      {/* Expandable top panels */}
-      {topPanel === "budgets" && (
-        <div className="mb-6 p-4 rounded-lg border border-border animate-in slide-in-from-top-2">
-          <BudgetSection artistId={artist.id} />
+      {/* Tab row for Work/Links/Timelines - these are the bottom tabs */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-1 border-b border-border">
+          {(["work", "links", "timelines"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveView(tab)}
+              className={`px-4 py-2 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
+                activeView === tab
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
 
-      {topPanel === "objectives" && (
-        <div className="mb-6 p-4 rounded-lg border border-border animate-in slide-in-from-top-2">
-          <ObjectivesPanel artist={artist} />
-        </div>
-      )}
-
-      {topPanel === "information" && (
-        <div className="mb-6 animate-in slide-in-from-top-2">
-          <ArtistInfoTab artist={artist} />
-        </div>
-      )}
-
-      {/* Main tabs: Work, Links, Timelines */}
-      <Tabs defaultValue="work" className="w-full">
-        <TabsList>
-          <TabsTrigger value="work">Work</TabsTrigger>
-          <TabsTrigger value="links">Links</TabsTrigger>
-          <TabsTrigger value="timelines">Timelines</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="work">
-          <WorkTab artistId={artist.id} teamId={artist.team_id} />
-        </TabsContent>
-        <TabsContent value="links">
-          <LinksTab artistId={artist.id} />
-        </TabsContent>
-        <TabsContent value="timelines">
-          <TimelinesTab artistId={artist.id} />
-        </TabsContent>
-      </Tabs>
+      {/* Content area - switches based on activeView */}
+      {activeView === "budgets" && <BudgetSection artistId={artist.id} />}
+      {activeView === "objectives" && <ObjectivesPanel artist={artist} />}
+      {activeView === "information" && <ArtistInfoTab artist={artist} />}
+      {activeView === "work" && <WorkTab artistId={artist.id} teamId={artist.team_id} />}
+      {activeView === "links" && <LinksTab artistId={artist.id} />}
+      {activeView === "timelines" && <TimelinesTab artistId={artist.id} />}
     </AppLayout>
   );
 }
