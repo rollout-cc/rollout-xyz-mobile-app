@@ -75,7 +75,7 @@ export default function ArtistDetail() {
 
   const bannerUrl = artist.banner_url || spotifyData?.banner_url || null;
   const hasBanner = !!bannerUrl;
-  const monthlyListeners = spotifyData?.monthly_listeners || spotifyData?.followers || 0;
+  const monthlyListeners = (artist as any).monthly_listeners || spotifyData?.monthly_listeners || spotifyData?.followers || 0;
 
   const isTopView = (v: ActiveView) => ["budgets", "objectives", "information"].includes(v);
   const toggleTopView = (v: ActiveView) => {
