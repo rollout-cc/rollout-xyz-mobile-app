@@ -10,6 +10,7 @@ import { Plus, Trash2, ChevronDown, ChevronRight, User, Plane, Shirt, CalendarIc
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
 import { cn } from "@/lib/utils";
+import { BrandTagInput } from "@/components/ui/BrandTagInput";
 
 interface ArtistInfoTabProps {
   artist: any;
@@ -247,7 +248,8 @@ function MemberCard({
               <SelectField label="Dress Size" value={member.dress_size ?? ""} options={["XS", "S", "M", "L", "XL", "0", "2", "4", "6", "8", "10", "12", "14", "16"]} placeholder="Select size" onSave={(v) => onUpdate({ dress_size: v })} />
               <SelectField label="Hat Size" value={member.hat_size ?? ""} options={["S", "M", "L", "XL", "6 7/8", "7", "7 1/8", "7 1/4", "7 3/8", "7 1/2", "7 5/8", "7 3/4"]} placeholder="Select size" onSave={(v) => onUpdate({ hat_size: v })} />
               <div className="col-span-2 sm:col-span-3">
-                <Field label="Favorite Clothing Brands" value={member.favorite_brands ?? ""} placeholder="Enter favorite brands" onSave={(v) => onUpdate({ favorite_brands: v })} />
+                <span className="text-muted-foreground text-xs">Favorite Clothing Brands</span>
+                <BrandTagInput value={member.favorite_brands ?? ""} onSave={(v) => onUpdate({ favorite_brands: v })} />
               </div>
             </div>
           </div>
