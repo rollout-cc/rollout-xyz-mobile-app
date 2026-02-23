@@ -240,6 +240,7 @@ export type Database = {
           date_of_birth: string | null
           dietary_restrictions: string | null
           dress_size: string | null
+          drivers_license: string | null
           favorite_brands: string | null
           first_name: string | null
           hat_size: string | null
@@ -264,6 +265,7 @@ export type Database = {
           date_of_birth?: string | null
           dietary_restrictions?: string | null
           dress_size?: string | null
+          drivers_license?: string | null
           favorite_brands?: string | null
           first_name?: string | null
           hat_size?: string | null
@@ -288,6 +290,7 @@ export type Database = {
           date_of_birth?: string | null
           dietary_restrictions?: string | null
           dress_size?: string | null
+          drivers_license?: string | null
           favorite_brands?: string | null
           first_name?: string | null
           hat_size?: string | null

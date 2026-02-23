@@ -197,7 +197,7 @@ function MemberCard({
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="KTN Number" value={member.ktn_number ?? ""} placeholder="Enter KTN number" onSave={(v) => onUpdate({ ktn_number: v })} />
-              <Field label="TSA PreCheck Number" value={member.tsa_precheck_number ?? ""} placeholder="Enter TSA PreCheck number" onSave={(v) => onUpdate({ tsa_precheck_number: v })} />
+              <Field label="Driver's License #" value={(member as any).drivers_license ?? ""} placeholder="Enter license number" onSave={(v) => onUpdate({ drivers_license: v })} />
               <SelectField label="Preferred Seat" value={member.preferred_seat ?? ""} options={["Window", "Middle", "Aisle"]} placeholder="Select seat" onSave={(v) => onUpdate({ preferred_seat: v })} />
               <Field label="Preferred Airline" value={member.preferred_airline ?? ""} placeholder="e.g. Delta, United" onSave={(v) => onUpdate({ preferred_airline: v })} />
               <Field label="Passport Name" value={member.passport_name ?? ""} placeholder="Enter passport name" onSave={(v) => onUpdate({ passport_name: v })} />
