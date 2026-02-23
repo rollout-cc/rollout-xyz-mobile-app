@@ -1,10 +1,15 @@
 import { useState } from "react";
+import { format, parse } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, ChevronDown, ChevronRight, User, Plane, Shirt } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Trash2, ChevronDown, ChevronRight, User, Plane, Shirt, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
+import { cn } from "@/lib/utils";
 
 interface ArtistInfoTabProps {
   artist: any;
@@ -178,7 +183,7 @@ function MemberCard({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Field label="First Name" value={member.first_name ?? ""} placeholder="Enter first name" onSave={(v) => onUpdate({ first_name: v })} />
               <Field label="Last Name" value={member.last_name ?? ""} placeholder="Enter last name" onSave={(v) => onUpdate({ last_name: v })} />
-              <Field label="Date of Birth" value={member.date_of_birth ?? ""} placeholder="YYYY-MM-DD" onSave={(v) => onUpdate({ date_of_birth: v || null })} />
+              <DateField label="Date of Birth" value={member.date_of_birth ?? ""} onSave={(v) => onUpdate({ date_of_birth: v || null })} />
             </div>
           </div>
 
@@ -190,7 +195,7 @@ function MemberCard({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="KTN Number" value={member.ktn_number ?? ""} placeholder="Enter KTN number" onSave={(v) => onUpdate({ ktn_number: v })} />
               <Field label="TSA PreCheck Number" value={member.tsa_precheck_number ?? ""} placeholder="Enter TSA PreCheck number" onSave={(v) => onUpdate({ tsa_precheck_number: v })} />
-              <Field label="Preferred Seat" value={member.preferred_seat ?? ""} placeholder="e.g. Window, Aisle" onSave={(v) => onUpdate({ preferred_seat: v })} />
+              <SelectField label="Preferred Seat" value={member.preferred_seat ?? ""} options={["Window", "Middle", "Aisle"]} placeholder="Select seat" onSave={(v) => onUpdate({ preferred_seat: v })} />
               <Field label="Preferred Airline" value={member.preferred_airline ?? ""} placeholder="e.g. Delta, United" onSave={(v) => onUpdate({ preferred_airline: v })} />
               <Field label="Passport Name" value={member.passport_name ?? ""} placeholder="Enter passport name" onSave={(v) => onUpdate({ passport_name: v })} />
               <Field label="Dietary Restrictions" value={member.dietary_restrictions ?? ""} placeholder="Enter dietary restrictions" onSave={(v) => onUpdate({ dietary_restrictions: v })} />
@@ -206,11 +211,11 @@ function MemberCard({
               <Shirt className="h-3.5 w-3.5" /> Clothing
             </h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <Field label="Shirt Size" value={member.shirt_size ?? ""} placeholder="e.g. M, L, XL" onSave={(v) => onUpdate({ shirt_size: v })} />
+              <SelectField label="Shirt Size" value={member.shirt_size ?? ""} options={["XS", "S", "M", "L", "XL", "XXL", "XXXL"]} placeholder="Select size" onSave={(v) => onUpdate({ shirt_size: v })} />
               <Field label="Pants Size" value={member.pant_size ?? ""} placeholder="e.g. 32x30" onSave={(v) => onUpdate({ pant_size: v })} />
-              <Field label="Shoe Size" value={member.shoe_size ?? ""} placeholder="e.g. 10" onSave={(v) => onUpdate({ shoe_size: v })} />
-              <Field label="Dress Size" value={member.dress_size ?? ""} placeholder="e.g. 6, S" onSave={(v) => onUpdate({ dress_size: v })} />
-              <Field label="Hat Size" value={member.hat_size ?? ""} placeholder="e.g. 7 1/4" onSave={(v) => onUpdate({ hat_size: v })} />
+              <SelectField label="Shoe Size" value={member.shoe_size ?? ""} options={["6", "6.5", "7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", "11", "11.5", "12", "13", "14"]} placeholder="Select size" onSave={(v) => onUpdate({ shoe_size: v })} />
+              <SelectField label="Dress Size" value={member.dress_size ?? ""} options={["XS", "S", "M", "L", "XL", "0", "2", "4", "6", "8", "10", "12", "14", "16"]} placeholder="Select size" onSave={(v) => onUpdate({ dress_size: v })} />
+              <SelectField label="Hat Size" value={member.hat_size ?? ""} options={["S", "M", "L", "XL", "6 7/8", "7", "7 1/8", "7 1/4", "7 3/8", "7 1/2", "7 5/8", "7 3/4"]} placeholder="Select size" onSave={(v) => onUpdate({ hat_size: v })} />
               <div className="col-span-2 sm:col-span-3">
                 <Field label="Favorite Clothing Brands" value={member.favorite_brands ?? ""} placeholder="Enter favorite brands" onSave={(v) => onUpdate({ favorite_brands: v })} />
               </div>
@@ -224,22 +229,77 @@ function MemberCard({
 
 /* ── Reusable labeled field ── */
 function Field({
-  label,
-  value,
-  placeholder,
-  onSave,
-  as,
+  label, value, placeholder, onSave, as,
 }: {
-  label: string;
-  value: string;
-  placeholder: string;
-  onSave: (v: string) => void;
-  as?: "input" | "textarea";
+  label: string; value: string; placeholder: string; onSave: (v: string) => void; as?: "input" | "textarea";
 }) {
   return (
     <div>
       <span className="text-muted-foreground text-xs">{label}</span>
       <InlineField value={value} placeholder={placeholder} onSave={onSave} as={as} />
+    </div>
+  );
+}
+
+/* ── Select dropdown field ── */
+function SelectField({
+  label, value, options, placeholder, onSave,
+}: {
+  label: string; value: string; options: string[]; placeholder: string; onSave: (v: string) => void;
+}) {
+  return (
+    <div>
+      <span className="text-muted-foreground text-xs">{label}</span>
+      <Select value={value} onValueChange={onSave}>
+        <SelectTrigger className="w-full bg-transparent border border-border rounded-md text-foreground h-9 mt-0.5">
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent className="bg-popover border border-border z-50">
+          {options.map((opt) => (
+            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+/* ── Date picker field ── */
+function DateField({
+  label, value, onSave,
+}: {
+  label: string; value: string; onSave: (v: string) => void;
+}) {
+  const date = value ? parse(value, "yyyy-MM-dd", new Date()) : undefined;
+
+  return (
+    <div>
+      <span className="text-muted-foreground text-xs">{label}</span>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-full justify-start text-left font-normal h-9 mt-0.5 bg-transparent border-border",
+              !date && "text-muted-foreground/50"
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {date ? format(date, "PPP") : "Select date of birth"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0 bg-popover border border-border z-50" align="start">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={(d) => d && onSave(format(d, "yyyy-MM-dd"))}
+            defaultMonth={new Date(2000, 0)}
+            disabled={(d) => d > new Date()}
+            initialFocus
+            className={cn("p-3 pointer-events-auto")}
+          />
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
