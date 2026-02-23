@@ -144,7 +144,7 @@ function MemberCard({
   onUpdate: (patch: Record<string, any>) => void;
   onDelete: () => void;
 }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   const firstName = member.first_name || member.member_name || "";
   const lastName = member.last_name || "";
@@ -223,6 +223,19 @@ function MemberCard({
                 <Field label="Favorite Clothing Brands" value={member.favorite_brands ?? ""} placeholder="Enter favorite brands" onSave={(v) => onUpdate({ favorite_brands: v })} />
               </div>
             </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => {
+                setOpen(false);
+                toast.success("Saved");
+              }}
+            >
+              Save
+            </Button>
           </div>
         </div>
       )}
