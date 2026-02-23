@@ -130,30 +130,40 @@ export type Database = {
       }
       artist_links: {
         Row: {
+          artist_id: string | null
           created_at: string
           description: string | null
-          folder_id: string
+          folder_id: string | null
           id: string
           title: string
           url: string
         }
         Insert: {
+          artist_id?: string | null
           created_at?: string
           description?: string | null
-          folder_id: string
+          folder_id?: string | null
           id?: string
           title: string
           url: string
         }
         Update: {
+          artist_id?: string | null
           created_at?: string
           description?: string | null
-          folder_id?: string
+          folder_id?: string | null
           id?: string
           title?: string
           url?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "artist_links_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "artist_links_folder_id_fkey"
             columns: ["folder_id"]
