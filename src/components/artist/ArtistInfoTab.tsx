@@ -315,13 +315,21 @@ function SelectField({
   );
 }
 
-/* ── Date picker field ── */
+/* ── Date picker field with year/month dropdowns ── */
 function DateField({
   label, value, onSave,
 }: {
   label: string; value: string; onSave: (v: string) => void;
 }) {
   const date = value ? parse(value, "yyyy-MM-dd", new Date()) : undefined;
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: currentYear - 1940 + 1 }, (_, i) => currentYear - i);
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ];
+
+  const [viewMonth, setViewMonth] = useState<Date>(date ?? new Date(2000, 0));
 
   return (
     <div>
@@ -340,11 +348,40 @@ function DateField({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0 bg-popover border border-border z-50" align="start">
+          <div className="flex gap-2 px-3 pt-3">
+            <Select
+              value={String(viewMonth.getFullYear())}
+              onValueChange={(y) => setViewMonth(new Date(Number(y), viewMonth.getMonth()))}
+            >
+              <SelectTrigger className="h-8 text-xs flex-1 bg-background border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border border-border z-[60] max-h-60">
+                {years.map((y) => (
+                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={String(viewMonth.getMonth())}
+              onValueChange={(m) => setViewMonth(new Date(viewMonth.getFullYear(), Number(m)))}
+            >
+              <SelectTrigger className="h-8 text-xs flex-1 bg-background border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border border-border z-[60]">
+                {months.map((m, i) => (
+                  <SelectItem key={m} value={String(i)}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <Calendar
             mode="single"
             selected={date}
+            month={viewMonth}
+            onMonthChange={setViewMonth}
             onSelect={(d) => d && onSave(format(d, "yyyy-MM-dd"))}
-            defaultMonth={new Date(2000, 0)}
             disabled={(d) => d > new Date()}
             initialFocus
             className={cn("p-3 pointer-events-auto")}
