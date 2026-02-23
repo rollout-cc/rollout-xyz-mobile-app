@@ -64,20 +64,36 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Fetch artist info
+    // Fetch artist info from API
     const artistResp = await fetchWithRetry(`https://api.spotify.com/v1/artists/${spotifyId}`);
     if (!artistResp.ok) throw new Error("Spotify artist error: " + artistResp.status);
     const artist = await artistResp.json();
 
-    // Spotify Web API doesn't directly expose header banner images.
-    // We use the largest profile image as banner.
     const images = artist.images ?? [];
     const largestImage = images.length > 0 ? images[0].url : null;
+
+    // Scrape monthly listeners from Spotify's public artist page
+    let monthlyListeners = 0;
+    try {
+      const pageResp = await fetch(`https://open.spotify.com/artist/${spotifyId}`, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; bot)" },
+      });
+      if (pageResp.ok) {
+        const html = await pageResp.text();
+        // Look for monthly listeners in the page source
+        const match = html.match(/"monthlyListeners"\s*:\s*(\d+)/);
+        if (match) {
+          monthlyListeners = parseInt(match[1], 10);
+        }
+      }
+    } catch (e) {
+      console.warn("Could not scrape monthly listeners:", e);
+    }
 
     return new Response(JSON.stringify({
       id: artist.id,
       name: artist.name,
-      monthly_listeners: artist.followers?.total ?? 0, // Fallback to followers as API doesn't have listeners
+      monthly_listeners: monthlyListeners || (artist.followers?.total ?? 0),
       followers: artist.followers?.total ?? 0,
       genres: artist.genres ?? [],
       images,
