@@ -58,12 +58,22 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const token = await getSpotifyToken();
+    let token = await getSpotifyToken();
     const spotifyUrl = "https://api.spotify.com/v1/search?q=" + encodeURIComponent(query) + "&type=artist&limit=8";
 
-    const resp = await fetch(spotifyUrl, {
+    let resp = await fetch(spotifyUrl, {
       headers: { Authorization: "Bearer " + token },
     });
+
+    // If 401/403, clear cached token and retry once with a fresh token
+    if (resp.status === 401 || resp.status === 403) {
+      cachedToken = null;
+      tokenExpiresAt = 0;
+      token = await getSpotifyToken();
+      resp = await fetch(spotifyUrl, {
+        headers: { Authorization: "Bearer " + token },
+      });
+    }
 
     if (!resp.ok) {
       const text = await resp.text();
