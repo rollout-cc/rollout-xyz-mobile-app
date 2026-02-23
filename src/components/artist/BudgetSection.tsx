@@ -6,6 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+function formatWithCommas(value: string): string {
+  if (!value) return "";
+  const parts = value.split(".");
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return parts.join(".");
+}
+
 interface BudgetSectionProps {
   artistId: string;
 }
@@ -107,17 +114,17 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
                   setEditState(prev => ({ ...prev, [b.id]: { ...(prev[b.id] || { label: b.label, amount: String(b.amount) }), label: e.target.value } }));
                 }}
                 onBlur={() => { if (editing) saveEdit(b.id); }}
-                className="flex-1 border-transparent hover:border-input focus:border-input transition-colors h-9"
+                className="flex-1 basis-0 border-transparent hover:border-input focus:border-input transition-colors h-9"
               />
               <Input
-                value={editing ? editing.amount : `$${Number(b.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
+                value={editing ? formatWithCommas(editing.amount) : `$${Number(b.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
                 onChange={(e) => {
                   if (!editing) startEdit(b);
                   const val = e.target.value.replace(/[^0-9.]/g, "");
                   setEditState(prev => ({ ...prev, [b.id]: { ...(prev[b.id] || { label: b.label, amount: String(b.amount) }), amount: val } }));
                 }}
                 onBlur={() => { if (editing) saveEdit(b.id); }}
-                className="w-40 border-transparent hover:border-input focus:border-input transition-colors h-9 text-right"
+                className="flex-1 basis-0 border-transparent hover:border-input focus:border-input transition-colors h-9 text-right"
               />
               <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 h-8 w-8" onClick={() => deleteBudget.mutate(b.id)}>
                 <Trash2 className="h-3.5 w-3.5" />
@@ -133,14 +140,14 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
             placeholder="Label"
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
-            className="flex-1 h-9"
+            className="flex-1 basis-0 h-9"
             autoFocus
           />
           <Input
             placeholder="$0.00"
-            value={newAmount}
+            value={formatWithCommas(newAmount)}
             onChange={(e) => setNewAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-            className="w-40 h-9 text-right"
+            className="flex-1 basis-0 h-9 text-right"
             onKeyDown={(e) => { if (e.key === "Enter" && newLabel.trim()) addBudget.mutate(); }}
           />
           <Button size="sm" className="h-9" onClick={() => addBudget.mutate()} disabled={!newLabel.trim()}>Add</Button>
