@@ -54,7 +54,7 @@ export function InlineField({
     onBlur: commit,
     onKeyDown: handleKeyDown,
     placeholder,
-    className: `w-full bg-transparent border border-transparent rounded-md outline-none text-foreground py-1.5 px-2 hover:border-input focus:border-input focus:ring-1 focus:ring-ring transition-colors ${inputClassName} ${className}`,
+    className: `w-full bg-transparent border border-border rounded-md outline-none text-foreground py-1.5 px-2 focus:border-ring focus:ring-1 focus:ring-ring transition-colors placeholder:text-muted-foreground/50 ${inputClassName} ${className}`,
   };
 
   return as === "textarea" ? (
