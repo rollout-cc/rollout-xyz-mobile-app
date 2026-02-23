@@ -146,30 +146,7 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold">Budget Categories</h3>
-          <Button variant="ghost" size="sm" onClick={() => setShowAdd(!showAdd)}>
-            <Plus className="h-4 w-4 mr-1" /> Add Category
-          </Button>
         </div>
-
-        {showAdd && (
-          <div className="flex items-center gap-3 mb-4">
-            <Input
-              placeholder="Category name"
-              value={newLabel}
-              onChange={(e) => setNewLabel(e.target.value)}
-              className="flex-1 basis-0 h-9"
-              autoFocus
-            />
-            <Input
-              placeholder="$0.00"
-              value={formatWithCommas(newAmount)}
-              onChange={(e) => setNewAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-              className="flex-1 basis-0 h-9 text-right"
-              onKeyDown={(e) => { if (e.key === "Enter" && newLabel.trim()) addBudget.mutate(); }}
-            />
-            <Button size="sm" className="h-9" onClick={() => addBudget.mutate()} disabled={!newLabel.trim()}>Add</Button>
-          </div>
-        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {budgets.map((b: any) => {
@@ -239,6 +216,38 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
               </div>
             );
           })}
+
+          {/* Add Category card */}
+          {showAdd ? (
+            <div className="rounded-lg border border-dashed border-border bg-card p-4 space-y-3">
+              <Input
+                placeholder="Category name"
+                value={newLabel}
+                onChange={(e) => setNewLabel(e.target.value)}
+                className="h-9"
+                autoFocus
+              />
+              <Input
+                placeholder="$0.00"
+                value={formatWithCommas(newAmount)}
+                onChange={(e) => setNewAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+                className="h-9"
+                onKeyDown={(e) => { if (e.key === "Enter" && newLabel.trim()) addBudget.mutate(); }}
+              />
+              <div className="flex gap-2">
+                <Button size="sm" className="h-8 flex-1" onClick={() => addBudget.mutate()} disabled={!newLabel.trim()}>Add</Button>
+                <Button size="sm" variant="ghost" className="h-8" onClick={() => { setShowAdd(false); setNewLabel(""); setNewAmount(""); }}>Cancel</Button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowAdd(true)}
+              className="rounded-lg border border-dashed border-border bg-card p-4 flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors min-h-[120px]"
+            >
+              <Plus className="h-5 w-5" />
+              <span className="font-medium">Add Category</span>
+            </button>
+          )}
         </div>
       </div>
     </div>
