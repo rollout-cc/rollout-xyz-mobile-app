@@ -1,9 +1,9 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, ChevronDown, ChevronUp, Hash, FolderPlus, ListPlus, Calendar, DollarSign, User } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronUp, FolderPlus, ListPlus, Calendar, DollarSign, User } from "lucide-react";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
 
@@ -17,6 +17,7 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
   const [showCompleted, setShowCompleted] = useState(false);
   const [expandedCampaigns, setExpandedCampaigns] = useState<Record<string, boolean>>({});
   const [activeExpanded, setActiveExpanded] = useState(true);
+  const [newCampaignId, setNewCampaignId] = useState<string | null>(null);
 
   const { data: campaigns = [] } = useQuery({
     queryKey: ["initiatives", artistId],
@@ -45,10 +46,19 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
     setExpandedCampaigns(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
+  // When a new campaign is created, expand it and focus its task input
+  useEffect(() => {
+    if (newCampaignId && campaigns.some((c: any) => c.id === newCampaignId)) {
+      setExpandedCampaigns(prev => ({ ...prev, [newCampaignId]: true }));
+      // Clear after a tick so the task input can auto-focus
+      setTimeout(() => setNewCampaignId(null), 100);
+    }
+  }, [newCampaignId, campaigns]);
+
   const isEmpty = campaigns.length === 0 && tasks.length === 0;
 
   if (isEmpty) {
-    return <EmptyWorkState artistId={artistId} teamId={teamId} />;
+    return <EmptyWorkState artistId={artistId} teamId={teamId} onCampaignCreated={setNewCampaignId} />;
   }
 
   return (
@@ -58,7 +68,7 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
           <input type="checkbox" checked={showCompleted} onChange={(e) => setShowCompleted(e.target.checked)} className="rounded" />
           Show Completed
         </label>
-        <NewCampaignInline artistId={artistId} />
+        <NewCampaignInline artistId={artistId} onCreated={setNewCampaignId} />
       </div>
 
       {/* Active Tasks */}
@@ -71,7 +81,7 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
           <div className="p-4">
             <InlineTaskInput artistId={artistId} teamId={teamId} campaigns={campaigns} />
             {unsortedTasks.map((t: any) => (
-              <TaskRow key={t.id} task={t} artistId={artistId} />
+              <TaskRow key={t.id} task={t} artistId={artistId} campaigns={campaigns} />
             ))}
           </div>
         )}
@@ -81,6 +91,7 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
       {campaigns.map((c: any) => {
         const cTasks = campaignTasks(c.id);
         const isExpanded = expandedCampaigns[c.id] ?? true;
+        const isNewlyCreated = newCampaignId === c.id;
         return (
           <div key={c.id} className="border border-border rounded-lg mb-3 overflow-hidden">
             <button onClick={() => toggleCampaign(c.id)} className="flex items-center justify-between w-full px-4 py-3 text-left bg-muted/50 hover:bg-muted transition-colors">
@@ -92,9 +103,9 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
             </button>
             {isExpanded && (
               <div className="p-4">
-                <InlineTaskInput artistId={artistId} teamId={teamId} campaigns={campaigns} defaultCampaignId={c.id} />
-                {cTasks.map((t: any) => <TaskRow key={t.id} task={t} artistId={artistId} />)}
-                {cTasks.length === 0 && <p className="text-sm text-muted-foreground py-2">No tasks yet.</p>}
+                <InlineTaskInput artistId={artistId} teamId={teamId} campaigns={campaigns} defaultCampaignId={c.id} autoFocus={isNewlyCreated} />
+                {cTasks.map((t: any) => <TaskRow key={t.id} task={t} artistId={artistId} campaigns={campaigns} />)}
+                {cTasks.length === 0 && !isNewlyCreated && <p className="text-sm text-muted-foreground py-2">No tasks yet.</p>}
               </div>
             )}
           </div>
@@ -106,7 +117,7 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
         <div className="border border-border rounded-lg mb-3 overflow-hidden">
           <div className="px-4 py-3 bg-muted/50"><span className="text-lg font-bold text-muted-foreground">Completed <span className="font-normal text-sm ml-2 bg-muted px-2 py-0.5 rounded-full">{completedTasks.length}</span></span></div>
           <div className="p-4">
-            {completedTasks.map((t: any) => <TaskRow key={t.id} task={t} artistId={artistId} />)}
+            {completedTasks.map((t: any) => <TaskRow key={t.id} task={t} artistId={artistId} campaigns={campaigns} />)}
           </div>
         </div>
       )}
@@ -114,19 +125,21 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
   );
 }
 
-/* Empty state with prominent New Campaign / New Task buttons */
-function EmptyWorkState({ artistId, teamId }: { artistId: string; teamId: string }) {
+/* Empty state */
+function EmptyWorkState({ artistId, teamId, onCampaignCreated }: { artistId: string; teamId: string; onCampaignCreated: (id: string) => void }) {
   const queryClient = useQueryClient();
   const campaignInputRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<"idle" | "campaign" | "task">("idle");
 
   const createCampaign = useMutation({
     mutationFn: async (name: string) => {
-      const { error } = await supabase.from("initiatives").insert({ artist_id: artistId, name: name.trim() });
+      const { data, error } = await supabase.from("initiatives").insert({ artist_id: artistId, name: name.trim() }).select().single();
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["initiatives", artistId] });
+      onCampaignCreated(data.id);
       setMode("idle");
       toast.success("Campaign created");
     },
@@ -210,17 +223,100 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
   const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(!!autoFocus);
 
+  // Dropdown state
+  const [showAtDropdown, setShowAtDropdown] = useState(false);
+  const [showDollarDropdown, setShowDollarDropdown] = useState(false);
+  const [atQuery, setAtQuery] = useState("");
+  const [dollarAmount, setDollarAmount] = useState("");
+
+  // Fetch team members for @ mentions
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ["team-members", teamId],
+    queryFn: async () => {
+      const { data: memberships, error } = await supabase
+        .from("team_memberships")
+        .select("user_id, role")
+        .eq("team_id", teamId);
+      if (error) throw error;
+      if (!memberships || memberships.length === 0) return [];
+      const userIds = memberships.map((m: any) => m.user_id);
+      const { data: profiles, error: pErr } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url")
+        .in("id", userIds);
+      if (pErr) throw pErr;
+      return (profiles || []).map((p: any) => ({
+        ...p,
+        role: memberships.find((m: any) => m.user_id === p.id)?.role,
+      }));
+    },
+    enabled: !!teamId,
+  });
+
+  // Fetch budgets for $ dropdown
+  const { data: budgets = [] } = useQuery({
+    queryKey: ["budgets", artistId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("budgets").select("*").eq("artist_id", artistId).order("created_at");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   useEffect(() => {
     if (autoFocus) inputRef.current?.focus();
   }, [autoFocus]);
 
+  // Detect @ and $ triggers in input
+  useEffect(() => {
+    const atMatch = value.match(/@(\w*)$/);
+    if (atMatch) {
+      setShowAtDropdown(true);
+      setAtQuery(atMatch[1].toLowerCase());
+      setShowDollarDropdown(false);
+    } else {
+      setShowAtDropdown(false);
+      setAtQuery("");
+    }
+
+    const dollarMatch = value.match(/\$(\d*(?:,\d{3})*(?:\.\d{0,2})?)$/);
+    if (dollarMatch) {
+      setShowDollarDropdown(true);
+      setDollarAmount(dollarMatch[1]);
+      setShowAtDropdown(false);
+    } else {
+      setShowDollarDropdown(false);
+      setDollarAmount("");
+    }
+  }, [value]);
+
+  const filteredMembers = useMemo(() => {
+    if (!atQuery) return teamMembers;
+    return teamMembers.filter((m: any) => m.full_name?.toLowerCase().includes(atQuery));
+  }, [teamMembers, atQuery]);
+
+  const selectMember = (member: any) => {
+    const name = member.full_name || "Unknown";
+    setValue(prev => prev.replace(/@\w*$/, `@${name} `));
+    setShowAtDropdown(false);
+    inputRef.current?.focus();
+  };
+
+  const selectBudget = (budget: any, amount: string) => {
+    const amountStr = amount || "0";
+    setValue(prev => prev.replace(/\$[\d,]*\.?\d*$/, `$${amountStr} `));
+    setShowDollarDropdown(false);
+    inputRef.current?.focus();
+  };
+
   const addTask = useMutation({
-    mutationFn: async (parsed: { title: string; description?: string; due_date?: string; expense_amount?: number; initiative_id?: string }) => {
+    mutationFn: async (parsed: { title: string; description?: string; due_date?: string; expense_amount?: number; initiative_id?: string; assigned_to?: string }) => {
       const { error } = await supabase.from("tasks").insert({
         artist_id: artistId, team_id: teamId, title: parsed.title,
         description: parsed.description || null,
         due_date: parsed.due_date || null, expense_amount: parsed.expense_amount || null,
         initiative_id: parsed.initiative_id || defaultCampaignId || null,
+        assigned_to: parsed.assigned_to || null,
       });
       if (error) throw error;
     },
@@ -239,9 +335,19 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
     let due_date: string | undefined;
     let expense_amount: number | undefined;
     let initiative_id: string | undefined;
+    let assigned_to: string | undefined;
 
-    const dollarMatch = title.match(/\$(\d+(?:,\d{3})*(?:\.\d{2})?)/);
-    if (dollarMatch) { expense_amount = parseFloat(dollarMatch[1].replace(/,/g, "")); title = title.replace(dollarMatch[0], "").trim(); }
+    // Parse @mention -> assigned_to
+    const atMentionMatch = title.match(/@(\S+(?:\s\S+)?)/);
+    if (atMentionMatch) {
+      const mentionName = atMentionMatch[1].toLowerCase();
+      const found = teamMembers.find((m: any) => m.full_name?.toLowerCase().startsWith(mentionName));
+      if (found) assigned_to = found.id;
+      title = title.replace(atMentionMatch[0], "").trim();
+    }
+
+    const dollarMatchParse = title.match(/\$(\d+(?:,\d{3})*(?:\.\d{2})?)/);
+    if (dollarMatchParse) { expense_amount = parseFloat(dollarMatchParse[1].replace(/,/g, "")); title = title.replace(dollarMatchParse[0], "").trim(); }
 
     const hashMatch = title.match(/#(\S+)/);
     if (hashMatch) {
@@ -260,10 +366,11 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
       title = title.replace(dateMatch[0], "").trim();
     }
 
-    addTask.mutate({ title, description: description.trim() || undefined, due_date, expense_amount, initiative_id });
-  }, [value, description, campaigns, addTask]);
+    addTask.mutate({ title, description: description.trim() || undefined, due_date, expense_amount, initiative_id, assigned_to });
+  }, [value, description, campaigns, teamMembers, addTask]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (showAtDropdown || showDollarDropdown) return; // let dropdown handle
     if (e.key === "Enter" && value.trim()) { e.preventDefault(); parseAndSubmit(); }
     if (e.key === "Escape") { setValue(""); setDescription(""); setIsActive(false); inputRef.current?.blur(); }
   };
@@ -275,11 +382,11 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
   };
 
   return (
-    <div className="mb-4">
+    <div className="mb-4 relative">
       <div className={`rounded-lg border transition-colors ${isActive ? "border-border bg-card shadow-sm" : "border-dashed border-border hover:border-foreground/30"}`}>
         <div className="flex items-start gap-3 p-3">
           <Checkbox disabled className="opacity-30 mt-1" />
-          <div className="flex-1">
+          <div className="flex-1 relative">
             <input
               ref={inputRef}
               value={value}
@@ -289,6 +396,42 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
               placeholder="Task name (use @ to assign, # to pick campaign, $ for budget, 'due tomorrow')"
               className="w-full bg-transparent text-base outline-none placeholder:text-muted-foreground/60"
             />
+
+            {/* @ Team Member Dropdown */}
+            {showAtDropdown && filteredMembers.length > 0 && (
+              <div className="absolute left-0 top-full mt-1 bg-background border border-border rounded-lg shadow-lg z-50 min-w-[200px] py-1">
+                {filteredMembers.map((m: any) => (
+                  <button
+                    key={m.id}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
+                    onMouseDown={(e) => { e.preventDefault(); selectMember(m); }}
+                  >
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span>{m.full_name || "Unknown"}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* $ Budget Dropdown */}
+            {showDollarDropdown && budgets.length > 0 && (
+              <div className="absolute left-0 top-full mt-1 bg-background border border-border rounded-lg shadow-lg z-50 min-w-[220px] py-1">
+                {budgets.map((b: any) => (
+                  <button
+                    key={b.id}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      selectBudget(b, dollarAmount || String(b.amount));
+                    }}
+                  >
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <span>${dollarAmount || b.amount.toLocaleString()} {b.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
             {isActive && (
               <>
                 <input
@@ -300,10 +443,9 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
                   className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/40 mt-2"
                 />
                 <div className="flex items-center gap-3 mt-3 text-muted-foreground">
-                  <button className="hover:text-foreground transition-colors" title="Assign"><User className="h-4 w-4" /></button>
-                  <button className="hover:text-foreground transition-colors" title="Due date"><Calendar className="h-4 w-4" /></button>
-                  <button className="hover:text-foreground transition-colors" title="Campaign"><Hash className="h-4 w-4" /></button>
-                  <button className="hover:text-foreground transition-colors" title="Cost"><DollarSign className="h-4 w-4" /></button>
+                  <button className="hover:text-foreground transition-colors" title="Assign" onClick={() => { setValue(prev => prev + "@"); inputRef.current?.focus(); }}><User className="h-4 w-4" /></button>
+                  <button className="hover:text-foreground transition-colors" title="Due date" onClick={() => { setValue(prev => prev + " due "); inputRef.current?.focus(); }}><Calendar className="h-4 w-4" /></button>
+                  <button className="hover:text-foreground transition-colors" title="Cost" onClick={() => { setValue(prev => prev + "$"); inputRef.current?.focus(); }}><DollarSign className="h-4 w-4" /></button>
                 </div>
               </>
             )}
@@ -320,7 +462,7 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
   );
 }
 
-function TaskRow({ task, artistId }: { task: any; artistId: string }) {
+function TaskRow({ task, artistId, campaigns }: { task: any; artistId: string; campaigns: any[] }) {
   const queryClient = useQueryClient();
 
   const toggleTask = useMutation({
@@ -349,50 +491,80 @@ function TaskRow({ task, artistId }: { task: any; artistId: string }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks", artistId] }),
   });
 
+  // Get assignee name
+  const { data: assignee } = useQuery({
+    queryKey: ["profile", task.assigned_to],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("full_name").eq("id", task.assigned_to).single();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!task.assigned_to,
+  });
+
+  const campaign = campaigns.find((c: any) => c.id === task.initiative_id);
+
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-accent/50 group border-b border-border last:border-b-0">
-      <Checkbox checked={task.is_completed} onCheckedChange={() => toggleTask.mutate()} />
-      <div className={`flex-1 text-base ${task.is_completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
-        <InlineField value={task.title} onSave={(v) => updateTask.mutate({ title: v })} className="text-base" />
+    <div className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-accent/50 group border-b border-border last:border-b-0">
+      <Checkbox checked={task.is_completed} onCheckedChange={() => toggleTask.mutate()} className="mt-0.5" />
+      <div className="flex-1 min-w-0">
+        <div className={`text-base ${task.is_completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
+          <InlineField value={task.title} onSave={(v) => updateTask.mutate({ title: v })} className="text-base" />
+        </div>
+        {/* Metadata badges */}
+        <div className="flex flex-wrap items-center gap-2 mt-1">
+          {assignee?.full_name && (
+            <span className="inline-flex items-center gap-1 text-xs bg-muted px-2 py-0.5 rounded-full">
+              <User className="h-3 w-3" /> {assignee.full_name}
+            </span>
+          )}
+          {campaign && (
+            <span className="inline-flex items-center gap-1 text-xs bg-muted px-2 py-0.5 rounded-full">
+              # {campaign.name}
+            </span>
+          )}
+          {task.due_date && (
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <Calendar className="h-3 w-3" />
+              <InlineField value={task.due_date} onSave={(v) => updateTask.mutate({ due_date: v || null })} className="text-xs text-muted-foreground" />
+            </span>
+          )}
+          {task.expense_amount != null && task.expense_amount > 0 && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground">
+              <DollarSign className="h-3 w-3" />
+              <InlineField
+                value={`${task.expense_amount.toLocaleString()}`}
+                onSave={(v) => {
+                  const num = parseFloat(v.replace(/[^0-9.]/g, ""));
+                  updateTask.mutate({ expense_amount: isNaN(num) ? null : num });
+                }}
+                className="text-xs font-medium w-16 text-right"
+              />
+            </span>
+          )}
+        </div>
       </div>
-      {task.due_date && (
-        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Calendar className="h-3 w-3" />
-          <InlineField value={task.due_date} onSave={(v) => updateTask.mutate({ due_date: v || null })} className="text-xs text-muted-foreground" />
-        </span>
-      )}
-      {task.expense_amount != null && task.expense_amount > 0 && (
-        <span className="flex items-center gap-1 text-xs font-medium text-foreground">
-          <DollarSign className="h-3 w-3" />
-          <InlineField
-            value={`${task.expense_amount.toLocaleString()}`}
-            onSave={(v) => {
-              const num = parseFloat(v.replace(/[^0-9.]/g, ""));
-              updateTask.mutate({ expense_amount: isNaN(num) ? null : num });
-            }}
-            className="text-xs font-medium w-16 text-right"
-          />
-        </span>
-      )}
-      <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 h-7 w-7" onClick={() => deleteTask.mutate()}>
+      <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 h-7 w-7 shrink-0" onClick={() => deleteTask.mutate()}>
         <Trash2 className="h-3.5 w-3.5" />
       </Button>
     </div>
   );
 }
 
-function NewCampaignInline({ artistId }: { artistId: string }) {
+function NewCampaignInline({ artistId, onCreated }: { artistId: string; onCreated: (id: string) => void }) {
   const queryClient = useQueryClient();
   const [show, setShow] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const create = useMutation({
     mutationFn: async (name: string) => {
-      const { error } = await supabase.from("initiatives").insert({ artist_id: artistId, name: name.trim() });
+      const { data, error } = await supabase.from("initiatives").insert({ artist_id: artistId, name: name.trim() }).select().single();
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["initiatives", artistId] });
+      onCreated(data.id);
       setShow(false);
       toast.success("Campaign created");
     },
