@@ -108,83 +108,139 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
     });
   };
 
+  const spentPerBudget = budgets.reduce((acc: Record<string, number>, b: any) => {
+    acc[b.id] = 0;
+    return acc;
+  }, {});
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold">Artist Budget</h3>
-        <Button variant="ghost" size="sm" onClick={() => setShowAdd(!showAdd)}>
-          <Plus className="h-4 w-4 mr-1" /> Add Budget
-        </Button>
-      </div>
-
-      <div className="space-y-1">
-        {budgets.map((b: any) => {
-          const editing = editState[b.id];
-          return (
-            <div key={b.id} className="flex items-center gap-3 group">
-              <Input
-                value={editing ? editing.label : b.label}
-                onChange={(e) => {
-                  if (!editing) startEdit(b);
-                  setEditState(prev => ({ ...prev, [b.id]: { ...(prev[b.id] || { label: b.label, amount: String(b.amount) }), label: e.target.value } }));
-                }}
-                onBlur={() => { if (editing) saveEdit(b.id); }}
-                className="flex-1 basis-0 border-transparent hover:border-input focus:border-input transition-colors h-9"
-              />
-              <Input
-                value={editing ? formatWithCommas(editing.amount) : `$${Number(b.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
-                onChange={(e) => {
-                  if (!editing) startEdit(b);
-                  const val = e.target.value.replace(/[^0-9.]/g, "");
-                  setEditState(prev => ({ ...prev, [b.id]: { ...(prev[b.id] || { label: b.label, amount: String(b.amount) }), amount: val } }));
-                }}
-                onBlur={() => { if (editing) saveEdit(b.id); }}
-                className="flex-1 basis-0 border-transparent hover:border-input focus:border-input transition-colors h-9 text-right"
-              />
-              <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 h-8 w-8" onClick={() => deleteBudget.mutate(b.id)}>
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          );
-        })}
-      </div>
-
-      {showAdd && (
-        <div className="flex items-center gap-3 mt-2">
-          <Input
-            placeholder="Label"
-            value={newLabel}
-            onChange={(e) => setNewLabel(e.target.value)}
-            className="flex-1 basis-0 h-9"
-            autoFocus
-          />
-          <Input
-            placeholder="$0.00"
-            value={formatWithCommas(newAmount)}
-            onChange={(e) => setNewAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-            className="flex-1 basis-0 h-9 text-right"
-            onKeyDown={(e) => { if (e.key === "Enter" && newLabel.trim()) addBudget.mutate(); }}
-          />
-          <Button size="sm" className="h-9" onClick={() => addBudget.mutate()} disabled={!newLabel.trim()}>Add</Button>
-        </div>
-      )}
-
+    <div className="space-y-6">
+      {/* Summary Cards */}
       {budgets.length > 0 && (
-        <div className="mt-4 pt-3 border-t border-border space-y-1">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Total Budget</span>
-            <span className="font-semibold">${totalBudget.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <span className="text-sm text-muted-foreground">Total Budget</span>
+            <div className="mt-1 flex items-baseline gap-1">
+              <span className="text-xs text-muted-foreground">$</span>
+              <span className="text-2xl font-bold tracking-tight">{totalBudget.toLocaleString("en-US")}</span>
+            </div>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Total Spent</span>
-            <span className="font-semibold text-destructive">${totalSpent.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+          <div className="rounded-lg border border-border bg-card p-4">
+            <span className="text-sm text-muted-foreground">Total Spending</span>
+            <div className="mt-1 flex items-baseline gap-1">
+              <span className="text-xs text-destructive">$</span>
+              <span className="text-2xl font-bold tracking-tight text-destructive">{totalSpent.toLocaleString("en-US")}</span>
+            </div>
           </div>
-          <div className="flex justify-between text-sm pt-1 border-t border-border">
-            <span className="text-muted-foreground">Remaining</span>
-            <span className={`font-bold ${remaining >= 0 ? "text-emerald-600" : "text-destructive"}`}>${remaining.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+          <div className="rounded-lg border border-border bg-card p-4">
+            <span className="text-sm text-muted-foreground">Remaining Budget</span>
+            <div className="mt-1 flex items-baseline gap-1">
+              <span className={`text-xs ${remaining >= 0 ? "text-emerald-600" : "text-destructive"}`}>$</span>
+              <span className={`text-2xl font-bold tracking-tight ${remaining >= 0 ? "text-emerald-600" : "text-destructive"}`}>{remaining.toLocaleString("en-US")}</span>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Category Cards */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold">Budget Categories</h3>
+          <Button variant="ghost" size="sm" onClick={() => setShowAdd(!showAdd)}>
+            <Plus className="h-4 w-4 mr-1" /> Add Category
+          </Button>
+        </div>
+
+        {showAdd && (
+          <div className="flex items-center gap-3 mb-4">
+            <Input
+              placeholder="Category name"
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              className="flex-1 basis-0 h-9"
+              autoFocus
+            />
+            <Input
+              placeholder="$0.00"
+              value={formatWithCommas(newAmount)}
+              onChange={(e) => setNewAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              className="flex-1 basis-0 h-9 text-right"
+              onKeyDown={(e) => { if (e.key === "Enter" && newLabel.trim()) addBudget.mutate(); }}
+            />
+            <Button size="sm" className="h-9" onClick={() => addBudget.mutate()} disabled={!newLabel.trim()}>Add</Button>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {budgets.map((b: any) => {
+            const editing = editState[b.id];
+            const amount = Number(b.amount);
+            const pct = amount > 0 ? Math.min((totalSpent / totalBudget) * (amount / totalBudget) * 100 * budgets.length, 100) : 0;
+            const barColor = pct >= 100 ? "bg-destructive" : pct >= 75 ? "bg-warning" : "bg-success";
+
+            return (
+              <div key={b.id} className="rounded-lg border border-border bg-card p-4 space-y-3 group relative">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 h-7 w-7"
+                  onClick={() => deleteBudget.mutate(b.id)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+
+                {editing ? (
+                  <Input
+                    value={editing.label}
+                    onChange={(e) => setEditState(prev => ({ ...prev, [b.id]: { ...prev[b.id], label: e.target.value } }))}
+                    onBlur={() => saveEdit(b.id)}
+                    className="font-semibold text-lg border-border h-8 px-1"
+                    autoFocus
+                  />
+                ) : (
+                  <h4
+                    className="font-semibold text-lg cursor-pointer hover:text-primary transition-colors pr-8"
+                    onClick={() => startEdit(b)}
+                  >
+                    {b.label}
+                  </h4>
+                )}
+
+                <div className="flex items-baseline gap-1">
+                  <span className="text-xs text-muted-foreground">$</span>
+                  {editing ? (
+                    <Input
+                      value={formatWithCommas(editing.amount)}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9.]/g, "");
+                        setEditState(prev => ({ ...prev, [b.id]: { ...prev[b.id], amount: val } }));
+                      }}
+                      onBlur={() => saveEdit(b.id)}
+                      className="font-semibold text-lg border-border h-8 px-1 w-28"
+                    />
+                  ) : (
+                    <span
+                      className="font-semibold text-lg cursor-pointer hover:text-primary transition-colors"
+                      onClick={() => startEdit(b)}
+                    >
+                      {amount.toLocaleString("en-US")}
+                    </span>
+                  )}
+                  <span className="text-xs text-muted-foreground">/{totalBudget.toLocaleString("en-US")}</span>
+                </div>
+
+                {/* Progress bar */}
+                <div className="w-full h-2.5 bg-secondary rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${barColor}`}
+                    style={{ width: `${(amount / totalBudget) * 100}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
