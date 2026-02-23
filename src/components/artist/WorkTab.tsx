@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -119,7 +119,6 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
 function EmptyWorkState({ artistId, teamId }: { artistId: string; teamId: string }) {
   const queryClient = useQueryClient();
   const campaignInputRef = useRef<HTMLInputElement>(null);
-  const taskInputRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<"idle" | "campaign" | "task">("idle");
 
   const createCampaign = useMutation({
@@ -135,53 +134,36 @@ function EmptyWorkState({ artistId, teamId }: { artistId: string; teamId: string
     onError: (e: any) => toast.error(e.message),
   });
 
-  const createTask = useMutation({
-    mutationFn: async (title: string) => {
-      const { error } = await supabase.from("tasks").insert({ artist_id: artistId, team_id: teamId, title: title.trim() });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
-      setMode("idle");
-      toast.success("Task created");
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
-
   if (mode === "campaign") {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <input
-          ref={campaignInputRef}
-          autoFocus
-          placeholder="Campaign name, press Enter"
-          className="text-lg bg-transparent border-b-2 border-primary outline-none py-2 px-1 w-72 text-center text-foreground placeholder:text-muted-foreground"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) createCampaign.mutate((e.target as HTMLInputElement).value);
-            if (e.key === "Escape") setMode("idle");
-          }}
-          onBlur={() => setMode("idle")}
-        />
-        <p className="text-sm text-muted-foreground">Press Enter to create</p>
+      <div className="mt-4">
+        <div className="border border-border rounded-lg overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 bg-muted/50">
+            <Hash className="h-4 w-4 text-muted-foreground" />
+            <input
+              ref={campaignInputRef}
+              autoFocus
+              placeholder="Campaign name"
+              className="flex-1 bg-transparent text-lg font-bold outline-none placeholder:text-muted-foreground/60"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) createCampaign.mutate((e.target as HTMLInputElement).value);
+                if (e.key === "Escape") setMode("idle");
+              }}
+              onBlur={(e) => { if (!e.target.value.trim()) setMode("idle"); }}
+            />
+          </div>
+          <div className="p-4">
+            <p className="text-sm text-muted-foreground">Press Enter to create campaign</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (mode === "task") {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <input
-          ref={taskInputRef}
-          autoFocus
-          placeholder="Task name, press Enter"
-          className="text-lg bg-transparent border-b-2 border-primary outline-none py-2 px-1 w-72 text-center text-foreground placeholder:text-muted-foreground"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) createTask.mutate((e.target as HTMLInputElement).value);
-            if (e.key === "Escape") setMode("idle");
-          }}
-          onBlur={() => setMode("idle")}
-        />
-        <p className="text-sm text-muted-foreground">Press Enter to create</p>
+      <div className="mt-4">
+        <InlineTaskInput artistId={artistId} teamId={teamId} campaigns={[]} autoFocus />
       </div>
     );
   }
@@ -193,7 +175,7 @@ function EmptyWorkState({ artistId, teamId }: { artistId: string; teamId: string
         <Button variant="default" size="lg" className="gap-2 text-base" onClick={() => { setMode("campaign"); setTimeout(() => campaignInputRef.current?.focus(), 50); }}>
           <FolderPlus className="h-5 w-5" /> New Campaign
         </Button>
-        <Button variant="outline" size="lg" className="gap-2 text-base" onClick={() => { setMode("task"); setTimeout(() => taskInputRef.current?.focus(), 50); }}>
+        <Button variant="outline" size="lg" className="gap-2 text-base" onClick={() => setMode("task")}>
           <ListPlus className="h-5 w-5" /> New Task
         </Button>
       </div>
@@ -220,15 +202,19 @@ function CampaignName({ campaign, artistId }: { campaign: any; artistId: string 
   );
 }
 
-function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId }: {
-  artistId: string; teamId: string; campaigns: any[]; defaultCampaignId?: string;
+function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoFocus }: {
+  artistId: string; teamId: string; campaigns: any[]; defaultCampaignId?: string; autoFocus?: boolean;
 }) {
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const descRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
   const [description, setDescription] = useState("");
-  const [isActive, setIsActive] = useState(false);
+  const [isActive, setIsActive] = useState(!!autoFocus);
+
+  useEffect(() => {
+    if (autoFocus) inputRef.current?.focus();
+  }, [autoFocus]);
 
   const addTask = useMutation({
     mutationFn: async (parsed: { title: string; description?: string; due_date?: string; expense_amount?: number; initiative_id?: string }) => {
