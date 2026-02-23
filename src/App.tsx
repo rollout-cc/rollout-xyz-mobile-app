@@ -9,6 +9,7 @@ import Login from "./pages/Login";
 import Onboarding from "./pages/Onboarding";
 import Roster from "./pages/Roster";
 import ArtistDetail from "./pages/ArtistDetail";
+import Tasks from "./pages/Tasks";
 import PublicMemberInfo from "./pages/PublicMemberInfo";
 import PublicTimeline from "./pages/PublicTimeline";
 import NotFound from "./pages/NotFound";
@@ -38,6 +39,7 @@ function AppRoutes() {
       <Route path="/onboarding" element={<Onboarding />} />
       <Route path="/roster" element={<ProtectedRoute><Roster /></ProtectedRoute>} />
       <Route path="/roster/:artistId" element={<ProtectedRoute><ArtistDetail /></ProtectedRoute>} />
+      <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
       <Route path="/shared/member/:token" element={<PublicMemberInfo />} />
       <Route path="/shared/timeline/:token" element={<PublicTimeline />} />
       <Route path="/" element={<Navigate to="/roster" replace />} />
