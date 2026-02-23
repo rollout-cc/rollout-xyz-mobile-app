@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { TimelinesTab } from "@/components/artist/TimelinesTab";
 import { BudgetSection, useTotalBudget } from "@/components/artist/BudgetSection";
 import { BannerUpload } from "@/components/artist/BannerUpload";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import defaultBanner from "@/assets/default-banner.png";
 
@@ -25,6 +25,19 @@ export default function ArtistDetail() {
   const { data: spotifyData } = useSpotifyArtist(artist?.spotify_id);
   const totalBudget = useTotalBudget(artistId!);
   const [activeView, setActiveView] = useState<ActiveView>("work");
+  const queryClient = useQueryClient();
+
+  // Sync Spotify monthly listeners to DB when fetched
+  useEffect(() => {
+    const spotifyListeners = spotifyData?.monthly_listeners || 0;
+    if (spotifyListeners > 0 && artist && (artist as any).monthly_listeners !== spotifyListeners) {
+      supabase
+        .from("artists")
+        .update({ monthly_listeners: spotifyListeners } as any)
+        .eq("id", artist.id)
+        .then(() => queryClient.invalidateQueries({ queryKey: ["artist", artist.id] }));
+    }
+  }, [spotifyData?.monthly_listeners, artist?.id]);
 
   // Get completed tasks count
   const { data: completedCount = 0 } = useQuery({
