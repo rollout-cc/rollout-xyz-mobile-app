@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, DollarSign, Target, Star } from "lucide-react";
 import { useArtistDetail } from "@/hooks/useArtistDetail";
@@ -14,6 +13,7 @@ import { BudgetSection, useTotalBudget } from "@/components/artist/BudgetSection
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import defaultBanner from "@/assets/default-banner.png";
 
 type ActiveView = "work" | "links" | "timelines" | "budgets" | "objectives" | "information";
 
@@ -59,7 +59,8 @@ export default function ArtistDetail() {
     );
   }
 
-  const bannerUrl = spotifyData?.banner_url || artist.banner_url || artist.avatar_url;
+  const hasBanner = !!(spotifyData?.banner_url || artist.banner_url);
+  const bannerUrl = spotifyData?.banner_url || artist.banner_url;
   const monthlyListeners = spotifyData?.monthly_listeners || spotifyData?.followers || 0;
 
   const isTopView = (v: ActiveView) => ["budgets", "objectives", "information"].includes(v);
@@ -106,46 +107,85 @@ export default function ArtistDetail() {
     >
       {/* Banner */}
       <div className="relative h-80 sm:h-[400px] rounded-lg bg-muted overflow-hidden mb-4 shadow-xl group">
-        {bannerUrl && (
-          <img 
-            src={bannerUrl} 
-            alt="" 
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 p-6 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
-          <div className="flex items-end gap-4">
-            <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-4 border-background shadow-2xl">
-              <AvatarImage src={artist.avatar_url ?? undefined} />
-              <AvatarFallback className="text-2xl">{artist.name[0]}</AvatarFallback>
-            </Avatar>
-            <div className="pb-1">
-              <h2 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-md mb-1">{artist.name}</h2>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/90">
-                {artist.genres && artist.genres.length > 0 && (
-                  <span className="flex items-center gap-1">
-                    <Star className="h-3 w-3 fill-current" /> {artist.genres.slice(0, 3).join(", ")}
-                  </span>
-                )}
-                {monthlyListeners > 0 && (
-                  <span className="bg-white/10 px-2 py-0.5 rounded-full backdrop-blur-md border border-white/20">
-                    {monthlyListeners.toLocaleString()} monthly listeners
-                  </span>
-                )}
+        {hasBanner ? (
+          <>
+            <img
+              src={bannerUrl!}
+              alt=""
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-6 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
+              <div className="flex items-end gap-4">
+                <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-4 border-background shadow-2xl">
+                  <AvatarImage src={artist.avatar_url ?? undefined} />
+                  <AvatarFallback className="text-2xl">{artist.name[0]}</AvatarFallback>
+                </Avatar>
+                <div className="pb-1">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-md mb-1">{artist.name}</h2>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/90">
+                    {artist.genres && artist.genres.length > 0 && (
+                      <span className="flex items-center gap-1">
+                        <Star className="h-3 w-3 fill-current" /> {artist.genres.slice(0, 3).join(", ")}
+                      </span>
+                    )}
+                    {monthlyListeners > 0 && (
+                      <span className="bg-white/10 px-2 py-0.5 rounded-full backdrop-blur-md border border-white/20">
+                        {monthlyListeners.toLocaleString()} monthly listeners
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col items-start sm:items-end gap-2 text-white/95">
+                <div className="flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/10">
+                  <DollarSign className="h-4 w-4 text-emerald-400" />
+                  <span className="text-lg font-bold">Total Budget: ${totalBudget.toLocaleString()}</span>
+                </div>
+                <div className="text-xs font-medium uppercase tracking-wider text-white/60 px-1">
+                  Tasks Completed: {completedCount}
+                </div>
               </div>
             </div>
-          </div>
-          <div className="flex flex-col items-start sm:items-end gap-2 text-white/95">
-            <div className="flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/10">
-              <DollarSign className="h-4 w-4 text-emerald-400" />
-              <span className="text-lg font-bold">Total Budget: ${totalBudget.toLocaleString()}</span>
+          </>
+        ) : (
+          <>
+            <img
+              src={defaultBanner}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-black/40" />
+            <div className="absolute inset-0 flex items-center p-8 sm:p-12 gap-6 sm:gap-10">
+              <Avatar className="h-36 w-36 sm:h-48 sm:w-48 border-4 border-white/20 shadow-2xl shrink-0">
+                <AvatarImage src={artist.avatar_url ?? undefined} />
+                <AvatarFallback className="text-5xl sm:text-6xl font-bold">{artist.name[0]}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col gap-2">
+                <h2 className="text-5xl sm:text-7xl font-bold text-white drop-shadow-lg tracking-tight">{artist.name}</h2>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/80 mt-1">
+                  {artist.genres && artist.genres.length > 0 && (
+                    <span className="flex items-center gap-1">
+                      <Star className="h-3 w-3 fill-current" /> {artist.genres.slice(0, 3).join(", ")}
+                    </span>
+                  )}
+                  {monthlyListeners > 0 && (
+                    <span>{monthlyListeners.toLocaleString()} monthly listeners</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-4 mt-3">
+                  <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/10">
+                    <DollarSign className="h-4 w-4 text-emerald-400" />
+                    <span className="text-lg font-bold text-white">Total Budget: ${totalBudget.toLocaleString()}</span>
+                  </div>
+                  <span className="text-xs font-medium uppercase tracking-wider text-white/60">
+                    Tasks Completed: {completedCount}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="text-xs font-medium uppercase tracking-wider text-white/60 px-1">
-              Tasks Completed: {completedCount}
-            </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
       {/* Tab row for Work/Links/Timelines - these are the bottom tabs */}
