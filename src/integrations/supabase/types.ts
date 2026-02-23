@@ -14,6 +14,190 @@ export type Database = {
   }
   public: {
     Tables: {
+      artist_clothing: {
+        Row: {
+          artist_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          pant_size: string | null
+          shirt_size: string | null
+          shoe_size: string | null
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          pant_size?: string | null
+          shirt_size?: string | null
+          shoe_size?: string | null
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          pant_size?: string | null
+          shirt_size?: string | null
+          shoe_size?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_clothing_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      artist_contacts: {
+        Row: {
+          artist_id: string
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          role: string | null
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          role?: string | null
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_contacts_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      artist_link_folders: {
+        Row: {
+          artist_id: string
+          created_at: string
+          id: string
+          is_public: boolean
+          name: string
+          public_token: string | null
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          name: string
+          public_token?: string | null
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          name?: string
+          public_token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_link_folders_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      artist_links: {
+        Row: {
+          created_at: string
+          description: string | null
+          folder_id: string
+          id: string
+          title: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          folder_id: string
+          id?: string
+          title: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          folder_id?: string
+          id?: string
+          title?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_links_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "artist_link_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      artist_milestones: {
+        Row: {
+          artist_id: string
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          is_public: boolean
+          title: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          date: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          title: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_milestones_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       artist_permissions: {
         Row: {
           artist_id: string
@@ -46,9 +230,45 @@ export type Database = {
           },
         ]
       }
+      artist_travel_info: {
+        Row: {
+          artist_id: string
+          created_at: string
+          dietary_restrictions: string | null
+          id: string
+          notes: string | null
+          passport_name: string | null
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          dietary_restrictions?: string | null
+          id?: string
+          notes?: string | null
+          passport_name?: string | null
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          dietary_restrictions?: string | null
+          id?: string
+          notes?: string | null
+          passport_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_travel_info_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       artists: {
         Row: {
           avatar_url: string | null
+          banner_url: string | null
           created_at: string
           genres: string[] | null
           id: string
@@ -65,6 +285,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          banner_url?: string | null
           created_at?: string
           genres?: string[] | null
           id?: string
@@ -81,6 +302,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          banner_url?: string | null
           created_at?: string
           genres?: string[] | null
           id?: string
@@ -426,6 +648,10 @@ export type Database = {
     }
     Functions: {
       get_artist_team_id: { Args: { p_artist_id: string }; Returns: string }
+      get_link_folder_artist_id: {
+        Args: { p_folder_id: string }
+        Returns: string
+      }
       has_artist_access: {
         Args: {
           p_artist_id: string
@@ -433,6 +659,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_link_folder_public: { Args: { p_folder_id: string }; Returns: boolean }
       is_team_member: { Args: { p_team_id: string }; Returns: boolean }
       is_team_owner_or_manager: {
         Args: { p_team_id: string }
