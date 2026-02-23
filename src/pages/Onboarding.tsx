@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCreateTeam } from "@/hooks/useTeams";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Flag } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -61,10 +62,10 @@ export default function Onboarding() {
         key={step}
       >
         <h1
-          className="mb-1 text-2xl font-black tracking-tighter text-foreground"
+          className="mb-1 text-2xl font-black tracking-tighter text-foreground flex items-center gap-0"
           style={{ fontFamily: "'Space Grotesk', sans-serif" }}
         >
-          ROLLOUT<span>.</span>📢
+          ROLLOUT<span>.</span><Flag className="h-4 w-4 inline-block" />
         </h1>
 
         {step === "name" ? (
