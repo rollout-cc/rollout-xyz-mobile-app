@@ -150,17 +150,17 @@ export default function ArtistDetail() {
               alt=""
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-black/40" />
+            <div className="absolute inset-0 bg-black/20" />
             <div className="absolute inset-0 flex items-end p-8 sm:p-12">
               <div className="flex items-end gap-6 sm:gap-10 flex-1">
-                <Avatar className="h-36 w-36 sm:h-48 sm:w-48 border-4 border-white/20 shadow-2xl shrink-0">
-                  <AvatarImage src={artist.avatar_url ?? undefined} />
-                  <AvatarFallback className="text-5xl sm:text-6xl font-bold">{artist.name[0]}</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col gap-1 pb-1">
-                  <h2 className="text-5xl sm:text-7xl font-bold text-white drop-shadow-lg tracking-tight">{artist.name}</h2>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/80 mt-1">
-                    {artist.genres && artist.genres.length > 0 && (
+              <Avatar className="h-36 w-36 sm:h-48 sm:w-48 border-4 border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.5)] shrink-0">
+                <AvatarImage src={artist.avatar_url ?? undefined} />
+                <AvatarFallback className="text-5xl sm:text-6xl font-bold">{artist.name[0]}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col gap-1 pb-1">
+                <h2 className="text-5xl sm:text-7xl font-bold text-white tracking-tight" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.6), 0 1px 3px rgba(0,0,0,0.4)' }}>{artist.name}</h2>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/90 mt-1" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.5)' }}>
+                  {artist.genres && artist.genres.length > 0 && (
                       <span className="flex items-center gap-1">
                         <Star className="h-3 w-3 fill-current" /> {artist.genres.slice(0, 3).join(", ")}
                       </span>
@@ -172,11 +172,11 @@ export default function ArtistDetail() {
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2 text-white/95 shrink-0">
-                <div className="flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/10">
+              <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/10 shadow-lg">
                   <DollarSign className="h-4 w-4 text-emerald-400" />
                   <span className="text-lg font-bold">Total Budget: ${totalBudget.toLocaleString()}</span>
                 </div>
-                <div className="text-xs font-medium uppercase tracking-wider text-white/60 px-1">
+                <div className="text-xs font-medium uppercase tracking-wider text-white/70 px-1" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>
                   Tasks Completed: {completedCount}
                 </div>
               </div>
