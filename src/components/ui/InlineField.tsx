@@ -13,13 +13,12 @@ interface InlineFieldProps {
 export function InlineField({
   value,
   onSave,
-  placeholder = "Click to edit",
+  placeholder = "Enter value",
   className = "",
   inputClassName = "",
   as = "input",
   prefix,
 }: InlineFieldProps) {
-  const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const ref = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
 
@@ -27,15 +26,7 @@ export function InlineField({
     setDraft(value);
   }, [value]);
 
-  useEffect(() => {
-    if (editing && ref.current) {
-      ref.current.focus();
-      ref.current.select();
-    }
-  }, [editing]);
-
   const commit = () => {
-    setEditing(false);
     if (draft.trim() !== value) {
       onSave(draft.trim());
     }
@@ -45,42 +36,30 @@ export function InlineField({
     if (e.key === "Enter" && as === "input") {
       e.preventDefault();
       commit();
+      ref.current?.blur();
     }
     if (e.key === "Escape") {
       setDraft(value);
-      setEditing(false);
+      ref.current?.blur();
     }
   };
 
-  if (editing) {
-    const shared = {
-      ref: ref as any,
-      value: draft,
-      onChange: (e: any) => setDraft(e.target.value),
-      onBlur: commit,
-      onKeyDown: handleKeyDown,
-      placeholder,
-      className: `w-full bg-transparent border-b border-primary/40 outline-none text-foreground py-0.5 px-0 ${inputClassName}`,
-    };
+  const shared = {
+    ref: ref as any,
+    value: prefix ? `${prefix}${draft}` : draft,
+    onChange: (e: any) => {
+      const val = prefix ? e.target.value.replace(prefix, "") : e.target.value;
+      setDraft(val);
+    },
+    onBlur: commit,
+    onKeyDown: handleKeyDown,
+    placeholder,
+    className: `w-full bg-transparent border border-transparent rounded-md outline-none text-foreground py-1.5 px-2 hover:border-input focus:border-input focus:ring-1 focus:ring-ring transition-colors ${inputClassName} ${className}`,
+  };
 
-    return as === "textarea" ? (
-      <textarea {...shared} rows={2} />
-    ) : (
-      <input {...shared} />
-    );
-  }
-
-  return (
-    <span
-      onClick={() => setEditing(true)}
-      className={`cursor-text inline-block min-w-[2rem] rounded px-1 -mx-1 hover:bg-accent/60 transition-colors ${
-        !value ? "text-muted-foreground italic" : ""
-      } ${className}`}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === "Enter") setEditing(true); }}
-    >
-      {prefix}{value || placeholder}
-    </span>
+  return as === "textarea" ? (
+    <textarea {...shared} rows={2} />
+  ) : (
+    <input {...shared} />
   );
 }
