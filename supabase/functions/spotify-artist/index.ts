@@ -47,8 +47,12 @@ Deno.serve(async (req: Request) => {
   try {
     let spotifyId = "";
     if (req.method === "POST") {
-      const body = await req.json();
-      spotifyId = body.spotify_id || "";
+      try {
+        const body = await req.json();
+        spotifyId = body.spotify_id || "";
+      } catch (e) {
+        spotifyId = new URL(req.url).searchParams.get("spotify_id") || "";
+      }
     } else {
       spotifyId = new URL(req.url).searchParams.get("spotify_id") || "";
     }
@@ -65,15 +69,15 @@ Deno.serve(async (req: Request) => {
     if (!artistResp.ok) throw new Error("Spotify artist error: " + artistResp.status);
     const artist = await artistResp.json();
 
-    // Try to get header/banner image from the artist page
-    // Spotify Web API doesn't directly expose banner images, but we can get the largest artist image
+    // Spotify Web API doesn't directly expose header banner images.
+    // We use the largest profile image as banner.
     const images = artist.images ?? [];
     const largestImage = images.length > 0 ? images[0].url : null;
 
     return new Response(JSON.stringify({
       id: artist.id,
       name: artist.name,
-      monthly_listeners: artist.followers?.total ?? 0,
+      monthly_listeners: artist.followers?.total ?? 0, // Fallback to followers as API doesn't have listeners
       followers: artist.followers?.total ?? 0,
       genres: artist.genres ?? [],
       images,
@@ -84,6 +88,7 @@ Deno.serve(async (req: Request) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    console.error("Spotify function error:", message);
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
