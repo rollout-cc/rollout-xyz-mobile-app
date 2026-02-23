@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ChevronDown, ChevronRight, User, Plane, Shirt, CalendarIcon, Share2, Check, Copy } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronRight, User, Plane, Shirt, CalendarIcon, Share2, Check, Copy, Music } from "lucide-react";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
 import { cn } from "@/lib/utils";
@@ -214,6 +214,24 @@ function MemberCard({
               <div className="sm:col-span-2">
                 <Field label="Notes" value={member.notes ?? ""} placeholder="Enter travel notes" onSave={(v) => onUpdate({ notes: v })} as="textarea" />
               </div>
+            </div>
+          </div>
+
+          {/* Admin Info */}
+          <div>
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
+              <Music className="h-3.5 w-3.5" /> Admin Info
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="PRO (Performing Rights Org)" value={(member as any).pro_name ?? ""} placeholder="e.g. ASCAP, BMI, SESAC" onSave={(v) => onUpdate({ pro_name: v })} />
+              <Field label="IPI/CAE #" value={(member as any).ipi_number ?? ""} placeholder="Enter IPI/CAE number" onSave={(v) => onUpdate({ ipi_number: v })} />
+              <Field label="Publisher" value={(member as any).publisher_name ?? ""} placeholder="Enter publishing company" onSave={(v) => onUpdate({ publisher_name: v })} />
+              <Field label="Publishing Admin" value={(member as any).publishing_admin ?? ""} placeholder="Enter publishing admin" onSave={(v) => onUpdate({ publishing_admin: v })} />
+              <Field label="Publisher PRO" value={(member as any).publisher_pro ?? ""} placeholder="e.g. ASCAP, BMI" onSave={(v) => onUpdate({ publisher_pro: v })} />
+              <Field label="ISNI" value={(member as any).isni ?? ""} placeholder="Enter ISNI" onSave={(v) => onUpdate({ isni: v })} />
+              <Field label="Spotify URI" value={(member as any).spotify_uri ?? ""} placeholder="e.g. spotify:artist:..." onSave={(v) => onUpdate({ spotify_uri: v })} />
+              <Field label="Record Label" value={(member as any).record_label ?? ""} placeholder="Enter record label" onSave={(v) => onUpdate({ record_label: v })} />
+              <Field label="Distributor" value={(member as any).distributor ?? ""} placeholder="Enter distributor" onSave={(v) => onUpdate({ distributor: v })} />
             </div>
           </div>
 

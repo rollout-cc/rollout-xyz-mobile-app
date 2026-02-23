@@ -249,13 +249,16 @@ export type Database = {
           created_at: string
           date_of_birth: string | null
           dietary_restrictions: string | null
+          distributor: string | null
           dress_size: string | null
           drivers_license: string | null
           favorite_brands: string | null
           first_name: string | null
           hat_size: string | null
           id: string
+          ipi_number: string | null
           is_public: boolean
+          isni: string | null
           ktn_number: string | null
           last_name: string | null
           member_name: string | null
@@ -264,9 +267,15 @@ export type Database = {
           passport_name: string | null
           preferred_airline: string | null
           preferred_seat: string | null
+          pro_name: string | null
           public_token: string | null
+          publisher_name: string | null
+          publisher_pro: string | null
+          publishing_admin: string | null
+          record_label: string | null
           shirt_size: string | null
           shoe_size: string | null
+          spotify_uri: string | null
           tsa_precheck_number: string | null
         }
         Insert: {
@@ -274,13 +283,16 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           dietary_restrictions?: string | null
+          distributor?: string | null
           dress_size?: string | null
           drivers_license?: string | null
           favorite_brands?: string | null
           first_name?: string | null
           hat_size?: string | null
           id?: string
+          ipi_number?: string | null
           is_public?: boolean
+          isni?: string | null
           ktn_number?: string | null
           last_name?: string | null
           member_name?: string | null
@@ -289,9 +301,15 @@ export type Database = {
           passport_name?: string | null
           preferred_airline?: string | null
           preferred_seat?: string | null
+          pro_name?: string | null
           public_token?: string | null
+          publisher_name?: string | null
+          publisher_pro?: string | null
+          publishing_admin?: string | null
+          record_label?: string | null
           shirt_size?: string | null
           shoe_size?: string | null
+          spotify_uri?: string | null
           tsa_precheck_number?: string | null
         }
         Update: {
@@ -299,13 +317,16 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           dietary_restrictions?: string | null
+          distributor?: string | null
           dress_size?: string | null
           drivers_license?: string | null
           favorite_brands?: string | null
           first_name?: string | null
           hat_size?: string | null
           id?: string
+          ipi_number?: string | null
           is_public?: boolean
+          isni?: string | null
           ktn_number?: string | null
           last_name?: string | null
           member_name?: string | null
@@ -314,9 +335,15 @@ export type Database = {
           passport_name?: string | null
           preferred_airline?: string | null
           preferred_seat?: string | null
+          pro_name?: string | null
           public_token?: string | null
+          publisher_name?: string | null
+          publisher_pro?: string | null
+          publishing_admin?: string | null
+          record_label?: string | null
           shirt_size?: string | null
           shoe_size?: string | null
+          spotify_uri?: string | null
           tsa_precheck_number?: string | null
         }
         Relationships: [

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
-import { DollarSign, Target, Star } from "lucide-react";
+import { DollarSign, Target, Star, Upload } from "lucide-react";
 import { useArtistDetail } from "@/hooks/useArtistDetail";
 import { useSpotifyArtist } from "@/hooks/useSpotifyArtist";
 import { ArtistInfoTab } from "@/components/artist/ArtistInfoTab";
@@ -10,6 +10,7 @@ import { WorkTab } from "@/components/artist/WorkTab";
 import { LinksTab } from "@/components/artist/LinksTab";
 import { TimelinesTab } from "@/components/artist/TimelinesTab";
 import { BudgetSection, useTotalBudget } from "@/components/artist/BudgetSection";
+import { BannerUpload } from "@/components/artist/BannerUpload";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -109,6 +110,9 @@ export default function ArtistDetail() {
               alt=""
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
+            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+              <BannerUpload artistId={artist.id} currentBannerUrl={artist.banner_url} />
+            </div>
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
             <div className="absolute bottom-0 left-0 right-0 p-6 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
               <div className="flex items-end gap-4">
@@ -151,6 +155,9 @@ export default function ArtistDetail() {
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-black/10" />
+            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+              <BannerUpload artistId={artist.id} currentBannerUrl={artist.banner_url} />
+            </div>
             <div className="absolute inset-0 flex items-end p-8 sm:p-12">
               <div className="flex items-end gap-6 sm:gap-10 flex-1">
               <Avatar className="h-36 w-36 sm:h-48 sm:w-48 border-4 border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.25)] shrink-0">
