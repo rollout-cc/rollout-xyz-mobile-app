@@ -12,7 +12,7 @@ import { TimelinesTab } from "@/components/artist/TimelinesTab";
 import { BudgetSection, useTotalBudget } from "@/components/artist/BudgetSection";
 import { BannerUpload } from "@/components/artist/BannerUpload";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import defaultBanner from "@/assets/default-banner.png";
 
@@ -236,7 +236,7 @@ export default function ArtistDetail() {
 }
 
 // Objectives panel - shows goals/focuses like the old site
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
 
