@@ -46,10 +46,10 @@ function PersonalInfoSection({ artist }: { artist: any }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
         {fields.map(({ key, label }) => (
           <div key={key}>
-            <span className="text-muted-foreground">{label}: </span>
+            <span className="text-muted-foreground text-xs">{label}</span>
             <InlineField
               value={artist[key] ?? ""}
-              placeholder="—"
+              placeholder={`Enter ${label.toLowerCase()}`}
               onSave={(v) => save.mutate({ [key]: v })}
             />
           </div>
