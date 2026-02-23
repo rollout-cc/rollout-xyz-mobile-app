@@ -85,7 +85,6 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
           <div key={c.id} className="border border-border rounded-lg mb-3 overflow-hidden">
             <button onClick={() => toggleCampaign(c.id)} className="flex items-center justify-between w-full px-4 py-3 text-left bg-muted/50 hover:bg-muted transition-colors">
               <span className="text-lg font-bold flex items-center gap-2">
-                <Hash className="h-4 w-4 text-muted-foreground" />
                 <CampaignName campaign={c} artistId={artistId} />
                 <span className="text-muted-foreground font-normal text-sm bg-muted px-2 py-0.5 rounded-full">{cTasks.length}</span>
               </span>
@@ -139,7 +138,6 @@ function EmptyWorkState({ artistId, teamId }: { artistId: string; teamId: string
       <div className="mt-4">
         <div className="border border-border rounded-lg overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3 bg-muted/50">
-            <Hash className="h-4 w-4 text-muted-foreground" />
             <input
               ref={campaignInputRef}
               autoFocus
