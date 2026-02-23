@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { useArtists, useCreateArtist } from "@/hooks/useArtists";
 import { useTeams } from "@/hooks/useTeams";
@@ -11,14 +11,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, User, CheckCircle, Clock } from "lucide-react";
+import { Search, Plus, User, CheckCircle, Clock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SpotifyArtist {
   id: string;
   name: string;
   genres: string[];
   images: { url: string }[];
+  followers?: number;
 }
 
 export default function Roster() {
@@ -31,13 +33,31 @@ export default function Roster() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SpotifyArtist[]>([]);
   const [searching, setSearching] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
-  // For now, Spotify search is a placeholder — we'll wire it up with an edge function
-  const handleSearch = async (q: string) => {
-    setSearchQuery(q);
-    // TODO: Wire up Spotify search edge function
-    setSearchResults([]);
-  };
+  useEffect(() => {
+    if (!searchQuery.trim() || searchQuery.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("spotify-search", {
+          body: { q: searchQuery.trim() },
+        });
+        if (error) throw error;
+        setSearchResults(data?.artists ?? []);
+      } catch (err: any) {
+        console.error("Spotify search error:", err);
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 350);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchQuery]);
 
   const handleAddToRoster = async (artist: SpotifyArtist) => {
     if (!selectedTeamId) return;
@@ -144,29 +164,33 @@ export default function Roster() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search for an artist"
               className="pl-9"
             />
           </div>
 
           <div className="min-h-[300px] flex flex-col">
-            {searchResults.length > 0 ? (
-              <div className="flex flex-col gap-2">
+            {searching ? (
+              <div className="flex-1 flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : searchResults.length > 0 ? (
+              <div className="flex flex-col gap-2 overflow-y-auto max-h-[350px]">
                 {searchResults.map((result) => (
                   <div key={result.id} className="flex items-center gap-3 p-3 rounded-lg border border-border">
                     <Avatar className="h-12 w-12">
                       <AvatarImage src={result.images?.[0]?.url} />
                       <AvatarFallback>{result.name[0]}</AvatarFallback>
                     </Avatar>
-                    <div className="flex-1">
-                      <p className="font-medium">{result.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Genre: {result.genres.join(", ") || "N/A"}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{result.name}</p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {result.genres.slice(0, 3).join(", ") || "No genres"}
                       </p>
                     </div>
                     <Button size="sm" onClick={() => handleAddToRoster(result)}>
-                      Add to roster
+                      Add
                     </Button>
                   </div>
                 ))}
@@ -177,12 +201,18 @@ export default function Roster() {
                   <User className="h-10 w-10 text-muted-foreground" />
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Search Spotify to add artists to your roster
+                  {searchQuery.trim().length > 0
+                    ? "No results found"
+                    : "Search Spotify to add artists to your roster"}
                 </p>
-                <p className="text-sm text-muted-foreground">or</p>
-                <Button onClick={handleCreateNewArtist} disabled={!searchQuery.trim()}>
-                  Create New Artist
-                </Button>
+                {searchQuery.trim().length > 0 && (
+                  <>
+                    <p className="text-sm text-muted-foreground">or</p>
+                    <Button onClick={handleCreateNewArtist}>
+                      Create "{searchQuery.trim()}" manually
+                    </Button>
+                  </>
+                )}
               </div>
             )}
           </div>
