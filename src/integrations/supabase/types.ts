@@ -19,6 +19,7 @@ export type Database = {
           artist_id: string
           created_at: string
           id: string
+          member_name: string | null
           notes: string | null
           pant_size: string | null
           shirt_size: string | null
@@ -28,6 +29,7 @@ export type Database = {
           artist_id: string
           created_at?: string
           id?: string
+          member_name?: string | null
           notes?: string | null
           pant_size?: string | null
           shirt_size?: string | null
@@ -37,6 +39,7 @@ export type Database = {
           artist_id?: string
           created_at?: string
           id?: string
+          member_name?: string | null
           notes?: string | null
           pant_size?: string | null
           shirt_size?: string | null
@@ -236,6 +239,7 @@ export type Database = {
           created_at: string
           dietary_restrictions: string | null
           id: string
+          member_name: string | null
           notes: string | null
           passport_name: string | null
         }
@@ -244,6 +248,7 @@ export type Database = {
           created_at?: string
           dietary_restrictions?: string | null
           id?: string
+          member_name?: string | null
           notes?: string | null
           passport_name?: string | null
         }
@@ -252,6 +257,7 @@ export type Database = {
           created_at?: string
           dietary_restrictions?: string | null
           id?: string
+          member_name?: string | null
           notes?: string | null
           passport_name?: string | null
         }
