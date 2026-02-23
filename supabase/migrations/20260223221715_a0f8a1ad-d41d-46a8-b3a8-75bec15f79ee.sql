@@ -1,0 +1,1 @@
+ALTER TABLE public.artists ADD COLUMN IF NOT EXISTS monthly_listeners integer DEFAULT 0;
