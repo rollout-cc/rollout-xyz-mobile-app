@@ -32,12 +32,27 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
     },
   });
 
+  // Get total spent from task expenses
+  const { data: totalSpent = 0 } = useQuery({
+    queryKey: ["tasks-total-spent", artistId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("expense_amount")
+        .eq("artist_id", artistId)
+        .not("expense_amount", "is", null);
+      if (error) throw error;
+      return data.reduce((sum: number, t: any) => sum + Number(t.expense_amount || 0), 0);
+    },
+  });
+
   const [editState, setEditState] = useState<Record<string, { label: string; amount: string }>>({});
   const [showAdd, setShowAdd] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const [newAmount, setNewAmount] = useState("");
 
   const totalBudget = budgets.reduce((sum: number, b: any) => sum + Number(b.amount), 0);
+  const remaining = totalBudget - totalSpent;
 
   const addBudget = useMutation({
     mutationFn: async () => {
@@ -155,8 +170,19 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
       )}
 
       {budgets.length > 0 && (
-        <div className="flex justify-end mt-3 pt-2 border-t border-border">
-          <span className="font-semibold text-sm">Total: ${totalBudget.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+        <div className="mt-4 pt-3 border-t border-border space-y-1">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Total Budget</span>
+            <span className="font-semibold">${totalBudget.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Total Spent</span>
+            <span className="font-semibold text-destructive">${totalSpent.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div className="flex justify-between text-sm pt-1 border-t border-border">
+            <span className="text-muted-foreground">Remaining</span>
+            <span className={`font-bold ${remaining >= 0 ? "text-emerald-600" : "text-destructive"}`}>${remaining.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+          </div>
         </div>
       )}
     </div>
