@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, DollarSign, Target, Star } from "lucide-react";
+import { DollarSign, Target, Star } from "lucide-react";
 import { useArtistDetail } from "@/hooks/useArtistDetail";
 import { useSpotifyArtist } from "@/hooks/useSpotifyArtist";
 import { ArtistInfoTab } from "@/components/artist/ArtistInfoTab";
@@ -72,36 +72,31 @@ export default function ArtistDetail() {
     <AppLayout
       title="Artist"
       actions={
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/roster")} className="gap-1">
-            <ArrowLeft className="h-4 w-4" /> Back
+        <div className="flex items-center gap-1">
+          <Button
+            variant={activeView === "budgets" ? "default" : "outline"}
+            size="sm"
+            onClick={() => toggleTopView("budgets")}
+            className="gap-1"
+          >
+            <DollarSign className="h-3.5 w-3.5" /> Budgets
           </Button>
-          <div className="flex items-center gap-1 ml-4">
-            <Button
-              variant={activeView === "budgets" ? "default" : "outline"}
-              size="sm"
-              onClick={() => toggleTopView("budgets")}
-              className="gap-1"
-            >
-              <DollarSign className="h-3.5 w-3.5" /> Budgets
-            </Button>
-            <Button
-              variant={activeView === "objectives" ? "default" : "outline"}
-              size="sm"
-              onClick={() => toggleTopView("objectives")}
-              className="gap-1"
-            >
-              <Target className="h-3.5 w-3.5" /> Objectives
-            </Button>
-            <Button
-              variant={activeView === "information" ? "default" : "outline"}
-              size="sm"
-              onClick={() => toggleTopView("information")}
-              className="gap-1"
-            >
-              <Star className="h-3.5 w-3.5" /> Information
-            </Button>
-          </div>
+          <Button
+            variant={activeView === "objectives" ? "default" : "outline"}
+            size="sm"
+            onClick={() => toggleTopView("objectives")}
+            className="gap-1"
+          >
+            <Target className="h-3.5 w-3.5" /> Objectives
+          </Button>
+          <Button
+            variant={activeView === "information" ? "default" : "outline"}
+            size="sm"
+            onClick={() => toggleTopView("information")}
+            className="gap-1"
+          >
+            <Star className="h-3.5 w-3.5" /> Information
+          </Button>
         </div>
       }
     >
@@ -156,31 +151,33 @@ export default function ArtistDetail() {
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-black/40" />
-            <div className="absolute inset-0 flex items-center p-8 sm:p-12 gap-6 sm:gap-10">
-              <Avatar className="h-36 w-36 sm:h-48 sm:w-48 border-4 border-white/20 shadow-2xl shrink-0">
-                <AvatarImage src={artist.avatar_url ?? undefined} />
-                <AvatarFallback className="text-5xl sm:text-6xl font-bold">{artist.name[0]}</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col gap-2">
-                <h2 className="text-5xl sm:text-7xl font-bold text-white drop-shadow-lg tracking-tight">{artist.name}</h2>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/80 mt-1">
-                  {artist.genres && artist.genres.length > 0 && (
-                    <span className="flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-current" /> {artist.genres.slice(0, 3).join(", ")}
-                    </span>
-                  )}
-                  {monthlyListeners > 0 && (
-                    <span>{monthlyListeners.toLocaleString()} monthly listeners</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-4 mt-3">
-                  <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/10">
-                    <DollarSign className="h-4 w-4 text-emerald-400" />
-                    <span className="text-lg font-bold text-white">Total Budget: ${totalBudget.toLocaleString()}</span>
+            <div className="absolute inset-0 flex items-end p-8 sm:p-12">
+              <div className="flex items-end gap-6 sm:gap-10 flex-1">
+                <Avatar className="h-36 w-36 sm:h-48 sm:w-48 border-4 border-white/20 shadow-2xl shrink-0">
+                  <AvatarImage src={artist.avatar_url ?? undefined} />
+                  <AvatarFallback className="text-5xl sm:text-6xl font-bold">{artist.name[0]}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col gap-1 pb-1">
+                  <h2 className="text-5xl sm:text-7xl font-bold text-white drop-shadow-lg tracking-tight">{artist.name}</h2>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/80 mt-1">
+                    {artist.genres && artist.genres.length > 0 && (
+                      <span className="flex items-center gap-1">
+                        <Star className="h-3 w-3 fill-current" /> {artist.genres.slice(0, 3).join(", ")}
+                      </span>
+                    )}
+                    {monthlyListeners > 0 && (
+                      <span>{monthlyListeners.toLocaleString()} monthly listeners</span>
+                    )}
                   </div>
-                  <span className="text-xs font-medium uppercase tracking-wider text-white/60">
-                    Tasks Completed: {completedCount}
-                  </span>
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-2 text-white/95 shrink-0">
+                <div className="flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/10">
+                  <DollarSign className="h-4 w-4 text-emerald-400" />
+                  <span className="text-lg font-bold">Total Budget: ${totalBudget.toLocaleString()}</span>
+                </div>
+                <div className="text-xs font-medium uppercase tracking-wider text-white/60 px-1">
+                  Tasks Completed: {completedCount}
                 </div>
               </div>
             </div>

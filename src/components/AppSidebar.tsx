@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { LayoutGrid, ListTodo, Plus, ChevronsUpDown } from "lucide-react";
 import rolloutLogo from "@/assets/rollout-logo.png";
 import { NavLink } from "@/components/NavLink";
@@ -34,6 +35,7 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
+  const navigate = useNavigate();
   const { data: teams = [] } = useTeams();
   const createTeam = useCreateTeam();
   const [showCreateTeam, setShowCreateTeam] = useState(false);
@@ -58,7 +60,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
     <>
       <Sidebar className="w-44 border-r border-border bg-sidebar">
         <SidebarContent className="flex flex-col h-full p-0">
-          <div className="px-4 pt-4 pb-2">
+          <div className="px-4 pt-4 pb-2 cursor-pointer" onClick={() => navigate("/roster")}>
             <img src={rolloutLogo} alt="Rollout" className="w-full" />
           </div>
 
