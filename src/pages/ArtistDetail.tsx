@@ -59,8 +59,8 @@ export default function ArtistDetail() {
     );
   }
 
-  const hasBanner = !!artist.banner_url;
-  const bannerUrl = artist.banner_url;
+  const bannerUrl = artist.banner_url || spotifyData?.banner_url || null;
+  const hasBanner = !!bannerUrl;
   const monthlyListeners = spotifyData?.monthly_listeners || spotifyData?.followers || 0;
 
   const isTopView = (v: ActiveView) => ["budgets", "objectives", "information"].includes(v);
