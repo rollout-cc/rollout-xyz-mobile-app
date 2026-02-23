@@ -363,6 +363,7 @@ export type Database = {
           created_at: string
           genres: string[] | null
           id: string
+          monthly_listeners: number | null
           name: string
           primary_focus: string | null
           primary_goal: string | null
@@ -382,6 +383,7 @@ export type Database = {
           created_at?: string
           genres?: string[] | null
           id?: string
+          monthly_listeners?: number | null
           name: string
           primary_focus?: string | null
           primary_goal?: string | null
@@ -401,6 +403,7 @@ export type Database = {
           created_at?: string
           genres?: string[] | null
           id?: string
+          monthly_listeners?: number | null
           name?: string
           primary_focus?: string | null
           primary_goal?: string | null
