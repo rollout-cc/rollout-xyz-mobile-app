@@ -1,12 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { InlineField } from "@/components/ui/InlineField";
 
 interface TimelinesTabProps {
   artistId: string;
@@ -17,35 +15,38 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
   const { data: milestones = [] } = useQuery({
     queryKey: ["artist_milestones", artistId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("artist_milestones")
-        .select("*")
-        .eq("artist_id", artistId)
-        .order("date", { ascending: true });
+      const { data, error } = await supabase.from("artist_milestones").select("*").eq("artist_id", artistId).order("date", { ascending: true });
       if (error) throw error;
       return data;
     },
   });
 
-  const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ title: "", date: "", description: "" });
+  const [adding, setAdding] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const addMilestone = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (title: string) => {
       const { error } = await supabase.from("artist_milestones").insert({
         artist_id: artistId,
-        title: form.title,
-        date: form.date,
-        description: form.description || null,
+        title,
+        date: new Date().toISOString().split("T")[0],
       });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["artist_milestones", artistId] });
-      setForm({ title: "", date: "", description: "" });
-      setShowAdd(false);
+      setAdding(false);
       toast.success("Milestone added");
     },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const updateMilestone = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Record<string, any> }) => {
+      const { error } = await supabase.from("artist_milestones").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["artist_milestones", artistId] }),
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -61,39 +62,47 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
     <div className="mt-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold">Timeline</h3>
-        <Button variant="ghost" size="sm" onClick={() => setShowAdd(!showAdd)}>
-          <Plus className="h-4 w-4 mr-1" /> Add Milestone
-        </Button>
+        {adding ? (
+          <input
+            ref={inputRef}
+            autoFocus
+            placeholder="Milestone name, press Enter"
+            className="bg-transparent border-b border-primary/40 outline-none text-sm py-1 w-48"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) addMilestone.mutate((e.target as HTMLInputElement).value.trim());
+              if (e.key === "Escape") setAdding(false);
+            }}
+            onBlur={() => setAdding(false)}
+          />
+        ) : (
+          <Button variant="ghost" size="sm" onClick={() => setAdding(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Add Milestone
+          </Button>
+        )}
       </div>
 
-      {showAdd && (
-        <div className="space-y-3 p-4 rounded-lg border border-border mb-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1"><Label>Title</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
-            <div className="space-y-1"><Label>Date</Label><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
-          </div>
-          <div className="space-y-1"><Label>Description</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setShowAdd(false)}>Cancel</Button>
-            <Button size="sm" onClick={() => addMilestone.mutate()} disabled={!form.title.trim() || !form.date}>Create</Button>
-          </div>
-        </div>
-      )}
-
-      {milestones.length === 0 && !showAdd ? (
+      {milestones.length === 0 && !adding ? (
         <p className="text-sm text-muted-foreground">No milestones yet.</p>
       ) : (
         <div className="relative pl-6 border-l-2 border-border space-y-6 ml-2">
           {milestones.map((m: any) => (
-            <div key={m.id} className="relative">
+            <div key={m.id} className="relative group">
               <div className="absolute -left-[calc(1.5rem+1px)] top-1 h-3 w-3 rounded-full bg-primary" />
               <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-medium">{m.title}</p>
-                  <p className="text-xs text-muted-foreground">{m.date}</p>
-                  {m.description && <p className="text-sm text-muted-foreground mt-1">{m.description}</p>}
+                <div className="space-y-0.5">
+                  <InlineField value={m.title} onSave={(v) => updateMilestone.mutate({ id: m.id, patch: { title: v } })} className="font-medium" />
+                  <div>
+                    <InlineField value={m.date} onSave={(v) => updateMilestone.mutate({ id: m.id, patch: { date: v } })} className="text-xs text-muted-foreground" />
+                  </div>
+                  <InlineField
+                    value={m.description ?? ""}
+                    placeholder="Add description"
+                    onSave={(v) => updateMilestone.mutate({ id: m.id, patch: { description: v || null } })}
+                    className="text-sm text-muted-foreground"
+                    as="textarea"
+                  />
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => deleteMilestone.mutate(m.id)}>
+                <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 h-7 w-7" onClick={() => deleteMilestone.mutate(m.id)}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>

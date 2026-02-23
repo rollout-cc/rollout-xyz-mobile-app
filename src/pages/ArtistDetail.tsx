@@ -190,74 +190,45 @@ export default function ArtistDetail() {
 
 // Objectives panel - shows goals/focuses like the old site
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { InlineField } from "@/components/ui/InlineField";
 
 function ObjectivesPanel({ artist }: { artist: any }) {
   const queryClient = useQueryClient();
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({
-    primary_goal: artist.primary_goal ?? "",
-    secondary_goal: artist.secondary_goal ?? "",
-    primary_focus: artist.primary_focus ?? "",
-    secondary_focus: artist.secondary_focus ?? "",
-    primary_metric: artist.primary_metric ?? "",
-    secondary_metric: artist.secondary_metric ?? "",
-  });
 
   const save = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("artists").update(form).eq("id", artist.id);
+    mutationFn: async (patch: Record<string, string>) => {
+      const { error } = await supabase.from("artists").update(patch).eq("id", artist.id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["artist", artist.id] });
-      setEditing(false);
-      toast.success("Objectives saved");
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["artist", artist.id] }),
     onError: (e: any) => toast.error(e.message),
   });
 
+  const fields = [
+    { key: "primary_goal", label: "Primary Goal" },
+    { key: "secondary_goal", label: "Secondary Goal" },
+    { key: "primary_focus", label: "Primary Focus" },
+    { key: "secondary_focus", label: "Secondary Focus" },
+    { key: "primary_metric", label: "Primary Metric" },
+    { key: "secondary_metric", label: "Secondary Metric" },
+  ];
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold">Objectives</h3>
-        {!editing ? (
-          <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>Edit</Button>
-        ) : (
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
-            <Button size="sm" onClick={() => save.mutate()}>Save</Button>
+      <h3 className="font-semibold mb-3">Objectives</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+        {fields.map(({ key, label }) => (
+          <div key={key}>
+            <span className="text-muted-foreground">{label}: </span>
+            <InlineField
+              value={artist[key] ?? ""}
+              placeholder="—"
+              onSave={(v) => save.mutate({ [key]: v })}
+            />
           </div>
-        )}
+        ))}
       </div>
-      {editing ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {(Object.keys(form) as (keyof typeof form)[]).map((key) => (
-            <div key={key} className="space-y-1">
-              <Label className="capitalize">{key.replace(/_/g, " ")}</Label>
-              <Input value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-          {[
-            ["Primary Goal", artist.primary_goal],
-            ["Secondary Goal", artist.secondary_goal],
-            ["Primary Focus", artist.primary_focus],
-            ["Secondary Focus", artist.secondary_focus],
-            ["Primary Metric", artist.primary_metric],
-            ["Secondary Metric", artist.secondary_metric],
-          ].map(([label, val]) => (
-            <div key={label as string}>
-              <span className="text-muted-foreground">{label}: </span>
-              <span>{val || "—"}</span>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
