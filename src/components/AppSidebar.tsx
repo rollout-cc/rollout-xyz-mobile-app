@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { LayoutGrid, ListTodo, Plus, ChevronsUpDown } from "lucide-react";
+import rolloutLogo from "@/assets/rollout-logo.png";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -57,14 +58,8 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
     <>
       <Sidebar className="w-44 border-r border-border bg-sidebar">
         <SidebarContent className="flex flex-col h-full p-0">
-          {/* Logo */}
           <div className="px-4 pt-4 pb-2">
-            <h1
-              className="text-2xl font-black tracking-tighter text-foreground"
-              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-            >
-              ROLLOUT<span>.</span>📢
-            </h1>
+            <img src={rolloutLogo} alt="Rollout" className="h-6" />
           </div>
 
           {/* Team Switcher */}
