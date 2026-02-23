@@ -74,12 +74,12 @@ export default function Onboarding() {
               <p className="text-sm text-muted-foreground mt-1">We'll use this across the app.</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
+              <Label htmlFor="fullName">Name</Label>
               <Input
                 id="fullName"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Your full name"
+                placeholder="Your name"
                 required
                 autoFocus
               />
