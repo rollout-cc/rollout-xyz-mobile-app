@@ -345,6 +345,8 @@ export type Database = {
           secondary_metric: string | null
           spotify_id: string | null
           team_id: string
+          timeline_is_public: boolean
+          timeline_public_token: string | null
           updated_at: string
         }
         Insert: {
@@ -362,6 +364,8 @@ export type Database = {
           secondary_metric?: string | null
           spotify_id?: string | null
           team_id: string
+          timeline_is_public?: boolean
+          timeline_public_token?: string | null
           updated_at?: string
         }
         Update: {
@@ -379,6 +383,8 @@ export type Database = {
           secondary_metric?: string | null
           spotify_id?: string | null
           team_id?: string
+          timeline_is_public?: boolean
+          timeline_public_token?: string | null
           updated_at?: string
         }
         Relationships: [

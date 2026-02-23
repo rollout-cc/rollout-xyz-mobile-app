@@ -10,6 +10,7 @@ import Onboarding from "./pages/Onboarding";
 import Roster from "./pages/Roster";
 import ArtistDetail from "./pages/ArtistDetail";
 import PublicMemberInfo from "./pages/PublicMemberInfo";
+import PublicTimeline from "./pages/PublicTimeline";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ function AppRoutes() {
       <Route path="/roster" element={<ProtectedRoute><Roster /></ProtectedRoute>} />
       <Route path="/roster/:artistId" element={<ProtectedRoute><ArtistDetail /></ProtectedRoute>} />
       <Route path="/shared/member/:token" element={<PublicMemberInfo />} />
+      <Route path="/shared/timeline/:token" element={<PublicTimeline />} />
       <Route path="/" element={<Navigate to="/roster" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
