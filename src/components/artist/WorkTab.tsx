@@ -87,21 +87,23 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
         <NewCampaignInline artistId={artistId} onCreated={setNewCampaignId} />
       </div>
 
-      {/* Active Tasks */}
-      <div className="border border-border rounded-lg mb-3 overflow-hidden">
-        <button onClick={() => setActiveExpanded(!activeExpanded)} className="flex items-center justify-between w-full px-4 py-3 text-left bg-muted/50 hover:bg-muted transition-colors">
-          <span className="text-lg font-bold">Active Tasks <span className="text-muted-foreground font-normal text-sm ml-2 bg-muted px-2 py-0.5 rounded-full">{activeTasks.length}</span></span>
-          {activeExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
-        </button>
-        {activeExpanded && (
-          <div className="p-4">
-            <InlineTaskInput artistId={artistId} teamId={teamId} campaigns={campaigns} />
-            {unsortedTasks.map((t: any) => (
-              <TaskRow key={t.id} task={t} artistId={artistId} campaigns={campaigns} />
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Active Tasks - only show if there are unsorted tasks */}
+      {unsortedTasks.length > 0 && (
+        <div className="border border-border rounded-lg mb-3 overflow-hidden">
+          <button onClick={() => setActiveExpanded(!activeExpanded)} className="flex items-center justify-between w-full px-4 py-3 text-left bg-muted/50 hover:bg-muted transition-colors">
+            <span className="text-lg font-bold">Active Tasks <span className="text-muted-foreground font-normal text-sm ml-2 bg-muted px-2 py-0.5 rounded-full">{activeTasks.length}</span></span>
+            {activeExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
+          </button>
+          {activeExpanded && (
+            <div className="p-4">
+              <InlineTaskInput artistId={artistId} teamId={teamId} campaigns={campaigns} />
+              {unsortedTasks.map((t: any) => (
+                <TaskRow key={t.id} task={t} artistId={artistId} campaigns={campaigns} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Campaign sections */}
       {campaigns.map((c: any) => {
