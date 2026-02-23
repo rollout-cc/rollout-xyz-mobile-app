@@ -1,0 +1,1 @@
+ALTER TABLE public.artist_travel_info ADD COLUMN IF NOT EXISTS drivers_license TEXT;

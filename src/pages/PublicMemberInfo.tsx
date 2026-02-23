@@ -47,7 +47,7 @@ export default function PublicMemberInfo() {
         <Section icon={<Plane className="h-4 w-4" />} title="Travel Info">
           <InfoGrid>
             <InfoItem label="KTN Number" value={member.ktn_number} />
-            <InfoItem label="TSA PreCheck Number" value={member.tsa_precheck_number} />
+            <InfoItem label="Driver's License #" value={member.drivers_license} />
             <InfoItem label="Preferred Seat" value={member.preferred_seat} />
             <InfoItem label="Preferred Airline" value={member.preferred_airline} />
             <InfoItem label="Passport Name" value={member.passport_name} />
