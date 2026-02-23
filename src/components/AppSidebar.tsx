@@ -58,7 +58,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
 
   return (
     <>
-      <Sidebar className="border-r border-border bg-sidebar" style={{ "--sidebar-width": "11rem" } as React.CSSProperties}>
+      <Sidebar className="border-r border-border bg-sidebar">
         <SidebarContent className="flex flex-col h-full p-0">
           <div className="px-4 pt-4 pb-2 cursor-pointer" onClick={() => navigate("/roster")}>
             <img src={rolloutLogo} alt="Rollout" className="w-full" />
