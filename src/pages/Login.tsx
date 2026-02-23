@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import rolloutLogo from "@/assets/rollout-logo.png";
 
 export default function Login() {
   const [mode, setMode] = useState<"landing" | "email-login" | "email-signup">("landing");
@@ -219,10 +220,7 @@ export default function Login() {
 
       {/* ROLLOUT Logo */}
       <div className="relative z-10 pb-12">
-        <h2 className="text-3xl font-black tracking-tighter text-[hsl(40,30%,95%)]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-          ROLLOUT<span className="text-[hsl(40,30%,95%)]">.</span>
-          <span className="inline-block -ml-1 text-lg">📢</span>
-        </h2>
+        <img src={rolloutLogo} alt="Rollout" className="h-8 brightness-0 invert opacity-90" />
       </div>
     </div>
   );
