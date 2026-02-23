@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { format, parse } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -65,8 +65,9 @@ function GoalsSection({ artist }: { artist: any }) {
 /* ── Members Section (unified cards) ── */
 function MembersSection({ artistId }: { artistId: string }) {
   const queryClient = useQueryClient();
+  const autoCreatedRef = useRef(false);
 
-  const { data: members = [] } = useQuery({
+  const { data: members = [], isSuccess } = useQuery({
     queryKey: ["artist_travel_info", artistId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -80,15 +81,23 @@ function MembersSection({ artistId }: { artistId: string }) {
   });
 
   const addMember = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (nameOverride?: { first_name?: string; last_name?: string }) => {
       const { error } = await supabase
         .from("artist_travel_info")
-        .insert({ artist_id: artistId, first_name: "New", last_name: "Member" } as any);
+        .insert({ artist_id: artistId, ...(nameOverride || {}) } as any);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["artist_travel_info", artistId] }),
     onError: (e: any) => toast.error(e.message),
   });
+
+  // Auto-create a blank member for new artists
+  useEffect(() => {
+    if (isSuccess && members.length === 0 && !autoCreatedRef.current && !addMember.isPending) {
+      autoCreatedRef.current = true;
+      addMember.mutate({});
+    }
+  }, [isSuccess, members.length]);
 
   const updateMember = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Record<string, any> }) => {
@@ -111,7 +120,7 @@ function MembersSection({ artistId }: { artistId: string }) {
     <section>
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold">Band Members</h3>
-        <Button variant="ghost" size="sm" onClick={() => addMember.mutate()}>
+        <Button variant="ghost" size="sm" onClick={() => addMember.mutate({})}>
           <Plus className="h-4 w-4 mr-1" /> Add Member
         </Button>
       </div>
