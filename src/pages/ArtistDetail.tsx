@@ -236,6 +236,7 @@ export default function ArtistDetail() {
 }
 
 // Objectives panel - shows goals/focuses like the old site
+import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
 
 function ObjectivesPanel({ artist }: { artist: any }) {
