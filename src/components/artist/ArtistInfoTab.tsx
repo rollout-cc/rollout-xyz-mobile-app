@@ -13,7 +13,6 @@ interface ArtistInfoTabProps {
 export function ArtistInfoTab({ artist }: ArtistInfoTabProps) {
   return (
     <div className="space-y-6 mt-4">
-      <GoalsSection artist={artist} />
       <MembersSection artistId={artist.id} />
     </div>
   );
@@ -140,7 +139,7 @@ function MemberCard({
   onUpdate: (patch: Record<string, any>) => void;
   onDelete: () => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
 
   const firstName = member.first_name || member.member_name || "";
   const lastName = member.last_name || "";
