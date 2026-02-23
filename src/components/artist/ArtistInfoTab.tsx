@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ChevronDown, ChevronRight, User, Plane, Shirt, CalendarIcon } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronRight, User, Plane, Shirt, CalendarIcon, Share2, Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
 import { cn } from "@/lib/utils";
@@ -162,14 +162,17 @@ function MemberCard({
           <User className="h-4 w-4 text-muted-foreground" />
           {displayName}
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="opacity-0 group-hover:opacity-100 h-7 w-7"
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <ShareButton member={member} onUpdate={onUpdate} />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="opacity-0 group-hover:opacity-100 h-7 w-7"
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </button>
 
       {/* Collapsible content */}
@@ -223,6 +226,54 @@ function MemberCard({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Share button ── */
+function ShareButton({ member, onUpdate }: { member: any; onUpdate: (patch: Record<string, any>) => void }) {
+  const [copied, setCopied] = useState(false);
+  const isPublic = member.is_public ?? false;
+  const token = member.public_token;
+
+  const toggleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isPublic) {
+      onUpdate({ is_public: false });
+      toast.success("Sharing disabled");
+    } else {
+      onUpdate({ is_public: true });
+      const url = `${window.location.origin}/shared/member/${token}`;
+      navigator.clipboard.writeText(url);
+      toast.success("Link copied! Sharing enabled.");
+    }
+  };
+
+  const copyLink = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/shared/member/${token}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    toast.success("Link copied!");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="flex items-center gap-0.5">
+      {isPublic && (
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={copyLink}>
+          {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
+        </Button>
+      )}
+      <Button
+        variant="ghost"
+        size="icon"
+        className={cn("h-7 w-7", isPublic ? "text-primary" : "opacity-0 group-hover:opacity-100")}
+        onClick={toggleShare}
+        title={isPublic ? "Disable sharing" : "Share this member's info"}
+      >
+        <Share2 className="h-3.5 w-3.5" />
+      </Button>
     </div>
   );
 }

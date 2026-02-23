@@ -244,6 +244,7 @@ export type Database = {
           first_name: string | null
           hat_size: string | null
           id: string
+          is_public: boolean
           ktn_number: string | null
           last_name: string | null
           member_name: string | null
@@ -252,6 +253,7 @@ export type Database = {
           passport_name: string | null
           preferred_airline: string | null
           preferred_seat: string | null
+          public_token: string | null
           shirt_size: string | null
           shoe_size: string | null
           tsa_precheck_number: string | null
@@ -266,6 +268,7 @@ export type Database = {
           first_name?: string | null
           hat_size?: string | null
           id?: string
+          is_public?: boolean
           ktn_number?: string | null
           last_name?: string | null
           member_name?: string | null
@@ -274,6 +277,7 @@ export type Database = {
           passport_name?: string | null
           preferred_airline?: string | null
           preferred_seat?: string | null
+          public_token?: string | null
           shirt_size?: string | null
           shoe_size?: string | null
           tsa_precheck_number?: string | null
@@ -288,6 +292,7 @@ export type Database = {
           first_name?: string | null
           hat_size?: string | null
           id?: string
+          is_public?: boolean
           ktn_number?: string | null
           last_name?: string | null
           member_name?: string | null
@@ -296,6 +301,7 @@ export type Database = {
           passport_name?: string | null
           preferred_airline?: string | null
           preferred_seat?: string | null
+          public_token?: string | null
           shirt_size?: string | null
           shoe_size?: string | null
           tsa_precheck_number?: string | null
@@ -705,6 +711,7 @@ export type Database = {
         Returns: boolean
       }
       is_link_folder_public: { Args: { p_folder_id: string }; Returns: boolean }
+      is_member_info_public: { Args: { p_member_id: string }; Returns: boolean }
       is_team_member: { Args: { p_team_id: string }; Returns: boolean }
       is_team_owner_or_manager: {
         Args: { p_team_id: string }
