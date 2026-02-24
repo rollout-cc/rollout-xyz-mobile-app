@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Upload, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { TeamManagement } from "@/components/settings/TeamManagement";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -257,6 +258,10 @@ export default function Settings() {
           >
             {saving ? "Saving..." : "Save Settings"}
           </Button>
+
+          <div className="border-t border-border pt-8">
+            <TeamManagement />
+          </div>
         </div>
       </div>
     </AppLayout>
