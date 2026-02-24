@@ -8,6 +8,8 @@ import { format, isToday, isTomorrow, isPast } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { Calendar, DollarSign, AlertCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PullToRefresh } from "@/components/PullToRefresh";
+import { useCallback } from "react";
 
 export default function MyWork() {
   const { user } = useAuth();
@@ -59,8 +61,13 @@ export default function MyWork() {
     { label: "No Due Date", items: noDue, icon: Calendar, color: "text-muted-foreground" },
   ].filter((s) => s.items.length > 0);
 
+  const handleRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["my-work"] });
+  }, [queryClient]);
+
   return (
     <AppLayout title="My Work">
+      <PullToRefresh onRefresh={handleRefresh}>
       {isLoading ? (
         <div className="flex items-center justify-center min-h-[40vh] text-muted-foreground">Loading...</div>
       ) : tasks.length === 0 ? (
@@ -137,6 +144,7 @@ export default function MyWork() {
           ))}
         </div>
       )}
+      </PullToRefresh>
     </AppLayout>
   );
 }
