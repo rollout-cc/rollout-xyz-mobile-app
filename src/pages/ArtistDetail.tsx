@@ -11,6 +11,7 @@ import { LinksTab } from "@/components/artist/LinksTab";
 import { TimelinesTab } from "@/components/artist/TimelinesTab";
 import { BudgetSection, useTotalBudget } from "@/components/artist/BudgetSection";
 import { BannerUpload } from "@/components/artist/BannerUpload";
+import { FinanceLedger } from "@/components/artist/FinanceLedger";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -205,32 +206,45 @@ export default function ArtistDetail() {
         )}
       </div>
 
-      {/* Tab row for Work/Links/Timelines - these are the bottom tabs */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-1 border-b border-border">
-          {(["work", "links", "timelines"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveView(tab)}
-              className={`px-4 py-2 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
-                activeView === tab
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+      {/* Main content + Finance ledger sidebar */}
+      <div className="flex gap-6">
+        {/* Left: main content area */}
+        <div className="flex-1 min-w-0">
+          {/* Tab row for Work/Links/Timelines */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-1 border-b border-border">
+              {(["work", "links", "timelines"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveView(tab)}
+                  className={`px-4 py-2 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
+                    activeView === tab
+                      ? "border-primary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Content area - switches based on activeView */}
+          {activeView === "budgets" && <BudgetSection artistId={artist.id} />}
+          {activeView === "objectives" && <ObjectivesPanel artist={artist} />}
+          {activeView === "information" && <ArtistInfoTab artist={artist} />}
+          {activeView === "work" && <WorkTab artistId={artist.id} teamId={artist.team_id} />}
+          {activeView === "links" && <LinksTab artistId={artist.id} />}
+          {activeView === "timelines" && <TimelinesTab artistId={artist.id} />}
+        </div>
+
+        {/* Right: Finance ledger sidebar */}
+        <div className="hidden lg:block w-[320px] shrink-0">
+          <div className="sticky top-4">
+            <FinanceLedger artistId={artist.id} />
+          </div>
         </div>
       </div>
-
-      {/* Content area - switches based on activeView */}
-      {activeView === "budgets" && <BudgetSection artistId={artist.id} />}
-      {activeView === "objectives" && <ObjectivesPanel artist={artist} />}
-      {activeView === "information" && <ArtistInfoTab artist={artist} />}
-      {activeView === "work" && <WorkTab artistId={artist.id} teamId={artist.team_id} />}
-      {activeView === "links" && <LinksTab artistId={artist.id} />}
-      {activeView === "timelines" && <TimelinesTab artistId={artist.id} />}
     </AppLayout>
   );
 }

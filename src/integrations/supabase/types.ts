@@ -760,6 +760,51 @@ export type Database = {
         }
         Relationships: []
       }
+      transactions: {
+        Row: {
+          amount: number
+          artist_id: string
+          budget_id: string | null
+          created_at: string
+          description: string
+          id: string
+          transaction_date: string
+        }
+        Insert: {
+          amount?: number
+          artist_id: string
+          budget_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          transaction_date?: string
+        }
+        Update: {
+          amount?: number
+          artist_id?: string
+          budget_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          transaction_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
