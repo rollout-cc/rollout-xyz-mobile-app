@@ -18,11 +18,12 @@ function formatRevenue(n: number): string {
 interface PerformancePillsProps {
   artistId: string;
   spotifyId: string | null | undefined;
+  artistName?: string;
   variant?: "banner" | "compact";
 }
 
-export function PerformancePills({ artistId, spotifyId, variant = "banner" }: PerformancePillsProps) {
-  const { data, isSyncing, sync, isStale } = useArtistPerformance(artistId, spotifyId);
+export function PerformancePills({ artistId, spotifyId, artistName, variant = "banner" }: PerformancePillsProps) {
+  const { data, isSyncing, sync, isStale } = useArtistPerformance(artistId, spotifyId, artistName);
 
   if (!spotifyId) return null;
 
