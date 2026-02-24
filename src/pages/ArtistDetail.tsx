@@ -28,17 +28,29 @@ export default function ArtistDetail() {
   const [activeView, setActiveView] = useState<ActiveView>("work");
   const queryClient = useQueryClient();
 
-  // Sync Spotify monthly listeners to DB when fetched
+  // Sync Spotify data (monthly listeners + banner) to DB when fetched
   useEffect(() => {
-    const spotifyListeners = spotifyData?.monthly_listeners || 0;
-    if (spotifyListeners > 0 && artist && (artist as any).monthly_listeners !== spotifyListeners) {
+    if (!spotifyData || !artist) return;
+    const patch: Record<string, any> = {};
+
+    const spotifyListeners = spotifyData.monthly_listeners || 0;
+    if (spotifyListeners > 0 && (artist as any).monthly_listeners !== spotifyListeners) {
+      patch.monthly_listeners = spotifyListeners;
+    }
+
+    const spotifyBanner = spotifyData.banner_url;
+    if (spotifyBanner && !artist.banner_url) {
+      patch.banner_url = spotifyBanner;
+    }
+
+    if (Object.keys(patch).length > 0) {
       supabase
         .from("artists")
-        .update({ monthly_listeners: spotifyListeners } as any)
+        .update(patch as any)
         .eq("id", artist.id)
         .then(() => queryClient.invalidateQueries({ queryKey: ["artist", artist.id] }));
     }
-  }, [spotifyData?.monthly_listeners, artist?.id]);
+  }, [spotifyData, artist?.id]);
 
   // Get completed tasks count
   const { data: completedCount = 0 } = useQuery({
