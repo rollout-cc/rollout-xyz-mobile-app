@@ -1,0 +1,1 @@
+DELETE FROM artist_performance_snapshots;

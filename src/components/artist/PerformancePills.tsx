@@ -91,18 +91,16 @@ export function PerformancePills({ artistId, spotifyId, artistName, variant = "b
           <span className="text-sm font-bold">{pill.value}</span>
         </div>
       ))}
-      {isStale && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 text-white/50 hover:text-white hover:bg-white/10"
-          onClick={() => sync()}
-          disabled={isSyncing}
-          title="Refresh performance data"
-        >
-          <RefreshCw className={`h-3 w-3 ${isSyncing ? "animate-spin" : ""}`} />
-        </Button>
-      )}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-6 w-6 text-white/50 hover:text-white hover:bg-white/10"
+        onClick={() => sync()}
+        disabled={isSyncing}
+        title="Refresh performance data"
+      >
+        <RefreshCw className={`h-3 w-3 ${isSyncing ? "animate-spin" : ""}`} />
+      </Button>
     </div>
   );
 }
