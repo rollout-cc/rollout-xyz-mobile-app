@@ -14,6 +14,7 @@ async function getSpotifyToken(): Promise<string> {
   const clientId = Deno.env.get("SPOTIFY_CLIENT_ID");
   const clientSecret = Deno.env.get("SPOTIFY_CLIENT_SECRET");
   if (!clientId || !clientSecret) throw new Error("Spotify credentials not configured");
+  console.log("Requesting Spotify token with client_id:", clientId.substring(0, 8) + "...");
 
   const resp = await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
@@ -23,8 +24,9 @@ async function getSpotifyToken(): Promise<string> {
     },
     body: "grant_type=client_credentials",
   });
-  if (!resp.ok) throw new Error("Spotify token error: " + resp.status);
   const data = await resp.json();
+  console.log("Token response status:", resp.status, "has access_token:", !!data.access_token, "error:", data.error || "none");
+  if (!resp.ok || !data.access_token) throw new Error("Spotify token error: " + resp.status + " " + JSON.stringify(data));
   cachedToken = data.access_token;
   tokenExpiresAt = Date.now() + (data.expires_in - 60) * 1000;
   return cachedToken!;
@@ -108,8 +110,15 @@ Deno.serve(async (req: Request) => {
       scrapeMonthlyListeners(spotifyId),
     ]);
 
-    if (!artistResp.ok) throw new Error("Spotify artist error: " + artistResp.status);
-    const artist = await artistResp.json();
+    if (!artistResp.ok) {
+      const errText = await artistResp.text();
+      console.error("Spotify API error:", artistResp.status, errText);
+      throw new Error("Spotify artist error: " + artistResp.status);
+    }
+    const artistRaw = await artistResp.text();
+    console.log("Raw API response (first 500 chars):", artistRaw.substring(0, 500));
+    const artist = JSON.parse(artistRaw);
+    console.log("Parsed - followers:", artist.followers, "popularity:", artist.popularity, "genres:", artist.genres);
 
     return new Response(JSON.stringify({
       id: artist.id,
