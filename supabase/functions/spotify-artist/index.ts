@@ -1,12 +1,11 @@
 // Spotify artist detail edge function
-// Fetches artist data from official API + scrapes monthly listeners from public page
+// Fetches artist data from official API + scrapes monthly listeners via Firecrawl
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Cache version 2 - force refresh after credential update
 let cachedToken: string | null = null;
 let tokenExpiresAt = 0;
 
@@ -15,7 +14,6 @@ async function getSpotifyToken(): Promise<string> {
   const clientId = Deno.env.get("SPOTIFY_CLIENT_ID");
   const clientSecret = Deno.env.get("SPOTIFY_CLIENT_SECRET");
   if (!clientId || !clientSecret) throw new Error("Spotify credentials not configured");
-  console.log("Using client_id prefix:", clientId.substring(0, 10));
 
   const resp = await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
@@ -26,8 +24,7 @@ async function getSpotifyToken(): Promise<string> {
     body: "grant_type=client_credentials",
   });
   const data = await resp.json();
-  
-  if (!resp.ok || !data.access_token) throw new Error("Spotify token error: " + resp.status + " " + JSON.stringify(data));
+  if (!resp.ok || !data.access_token) throw new Error("Spotify token error: " + resp.status);
   cachedToken = data.access_token;
   tokenExpiresAt = Date.now() + (data.expires_in - 60) * 1000;
   return cachedToken!;
@@ -45,36 +42,80 @@ async function fetchWithRetry(url: string): Promise<Response> {
   return resp;
 }
 
-/** Scrape monthly listeners from Spotify's public artist page */
+/** Scrape monthly listeners from Spotify's public artist page using Firecrawl */
 async function scrapeMonthlyListeners(spotifyId: string): Promise<number> {
+  const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!firecrawlKey) {
+    console.log("FIRECRAWL_API_KEY not configured, skipping monthly listeners scrape");
+    return 0;
+  }
+
   try {
-    const resp = await fetch(`https://open.spotify.com/artist/${spotifyId}`, {
+    const url = `https://open.spotify.com/artist/${spotifyId}`;
+    console.log("Scraping monthly listeners from:", url);
+
+    const resp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+      method: "POST",
       headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml",
-        "Accept-Language": "en-US,en;q=0.9",
+        "Authorization": `Bearer ${firecrawlKey}`,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        url,
+        formats: ["markdown"],
+        onlyMainContent: true,
+        waitFor: 3000,
+      }),
     });
+
+    const result = await resp.json();
+
     if (!resp.ok) {
-      console.log("Scrape failed with status:", resp.status);
+      console.error("Firecrawl API error:", resp.status, JSON.stringify(result));
       return 0;
     }
-    const html = await resp.text();
 
-    // Try multiple patterns to find monthly listeners
-    // Pattern 1: "XX,XXX,XXX monthly listeners"
-    const p1 = html.match(/([\d,]+)\s+monthly\s+listener/i);
-    if (p1) return parseInt(p1[1].replace(/,/g, ""), 10);
+    // Extract markdown content from response
+    const markdown = result?.data?.markdown || result?.markdown || "";
+    
+    if (!markdown) {
+      console.log("No markdown content returned from Firecrawl");
+      return 0;
+    }
 
-    // Pattern 2: JSON-LD or meta content
-    const p2 = html.match(/monthlyListeners["\s:]+(\d+)/i);
-    if (p2) return parseInt(p2[1], 10);
+    // Parse monthly listeners from the scraped content
+    // Pattern: "118,474,283 monthly listeners" or similar
+    const patterns = [
+      /([\d,]+)\s+monthly\s+listener/i,
+      /monthly\s+listener[s]?\s*[:\-–]\s*([\d,]+)/i,
+      /([\d,]+)\s*monthly/i,
+    ];
 
-    // Pattern 3: data attribute
-    const p3 = html.match(/monthly.listener[^>]*?>([\d,]+)/i);
-    if (p3) return parseInt(p3[1].replace(/,/g, ""), 10);
+    for (const pattern of patterns) {
+      const match = markdown.match(pattern);
+      if (match) {
+        const numStr = match[1].replace(/,/g, "");
+        const num = parseInt(numStr, 10);
+        if (num > 0) {
+          console.log("Found monthly listeners:", num);
+          return num;
+        }
+      }
+    }
 
-    console.log("Could not parse monthly listeners from HTML");
+    // Also try to find it in any format like "118.4M monthly listeners"
+    const shortMatch = markdown.match(/([\d.]+)\s*([MKB])\s*monthly\s+listener/i);
+    if (shortMatch) {
+      const base = parseFloat(shortMatch[1]);
+      const multiplier = { M: 1e6, K: 1e3, B: 1e9 }[shortMatch[2].toUpperCase()] || 1;
+      const num = Math.round(base * multiplier);
+      if (num > 0) {
+        console.log("Found monthly listeners (short format):", num);
+        return num;
+      }
+    }
+
+    console.log("Could not parse monthly listeners from scraped content. First 500 chars:", markdown.substring(0, 500));
     return 0;
   } catch (err) {
     console.error("Scrape error:", err);

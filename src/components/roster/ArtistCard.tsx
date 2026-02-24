@@ -1,5 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { BarChart3, Users, FolderOpen, CheckCircle2, MoreVertical, DollarSign } from "lucide-react";
+import { BarChart3, Headphones, FolderOpen, CheckCircle2, MoreVertical, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -59,8 +59,8 @@ export function ArtistCard({ artist, onClick }: ArtistCardProps) {
               <DollarSign className="h-3 w-3" />
               {formatNum(totalBudget)}
             </span>
-            <span className="flex items-center gap-1" title="Spotify Followers">
-              <Users className="h-3 w-3" />
+            <span className="flex items-center gap-1" title="Monthly Listeners">
+              <Headphones className="h-3 w-3" />
               {listeners > 0 ? formatNum(listeners) : "—"}
             </span>
             <span className="flex items-center gap-1">
