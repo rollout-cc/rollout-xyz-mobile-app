@@ -1,149 +1,76 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateTeam } from "@/hooks/useTeams";
-import { useCreateArtist } from "@/hooks/useArtists";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import rolloutLogo from "@/assets/rollout-logo.png";
+import { ArrowLeft, Bell, Star, User, Hash, DollarSign, Link2, Bookmark, CalendarDays, CheckSquare } from "lucide-react";
+import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, User, Loader2, Check, X } from "lucide-react";
-import { toast } from "sonner";
-import { motion } from "framer-motion";
+import rolloutLogo from "@/assets/rollout-logo.png";
 
-interface SpotifyArtist {
-  id: string;
-  name: string;
-  genres: string[];
-  images: { url: string }[];
-}
-
-interface AddedArtist {
-  name: string;
-  avatar_url?: string;
-  spotify_id?: string;
-}
+const TOTAL_STEPS = 5;
 
 export default function Onboarding() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const createTeam = useCreateTeam();
-  const createArtist = useCreateArtist();
-  const [step, setStep] = useState<"name" | "team" | "artists">("name");
-  const [fullName, setFullName] = useState("");
-  const [teamName, setTeamName] = useState("");
-  const [teamId, setTeamId] = useState<string | null>(null);
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  // Artist search state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SpotifyArtist[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [addingIds, setAddingIds] = useState<Set<string>>(new Set());
-  const [addedArtists, setAddedArtists] = useState<AddedArtist[]>([]);
-  const [addedSpotifyIds, setAddedSpotifyIds] = useState<Set<string>>(new Set());
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  // Data collected across steps
+  const [fullName, setFullName] = useState("");
+  const [role, setRole] = useState("Owner");
+  const [experience, setExperience] = useState("2-3 years");
+  const [teamName, setTeamName] = useState("");
+  const [teamSize, setTeamSize] = useState("1-5");
+  const [revenue, setRevenue] = useState("less than $10,000");
+  const [artistCount, setArtistCount] = useState("2-5");
 
-  // Spotify search
-  useEffect(() => {
-    if (step !== "artists") return;
-    if (!searchQuery.trim() || searchQuery.trim().length < 2) {
-      setSearchResults([]);
-      return;
-    }
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      setSearching(true);
+  const canGoNext = () => {
+    if (step === 1) return true;
+    if (step === 2) return !!role && !!experience;
+    if (step === 3) return !!teamName.trim();
+    return true;
+  };
+
+  const handleNext = async () => {
+    if (step === 2) {
+      // Save profile name + role
+      setLoading(true);
       try {
-        const { data, error } = await supabase.functions.invoke("spotify-search", {
-          body: { q: searchQuery.trim() },
-        });
-        if (error) throw error;
-        setSearchResults(data?.artists ?? []);
-      } catch {
-        setSearchResults([]);
-      } finally {
-        setSearching(false);
+        const name = fullName.trim() || user?.user_metadata?.full_name || "User";
+        await supabase.from("profiles").update({
+          full_name: name,
+          job_role: role,
+        }).eq("id", user!.id);
+      } catch (err: any) {
+        toast.error(err.message);
+        setLoading(false);
+        return;
       }
-    }, 350);
-    return () => clearTimeout(debounceRef.current);
-  }, [searchQuery, step]);
-
-  const handleNameSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!fullName.trim()) return;
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ full_name: fullName.trim() })
-        .eq("id", user!.id);
-      if (error) throw error;
-      setStep("team");
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
       setLoading(false);
     }
-  };
 
-  const handleTeamSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!teamName.trim()) return;
-    setLoading(true);
-    try {
-      const team = await createTeam.mutateAsync(teamName.trim());
-      setTeamId(team.id);
-      setStep("artists");
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
+    if (step === 3) {
+      // Create team
+      setLoading(true);
+      try {
+        await createTeam.mutateAsync(teamName.trim());
+      } catch (err: any) {
+        toast.error(err.message);
+        setLoading(false);
+        return;
+      }
       setLoading(false);
     }
-  };
 
-  const handleAddSpotify = async (artist: SpotifyArtist) => {
-    if (!teamId) return;
-    setAddingIds((prev) => new Set(prev).add(artist.id));
-    try {
-      await createArtist.mutateAsync({
-        team_id: teamId,
-        name: artist.name,
-        avatar_url: artist.images?.[0]?.url || null,
-        spotify_id: artist.id,
-        genres: artist.genres,
-      });
-      setAddedSpotifyIds((prev) => new Set(prev).add(artist.id));
-      setAddedArtists((prev) => [...prev, {
-        name: artist.name,
-        avatar_url: artist.images?.[0]?.url,
-        spotify_id: artist.id,
-      }]);
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setAddingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(artist.id);
-        return next;
-      });
-    }
-  };
-
-  const handleCreateManual = async (name: string) => {
-    if (!teamId) return;
-    setLoading(true);
-    try {
-      await createArtist.mutateAsync({ team_id: teamId, name });
-      setAddedArtists((prev) => [...prev, { name }]);
-      setSearchQuery("");
-      setSearchResults([]);
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setLoading(false);
+    if (step < TOTAL_STEPS) {
+      setStep(step + 1);
     }
   };
 
@@ -152,158 +79,299 @@ export default function Onboarding() {
     navigate("/roster", { replace: true });
   };
 
+  const handleBack = () => {
+    if (step > 1) setStep(step - 1);
+  };
+
+  const initials = user?.user_metadata?.full_name
+    ? user.user_metadata.full_name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
+    : "U";
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <motion.div
-        className="w-full max-w-sm px-6"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        key={step}
-      >
-        <img
-          src={rolloutLogo}
-          alt="Rollout"
-          className="h-7 mb-1"
-        />
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-6 py-3 border-b border-border">
+        <button
+          onClick={handleBack}
+          disabled={step === 1}
+          className="flex items-center gap-2 text-sm font-medium text-foreground disabled:opacity-30 hover:opacity-70 transition-opacity"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Bell className="h-5 w-5 text-foreground" />
+            <div className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-blue-500" />
+          </div>
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="text-xs font-semibold">{initials}</AvatarFallback>
+          </Avatar>
+        </div>
+      </div>
 
-        {step === "name" ? (
-          <form onSubmit={handleNameSubmit} className="mt-8 flex flex-col gap-4">
-            <div>
-              <p className="text-lg font-semibold text-foreground">What's your name?</p>
-              <p className="text-sm text-muted-foreground mt-1">We'll use this across the app.</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Name</Label>
-              <Input
-                id="fullName"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Your name"
-                required
-                autoFocus
+      {/* Content */}
+      <div className="flex-1 flex items-center justify-center px-6">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.3 }}
+            className="w-full max-w-[480px]"
+          >
+            {step === 1 && <StepWelcome />}
+            {step === 2 && (
+              <StepTailored
+                fullName={fullName}
+                setFullName={setFullName}
+                role={role}
+                setRole={setRole}
+                experience={experience}
+                setExperience={setExperience}
               />
-            </div>
-            <Button type="submit" disabled={loading || !fullName.trim()}>
-              {loading ? "Saving..." : "Continue"}
-            </Button>
-          </form>
-        ) : step === "team" ? (
-          <form onSubmit={handleTeamSubmit} className="mt-8 flex flex-col gap-4">
-            <div>
-              <p className="text-lg font-semibold text-foreground">Name your team</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                This is where you'll manage your artists.
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="teamName">Team Name</Label>
-              <Input
-                id="teamName"
-                value={teamName}
-                onChange={(e) => setTeamName(e.target.value)}
-                placeholder="e.g. My Label"
-                required
-                autoFocus
-              />
-            </div>
-            <Button type="submit" disabled={loading || !teamName.trim()}>
-              {loading ? "Creating..." : "Continue"}
-            </Button>
-          </form>
-        ) : (
-          <div className="mt-8 flex flex-col gap-4">
-            <div>
-              <p className="text-lg font-semibold text-foreground">Add your artists</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Search Spotify or create them manually. You can always add more later.
-              </p>
-            </div>
-
-            {/* Added artists chips */}
-            {addedArtists.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {addedArtists.map((a, i) => (
-                  <div key={i} className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-sm">
-                    <Check className="h-3 w-3 text-[hsl(var(--success))]" />
-                    {a.name}
-                  </div>
-                ))}
-              </div>
             )}
-
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search for an artist"
-                className="pl-9"
-                autoFocus
+            {step === 3 && (
+              <StepTeam
+                teamName={teamName}
+                setTeamName={setTeamName}
+                teamSize={teamSize}
+                setTeamSize={setTeamSize}
+                revenue={revenue}
+                setRevenue={setRevenue}
+                artistCount={artistCount}
+                setArtistCount={setArtistCount}
               />
-            </div>
+            )}
+            {step === 4 && <StepOrganized />}
+            {step === 5 && <StepTask />}
 
-            {/* Results */}
-            <div className="min-h-[200px] max-h-[300px] overflow-y-auto flex flex-col">
-              {searching ? (
-                <div className="flex-1 flex items-center justify-center">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : searchResults.length > 0 ? (
-                <div className="flex flex-col gap-2">
-                  {searchResults.map((result) => {
-                    const inRoster = addedSpotifyIds.has(result.id);
-                    const adding = addingIds.has(result.id);
-                    return (
-                      <div key={result.id} className="flex items-center gap-3 p-3 rounded-lg border border-border">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={result.images?.[0]?.url} />
-                          <AvatarFallback>{result.name[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{result.name}</p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {result.genres.slice(0, 2).join(", ") || "No genres"}
-                          </p>
-                        </div>
-                        {inRoster ? (
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Check className="h-3.5 w-3.5 text-[hsl(var(--success))]" /> Added
-                          </div>
-                        ) : (
-                          <Button size="sm" variant="outline" onClick={() => handleAddSpotify(result)} disabled={adding}>
-                            {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
-                          </Button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : searchQuery.trim().length >= 2 ? (
-                <div className="flex-1 flex flex-col items-center justify-center gap-3">
-                  <p className="text-sm text-muted-foreground">No results found</p>
-                  <Button size="sm" onClick={() => handleCreateManual(searchQuery.trim())} disabled={loading}>
-                    {loading ? "Creating..." : `Create "${searchQuery.trim()}" manually`}
-                  </Button>
-                </div>
+            {/* Footer */}
+            <div className="flex items-center justify-between mt-8">
+              <span className="text-sm text-muted-foreground">{step} of {TOTAL_STEPS}</span>
+              {step < TOTAL_STEPS ? (
+                <Button
+                  onClick={handleNext}
+                  disabled={loading || !canGoNext()}
+                  className="bg-foreground text-background hover:bg-foreground/90 rounded-lg px-6"
+                >
+                  {loading ? "Saving..." : "Next"}
+                </Button>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center gap-2 py-8">
-                  <User className="h-10 w-10 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground text-center">
-                    Search Spotify to find artists
-                  </p>
-                </div>
+                <Button
+                  onClick={handleFinish}
+                  className="bg-foreground text-background hover:bg-foreground/90 rounded-lg px-6"
+                >
+                  Let's go
+                </Button>
               )}
             </div>
-
-            {/* Finish */}
-            <Button onClick={handleFinish}>
-              {addedArtists.length > 0 ? "Get Started" : "Skip for now"}
-            </Button>
-          </div>
-        )}
-      </motion.div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </div>
+  );
+}
+
+/* ── Step 1: Welcome ── */
+function StepWelcome() {
+  return (
+    <>
+      <h1 className="text-3xl font-bold mb-3">Welcome on board</h1>
+      <p className="text-muted-foreground leading-relaxed">
+        Rollout makes it easier to manage your roster, track budgets, and organize key artist
+        information—all to help you work more efficiently. Let us show you how it works.
+      </p>
+      <div className="mt-6 rounded-xl overflow-hidden bg-foreground aspect-[16/10] flex items-center justify-center">
+        <img src={rolloutLogo} alt="Rollout" className="h-12 invert" />
+      </div>
+    </>
+  );
+}
+
+/* ── Step 2: Tailored experience ── */
+function StepTailored({
+  fullName, setFullName, role, setRole, experience, setExperience,
+}: {
+  fullName: string; setFullName: (v: string) => void;
+  role: string; setRole: (v: string) => void;
+  experience: string; setExperience: (v: string) => void;
+}) {
+  return (
+    <>
+      <h1 className="text-3xl font-bold mb-3">Get a tailored experience</h1>
+      <p className="text-muted-foreground leading-relaxed mb-6">
+        First, tell us more about you, so we can adjust your experience to match your needs.
+      </p>
+
+      <div className="space-y-5">
+        <div>
+          <Label className="font-semibold text-sm mb-2 block">What's your name?</Label>
+          <Input
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            placeholder="Your name"
+            autoFocus
+          />
+        </div>
+
+        <div>
+          <Label className="font-semibold text-sm mb-2 block">What role do you play on your team?</Label>
+          <Select value={role} onValueChange={setRole}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Owner">Owner</SelectItem>
+              <SelectItem value="Manager">Manager</SelectItem>
+              <SelectItem value="Artist">Artist</SelectItem>
+              <SelectItem value="A&R">A&R</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label className="font-semibold text-sm mb-2 block">How many years of experience do you have in your position?</Label>
+          <Select value={experience} onValueChange={setExperience}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Less than 1 year">Less than 1 year</SelectItem>
+              <SelectItem value="1-2 years">1-2 years</SelectItem>
+              <SelectItem value="2-3 years">2-3 years</SelectItem>
+              <SelectItem value="3-5 years">3-5 years</SelectItem>
+              <SelectItem value="5+ years">5+ years</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ── Step 3: Team details ── */
+function StepTeam({
+  teamName, setTeamName, teamSize, setTeamSize, revenue, setRevenue, artistCount, setArtistCount,
+}: {
+  teamName: string; setTeamName: (v: string) => void;
+  teamSize: string; setTeamSize: (v: string) => void;
+  revenue: string; setRevenue: (v: string) => void;
+  artistCount: string; setArtistCount: (v: string) => void;
+}) {
+  return (
+    <>
+      <h1 className="text-3xl font-bold mb-3">Tell us more about your team</h1>
+      <p className="text-muted-foreground leading-relaxed mb-6">
+        Just a few more questions about your team.
+      </p>
+
+      <div className="space-y-5">
+        <div>
+          <Label className="font-semibold text-sm mb-2 block">What's your team or label name?</Label>
+          <Input
+            value={teamName}
+            onChange={(e) => setTeamName(e.target.value)}
+            placeholder="e.g. My Label"
+            autoFocus
+          />
+        </div>
+
+        <div>
+          <Label className="font-semibold text-sm mb-2 block">What is your team size?</Label>
+          <Select value={teamSize} onValueChange={setTeamSize}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1-5">1-5</SelectItem>
+              <SelectItem value="6-10">6-10</SelectItem>
+              <SelectItem value="11-25">11-25</SelectItem>
+              <SelectItem value="25+">25+</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label className="font-semibold text-sm mb-2 block">What is your team's monthly revenue?</Label>
+          <Select value={revenue} onValueChange={setRevenue}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="less than $10,000">less than $10,000</SelectItem>
+              <SelectItem value="$10,000 - $50,000">$10,000 - $50,000</SelectItem>
+              <SelectItem value="$50,000 - $100,000">$50,000 - $100,000</SelectItem>
+              <SelectItem value="$100,000+">$100,000+</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label className="font-semibold text-sm mb-2 block">How many artists does your team manage?</Label>
+          <Select value={artistCount} onValueChange={setArtistCount}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">1</SelectItem>
+              <SelectItem value="2-5">2-5</SelectItem>
+              <SelectItem value="6-10">6-10</SelectItem>
+              <SelectItem value="10+">10+</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ── Step 4: Get Organized ── */
+function StepOrganized() {
+  return (
+    <>
+      <h1 className="text-3xl font-bold mb-3">Get Organized</h1>
+      <p className="text-muted-foreground leading-relaxed">
+        Rollout helps keep your operations on track without the extra fluff. Get insights into
+        everything important through a single screen.
+      </p>
+      <div className="mt-6 rounded-xl overflow-hidden bg-foreground aspect-[16/10] flex items-center justify-center">
+        <img src={rolloutLogo} alt="Rollout" className="h-12 invert" />
+      </div>
+    </>
+  );
+}
+
+/* ── Step 5: Start with a Task ── */
+function StepTask() {
+  return (
+    <>
+      <h1 className="text-3xl font-bold mb-3">Start with a Task</h1>
+      <p className="text-muted-foreground leading-relaxed">
+        Create tasks, assign people, campaigns, and expenses instantly. All from a single screen.
+      </p>
+      <div className="mt-6 rounded-xl overflow-hidden bg-muted/50 aspect-[16/10] p-6 flex flex-col justify-center">
+        {/* Mock task input */}
+        <div className="bg-card border border-border rounded-lg p-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="h-5 w-5 rounded border-2 border-muted-foreground/30 mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm text-muted-foreground/50">
+                Task name (use @ to assign task, # to pick initiative)
+              </p>
+              <p className="text-xs text-muted-foreground/40 mt-1">Description</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 mt-3 ml-8">
+            {[Star, User, CalendarDays, Hash, DollarSign, Link2, Bookmark].map((Icon, i) => (
+              <div key={i} className="h-7 w-7 rounded border border-border flex items-center justify-center">
+                <Icon className="h-3.5 w-3.5 text-muted-foreground/40" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
