@@ -37,9 +37,18 @@ export function useArtistPerformance(artistId: string, spotifyId: string | null 
       const resp = await supabase.functions.invoke("scrape-chartmasters", {
         body: { artist_id: artistId, spotify_id: spotifyId, artist_name: artistName || "" },
       });
-      // supabase.functions.invoke returns error for non-2xx; parse the body for details
       if (resp.error) {
-        const msg = resp.data?.error || resp.data?.message || "This artist may not be indexed on ChartMasters.";
+        // For non-2xx responses, try to read the JSON body from the FunctionsHttpError
+        let msg = "This artist may not be indexed on ChartMasters.";
+        try {
+          // resp.error.context is the raw Response object in FunctionsHttpError
+          const errorBody = resp.data ?? (resp.error as any)?.context
+            ? await (resp.error as any).context.json()
+            : null;
+          if (errorBody?.error) msg = errorBody.error;
+        } catch {
+          // fallback to default message
+        }
         throw new Error(msg);
       }
       if (resp.data?.mismatch) throw new Error(resp.data.error);
