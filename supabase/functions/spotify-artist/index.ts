@@ -6,6 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Cache version 2 - force refresh after credential update
 let cachedToken: string | null = null;
 let tokenExpiresAt = 0;
 
@@ -14,7 +15,7 @@ async function getSpotifyToken(): Promise<string> {
   const clientId = Deno.env.get("SPOTIFY_CLIENT_ID");
   const clientSecret = Deno.env.get("SPOTIFY_CLIENT_SECRET");
   if (!clientId || !clientSecret) throw new Error("Spotify credentials not configured");
-  console.log("Requesting Spotify token with client_id:", clientId.substring(0, 8) + "...");
+  console.log("Using client_id prefix:", clientId.substring(0, 10));
 
   const resp = await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
@@ -25,7 +26,7 @@ async function getSpotifyToken(): Promise<string> {
     body: "grant_type=client_credentials",
   });
   const data = await resp.json();
-  console.log("Token response status:", resp.status, "has access_token:", !!data.access_token, "error:", data.error || "none");
+  
   if (!resp.ok || !data.access_token) throw new Error("Spotify token error: " + resp.status + " " + JSON.stringify(data));
   cachedToken = data.access_token;
   tokenExpiresAt = Date.now() + (data.expires_in - 60) * 1000;
@@ -115,10 +116,7 @@ Deno.serve(async (req: Request) => {
       console.error("Spotify API error:", artistResp.status, errText);
       throw new Error("Spotify artist error: " + artistResp.status);
     }
-    const artistRaw = await artistResp.text();
-    console.log("Raw API response (first 500 chars):", artistRaw.substring(0, 500));
-    const artist = JSON.parse(artistRaw);
-    console.log("Parsed - followers:", artist.followers, "popularity:", artist.popularity, "genres:", artist.genres);
+    const artist = await artistResp.json();
 
     return new Response(JSON.stringify({
       id: artist.id,
