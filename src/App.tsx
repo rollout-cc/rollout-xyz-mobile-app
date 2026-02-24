@@ -10,6 +10,7 @@ import Onboarding from "./pages/Onboarding";
 import Roster from "./pages/Roster";
 import ArtistDetail from "./pages/ArtistDetail";
 import Tasks from "./pages/Tasks";
+import Settings from "./pages/Settings";
 import PublicMemberInfo from "./pages/PublicMemberInfo";
 import PublicTimeline from "./pages/PublicTimeline";
 import JoinTeam from "./pages/JoinTeam";
@@ -41,6 +42,7 @@ function AppRoutes() {
       <Route path="/roster" element={<ProtectedRoute><Roster /></ProtectedRoute>} />
       <Route path="/roster/:artistId" element={<ProtectedRoute><ArtistDetail /></ProtectedRoute>} />
       <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/shared/member/:token" element={<PublicMemberInfo />} />
       <Route path="/shared/timeline/:token" element={<PublicTimeline />} />
       <Route path="/join/:token" element={<JoinTeam />} />
