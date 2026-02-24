@@ -1,14 +1,16 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { useTeams } from "@/hooks/useTeams";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarDays, DollarSign, ChevronDown, ChevronUp, User } from "lucide-react";
+import { CalendarDays, DollarSign, ChevronDown, ChevronUp, User, Copy } from "lucide-react";
 import { format, startOfWeek, endOfWeek, parse } from "date-fns";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function Agenda() {
   const { data: teams = [] } = useTeams();
@@ -161,6 +163,49 @@ export default function Agenda() {
 
   const formatMoney = (n: number) => `$${n.toLocaleString()}`;
 
+  const exportAgenda = useCallback(() => {
+    if (!artist) return;
+    const lines: string[] = [];
+    lines.push(`AGENDA — ${artist.name}`);
+    lines.push(`Week of ${format(weekStart, "MMMM d")} – ${format(weekEnd, "MMMM d, yyyy")}`);
+    lines.push(`Open Tasks: ${openTaskCount} | Campaigns: ${campaignCount}`);
+    lines.push("");
+
+    if (budgetCards.length > 0) {
+      lines.push("BUDGETS");
+      budgetCards.forEach((b) => lines.push(`  ${b.label}: ${formatMoney(b.spent)} / ${formatMoney(Number(b.amount))} (${Math.round(b.pct)}%)`));
+      lines.push("");
+    }
+
+    lines.push("THIS WEEK'S TASKS");
+    if (weeklyTasks.length === 0) { lines.push("  No tasks due this week."); }
+    else { weeklyTasks.forEach((t) => {
+      const due = t.due_date ? format(new Date(t.due_date), "MMM d") : "";
+      const cost = t.expense_amount ? ` — $${Number(t.expense_amount).toLocaleString()}` : "";
+      lines.push(`  ☐ ${t.title}${cost}${due ? ` (${due})` : ""}`);
+    }); }
+    lines.push("");
+
+    campaignSections.forEach((c) => {
+      lines.push(`CAMPAIGN: ${c.name}`);
+      c.tasks.forEach((t) => {
+        const due = t.due_date ? format(new Date(t.due_date), "MMM d") : "";
+        lines.push(`  ☐ ${t.title}${due ? ` (${due})` : ""}`);
+      });
+      lines.push("");
+    });
+
+    if (weeklyMilestones.length > 0) {
+      lines.push("MILESTONES THIS WEEK");
+      weeklyMilestones.forEach((m: any) => {
+        lines.push(`  • ${m.title} — ${format(parse(m.date, "yyyy-MM-dd", new Date()), "MMM d, yyyy")}`);
+      });
+    }
+
+    navigator.clipboard.writeText(lines.join("\n"));
+    toast.success("Agenda copied to clipboard");
+  }, [artist, budgetCards, weeklyTasks, campaignSections, weeklyMilestones, openTaskCount, campaignCount, weekStart, weekEnd]);
+
   if (!teamId) return <AppLayout title="Agenda"><p className="text-muted-foreground">Loading...</p></AppLayout>;
 
   return (
@@ -185,6 +230,11 @@ export default function Agenda() {
             ))}
           </SelectContent>
         </Select>
+        {artist && (
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={exportAgenda}>
+            <Copy className="h-3.5 w-3.5" /> Export View
+          </Button>
+        )}
       </div>
 
       {!artist ? (
