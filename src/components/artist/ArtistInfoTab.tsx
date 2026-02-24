@@ -154,7 +154,8 @@ function MemberCard({
   onUpdate: (patch: Record<string, any>) => void;
   onDelete: () => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const isNew = !member.first_name && !member.last_name && !member.member_name;
+  const [open, setOpen] = useState(isNew);
 
   const firstName = member.first_name || member.member_name || "";
   const lastName = member.last_name || "";
