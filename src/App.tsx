@@ -13,6 +13,7 @@ import Tasks from "./pages/Tasks";
 import Settings from "./pages/Settings";
 import PublicMemberInfo from "./pages/PublicMemberInfo";
 import Overview from "./pages/Overview";
+import Agenda from "./pages/Agenda";
 import PublicTimeline from "./pages/PublicTimeline";
 import JoinTeam from "./pages/JoinTeam";
 import NotFound from "./pages/NotFound";
@@ -42,6 +43,7 @@ function AppRoutes() {
       <Route path="/onboarding" element={<Onboarding />} />
       <Route path="/roster" element={<ProtectedRoute><Roster /></ProtectedRoute>} />
       <Route path="/overview" element={<ProtectedRoute><Overview /></ProtectedRoute>} />
+      <Route path="/agenda" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
       <Route path="/roster/:artistId" element={<ProtectedRoute><ArtistDetail /></ProtectedRoute>} />
       <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
