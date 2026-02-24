@@ -98,3 +98,8 @@
     @apply bg-background text-foreground font-sans;
   }
 }
+
+/* Safe area for iOS notch/home indicator */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

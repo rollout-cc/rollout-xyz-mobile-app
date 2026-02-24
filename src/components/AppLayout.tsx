@@ -1,10 +1,11 @@
 import { useState, useEffect, type ReactNode } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useTeams } from "@/hooks/useTeams";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { User } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +24,7 @@ export function AppLayout({ children, title, actions }: AppLayoutProps) {
   const { data: teams = [] } = useTeams();
   const { signOut } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,11 +36,13 @@ export function AppLayout({ children, title, actions }: AppLayoutProps) {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
-        <AppSidebar selectedTeamId={selectedTeamId} onSelectTeam={setSelectedTeamId} />
+        {!isMobile && (
+          <AppSidebar selectedTeamId={selectedTeamId} onSelectTeam={setSelectedTeamId} />
+        )}
 
         <div className="flex-1 flex flex-col">
           {/* Top bar */}
-          <header className="flex h-14 items-center justify-between border-b border-border px-6">
+          <header className="flex h-14 items-center justify-between border-b border-border px-4 sm:px-6">
             <div className="flex items-center gap-2">
               <span className="text-lg font-semibold">{title}</span>
             </div>
@@ -50,7 +54,7 @@ export function AppLayout({ children, title, actions }: AppLayoutProps) {
                     <User className="h-4 w-4 text-muted-foreground" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
                   <DropdownMenuItem onClick={() => navigate("/settings")}>
                     Profile Settings
                   </DropdownMenuItem>
@@ -63,10 +67,12 @@ export function AppLayout({ children, title, actions }: AppLayoutProps) {
           </header>
 
           {/* Content */}
-          <main className="flex-1 p-6">
+          <main className="flex-1 p-4 sm:p-6 pb-20 sm:pb-6">
             {children}
           </main>
         </div>
+
+        {isMobile && <MobileBottomNav />}
       </div>
     </SidebarProvider>
   );
