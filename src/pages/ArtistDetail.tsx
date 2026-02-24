@@ -30,31 +30,54 @@ export default function ArtistDetail() {
 
   const handleRefreshSpotify = async () => {
     const result = await refetchSpotify();
-    queryClient.invalidateQueries({ queryKey: ["artist", artist?.id] });
     if (result.data) {
-      const count = result.data.monthly_listeners || result.data.followers || 0;
-      const label = result.data.monthly_listeners ? "monthly listeners" : "followers";
-      toast.success(count > 0
-        ? `Spotify data refreshed — ${count.toLocaleString()} ${label}`
+      const updates: Record<string, any> = {};
+      const d = result.data;
+      
+      if (d.monthly_listeners > 0) updates.monthly_listeners = d.monthly_listeners;
+      else if (d.followers > 0) updates.monthly_listeners = d.followers;
+      if (d.images?.length > 0) updates.avatar_url = d.images[0].url;
+      if (d.banner_url) updates.banner_url = d.banner_url;
+      if (d.genres?.length > 0) updates.genres = d.genres;
+
+      if (Object.keys(updates).length > 0) {
+        await supabase.from("artists").update(updates as any).eq("id", artist!.id);
+      }
+      queryClient.invalidateQueries({ queryKey: ["artist", artist?.id] });
+      queryClient.invalidateQueries({ queryKey: ["artists"] });
+      
+      toast.success(d.images?.length > 0 
+        ? `Spotify data synced — avatar and profile updated`
         : "Spotify data refreshed"
       );
     }
   };
 
-  // Sync Spotify data (monthly listeners + banner) to DB when fetched
+  // Sync Spotify data (monthly listeners, avatar, banner) to DB when fetched
   useEffect(() => {
     if (!spotifyData || !artist) return;
     const patch: Record<string, any> = {};
 
-    // Prefer monthly_listeners from scraping, fall back to followers from API
+    // Sync monthly listeners / followers
     const spotifyListeners = spotifyData.monthly_listeners || spotifyData.followers || 0;
     if (spotifyListeners > 0 && (artist as any).monthly_listeners !== spotifyListeners) {
       patch.monthly_listeners = spotifyListeners;
     }
 
+    // Sync banner
     const spotifyBanner = spotifyData.banner_url;
     if (spotifyBanner && !artist.banner_url) {
       patch.banner_url = spotifyBanner;
+    }
+
+    // Sync avatar from Spotify images if artist has no avatar
+    if (!artist.avatar_url && spotifyData.images && spotifyData.images.length > 0) {
+      patch.avatar_url = spotifyData.images[0].url;
+    }
+
+    // Sync genres if empty
+    if ((!artist.genres || artist.genres.length === 0) && spotifyData.genres && spotifyData.genres.length > 0) {
+      patch.genres = spotifyData.genres;
     }
 
     if (Object.keys(patch).length > 0) {
@@ -102,6 +125,7 @@ export default function ArtistDetail() {
 
   const bannerUrl = artist.banner_url || spotifyData?.banner_url || null;
   const hasBanner = !!bannerUrl;
+  const avatarUrl = artist.avatar_url || (spotifyData?.images?.[0]?.url) || null;
   const monthlyListeners = (artist as any).monthly_listeners || spotifyData?.monthly_listeners || 0;
   const followers = spotifyData?.followers || 0;
   const listenerStat = monthlyListeners > 0 ? monthlyListeners : followers;
@@ -179,7 +203,7 @@ export default function ArtistDetail() {
             <div className="absolute bottom-0 left-0 right-0 p-6 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
               <div className="flex items-end gap-4">
                 <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-4 border-background shadow-2xl">
-                  <AvatarImage src={artist.avatar_url ?? undefined} />
+                  <AvatarImage src={avatarUrl ?? undefined} />
                   <AvatarFallback className="text-2xl">{artist.name[0]}</AvatarFallback>
                 </Avatar>
                 <div className="pb-1">
@@ -234,7 +258,7 @@ export default function ArtistDetail() {
             <div className="absolute inset-0 flex items-end p-8 sm:p-12">
               <div className="flex items-end gap-6 sm:gap-10 flex-1">
               <Avatar className="h-36 w-36 sm:h-48 sm:w-48 border-4 border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.25)] shrink-0">
-                <AvatarImage src={artist.avatar_url ?? undefined} />
+                <AvatarImage src={avatarUrl ?? undefined} />
                 <AvatarFallback className="text-5xl sm:text-6xl font-bold">{artist.name[0]}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col gap-1 pb-1">
