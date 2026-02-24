@@ -200,7 +200,7 @@ export default function Overview() {
       </div>
 
       {/* Top KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-8">
         <KpiCard label="Total Budget" value={fmt(totalBudget)} icon={<DollarSign className="h-4 w-4" />} />
         <KpiCard
           label="Total Revenue"
@@ -223,7 +223,7 @@ export default function Overview() {
       </div>
 
       {/* Budget utilization bar */}
-      <div className="rounded-xl border border-border bg-card p-5 mb-8">
+      <div className="rounded-xl p-5 mb-8">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-medium">Budget Utilization</span>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -247,7 +247,7 @@ export default function Overview() {
       </div>
 
       {/* Quarterly P&L */}
-      <div className="rounded-xl border border-border bg-card p-5 mb-8">
+      <div className="rounded-xl p-5 mb-8">
         <h2 className="text-sm font-semibold mb-4">Quarterly P&L</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -298,7 +298,7 @@ export default function Overview() {
       </div>
 
       {/* Per-Artist Spending Breakdown */}
-      <div className="rounded-xl border border-border bg-card p-5">
+      <div className="rounded-xl p-5">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-sm font-semibold">Spending Per Act</h2>
           <span className="text-xs text-muted-foreground">{artists.length} artists</span>
@@ -409,7 +409,7 @@ export default function Overview() {
 
 function KpiCard({ label, value, icon, accent }: { label: string; value: string; icon: React.ReactNode; accent?: string }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="rounded-xl p-4 hover:bg-accent/40 transition-colors">
       <div className="flex items-center gap-2 mb-2">
         <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-muted text-muted-foreground">
           {icon}
