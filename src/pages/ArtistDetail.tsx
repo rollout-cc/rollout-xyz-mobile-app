@@ -11,7 +11,6 @@ import { LinksTab } from "@/components/artist/LinksTab";
 import { TimelinesTab } from "@/components/artist/TimelinesTab";
 import { BudgetSection, useTotalBudget } from "@/components/artist/BudgetSection";
 import { BannerUpload } from "@/components/artist/BannerUpload";
-import { FinanceLedger } from "@/components/artist/FinanceLedger";
 import { FinanceTab } from "@/components/artist/FinanceTab";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
@@ -297,13 +296,6 @@ export default function ArtistDetail() {
           {activeView === "work" && <WorkTab artistId={artist.id} teamId={artist.team_id} />}
           {activeView === "links" && <LinksTab artistId={artist.id} />}
           {activeView === "timelines" && <TimelinesTab artistId={artist.id} />}
-        </div>
-
-        {/* Right: Finance ledger sidebar */}
-        <div className="hidden lg:block w-[320px] shrink-0">
-          <div className="sticky top-4">
-            <FinanceLedger artistId={artist.id} />
-          </div>
         </div>
       </div>
     </AppLayout>
