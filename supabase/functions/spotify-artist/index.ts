@@ -64,7 +64,8 @@ async function scrapeMonthlyListeners(spotifyId: string): Promise<number> {
         url,
         formats: ["markdown"],
         onlyMainContent: true,
-        waitFor: 3000,
+        waitFor: 5000,
+        timeout: 60000,
       }),
     });
 
