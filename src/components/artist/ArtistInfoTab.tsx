@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
 import { cn } from "@/lib/utils";
 import { BrandTagInput } from "@/components/ui/BrandTagInput";
+import { IndustryEntitySelect } from "@/components/ui/IndustryEntitySelect";
 
 interface ArtistInfoTabProps {
   artist: any;
@@ -227,13 +228,13 @@ function MemberCard({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="PRO (Performing Rights Org)" value={(member as any).pro_name ?? ""} placeholder="e.g. ASCAP, BMI, SESAC" onSave={(v) => onUpdate({ pro_name: v })} />
               <Field label="IPI/CAE #" value={(member as any).ipi_number ?? ""} placeholder="Enter IPI/CAE number" onSave={(v) => onUpdate({ ipi_number: v })} />
-              <Field label="Publisher" value={(member as any).publisher_name ?? ""} placeholder="Enter publishing company" onSave={(v) => onUpdate({ publisher_name: v })} />
-              <Field label="Publishing Admin" value={(member as any).publishing_admin ?? ""} placeholder="Enter publishing admin" onSave={(v) => onUpdate({ publishing_admin: v })} />
+              <EntityField label="Publisher" entityType="publisher" value={(member as any).publisher_name ?? ""} onSave={(v) => onUpdate({ publisher_name: v })} />
+              <EntityField label="Publishing Admin" entityType="publishing_admin" value={(member as any).publishing_admin ?? ""} onSave={(v) => onUpdate({ publishing_admin: v })} />
               <Field label="Publisher PRO" value={(member as any).publisher_pro ?? ""} placeholder="e.g. ASCAP, BMI" onSave={(v) => onUpdate({ publisher_pro: v })} />
               <Field label="ISNI" value={(member as any).isni ?? ""} placeholder="Enter ISNI" onSave={(v) => onUpdate({ isni: v })} />
               <Field label="Spotify URI" value={(member as any).spotify_uri ?? ""} placeholder="e.g. spotify:artist:..." onSave={(v) => onUpdate({ spotify_uri: v })} />
-              <Field label="Record Label" value={(member as any).record_label ?? ""} placeholder="Enter record label" onSave={(v) => onUpdate({ record_label: v })} />
-              <Field label="Distributor" value={(member as any).distributor ?? ""} placeholder="Enter distributor" onSave={(v) => onUpdate({ distributor: v })} />
+              <EntityField label="Record Label" entityType="record_label" value={(member as any).record_label ?? ""} onSave={(v) => onUpdate({ record_label: v })} />
+              <EntityField label="Distributor" entityType="distributor" value={(member as any).distributor ?? ""} onSave={(v) => onUpdate({ distributor: v })} />
             </div>
           </div>
 
@@ -331,6 +332,20 @@ function Field({
     <div>
       <span className="text-muted-foreground text-xs">{label}</span>
       <InlineField value={value} placeholder={placeholder} onSave={onSave} as={as} />
+    </div>
+  );
+}
+
+/* ── Entity searchable select field ── */
+function EntityField({
+  label, entityType, value, onSave,
+}: {
+  label: string; entityType: "publisher" | "publishing_admin" | "record_label" | "distributor"; value: string; onSave: (v: string) => void;
+}) {
+  return (
+    <div>
+      <span className="text-muted-foreground text-xs">{label}</span>
+      <IndustryEntitySelect entityType={entityType} value={value} onSave={onSave} />
     </div>
   );
 }

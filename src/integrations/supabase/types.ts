@@ -506,6 +506,33 @@ export type Database = {
           },
         ]
       }
+      industry_entities: {
+        Row: {
+          created_at: string
+          entity_type: string
+          id: string
+          is_custom: boolean
+          name: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          entity_type: string
+          id?: string
+          is_custom?: boolean
+          name: string
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          entity_type?: string
+          id?: string
+          is_custom?: boolean
+          name?: string
+          source?: string
+        }
+        Relationships: []
+      }
       initiatives: {
         Row: {
           artist_id: string
