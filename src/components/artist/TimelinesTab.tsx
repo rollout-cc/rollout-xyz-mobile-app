@@ -279,7 +279,20 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
 
 /* ── Calendar View ── */
 function CalendarView({ milestones }: { milestones: any[] }) {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const initialMonth = useMemo(() => {
+    if (milestones.length > 0) {
+      // Find the nearest milestone to today
+      const today = new Date();
+      const sorted = [...milestones].sort((a, b) => {
+        const da = Math.abs(new Date(a.date).getTime() - today.getTime());
+        const db = Math.abs(new Date(b.date).getTime() - today.getTime());
+        return da - db;
+      });
+      return startOfMonth(new Date(sorted[0].date + "T12:00:00"));
+    }
+    return new Date();
+  }, [milestones]);
+  const [currentMonth, setCurrentMonth] = useState(initialMonth);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -292,7 +305,12 @@ function CalendarView({ milestones }: { milestones: any[] }) {
 
   const milestonesByDate = useMemo(() => {
     const map: Record<string, any[]> = {};
-    milestones.forEach((m) => { const key = m.date; if (!map[key]) map[key] = []; map[key].push(m); });
+    milestones.forEach((m) => {
+      // Normalize: parse the date avoiding timezone shift, then format back
+      const normalized = format(new Date(m.date + "T12:00:00"), "yyyy-MM-dd");
+      if (!map[normalized]) map[normalized] = [];
+      map[normalized].push(m);
+    });
     return map;
   }, [milestones]);
 
