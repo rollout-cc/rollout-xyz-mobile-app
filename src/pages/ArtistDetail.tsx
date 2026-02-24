@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
-import { DollarSign, Target, Star, Upload, RefreshCw } from "lucide-react";
+import { DollarSign, Target, Star, Upload, RefreshCw, Receipt } from "lucide-react";
 import { useArtistDetail } from "@/hooks/useArtistDetail";
 import { useSpotifyArtist } from "@/hooks/useSpotifyArtist";
 import { ArtistInfoTab } from "@/components/artist/ArtistInfoTab";
@@ -12,12 +12,13 @@ import { TimelinesTab } from "@/components/artist/TimelinesTab";
 import { BudgetSection, useTotalBudget } from "@/components/artist/BudgetSection";
 import { BannerUpload } from "@/components/artist/BannerUpload";
 import { FinanceLedger } from "@/components/artist/FinanceLedger";
+import { FinanceTab } from "@/components/artist/FinanceTab";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import defaultBanner from "@/assets/default-banner.png";
 
-type ActiveView = "work" | "links" | "timelines" | "budgets" | "objectives" | "information";
+type ActiveView = "work" | "links" | "timelines" | "finance" | "budgets" | "objectives" | "information";
 
 export default function ArtistDetail() {
   const { artistId } = useParams<{ artistId: string }>();
@@ -107,7 +108,7 @@ export default function ArtistDetail() {
   const listenerStat = monthlyListeners > 0 ? monthlyListeners : followers;
   const listenerLabel = monthlyListeners > 0 ? "monthly listeners" : "followers";
 
-  const isTopView = (v: ActiveView) => ["budgets", "objectives", "information"].includes(v);
+  const isTopView = (v: ActiveView) => ["finance", "budgets", "objectives", "information"].includes(v);
   const toggleTopView = (v: ActiveView) => {
     setActiveView(prev => prev === v ? "work" : v);
   };
@@ -117,6 +118,14 @@ export default function ArtistDetail() {
       title="Artist"
       actions={
         <div className="flex items-center gap-1">
+          <Button
+            variant={activeView === "finance" ? "default" : "outline"}
+            size="sm"
+            onClick={() => toggleTopView("finance")}
+            className="gap-1"
+          >
+            <Receipt className="h-3.5 w-3.5" /> Finance
+          </Button>
           <Button
             variant={activeView === "budgets" ? "default" : "outline"}
             size="sm"
@@ -281,6 +290,7 @@ export default function ArtistDetail() {
           </div>
 
           {/* Content area - switches based on activeView */}
+          {activeView === "finance" && <FinanceTab artistId={artist.id} teamId={artist.team_id} />}
           {activeView === "budgets" && <BudgetSection artistId={artist.id} />}
           {activeView === "objectives" && <ObjectivesPanel artist={artist} />}
           {activeView === "information" && <ArtistInfoTab artist={artist} />}

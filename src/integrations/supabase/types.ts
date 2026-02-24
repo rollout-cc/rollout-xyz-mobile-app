@@ -477,6 +477,35 @@ export type Database = {
         }
         Relationships: []
       }
+      finance_categories: {
+        Row: {
+          artist_id: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_categories_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       initiatives: {
         Row: {
           artist_id: string
@@ -837,28 +866,43 @@ export type Database = {
           amount: number
           artist_id: string
           budget_id: string | null
+          category_id: string | null
           created_at: string
           description: string
           id: string
+          initiative_id: string | null
+          status: string
+          task_id: string | null
           transaction_date: string
+          type: string
         }
         Insert: {
           amount?: number
           artist_id: string
           budget_id?: string | null
+          category_id?: string | null
           created_at?: string
           description: string
           id?: string
+          initiative_id?: string | null
+          status?: string
+          task_id?: string | null
           transaction_date?: string
+          type?: string
         }
         Update: {
           amount?: number
           artist_id?: string
           budget_id?: string | null
+          category_id?: string | null
           created_at?: string
           description?: string
           id?: string
+          initiative_id?: string | null
+          status?: string
+          task_id?: string | null
           transaction_date?: string
+          type?: string
         }
         Relationships: [
           {
@@ -873,6 +917,27 @@ export type Database = {
             columns: ["budget_id"]
             isOneToOne: false
             referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "finance_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_initiative_id_fkey"
+            columns: ["initiative_id"]
+            isOneToOne: false
+            referencedRelation: "initiatives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]
