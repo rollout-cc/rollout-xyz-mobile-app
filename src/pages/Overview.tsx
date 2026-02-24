@@ -1,11 +1,22 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { useTeams } from "@/hooks/useTeams";
-import { ArrowLeft, CheckCircle2, AlertTriangle, Clock, Headphones, FolderOpen, DollarSign } from "lucide-react";
+import {
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  ArrowRight,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
+import { format, startOfQuarter, endOfQuarter, subQuarters, addQuarters } from "date-fns";
 
 export default function Overview() {
   const navigate = useNavigate();
@@ -22,7 +33,6 @@ export default function Overview() {
     },
   });
 
-  // All artists for the team
   const { data: artists = [] } = useQuery({
     queryKey: ["overview-artists", teamId],
     queryFn: async () => {
@@ -36,224 +46,377 @@ export default function Overview() {
     enabled: !!teamId,
   });
 
-  // All budgets across artists
   const { data: budgets = [] } = useQuery({
     queryKey: ["overview-budgets", teamId],
     queryFn: async () => {
       const artistIds = artists.map((a) => a.id);
       if (artistIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("budgets")
-        .select("*")
-        .in("artist_id", artistIds);
+      const { data, error } = await supabase.from("budgets").select("*").in("artist_id", artistIds);
       if (error) throw error;
       return data;
     },
     enabled: artists.length > 0,
   });
 
-  // All transactions across artists
   const { data: transactions = [] } = useQuery({
     queryKey: ["overview-transactions", teamId],
     queryFn: async () => {
       const artistIds = artists.map((a) => a.id);
       if (artistIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("transactions")
-        .select("*")
-        .in("artist_id", artistIds);
+      const { data, error } = await supabase.from("transactions").select("*").in("artist_id", artistIds);
       if (error) throw error;
       return data;
     },
     enabled: artists.length > 0,
   });
 
-  // All tasks across team
   const { data: tasks = [] } = useQuery({
     queryKey: ["overview-tasks", teamId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("tasks")
-        .select("*")
-        .eq("team_id", teamId!);
+      const { data, error } = await supabase.from("tasks").select("*").eq("team_id", teamId!);
       if (error) throw error;
       return data;
     },
     enabled: !!teamId,
   });
 
-  // All initiatives across artists
-  const { data: initiatives = [] } = useQuery({
-    queryKey: ["overview-initiatives", teamId],
+  const { data: categories = [] } = useQuery({
+    queryKey: ["overview-categories", teamId],
     queryFn: async () => {
       const artistIds = artists.map((a) => a.id);
       if (artistIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("initiatives")
-        .select("*")
-        .in("artist_id", artistIds);
+      const { data, error } = await supabase.from("finance_categories").select("*").in("artist_id", artistIds);
       if (error) throw error;
       return data;
     },
     enabled: artists.length > 0,
   });
 
-  // Calculations
-  const totalBudget = budgets.reduce((sum, b) => sum + Number(b.amount), 0);
-  const totalSpent = transactions.reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0);
-  const remaining = totalBudget - totalSpent;
-  const spentPercent = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
-
-  const openTasks = tasks.filter((t) => !t.is_completed).length;
-  const now = new Date();
-  const overdueTasks = tasks.filter((t) => !t.is_completed && t.due_date && new Date(t.due_date) < now).length;
-  const dueSoonTasks = tasks.filter((t) => {
-    if (t.is_completed || !t.due_date) return false;
-    const due = new Date(t.due_date);
-    const threeDays = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-    return due >= now && due <= threeDays;
-  }).length;
-
-  const formatMoney = (n: number) => {
-    if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`;
-    if (n >= 1_000) return `$${(n / 1_000).toFixed(n % 1_000 === 0 ? 0 : 1)}k`;
-    return `$${n.toLocaleString()}`;
-  };
-
-  const formatNum = (n: number) => {
-    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-    return n.toString();
-  };
-
-  // Per-artist stats
-  const artistStats = artists.map((artist) => {
-    const artistTasks = tasks.filter((t) => t.artist_id === artist.id);
-    const completedCount = artistTasks.filter((t) => t.is_completed).length;
-    const artistInitiatives = initiatives.filter((i) => i.artist_id === artist.id).length;
-    const artistBudgets = budgets.filter((b) => b.artist_id === artist.id);
-    const artistBudgetTotal = artistBudgets.reduce((s, b) => s + Number(b.amount), 0);
-    const artistTxns = transactions.filter((t) => t.artist_id === artist.id);
-    const artistSpent = artistTxns.reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
-
-    return {
-      ...artist,
-      completedCount,
-      initiativeCount: artistInitiatives,
-      budgetTotal: artistBudgetTotal,
-      spent: artistSpent,
-      listeners: artist.monthly_listeners || 0,
-    };
+  const { data: initiatives = [] } = useQuery({
+    queryKey: ["overview-initiatives", teamId],
+    queryFn: async () => {
+      const artistIds = artists.map((a) => a.id);
+      if (artistIds.length === 0) return [];
+      const { data, error } = await supabase.from("initiatives").select("*").in("artist_id", artistIds);
+      if (error) throw error;
+      return data;
+    },
+    enabled: artists.length > 0,
   });
+
+  // ——— Calculations ———
+  const totalBudget = budgets.reduce((s, b) => s + Number(b.amount), 0);
+  const totalRevenue = transactions
+    .filter((t: any) => t.type === "revenue")
+    .reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
+  const totalExpenses = transactions
+    .filter((t: any) => t.type === "expense")
+    .reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
+  const netProfit = totalRevenue - totalExpenses;
+  const budgetRemaining = totalBudget - totalExpenses;
+  const budgetUtilization = totalBudget > 0 ? Math.min((totalExpenses / totalBudget) * 100, 100) : 0;
+
+  const openTasks = tasks.filter((t: any) => !t.is_completed).length;
+  const now = new Date();
+  const overdueTasks = tasks.filter((t: any) => !t.is_completed && t.due_date && new Date(t.due_date) < now).length;
+
+  // ——— Quarterly breakdown ———
+  const quarters = useMemo(() => {
+    const currentQ = startOfQuarter(now);
+    const qs = [];
+    for (let i = -2; i <= 1; i++) {
+      const qStart = i < 0 ? subQuarters(currentQ, Math.abs(i)) : i > 0 ? addQuarters(currentQ, i) : currentQ;
+      const qEnd = endOfQuarter(qStart);
+      qs.push({ start: qStart, end: qEnd, label: `${format(qStart, "yyyy")} Q${Math.floor(qStart.getMonth() / 3) + 1}` });
+    }
+    return qs;
+  }, []);
+
+  const quarterlyData = useMemo(() => {
+    return quarters.map((q) => {
+      const qTxns = transactions.filter((t: any) => {
+        const d = new Date(t.transaction_date);
+        return d >= q.start && d <= q.end;
+      });
+      const revenue = qTxns.filter((t: any) => t.type === "revenue").reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
+      const expenses = qTxns.filter((t: any) => t.type === "expense").reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
+      return { ...q, revenue, expenses, gp: revenue - expenses };
+    });
+  }, [transactions, quarters]);
+
+  // ——— Per-artist breakdown ———
+  const artistBreakdown = useMemo(() => {
+    return artists.map((artist) => {
+      const aBudgets = budgets.filter((b: any) => b.artist_id === artist.id);
+      const aTxns = transactions.filter((t: any) => t.artist_id === artist.id);
+      const aTasks = tasks.filter((t: any) => t.artist_id === artist.id);
+      const aInitiatives = initiatives.filter((i: any) => i.artist_id === artist.id);
+
+      const budget = aBudgets.reduce((s, b: any) => s + Number(b.amount), 0);
+      const revenue = aTxns.filter((t: any) => t.type === "revenue").reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
+      const expenses = aTxns.filter((t: any) => t.type === "expense").reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
+      const completedTasks = aTasks.filter((t: any) => t.is_completed).length;
+      const totalTasks = aTasks.length;
+      const utilization = budget > 0 ? Math.min((expenses / budget) * 100, 100) : 0;
+
+      // Category breakdown for this artist
+      const catBreakdown = aBudgets.map((b: any) => {
+        const catTxns = aTxns.filter((t: any) => {
+          // Match transactions to budgets via budget_id
+          return t.budget_id === b.id;
+        });
+        const spent = catTxns.reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
+        return { label: b.label, budget: Number(b.amount), spent, pct: Number(b.amount) > 0 ? (spent / Number(b.amount)) * 100 : 0 };
+      });
+
+      return {
+        ...artist,
+        budget,
+        revenue,
+        expenses,
+        gp: revenue - expenses,
+        completedTasks,
+        totalTasks,
+        utilization,
+        campaignCount: aInitiatives.length,
+        categories: catBreakdown,
+      };
+    }).sort((a, b) => b.budget - a.budget);
+  }, [artists, budgets, transactions, tasks, initiatives]);
+
+  const fmt = (n: number) => `$${Math.abs(n).toLocaleString()}`;
+  const fmtSigned = (n: number) => `${n < 0 ? "-" : ""}$${Math.abs(n).toLocaleString()}`;
 
   return (
     <AppLayout title="Overview">
-      {/* Back + header */}
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-      >
-        <ArrowLeft className="h-4 w-4" /> Back
-      </button>
-
-      {/* Welcome + task counters */}
-      <div className="flex items-start justify-between mb-8">
-        <h1 className="text-3xl font-bold">
-          Welcome, {profile?.full_name?.split(" ")[0] || "there"}
+      {/* Welcome */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-foreground">
+          Welcome back, {profile?.full_name?.split(" ")[0] || "there"}
         </h1>
-        <div className="flex items-center gap-6">
-          <div className="text-center">
-            <div className="text-2xl font-bold">{openTasks}</div>
-            <div className="text-xs text-muted-foreground">Open Tasks</div>
+        <p className="text-sm text-muted-foreground mt-1">
+          Here's your label's financial snapshot
+        </p>
+      </div>
+
+      {/* Top KPI cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <KpiCard label="Total Budget" value={fmt(totalBudget)} icon={<DollarSign className="h-4 w-4" />} />
+        <KpiCard
+          label="Total Revenue"
+          value={fmt(totalRevenue)}
+          icon={<TrendingUp className="h-4 w-4" />}
+          accent="text-emerald-600"
+        />
+        <KpiCard
+          label="Total Spending"
+          value={fmt(totalExpenses)}
+          icon={<TrendingDown className="h-4 w-4" />}
+          accent="text-destructive"
+        />
+        <KpiCard
+          label="Net P&L"
+          value={fmtSigned(netProfit)}
+          icon={<DollarSign className="h-4 w-4" />}
+          accent={netProfit >= 0 ? "text-emerald-600" : "text-destructive"}
+        />
+      </div>
+
+      {/* Budget utilization bar */}
+      <div className="rounded-xl border border-border bg-card p-5 mb-8">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm font-medium">Budget Utilization</span>
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <span>Spent: {fmt(totalExpenses)}</span>
+            <span>Remaining: {fmt(budgetRemaining)}</span>
+            <span className="font-semibold text-foreground">{budgetUtilization.toFixed(0)}%</span>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-orange-500">{overdueTasks}</div>
-            <div className="text-xs text-muted-foreground">Overdue Tasks</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-emerald-500">{dueSoonTasks}</div>
-            <div className="text-xs text-muted-foreground">Due Soon</div>
-          </div>
+        </div>
+        <Progress
+          value={budgetUtilization}
+          className={cn("h-3 [&>div]:transition-all", budgetUtilization > 90 ? "[&>div]:bg-destructive" : budgetUtilization > 70 ? "[&>div]:bg-amber-500" : "[&>div]:bg-emerald-500")}
+        />
+        <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+          <span>{openTasks} open tasks</span>
+          {overdueTasks > 0 && (
+            <span className="flex items-center gap-1 text-destructive">
+              <AlertTriangle className="h-3 w-3" /> {overdueTasks} overdue
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Budget Summary Card */}
-      <div className="rounded-xl border border-border bg-card p-6 mb-8">
-        <div className="flex items-start gap-12">
-          <div>
-            <div className="text-xs text-muted-foreground mb-1">Total Budget</div>
-            <div className="text-3xl font-bold">{formatMoney(totalBudget)}</div>
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground mb-1">Total Spent</div>
-            <div className="text-3xl font-bold">{formatMoney(totalSpent)}</div>
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground mb-1">Remaining Total</div>
-            <div className="text-3xl font-bold">{formatMoney(remaining)}</div>
-          </div>
-          <div className="ml-auto flex -space-x-2">
-            {artists.slice(0, 4).map((a) => (
-              <Avatar key={a.id} className="h-9 w-9 border-2 border-background">
-                <AvatarImage src={a.avatar_url ?? undefined} />
-                <AvatarFallback className="text-xs">{a.name[0]}</AvatarFallback>
-              </Avatar>
-            ))}
-          </div>
-        </div>
-        <div className="mt-4">
-          <Progress value={spentPercent} className="h-2 [&>div]:bg-emerald-500" />
+      {/* Quarterly P&L */}
+      <div className="rounded-xl border border-border bg-card p-5 mb-8">
+        <h2 className="text-sm font-semibold mb-4">Quarterly P&L</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left py-2 pr-4 text-xs text-muted-foreground font-medium" />
+                {quarterlyData.map((q) => (
+                  <th key={q.label} className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">
+                    {q.label}
+                  </th>
+                ))}
+                <th className="text-right py-2 pl-3 text-xs text-muted-foreground font-medium">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-border">
+                <td className="py-2.5 pr-4 font-medium">Revenue</td>
+                {quarterlyData.map((q) => (
+                  <td key={q.label} className="text-right py-2.5 px-3 text-emerald-600 font-medium">
+                    {q.revenue > 0 ? fmt(q.revenue) : "—"}
+                  </td>
+                ))}
+                <td className="text-right py-2.5 pl-3 font-bold text-emerald-600">{fmt(totalRevenue)}</td>
+              </tr>
+              <tr className="border-b border-border">
+                <td className="py-2.5 pr-4 font-medium">Expenses</td>
+                {quarterlyData.map((q) => (
+                  <td key={q.label} className="text-right py-2.5 px-3 text-destructive font-medium">
+                    {q.expenses > 0 ? fmt(q.expenses) : "—"}
+                  </td>
+                ))}
+                <td className="text-right py-2.5 pl-3 font-bold text-destructive">{fmt(totalExpenses)}</td>
+              </tr>
+              <tr>
+                <td className="py-2.5 pr-4 font-semibold">Gross Profit</td>
+                {quarterlyData.map((q) => (
+                  <td key={q.label} className={cn("text-right py-2.5 px-3 font-bold", q.gp >= 0 ? "text-emerald-600" : "text-destructive")}>
+                    {q.revenue > 0 || q.expenses > 0 ? fmtSigned(q.gp) : "—"}
+                  </td>
+                ))}
+                <td className={cn("text-right py-2.5 pl-3 font-bold", netProfit >= 0 ? "text-emerald-600" : "text-destructive")}>
+                  {fmtSigned(netProfit)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Roster Performance */}
-      <div className="rounded-xl border border-border bg-card p-6">
+      {/* Per-Artist Spending Breakdown */}
+      <div className="rounded-xl border border-border bg-card p-5">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold">Roster Performance</h2>
+          <h2 className="text-sm font-semibold">Spending Per Act</h2>
+          <span className="text-xs text-muted-foreground">{artists.length} artists</span>
         </div>
 
         <div className="space-y-0">
-          {artistStats.map((artist) => (
+          {artistBreakdown.map((artist) => (
             <div
               key={artist.id}
-              className="flex items-center gap-4 py-4 border-b border-border last:border-b-0 cursor-pointer hover:bg-accent/30 -mx-6 px-6 transition-colors"
+              className="border-b border-border last:border-b-0 py-4 -mx-5 px-5 hover:bg-accent/30 cursor-pointer transition-colors"
               onClick={() => navigate(`/roster/${artist.id}`)}
             >
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={artist.avatar_url ?? undefined} />
-                <AvatarFallback>{artist.name[0]}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-sm">{artist.name}</div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                  {artist.listeners > 0 && (
+              <div className="flex items-center gap-4 mb-3">
+                <Avatar className="h-10 w-10 shrink-0">
+                  <AvatarImage src={artist.avatar_url ?? undefined} />
+                  <AvatarFallback className="text-sm font-bold">{artist.name[0]}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-sm">{artist.name}</span>
+                    <span className="text-xs text-muted-foreground">{artist.campaignCount} campaigns</span>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground mt-0.5">
                     <span className="flex items-center gap-1">
-                      <Headphones className="h-3 w-3" /> {formatNum(artist.listeners)}
+                      <CheckCircle2 className="h-3 w-3 text-emerald-500" /> {artist.completedTasks}/{artist.totalTasks} tasks
                     </span>
-                  )}
-                  <span className="flex items-center gap-1">
-                    <FolderOpen className="h-3 w-3" /> {artist.initiativeCount}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <DollarSign className="h-3 w-3" /> {formatMoney(artist.spent)}/{formatMoney(artist.budgetTotal)}
-                  </span>
+                  </div>
                 </div>
+                <div className="text-right shrink-0">
+                  <div className="flex items-center gap-3 text-sm">
+                    <div>
+                      <div className="text-xs text-muted-foreground">Budget</div>
+                      <div className="font-bold">{fmt(artist.budget)}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Spent</div>
+                      <div className="font-bold text-destructive">{fmt(artist.expenses)}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Revenue</div>
+                      <div className="font-bold text-emerald-600">{fmt(artist.revenue)}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">P&L</div>
+                      <div className={cn("font-bold", artist.gp >= 0 ? "text-emerald-600" : "text-destructive")}>
+                        {fmtSigned(artist.gp)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
               </div>
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                <span className="font-semibold text-foreground">{artist.completedCount}</span>
+
+              {/* Budget category bars */}
+              {artist.categories.length > 0 && (
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 ml-14">
+                  {artist.categories.map((cat, i) => (
+                    <div key={i}>
+                      <div className="flex items-center justify-between text-xs mb-0.5">
+                        <span className="text-muted-foreground truncate">{cat.label}</span>
+                        <span className="font-medium ml-2">{fmt(cat.spent)} / {fmt(cat.budget)}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-all",
+                            cat.pct > 90 ? "bg-destructive" : cat.pct > 70 ? "bg-amber-500" : "bg-emerald-500"
+                          )}
+                          style={{ width: `${Math.min(cat.pct, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Utilization bar */}
+              <div className="ml-14 mt-2">
+                <div className="flex items-center justify-between text-xs mb-0.5">
+                  <span className="text-muted-foreground">Overall Utilization</span>
+                  <span className="font-semibold">{artist.utilization.toFixed(0)}%</span>
+                </div>
+                <Progress
+                  value={artist.utilization}
+                  className={cn("h-1.5 [&>div]:transition-all", artist.utilization > 90 ? "[&>div]:bg-destructive" : artist.utilization > 70 ? "[&>div]:bg-amber-500" : "[&>div]:bg-emerald-500")}
+                />
               </div>
             </div>
           ))}
+
+          {artistBreakdown.length === 0 && (
+            <div className="text-center py-8 text-sm text-muted-foreground">
+              No artists yet. Add artists from the Roster page.
+            </div>
+          )}
         </div>
 
         <button
           onClick={() => navigate("/roster")}
           className="text-sm font-medium text-muted-foreground hover:text-foreground mt-4 block ml-auto transition-colors"
         >
-          View Roster
+          View Full Roster →
         </button>
       </div>
     </AppLayout>
+  );
+}
+
+function KpiCard({ label, value, icon, accent }: { label: string; value: string; icon: React.ReactNode; accent?: string }) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-muted text-muted-foreground">
+          {icon}
+        </div>
+        <span className="text-xs text-muted-foreground">{label}</span>
+      </div>
+      <div className={cn("text-2xl font-bold", accent)}>{value}</div>
+    </div>
   );
 }
