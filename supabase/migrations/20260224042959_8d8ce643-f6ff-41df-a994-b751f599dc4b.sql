@@ -1,0 +1,1 @@
+DELETE FROM artist_performance_snapshots WHERE artist_id IN ('16d103ef-a36e-42e3-8ac1-5d3aa94c67fe', '04bc1bd2-78a8-48e2-8fd9-d46a89f2f2ef');

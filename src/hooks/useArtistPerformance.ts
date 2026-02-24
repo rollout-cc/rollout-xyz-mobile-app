@@ -34,13 +34,17 @@ export function useArtistPerformance(artistId: string, spotifyId: string | null 
   const syncMutation = useMutation({
     mutationFn: async () => {
       if (!spotifyId) throw new Error("No Spotify ID for this artist");
-      const { data, error } = await supabase.functions.invoke("scrape-chartmasters", {
+      const resp = await supabase.functions.invoke("scrape-chartmasters", {
         body: { artist_id: artistId, spotify_id: spotifyId, artist_name: artistName || "" },
       });
-      if (error) throw error;
-      if (data?.mismatch) throw new Error(data.error);
-      if (data?.error) throw new Error(data.error);
-      return data;
+      // supabase.functions.invoke returns error for non-2xx; parse the body for details
+      if (resp.error) {
+        const msg = resp.data?.error || resp.data?.message || "This artist may not be indexed on ChartMasters.";
+        throw new Error(msg);
+      }
+      if (resp.data?.mismatch) throw new Error(resp.data.error);
+      if (resp.data?.error) throw new Error(resp.data.error);
+      return resp.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["artist-performance", artistId] });
