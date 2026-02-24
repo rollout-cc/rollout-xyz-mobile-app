@@ -31,6 +31,7 @@ export default function Agenda() {
   });
 
   const [selectedArtistId, setSelectedArtistId] = useState<string | null>(null);
+  const [selectedAssignee, setSelectedAssignee] = useState<string>("all");
   const artistId = selectedArtistId || artists[0]?.id;
   const artist = artists.find((a) => a.id === artistId);
 
@@ -126,7 +127,12 @@ export default function Agenda() {
   const weekStart = startOfWeek(now);
   const weekEnd = endOfWeek(now);
 
-  const openTaskCount = tasks.length;
+  // Filter tasks by assignee
+  const filteredTasks = selectedAssignee === "all"
+    ? tasks
+    : tasks.filter((t) => t.assigned_to === selectedAssignee);
+
+  const openTaskCount = filteredTasks.length;
   const campaignCount = initiatives.length;
 
   // Budget per category with spent
@@ -139,7 +145,7 @@ export default function Agenda() {
   });
 
   // Tasks due this week
-  const weeklyTasks = tasks.filter((t) => {
+  const weeklyTasks = filteredTasks.filter((t) => {
     if (!t.due_date) return false;
     const d = new Date(t.due_date);
     return d >= weekStart && d <= weekEnd;
@@ -153,7 +159,7 @@ export default function Agenda() {
 
   // Group tasks by initiative
   const campaignSections = initiatives.map((init) => {
-    const campaignTasks = tasks.filter((t) => t.initiative_id === init.id);
+    const campaignTasks = filteredTasks.filter((t) => t.initiative_id === init.id);
     return { ...init, tasks: campaignTasks };
   }).filter((c) => c.tasks.length > 0);
 
@@ -227,6 +233,20 @@ export default function Agenda() {
           <SelectContent>
             {artists.map((a) => (
               <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={selectedAssignee} onValueChange={setSelectedAssignee}>
+          <SelectTrigger className="w-[180px]">
+            <div className="flex items-center gap-2">
+              <User className="h-3.5 w-3.5 text-muted-foreground" />
+              <SelectValue placeholder="All Members" />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Members</SelectItem>
+            {Object.entries(profileMap).map(([uid, name]) => (
+              <SelectItem key={uid} value={uid}>{name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
