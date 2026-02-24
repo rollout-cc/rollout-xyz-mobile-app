@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
-import { DollarSign, Target, Star, Upload } from "lucide-react";
+import { DollarSign, Target, Star, Upload, RefreshCw } from "lucide-react";
 import { useArtistDetail } from "@/hooks/useArtistDetail";
 import { useSpotifyArtist } from "@/hooks/useSpotifyArtist";
 import { ArtistInfoTab } from "@/components/artist/ArtistInfoTab";
@@ -23,7 +23,7 @@ export default function ArtistDetail() {
   const { artistId } = useParams<{ artistId: string }>();
   const navigate = useNavigate();
   const { data: artist, isLoading } = useArtistDetail(artistId!);
-  const { data: spotifyData } = useSpotifyArtist(artist?.spotify_id);
+  const { data: spotifyData, refetch: refetchSpotify, isFetching: isRefreshingSpotify } = useSpotifyArtist(artist?.spotify_id);
   const totalBudget = useTotalBudget(artistId!);
   const [activeView, setActiveView] = useState<ActiveView>("work");
   const queryClient = useQueryClient();
@@ -140,7 +140,18 @@ export default function ArtistDetail() {
               alt=""
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
-            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center gap-2">
+              {artist.spotify_id && (
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-9 w-9 bg-black/40 hover:bg-black/60 text-white border-0 backdrop-blur-md"
+                  onClick={() => { refetchSpotify(); queryClient.invalidateQueries({ queryKey: ["artist", artist.id] }); }}
+                  disabled={isRefreshingSpotify}
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshingSpotify ? "animate-spin" : ""}`} />
+                </Button>
+              )}
               <BannerUpload artistId={artist.id} currentBannerUrl={artist.banner_url} />
             </div>
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -185,7 +196,18 @@ export default function ArtistDetail() {
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-black/10" />
-            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center gap-2">
+              {artist.spotify_id && (
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-9 w-9 bg-black/40 hover:bg-black/60 text-white border-0 backdrop-blur-md"
+                  onClick={() => { refetchSpotify(); queryClient.invalidateQueries({ queryKey: ["artist", artist.id] }); }}
+                  disabled={isRefreshingSpotify}
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshingSpotify ? "animate-spin" : ""}`} />
+                </Button>
+              )}
               <BannerUpload artistId={artist.id} currentBannerUrl={artist.banner_url} />
             </div>
             <div className="absolute inset-0 flex items-end p-8 sm:p-12">
