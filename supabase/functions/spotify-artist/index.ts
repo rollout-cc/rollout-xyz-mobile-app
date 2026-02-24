@@ -54,22 +54,33 @@ async function scrapeMonthlyListeners(spotifyId: string): Promise<number> {
     const url = `https://open.spotify.com/artist/${spotifyId}`;
     console.log("Scraping monthly listeners from:", url);
 
-    const resp = await fetch("https://api.firecrawl.dev/v1/scrape", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${firecrawlKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        url,
-        formats: ["markdown"],
-        onlyMainContent: true,
-        waitFor: 5000,
-        timeout: 60000,
-      }),
-    });
+    const doScrape = async () => {
+      const resp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${firecrawlKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url,
+          formats: ["markdown"],
+          onlyMainContent: true,
+          waitFor: 5000,
+          timeout: 60000,
+        }),
+      });
+      return resp;
+    };
 
-    const result = await resp.json();
+    let resp = await doScrape();
+    let result = await resp.json();
+
+    // Retry once on timeout (408) or server error (5xx)
+    if (!resp.ok && (resp.status === 408 || resp.status >= 500)) {
+      console.log(`Firecrawl returned ${resp.status}, retrying once...`);
+      resp = await doScrape();
+      result = await resp.json();
+    }
 
     if (!resp.ok) {
       console.error("Firecrawl API error:", resp.status, JSON.stringify(result));
