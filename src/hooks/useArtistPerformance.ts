@@ -14,7 +14,7 @@ export interface PerformanceSnapshot {
   scraped_at: string;
 }
 
-export function useArtistPerformance(artistId: string, spotifyId: string | null | undefined) {
+export function useArtistPerformance(artistId: string, spotifyId: string | null | undefined, artistName?: string) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
@@ -35,9 +35,10 @@ export function useArtistPerformance(artistId: string, spotifyId: string | null 
     mutationFn: async () => {
       if (!spotifyId) throw new Error("No Spotify ID for this artist");
       const { data, error } = await supabase.functions.invoke("scrape-chartmasters", {
-        body: { artist_id: artistId, spotify_id: spotifyId },
+        body: { artist_id: artistId, spotify_id: spotifyId, artist_name: artistName || "" },
       });
       if (error) throw error;
+      if (data?.mismatch) throw new Error(data.error);
       if (data?.error) throw new Error(data.error);
       return data;
     },

@@ -22,6 +22,7 @@ function parseNumber(raw: string): number {
 }
 
 interface PerformanceData {
+  chartmasters_artist_name: string;
   lead_streams_total: number;
   feat_streams_total: number;
   daily_streams: number;
@@ -33,6 +34,7 @@ interface PerformanceData {
 
 function parseChartmastersMarkdown(markdown: string): PerformanceData {
   const data: PerformanceData = {
+    chartmasters_artist_name: "",
     lead_streams_total: 0,
     feat_streams_total: 0,
     daily_streams: 0,
@@ -41,6 +43,12 @@ function parseChartmastersMarkdown(markdown: string): PerformanceData {
     est_monthly_revenue: 0,
     raw_markdown: markdown,
   };
+
+  // Extract artist name from markdown (appears as "# ArtistName" after "# Artist dashboard")
+  const nameMatch = markdown.match(/# Artist dashboard[\s\S]*?# ([^\n]+)/);
+  if (nameMatch) {
+    data.chartmasters_artist_name = nameMatch[1].trim();
+  }
 
   // The markdown has lines like:
   // "Lead streams 335.1m"
@@ -184,10 +192,12 @@ Deno.serve(async (req: Request) => {
     // Parse request body
     let artistId = "";
     let spotifyId = "";
+    let artistName = "";
     if (req.method === "POST") {
       const body = await req.json();
       artistId = body.artist_id || "";
       spotifyId = body.spotify_id || "";
+      artistName = body.artist_name || "";
     }
 
     if (!artistId || !spotifyId) {
@@ -208,7 +218,27 @@ Deno.serve(async (req: Request) => {
 
     // Parse the data
     const perfData = parseChartmastersMarkdown(markdown);
+
+    // Verify artist name matches to prevent ChartMasters ID mismatch
+    if (artistName && perfData.chartmasters_artist_name) {
+      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const ourName = normalize(artistName);
+      const cmName = normalize(perfData.chartmasters_artist_name);
+      if (ourName && cmName && !cmName.includes(ourName) && !ourName.includes(cmName)) {
+        console.warn(`Artist name mismatch: ours="${artistName}", ChartMasters="${perfData.chartmasters_artist_name}"`);
+        return new Response(JSON.stringify({
+          error: `ChartMasters returned data for "${perfData.chartmasters_artist_name}" instead of "${artistName}". This artist may not be indexed correctly on ChartMasters.`,
+          mismatch: true,
+          chartmasters_name: perfData.chartmasters_artist_name,
+        }), {
+          status: 422,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     console.log("Parsed performance data:", JSON.stringify({
+      chartmasters_artist: perfData.chartmasters_artist_name,
       lead_streams_total: perfData.lead_streams_total,
       daily_streams: perfData.daily_streams,
       monthly_streams: perfData.monthly_streams,
