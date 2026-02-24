@@ -211,6 +211,56 @@ export type Database = {
           },
         ]
       }
+      artist_performance_snapshots: {
+        Row: {
+          artist_id: string
+          created_at: string
+          daily_streams: number | null
+          est_monthly_revenue: number | null
+          feat_streams_total: number | null
+          id: string
+          lead_streams_total: number | null
+          monthly_listeners_all: number | null
+          monthly_streams: number | null
+          raw_markdown: string | null
+          scraped_at: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          daily_streams?: number | null
+          est_monthly_revenue?: number | null
+          feat_streams_total?: number | null
+          id?: string
+          lead_streams_total?: number | null
+          monthly_listeners_all?: number | null
+          monthly_streams?: number | null
+          raw_markdown?: string | null
+          scraped_at?: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          daily_streams?: number | null
+          est_monthly_revenue?: number | null
+          feat_streams_total?: number | null
+          id?: string
+          lead_streams_total?: number | null
+          monthly_listeners_all?: number | null
+          monthly_streams?: number | null
+          raw_markdown?: string | null
+          scraped_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_performance_snapshots_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: true
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       artist_permissions: {
         Row: {
           artist_id: string

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { DollarSign, Target, Star, Upload, RefreshCw, Receipt } from "lucide-react";
+import { PerformancePills } from "@/components/artist/PerformancePills";
 import { useArtistDetail } from "@/hooks/useArtistDetail";
 import { useSpotifyArtist } from "@/hooks/useSpotifyArtist";
 import { ArtistInfoTab } from "@/components/artist/ArtistInfoTab";
@@ -227,6 +228,7 @@ export default function ArtistDetail() {
                   <DollarSign className="h-4 w-4 text-emerald-400" />
                   <span className="text-lg font-bold">Total Budget: ${totalBudget.toLocaleString()}</span>
                 </div>
+                <PerformancePills artistId={artist.id} spotifyId={artist.spotify_id} />
                 <div className="text-xs font-medium uppercase tracking-wider text-white/60 px-1">
                   Tasks Completed: {completedCount}
                 </div>
@@ -280,6 +282,7 @@ export default function ArtistDetail() {
                   <DollarSign className="h-4 w-4 text-emerald-400" />
                   <span className="text-lg font-bold">Total Budget: ${totalBudget.toLocaleString()}</span>
                 </div>
+                <PerformancePills artistId={artist.id} spotifyId={artist.spotify_id} />
                 <div className="text-xs font-medium uppercase tracking-wider text-white/70 px-1" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.25)' }}>
                   Tasks Completed: {completedCount}
                 </div>
