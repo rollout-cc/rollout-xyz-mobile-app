@@ -28,6 +28,19 @@ export default function ArtistDetail() {
   const [activeView, setActiveView] = useState<ActiveView>("work");
   const queryClient = useQueryClient();
 
+  const handleRefreshSpotify = async () => {
+    const result = await refetchSpotify();
+    queryClient.invalidateQueries({ queryKey: ["artist", artist?.id] });
+    if (result.data) {
+      const count = result.data.monthly_listeners || result.data.followers || 0;
+      const label = result.data.monthly_listeners ? "monthly listeners" : "followers";
+      toast.success(count > 0
+        ? `Spotify data refreshed — ${count.toLocaleString()} ${label}`
+        : "Spotify data refreshed"
+      );
+    }
+  };
+
   // Sync Spotify data (monthly listeners + banner) to DB when fetched
   useEffect(() => {
     if (!spotifyData || !artist) return;
@@ -146,7 +159,7 @@ export default function ArtistDetail() {
                   variant="secondary"
                   size="icon"
                   className="h-9 w-9 bg-black/40 hover:bg-black/60 text-white border-0 backdrop-blur-md"
-                  onClick={() => { refetchSpotify(); queryClient.invalidateQueries({ queryKey: ["artist", artist.id] }); }}
+                  onClick={handleRefreshSpotify}
                   disabled={isRefreshingSpotify}
                 >
                   <RefreshCw className={`h-4 w-4 ${isRefreshingSpotify ? "animate-spin" : ""}`} />
@@ -202,7 +215,7 @@ export default function ArtistDetail() {
                   variant="secondary"
                   size="icon"
                   className="h-9 w-9 bg-black/40 hover:bg-black/60 text-white border-0 backdrop-blur-md"
-                  onClick={() => { refetchSpotify(); queryClient.invalidateQueries({ queryKey: ["artist", artist.id] }); }}
+                  onClick={handleRefreshSpotify}
                   disabled={isRefreshingSpotify}
                 >
                   <RefreshCw className={`h-4 w-4 ${isRefreshingSpotify ? "animate-spin" : ""}`} />
