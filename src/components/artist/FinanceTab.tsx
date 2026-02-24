@@ -441,6 +441,10 @@ export function FinanceTab({ artistId, teamId }: FinanceTabProps) {
                           categoryMap={categoryMap}
                           initiativeMap={initiativeMap}
                           onDelete={() => deleteTransaction.mutate(t.id)}
+                          categories={categories}
+                          initiatives={initiatives}
+                          statuses={statuses}
+                          artistId={artistId}
                         />
                       ))
                     )}
@@ -460,12 +464,55 @@ function TransactionItem({
   categoryMap,
   initiativeMap,
   onDelete,
+  categories,
+  initiatives,
+  statuses,
+  artistId,
 }: {
   transaction: any;
   categoryMap: Record<string, string>;
   initiativeMap: Record<string, string>;
   onDelete: () => void;
+  categories: any[];
+  initiatives: any[];
+  statuses: string[];
+  artistId: string;
 }) {
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [editAmount, setEditAmount] = useState(String(Math.abs(Number(t.amount))));
+  const [editDesc, setEditDesc] = useState(t.description || "");
+  const [editStatus, setEditStatus] = useState(t.status || "pending");
+  const [editDate, setEditDate] = useState(t.transaction_date || "");
+  const [editCategoryId, setEditCategoryId] = useState(t.category_id || "none");
+  const [editInitiativeId, setEditInitiativeId] = useState(t.initiative_id || "none");
+
+  const updateTransaction = useMutation({
+    mutationFn: async (fields: Record<string, any>) => {
+      const { error } = await supabase.from("transactions").update(fields).eq("id", t.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["finance-transactions", artistId] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const commitField = (field: string, value: any) => {
+    const currentVal = field === "amount" ? Math.abs(Number(t.amount)) : t[field];
+    const newVal = field === "amount" ? parseFloat(value) || 0 : value;
+    if (String(newVal) === String(currentVal)) return;
+
+    if (field === "amount") {
+      const sign = t.type === "expense" ? -1 : 1;
+      updateTransaction.mutate({ amount: sign * Math.abs(newVal) });
+    } else if (field === "category_id" || field === "initiative_id") {
+      updateTransaction.mutate({ [field]: value === "none" ? null : value });
+    } else {
+      updateTransaction.mutate({ [field]: newVal });
+    }
+  };
+
   const amount = Math.abs(Number(t.amount));
   const catName = t.category_id ? categoryMap[t.category_id] : null;
   const campName = t.initiative_id ? initiativeMap[t.initiative_id] : null;
@@ -478,8 +525,85 @@ function TransactionItem({
     return "bg-muted text-muted-foreground";
   };
 
+  if (editing) {
+    return (
+      <div className="flex items-start gap-3 px-6 py-4 bg-muted/30 border-b border-border last:border-b-0">
+        <span className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-emerald-500/10 text-emerald-600 font-bold text-xs mt-0.5 shrink-0">$</span>
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="flex items-center gap-1">
+            <span className="text-sm font-semibold text-muted-foreground">$</span>
+            <input
+              className="bg-transparent border-b border-ring outline-none text-sm font-semibold w-28"
+              value={editAmount}
+              onChange={(e) => setEditAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              onBlur={() => commitField("amount", editAmount)}
+              onKeyDown={(e) => { if (e.key === "Enter") { commitField("amount", editAmount); (e.target as HTMLInputElement).blur(); } }}
+              autoFocus
+            />
+          </div>
+          <input
+            className="bg-transparent border-b border-ring outline-none text-sm w-full text-muted-foreground"
+            value={editDesc}
+            onChange={(e) => setEditDesc(e.target.value)}
+            onBlur={() => commitField("description", editDesc.trim())}
+            onKeyDown={(e) => { if (e.key === "Enter") { commitField("description", editDesc.trim()); (e.target as HTMLInputElement).blur(); } }}
+            placeholder="Description"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={editStatus} onValueChange={(v) => { setEditStatus(v); commitField("status", v); }}>
+              <SelectTrigger className="h-7 w-auto text-xs gap-1 border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {statuses.map((s) => (
+                  <SelectItem key={s} value={s}>{statusLabel(s)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={editInitiativeId} onValueChange={(v) => { setEditInitiativeId(v); commitField("initiative_id", v); }}>
+              <SelectTrigger className="h-7 w-auto text-xs gap-1 border-border">
+                <SelectValue placeholder="Campaign" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No Campaign</SelectItem>
+                {initiatives.map((i: any) => (
+                  <SelectItem key={i.id} value={i.id}># {i.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={editCategoryId} onValueChange={(v) => { setEditCategoryId(v); commitField("category_id", v); }}>
+              <SelectTrigger className="h-7 w-auto text-xs gap-1 border-border">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Uncategorized</SelectItem>
+                {categories.map((c: any) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <input
+              type="date"
+              className="h-7 text-xs border border-border rounded-md px-2 bg-transparent"
+              value={editDate}
+              onChange={(e) => { setEditDate(e.target.value); commitField("transaction_date", e.target.value); }}
+            />
+          </div>
+          <div className="flex justify-end">
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setEditing(false)}>
+              Done
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex items-start gap-3 px-6 py-4 group hover:bg-muted/20 transition-colors border-b border-border last:border-b-0">
+    <div
+      className="flex items-start gap-3 px-6 py-4 group hover:bg-muted/20 transition-colors border-b border-border last:border-b-0 cursor-pointer"
+      onClick={() => setEditing(true)}
+    >
       <span className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-emerald-500/10 text-emerald-600 font-bold text-xs mt-0.5 shrink-0">$</span>
       <div className="flex-1 min-w-0">
         <div className="font-semibold text-sm">${amount.toLocaleString()}</div>
@@ -509,12 +633,12 @@ function TransactionItem({
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100">
+          <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
             <MoreVertical className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem className="text-destructive" onClick={onDelete}>
+          <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
             <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
