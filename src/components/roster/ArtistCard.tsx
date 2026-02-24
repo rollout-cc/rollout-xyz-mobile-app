@@ -1,43 +1,70 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle, Clock } from "lucide-react";
+import { Headphones, FolderOpen, CheckCircle2 } from "lucide-react";
 
 interface ArtistCardProps {
   artist: any;
   onClick: () => void;
 }
 
+function formatListeners(n: number): string {
+  if (n >= 1000000) return `${(n / 1000000).toFixed(1).replace(/\.0$/, "")}M`;
+  if (n >= 1000) return `${(n / 1000).toFixed(0)}k`;
+  return String(n);
+}
+
 export function ArtistCard({ artist, onClick }: ArtistCardProps) {
   const initiativeCount = artist.initiatives?.[0]?.count ?? 0;
   const taskCount = artist.tasks?.[0]?.count ?? 0;
+  const listeners = artist.monthly_listeners ?? 0;
 
   return (
     <div
       onClick={onClick}
-      className="flex items-center gap-4 rounded-lg border border-border p-4 hover:bg-accent/50 transition-colors cursor-pointer"
+      className="relative flex flex-col rounded-xl overflow-hidden cursor-pointer group border border-border bg-card shadow-sm hover:shadow-md transition-shadow"
     >
-      <Avatar className="h-14 w-14">
-        <AvatarImage src={artist.avatar_url} alt={artist.name} />
-        <AvatarFallback className="text-lg">{artist.name[0]}</AvatarFallback>
-      </Avatar>
+      {/* Image area */}
+      <div className="relative aspect-[4/3] bg-muted overflow-hidden">
+        {artist.avatar_url ? (
+          <img
+            src={artist.avatar_url}
+            alt={artist.name}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-accent">
+            <span className="text-4xl font-bold text-muted-foreground/40">
+              {artist.name[0]}
+            </span>
+          </div>
+        )}
 
-      <div className="flex-1 min-w-0">
-        <h3 className="font-semibold truncate">{artist.name}</h3>
-        <p className="text-sm text-muted-foreground">
-          {initiativeCount} initiative{initiativeCount !== 1 ? "s" : ""}
-        </p>
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+
+        {/* Name overlay */}
+        <div className="absolute bottom-0 left-0 right-0 p-3">
+          <h3 className="text-base font-semibold text-white drop-shadow-md truncate">
+            {artist.name}
+          </h3>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-1 text-sm">
-        <div className="flex items-center gap-2">
-          <CheckCircle className="h-3.5 w-3.5 text-[hsl(var(--success))]" />
-          <span className="text-muted-foreground">Open Tasks</span>
-          <span className="font-medium">{taskCount || "None"}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Clock className="h-3.5 w-3.5 text-[hsl(var(--warning))]" />
-          <span className="text-muted-foreground">Upcoming Deadline</span>
-          <span className="font-medium">None</span>
-        </div>
+      {/* Stats row */}
+      <div className="flex items-center gap-4 px-3 py-2.5 text-xs text-muted-foreground">
+        {listeners > 0 && (
+          <span className="flex items-center gap-1">
+            <Headphones className="h-3 w-3" />
+            {formatListeners(listeners)}
+          </span>
+        )}
+        <span className="flex items-center gap-1">
+          <FolderOpen className="h-3 w-3" />
+          {initiativeCount}
+        </span>
+        <span className="flex items-center gap-1">
+          <CheckCircle2 className="h-3 w-3" />
+          {taskCount}
+        </span>
       </div>
     </div>
   );
