@@ -559,6 +559,78 @@ export type Database = {
           },
         ]
       }
+      milestone_folders: {
+        Row: {
+          created_at: string
+          folder_id: string
+          id: string
+          milestone_id: string
+        }
+        Insert: {
+          created_at?: string
+          folder_id: string
+          id?: string
+          milestone_id: string
+        }
+        Update: {
+          created_at?: string
+          folder_id?: string
+          id?: string
+          milestone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milestone_folders_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "artist_link_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "milestone_folders_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "artist_milestones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      milestone_links: {
+        Row: {
+          created_at: string
+          id: string
+          link_id: string
+          milestone_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          link_id: string
+          milestone_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          link_id?: string
+          milestone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milestone_links_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "artist_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "milestone_links_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "artist_milestones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           created_at: string
@@ -813,6 +885,10 @@ export type Database = {
       get_artist_team_id: { Args: { p_artist_id: string }; Returns: string }
       get_link_folder_artist_id: {
         Args: { p_folder_id: string }
+        Returns: string
+      }
+      get_milestone_artist_id: {
+        Args: { p_milestone_id: string }
         Returns: string
       }
       has_artist_access: {
