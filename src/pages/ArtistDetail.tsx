@@ -33,7 +33,8 @@ export default function ArtistDetail() {
     if (!spotifyData || !artist) return;
     const patch: Record<string, any> = {};
 
-    const spotifyListeners = spotifyData.monthly_listeners || 0;
+    // Prefer monthly_listeners from scraping, fall back to followers from API
+    const spotifyListeners = spotifyData.monthly_listeners || spotifyData.followers || 0;
     if (spotifyListeners > 0 && (artist as any).monthly_listeners !== spotifyListeners) {
       patch.monthly_listeners = spotifyListeners;
     }
@@ -88,7 +89,10 @@ export default function ArtistDetail() {
 
   const bannerUrl = artist.banner_url || spotifyData?.banner_url || null;
   const hasBanner = !!bannerUrl;
-  const monthlyListeners = (artist as any).monthly_listeners || spotifyData?.monthly_listeners || spotifyData?.followers || 0;
+  const monthlyListeners = (artist as any).monthly_listeners || spotifyData?.monthly_listeners || 0;
+  const followers = spotifyData?.followers || 0;
+  const listenerStat = monthlyListeners > 0 ? monthlyListeners : followers;
+  const listenerLabel = monthlyListeners > 0 ? "monthly listeners" : "followers";
 
   const isTopView = (v: ActiveView) => ["budgets", "objectives", "information"].includes(v);
   const toggleTopView = (v: ActiveView) => {
@@ -154,9 +158,9 @@ export default function ArtistDetail() {
                         <Star className="h-3 w-3 fill-current" /> {artist.genres.slice(0, 3).join(", ")}
                       </span>
                     )}
-                    {monthlyListeners > 0 && (
+                    {listenerStat > 0 && (
                       <span className="bg-white/10 px-2 py-0.5 rounded-full backdrop-blur-md border border-white/20">
-                        {monthlyListeners.toLocaleString()} monthly listeners
+                        {listenerStat.toLocaleString()} {listenerLabel}
                       </span>
                     )}
                   </div>
@@ -198,8 +202,8 @@ export default function ArtistDetail() {
                         <Star className="h-3 w-3 fill-current" /> {artist.genres.slice(0, 3).join(", ")}
                       </span>
                     )}
-                    {monthlyListeners > 0 && (
-                      <span>{monthlyListeners.toLocaleString()} monthly listeners</span>
+                    {listenerStat > 0 && (
+                      <span>{listenerStat.toLocaleString()} {listenerLabel}</span>
                     )}
                   </div>
                 </div>
