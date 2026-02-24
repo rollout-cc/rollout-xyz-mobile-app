@@ -1,4 +1,4 @@
-// Spotify artist detail edge function - fetches banner, monthly listeners
+// Spotify artist detail edge function - fetches artist data from Spotify API
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -50,7 +50,7 @@ Deno.serve(async (req: Request) => {
       try {
         const body = await req.json();
         spotifyId = body.spotify_id || "";
-      } catch (e) {
+      } catch {
         spotifyId = new URL(req.url).searchParams.get("spotify_id") || "";
       }
     } else {
@@ -64,140 +64,25 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Fetch artist info from API
+    // Fetch artist info from official API
     const artistResp = await fetchWithRetry(`https://api.spotify.com/v1/artists/${spotifyId}`);
     if (!artistResp.ok) throw new Error("Spotify artist error: " + artistResp.status);
     const artist = await artistResp.json();
 
-    const images = artist.images ?? [];
-    const largestImage = images.length > 0 ? images[0].url : null;
-
-    // Scrape monthly listeners and header/banner image from Spotify's public artist page
-    let monthlyListeners = 0;
-    let bannerUrl: string | null = null;
-    try {
-      const pageResp = await fetch(`https://open.spotify.com/artist/${spotifyId}`, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-          "Accept-Language": "en-US,en;q=0.9",
-        },
-      });
-      if (pageResp.ok) {
-        const html = await pageResp.text();
-
-        // Monthly listeners - try multiple patterns
-        const listenersPatterns = [
-          /"monthlyListeners"\s*:\s*(\d+)/,
-          /"monthly_listeners"\s*:\s*(\d+)/,
-          /(\d[\d,]+)\s*monthly\s*listener/i,
-          /"listeners"\s*:\s*"?([\d,]+)"?/,
-        ];
-        for (const pattern of listenersPatterns) {
-          const match = html.match(pattern);
-          if (match) {
-            monthlyListeners = parseInt(match[1].replace(/,/g, ""), 10);
-            if (monthlyListeners > 0) break;
-          }
-        }
-
-        // Header/banner image - try multiple patterns
-        const headerPatterns = [
-          /"headerImage"\s*:\s*\{\s*"url"\s*:\s*"([^"]+)"/,
-          /"header_image"\s*:\s*"([^"]+)"/,
-          /"visuals"[^]*?"headerImage"[^]*?"url"\s*:\s*"([^"]+)"/,
-        ];
-        for (const pattern of headerPatterns) {
-          const match = html.match(pattern);
-          if (match) {
-            bannerUrl = match[1];
-            break;
-          }
-        }
-
-        // Fallback: find unique wide scdn images not in profile images
-        if (!bannerUrl) {
-          const allImages = [...html.matchAll(/https:\/\/i\.scdn\.co\/image\/[a-f0-9]+/g)].map(m => m[0]);
-          const profileImageUrls = new Set(images.map((img: any) => img.url));
-          const uniqueImages = allImages.filter(url => !profileImageUrls.has(url));
-          if (uniqueImages.length > 0) {
-            bannerUrl = uniqueImages[0];
-          }
-        }
-      }
-    } catch (e) {
-      console.warn("Could not scrape artist page:", e);
-    }
-
-    // If scraping failed, try Spotify's embed page (more reliable for monthly listeners)
-    if (monthlyListeners === 0) {
-      try {
-        const embedResp = await fetch(`https://open.spotify.com/embed/artist/${spotifyId}`, {
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          },
-        });
-        if (embedResp.ok) {
-          const embedHtml = await embedResp.text();
-          // The embed page often contains monthly listeners in a different format
-          const embedPatterns = [
-            /(\d[\d,]+)\s*monthly\s*listener/i,
-            /"monthlyListeners"\s*:\s*"?([\d,]+)"?/,
-            /"listeners"\s*:\s*"?([\d,]+)"?/,
-          ];
-          for (const pattern of embedPatterns) {
-            const match = embedHtml.match(pattern);
-            if (match) {
-              monthlyListeners = parseInt(match[1].replace(/,/g, ""), 10);
-              if (monthlyListeners > 0) break;
-            }
-          }
-        }
-      } catch (_) {}
-    }
-
-    // Last resort: try the access token based internal endpoint
-    if (monthlyListeners === 0) {
-      try {
-        // Fetch from the public artist "about" page which sometimes has the data
-        const aboutPageResp = await fetch(`https://open.spotify.com/intl-en/artist/${spotifyId}/about`, {
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept-Language": "en-US,en;q=0.9",
-          },
-        });
-        if (aboutPageResp.ok) {
-          const aboutHtml = await aboutPageResp.text();
-          const aboutPatterns = [
-            /(\d[\d,]+)\s*monthly\s*listener/i,
-            /"monthlyListeners"\s*:\s*"?([\d,]+)"?/,
-          ];
-          for (const pattern of aboutPatterns) {
-            const match = aboutHtml.match(pattern);
-            if (match) {
-              monthlyListeners = parseInt(match[1].replace(/,/g, ""), 10);
-              if (monthlyListeners > 0) break;
-            }
-          }
-        }
-      } catch (_) {}
-    }
-
     return new Response(JSON.stringify({
       id: artist.id,
       name: artist.name,
-      monthly_listeners: monthlyListeners || (artist.followers?.total ?? 0),
+      monthly_listeners: artist.followers?.total ?? 0,
       followers: artist.followers?.total ?? 0,
       genres: artist.genres ?? [],
-      images,
-      banner_url: bannerUrl,
+      images: artist.images ?? [],
+      banner_url: null,
       popularity: artist.popularity ?? 0,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("Spotify function error:", message);
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

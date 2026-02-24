@@ -1,0 +1,1 @@
+UPDATE artists SET banner_url = 'https://i.scdn.co/image/ab6761610000e5ebd8a9bc50bbfe5f20b38b31b8' WHERE id = '04bc1bd2-78a8-48e2-8fd9-d46a89f2f2ef' AND banner_url IS NULL;
