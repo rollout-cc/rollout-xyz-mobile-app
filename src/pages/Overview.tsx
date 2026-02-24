@@ -132,6 +132,17 @@ export default function Overview() {
     return qs;
   }, []);
 
+  const departments = useMemo(() => {
+    const labels = new Set(budgets.map((b: any) => b.label as string));
+    return Array.from(labels).sort();
+  }, [budgets]);
+
+  const budgetLabelMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    budgets.forEach((b: any) => { m[b.id] = b.label; });
+    return m;
+  }, [budgets]);
+
   const quarterlyData = useMemo(() => {
     return quarters.map((q) => {
       const qTxns = transactions.filter((t: any) => {
@@ -140,9 +151,20 @@ export default function Overview() {
       });
       const revenue = qTxns.filter((t: any) => t.type === "revenue").reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
       const expenses = qTxns.filter((t: any) => t.type === "expense").reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
-      return { ...q, revenue, expenses, gp: revenue - expenses };
+
+      const deptExpenses: Record<string, number> = {};
+      departments.forEach((dept) => { deptExpenses[dept] = 0; });
+      qTxns.filter((t: any) => t.type === "expense" && t.budget_id).forEach((t: any) => {
+        const label = budgetLabelMap[t.budget_id];
+        if (label) deptExpenses[label] += Math.abs(Number(t.amount));
+      });
+      const uncategorized = qTxns.filter((t: any) => t.type === "expense" && !t.budget_id)
+        .reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
+      if (uncategorized > 0) deptExpenses["Other"] = uncategorized;
+
+      return { ...q, revenue, expenses, gp: revenue - expenses, deptExpenses };
     });
-  }, [transactions, quarters]);
+  }, [transactions, quarters, departments, budgetLabelMap]);
 
   // ——— Per-artist breakdown ———
   const artistBreakdown = useMemo(() => {
@@ -281,6 +303,22 @@ export default function Overview() {
                 ))}
                 <td className="text-right py-2.5 pl-3 font-bold text-destructive">{fmt(totalExpenses)}</td>
               </tr>
+              {/* Department breakdown rows */}
+              {[...departments, ...(quarterlyData.some(q => q.deptExpenses["Other"] > 0) ? ["Other"] : [])].filter((v, i, a) => a.indexOf(v) === i).map((dept) => {
+                const deptTotal = quarterlyData.reduce((s, q) => s + (q.deptExpenses[dept] || 0), 0);
+                if (deptTotal === 0) return null;
+                return (
+                  <tr key={dept} className="border-b border-border">
+                    <td className="py-2 pr-4 text-muted-foreground text-xs pl-4">{dept}</td>
+                    {quarterlyData.map((q) => (
+                      <td key={q.label} className="text-right py-2 px-3 text-xs text-muted-foreground">
+                        {(q.deptExpenses[dept] || 0) > 0 ? fmt(q.deptExpenses[dept]) : "—"}
+                      </td>
+                    ))}
+                    <td className="text-right py-2 pl-3 text-xs font-medium text-muted-foreground">{fmt(deptTotal)}</td>
+                  </tr>
+                );
+              })}
               <tr>
                 <td className="py-2.5 pr-4 font-semibold">Gross Profit</td>
                 {quarterlyData.map((q) => (
