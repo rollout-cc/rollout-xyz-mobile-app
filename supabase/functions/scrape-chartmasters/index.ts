@@ -114,9 +114,8 @@ function parseChartmastersMarkdown(markdown: string): PerformanceData {
   return data;
 }
 
-async function scrapeArtistDashboard(spotifyId: string, firecrawlKey: string): Promise<string> {
-  const url = `https://chartmasters.org/artist/${spotifyId}`;
-  console.log("Scraping ChartMasters:", url);
+async function firecrawlScrape(url: string, firecrawlKey: string): Promise<string> {
+  console.log("Scraping with Firecrawl:", url);
 
   const doScrape = async () => {
     return await fetch("https://api.firecrawl.dev/v1/scrape", {
@@ -150,6 +149,75 @@ async function scrapeArtistDashboard(spotifyId: string, firecrawlKey: string): P
   }
 
   return result?.data?.markdown || result?.markdown || "";
+}
+
+async function searchChartmastersByName(artistName: string, firecrawlKey: string): Promise<string | null> {
+  console.log("Searching ChartMasters for artist by name:", artistName);
+
+  const resp = await fetch("https://api.firecrawl.dev/v1/search", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${firecrawlKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      query: `site:chartmasters.org "${artistName}" artist dashboard`,
+      limit: 5,
+      scrapeOptions: { formats: ["markdown"] },
+    }),
+  });
+
+  if (!resp.ok) {
+    console.warn("Firecrawl search failed:", resp.status);
+    return null;
+  }
+
+  const result = await resp.json();
+  const results = result?.data || [];
+
+  // Find a result that matches an artist-dashboard URL
+  for (const item of results) {
+    const url = item.url || "";
+    if (url.includes("chartmasters.org") && item.markdown) {
+      // Verify the markdown actually contains the artist name
+      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (normalize(item.markdown).includes(normalize(artistName))) {
+        console.log("Found matching ChartMasters page via search:", url);
+        return item.markdown;
+      }
+    }
+  }
+
+  console.log("No matching ChartMasters page found via search");
+  return null;
+}
+
+async function scrapeArtistDashboard(spotifyId: string, artistName: string, firecrawlKey: string): Promise<string> {
+  // First try by Spotify ID
+  const url = `https://chartmasters.org/artist/${spotifyId}`;
+  const markdown = await firecrawlScrape(url, firecrawlKey);
+
+  if (!markdown) return "";
+
+  // Check if the returned artist matches
+  if (artistName) {
+    const parsed = parseChartmastersMarkdown(markdown);
+    if (parsed.chartmasters_artist_name) {
+      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const ourName = normalize(artistName);
+      const cmName = normalize(parsed.chartmasters_artist_name);
+      if (ourName && cmName && !cmName.includes(ourName) && !ourName.includes(cmName)) {
+        console.warn(`Name mismatch: ours="${artistName}", ChartMasters="${parsed.chartmasters_artist_name}". Trying search fallback...`);
+        // Fallback: search by name
+        const searchMarkdown = await searchChartmastersByName(artistName, firecrawlKey);
+        if (searchMarkdown) return searchMarkdown;
+        // If search also fails, return empty with a specific marker
+        return `__MISMATCH__${parsed.chartmasters_artist_name}`;
+      }
+    }
+  }
+
+  return markdown;
 }
 
 Deno.serve(async (req: Request) => {
@@ -207,8 +275,9 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Scrape ChartMasters
-    const markdown = await scrapeArtistDashboard(spotifyId, firecrawlKey);
+    // Scrape ChartMasters (with name-search fallback on mismatch)
+    const markdown = await scrapeArtistDashboard(spotifyId, artistName, firecrawlKey);
+
     if (!markdown) {
       return new Response(JSON.stringify({ error: "No data returned from ChartMasters" }), {
         status: 404,
@@ -216,25 +285,17 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Parse the data
-    const perfData = parseChartmastersMarkdown(markdown);
-
-    // Verify artist name matches to prevent ChartMasters ID mismatch
-    if (artistName && perfData.chartmasters_artist_name) {
-      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-      const ourName = normalize(artistName);
-      const cmName = normalize(perfData.chartmasters_artist_name);
-      if (ourName && cmName && !cmName.includes(ourName) && !ourName.includes(cmName)) {
-        console.warn(`Artist name mismatch: ours="${artistName}", ChartMasters="${perfData.chartmasters_artist_name}"`);
-        return new Response(JSON.stringify({
-          error: `ChartMasters returned data for "${perfData.chartmasters_artist_name}" instead of "${artistName}". This artist may not be indexed correctly on ChartMasters.`,
-          mismatch: true,
-          chartmasters_name: perfData.chartmasters_artist_name,
-        }), {
-          status: 422,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    // Check for mismatch marker (Spotify ID returned wrong artist AND search fallback failed)
+    if (markdown.startsWith("__MISMATCH__")) {
+      const cmName = markdown.replace("__MISMATCH__", "");
+      return new Response(JSON.stringify({
+        error: `ChartMasters returned data for "${cmName}" instead of "${artistName}". This artist may not be indexed on ChartMasters.`,
+        mismatch: true,
+        chartmasters_name: cmName,
+      }), {
+        status: 422,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log("Parsed performance data:", JSON.stringify({
