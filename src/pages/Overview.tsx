@@ -245,10 +245,10 @@ export default function Overview() {
       </div>
 
       {/* Budget utilization bar */}
-      <div className="rounded-xl p-5 mb-8">
-        <div className="flex items-center justify-between mb-3">
+      <div className="rounded-xl p-4 sm:p-5 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-1">
           <span className="text-sm font-medium">Budget Utilization</span>
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground flex-wrap">
             <span>Spent: {fmt(totalExpenses)}</span>
             <span>Remaining: {fmt(budgetRemaining)}</span>
             <span className="font-semibold text-foreground">{budgetUtilization.toFixed(0)}%</span>
@@ -349,15 +349,16 @@ export default function Overview() {
               className="border-b border-border last:border-b-0 py-4 -mx-5 px-5 hover:bg-accent/30 cursor-pointer transition-colors"
               onClick={() => navigate(`/roster/${artist.id}`)}
             >
-              <div className="flex items-center gap-4 mb-3">
+              {/* Artist header row */}
+              <div className="flex items-center gap-3 mb-3">
                 <Avatar className="h-10 w-10 shrink-0">
                   <AvatarImage src={artist.avatar_url ?? undefined} />
                   <AvatarFallback className="text-sm font-bold">{artist.name[0]}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm">{artist.name}</span>
-                    <span className="text-xs text-muted-foreground">{artist.campaignCount} campaigns</span>
+                    <span className="font-semibold text-sm truncate">{artist.name}</span>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">{artist.campaignCount} campaigns</span>
                   </div>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mt-0.5">
                     <span className="flex items-center gap-1">
@@ -365,34 +366,34 @@ export default function Overview() {
                     </span>
                   </div>
                 </div>
-                <div className="text-right shrink-0">
-                  <div className="flex items-center gap-3 text-sm">
-                    <div>
-                      <div className="text-xs text-muted-foreground">Budget</div>
-                      <div className="font-bold">{fmt(artist.budget)}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Spent</div>
-                      <div className="font-bold text-destructive">{fmt(artist.expenses)}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Revenue</div>
-                      <div className="font-bold text-emerald-600">{fmt(artist.revenue)}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">P&L</div>
-                      <div className={cn("font-bold", artist.gp >= 0 ? "text-emerald-600" : "text-destructive")}>
-                        {fmtSigned(artist.gp)}
-                      </div>
-                    </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              </div>
+
+              {/* Financial stats – stacked on mobile, row on desktop */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 ml-0 sm:ml-14 mb-2">
+                <div>
+                  <div className="text-xs text-muted-foreground">Budget</div>
+                  <div className="font-bold text-sm">{fmt(artist.budget)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Spent</div>
+                  <div className="font-bold text-sm text-destructive">{fmt(artist.expenses)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Revenue</div>
+                  <div className="font-bold text-sm text-emerald-600">{fmt(artist.revenue)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">P&L</div>
+                  <div className={cn("font-bold text-sm", artist.gp >= 0 ? "text-emerald-600" : "text-destructive")}>
+                    {fmtSigned(artist.gp)}
                   </div>
                 </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
               </div>
 
               {/* Budget category bars */}
               {artist.categories.length > 0 && (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 ml-14">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 ml-0 sm:ml-14">
                   {artist.categories.map((cat, i) => (
                     <div key={i}>
                       <div className="flex items-center justify-between text-xs mb-0.5">
@@ -414,7 +415,7 @@ export default function Overview() {
               )}
 
               {/* Utilization bar */}
-              <div className="ml-14 mt-2">
+              <div className="ml-0 sm:ml-14 mt-2">
                 <div className="flex items-center justify-between text-xs mb-0.5">
                   <span className="text-muted-foreground">Overall Utilization</span>
                   <span className="font-semibold">{artist.utilization.toFixed(0)}%</span>
@@ -454,7 +455,7 @@ function KpiCard({ label, value, icon, accent }: { label: string; value: string;
         </div>
         <span className="text-xs text-muted-foreground">{label}</span>
       </div>
-      <div className={cn("text-2xl font-bold", accent)}>{value}</div>
+      <div className={cn("text-xl sm:text-2xl font-bold break-all", accent)}>{value}</div>
     </div>
   );
 }
