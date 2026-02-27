@@ -180,7 +180,7 @@ export default function ArtistDetail() {
       {/* Banner */}
       <div className="relative rounded-lg bg-muted overflow-hidden mb-4 shadow-xl group">
         {/* Banner image area */}
-        <div className="relative h-48 sm:h-72 lg:h-[360px]">
+        <div className="relative h-48 sm:h-72 lg:h-[360px] overflow-hidden">
           <img
             src={hasBanner ? bannerUrl! : defaultBanner}
             alt=""
