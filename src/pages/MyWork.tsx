@@ -88,10 +88,10 @@ export default function MyWork() {
           {/* Task sections */}
           {sections.map(({ label, items, icon: Icon, color }) => (
             <div key={label}>
-              <h3 className={cn("text-sm font-semibold mb-2 flex items-center gap-1.5", color)}>
+              <h3 className={cn("label-lg mb-2 flex items-center gap-1.5", color)}>
                 <Icon className="h-4 w-4" />
                 {label}
-                <span className="text-muted-foreground font-normal">({items.length})</span>
+                <span className="caption font-normal">({items.length})</span>
               </h3>
               <div className="flex flex-col gap-1">
                 {items.map((task) => (
@@ -158,8 +158,8 @@ function SummaryCard({ label, count, variant }: { label: string; count: number; 
       variant === "default" && "border-border",
       variant === "muted" && "border-border bg-muted/50",
     )}>
-      <p className="text-2xl font-semibold">{count}</p>
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="stat-value">{count}</p>
+      <p className="stat-label">{label}</p>
     </div>
   );
 }
