@@ -173,7 +173,7 @@ export default function Settings() {
 
         <div className="mt-6 space-y-8">
           {/* Section heading */}
-          <h2 className="text-lg font-semibold text-foreground">Profile</h2>
+          <h2 className="text-foreground">Profile</h2>
 
           {/* Full Name */}
           <div className="space-y-2">

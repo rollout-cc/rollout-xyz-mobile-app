@@ -158,7 +158,7 @@ function SummaryCard({ label, count, variant }: { label: string; count: number; 
       variant === "default" && "border-border",
       variant === "muted" && "border-border bg-muted/50",
     )}>
-      <p className="text-2xl font-bold">{count}</p>
+      <p className="text-2xl font-semibold">{count}</p>
       <p className="text-xs text-muted-foreground">{label}</p>
     </div>
   );

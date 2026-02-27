@@ -88,7 +88,7 @@ export default function Login() {
 
           {mode === "login" ? (
             <div className="max-w-md">
-              <h2 className="text-3xl font-bold text-foreground mb-8">Sign In</h2>
+              <h2 className="text-2xl font-semibold text-foreground mb-8">Sign In</h2>
 
               <form onSubmit={handleEmailLogin} className="flex flex-col gap-4">
                 <Input
@@ -148,7 +148,7 @@ export default function Login() {
             </div>
           ) : (
             <div className="max-w-md">
-              <h2 className="text-3xl font-bold text-foreground mb-8">Apply</h2>
+              <h2 className="text-2xl font-semibold text-foreground mb-8">Apply</h2>
 
               <form onSubmit={handleEmailSignup} className="flex flex-col gap-4">
                 <Input

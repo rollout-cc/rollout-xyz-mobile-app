@@ -213,7 +213,7 @@ export default function Overview() {
     <AppLayout title="Overview">
       {/* Welcome */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-foreground">
+        <h1 className="text-foreground">
           Welcome back, {profile?.full_name?.split(" ")[0] || "there"}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -270,7 +270,7 @@ export default function Overview() {
 
       {/* Quarterly P&L */}
       <div className="rounded-xl p-5 mb-8">
-        <h2 className="text-sm font-semibold mb-4">Quarterly P&L</h2>
+        <h2 className="mb-4">Quarterly P&L</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -338,7 +338,7 @@ export default function Overview() {
       {/* Per-Artist Spending Breakdown */}
       <div className="rounded-xl p-5">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-sm font-semibold">Spending Per Act</h2>
+          <h2>Spending Per Act</h2>
           <span className="text-xs text-muted-foreground">{artists.length} artists</span>
         </div>
 

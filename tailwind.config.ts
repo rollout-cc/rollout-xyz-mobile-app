@@ -14,7 +14,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["'Space Grotesk'", "system-ui", "sans-serif"],
+        sans: ["'Switzer'", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
