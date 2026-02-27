@@ -40,7 +40,7 @@ export function ArtistCard({ artist, onClick }: ArtistCardProps) {
 
         <div className="flex-1 min-w-0 pt-1">
           <div className="flex items-start justify-between gap-1">
-            <h3 className="text-base font-bold truncate">{artist.name}</h3>
+            <h3 className="text-sm font-semibold truncate">{artist.name}</h3>
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100">

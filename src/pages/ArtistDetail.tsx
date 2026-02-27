@@ -208,7 +208,7 @@ export default function ArtistDetail() {
                   <AvatarFallback className="text-2xl">{artist.name[0]}</AvatarFallback>
                 </Avatar>
                 <div className="pb-1">
-                  <h2 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-md mb-1">{artist.name}</h2>
+                  <h2 className="text-2xl sm:text-3xl font-semibold text-white drop-shadow-md mb-1">{artist.name}</h2>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/90">
                     {artist.genres && artist.genres.length > 0 && (
                       <span className="flex items-center gap-1">
@@ -264,7 +264,7 @@ export default function ArtistDetail() {
                 <AvatarFallback className="text-5xl sm:text-6xl font-bold">{artist.name[0]}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col gap-1 pb-1">
-                <h2 className="text-5xl sm:text-7xl font-bold text-white tracking-tight" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)' }}>{artist.name}</h2>
+                <h2 className="text-4xl sm:text-6xl font-semibold text-white tracking-tight" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)' }}>{artist.name}</h2>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/90 mt-1" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.25)' }}>
                   {artist.genres && artist.genres.length > 0 && (
                       <span className="flex items-center gap-1">
@@ -356,7 +356,7 @@ function ObjectivesPanel({ artist }: { artist: any }) {
 
   return (
     <div>
-      <h3 className="font-semibold mb-3">Objectives</h3>
+      <h3 className="mb-3">Objectives</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
         {fields.map(({ key, label }) => (
           <div key={key}>

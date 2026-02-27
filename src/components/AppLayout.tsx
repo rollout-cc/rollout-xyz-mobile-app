@@ -44,7 +44,7 @@ export function AppLayout({ children, title, actions }: AppLayoutProps) {
           {/* Top bar */}
           <header className="flex h-14 items-center justify-between border-b border-border px-4 sm:px-6">
             <div className="flex items-center gap-2">
-              <span className="text-lg font-semibold">{title}</span>
+              <span className="text-base font-semibold">{title}</span>
             </div>
             <div className="flex items-center gap-3">
               {actions}

@@ -268,7 +268,7 @@ export default function Agenda() {
               <AvatarFallback className="text-xl">{artist.name[0]}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <h2 className="text-2xl font-bold">{artist.name}</h2>
+              <h2>{artist.name}</h2>
             </div>
             <div className="flex items-center gap-4 text-sm">
               <span>Open Tasks <strong>{openTaskCount}</strong></span>
@@ -381,7 +381,7 @@ function CollapsibleSection({
     <div className="border-t border-border py-4 mb-2">
       <button onClick={onToggle} className="flex items-center justify-between w-full text-left">
         <div>
-          <h3 className="text-lg font-bold">{title}</h3>
+          <h3 className="text-base font-semibold">{title}</h3>
           {subtitle && <div className="text-xs text-muted-foreground mt-0.5">{subtitle}</div>}
         </div>
         {open ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
@@ -409,7 +409,7 @@ function TaskRow({
       <div className="h-5 w-5 rounded border-2 border-muted-foreground/30 mt-0.5 shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold text-sm">{task.title}</span>
+          <span className="font-medium text-sm">{task.title}</span>
           {task.expense_amount != null && task.expense_amount > 0 && (
             <span className="text-xs text-muted-foreground">${Number(task.expense_amount).toLocaleString()}</span>
           )}
