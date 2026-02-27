@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2, ChevronDown, ChevronUp, FolderPlus, ListPlus, Calendar, DollarSign, User, MoreHorizontal, Archive, Trash } from "lucide-react";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
+import { CollapsibleSection, InlineAddTrigger, ListItemRow } from "@/components/ui/CollapsibleSection";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,11 +63,9 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
     setExpandedCampaigns(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // When a new campaign is created, expand it and focus its task input
   useEffect(() => {
     if (newCampaignId && campaigns.some((c: any) => c.id === newCampaignId)) {
       setExpandedCampaigns(prev => ({ ...prev, [newCampaignId]: true }));
-      // Clear after a tick so the task input can auto-focus
       setTimeout(() => setNewCampaignId(null), 100);
     }
   }, [newCampaignId, campaigns]);
@@ -78,9 +77,9 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
   }
 
   return (
-    <div className="mt-4 space-y-6">
+    <div className="mt-4 space-y-2">
       {/* Header controls */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-2">
         <label className="flex items-center gap-2 cursor-pointer caption text-muted-foreground hover:text-foreground transition-colors">
           <Checkbox checked={showCompleted} onCheckedChange={(v) => setShowCompleted(!!v)} />
           Show Completed
@@ -88,30 +87,21 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
         <NewCampaignInline artistId={artistId} onCreated={setNewCampaignId} />
       </div>
 
-      {/* Active Tasks — unsorted */}
+      {/* Unsorted tasks */}
       {unsortedTasks.length > 0 && (
-        <section className="rounded-xl bg-card/50 border border-border/50">
-          <button
-            onClick={() => setActiveExpanded(!activeExpanded)}
-            className="flex items-center justify-between w-full px-5 py-3.5 text-left hover:bg-accent/30 transition-colors rounded-t-xl"
-          >
-            <div className="flex items-center gap-2.5">
-              <span className="label-lg">Active Tasks</span>
-              <span className="caption text-muted-foreground bg-muted/80 px-2 py-0.5 rounded-full">{activeTasks.length}</span>
-            </div>
-            {activeExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-          </button>
-          {activeExpanded && (
-            <div className="px-5 pb-4 pt-1">
-              <InlineTaskInput artistId={artistId} teamId={teamId} campaigns={campaigns} />
-              <div className="divide-y divide-border/40">
-                {unsortedTasks.map((t: any) => (
-                  <TaskRow key={t.id} task={t} artistId={artistId} campaigns={campaigns} />
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
+        <CollapsibleSection
+          title="Unsorted"
+          count={unsortedTasks.length}
+          open={activeExpanded}
+          onToggle={() => setActiveExpanded(!activeExpanded)}
+        >
+          <InlineTaskInput artistId={artistId} teamId={teamId} campaigns={campaigns} />
+          <div className="divide-y divide-border/30">
+            {unsortedTasks.map((t: any) => (
+              <TaskRow key={t.id} task={t} artistId={artistId} campaigns={campaigns} />
+            ))}
+          </div>
+        </CollapsibleSection>
       )}
 
       {/* Campaign sections */}
@@ -120,43 +110,31 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
         const isExpanded = expandedCampaigns[c.id] ?? true;
         const isNewlyCreated = newCampaignId === c.id;
         return (
-          <section key={c.id} className="rounded-xl bg-card/50 border border-border/50">
-            <div className="flex items-center justify-between w-full px-5 py-3.5 hover:bg-accent/30 transition-colors rounded-t-xl">
-              <button onClick={() => toggleCampaign(c.id)} className="flex items-center gap-2.5 flex-1 text-left min-w-0">
-                <CampaignName campaign={c} artistId={artistId} />
-                <span className="caption text-muted-foreground bg-muted/80 px-2 py-0.5 rounded-full shrink-0">{cTasks.length}</span>
-              </button>
-              <div className="flex items-center gap-0.5 shrink-0">
-                <CampaignActions campaign={c} artistId={artistId} taskCount={cTasks.length} />
-                {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-              </div>
+          <CollapsibleSection
+            key={c.id}
+            title={c.name}
+            count={cTasks.length}
+            open={isExpanded}
+            onToggle={() => toggleCampaign(c.id)}
+            titleSlot={<CampaignName campaign={c} artistId={artistId} />}
+            actions={<CampaignActions campaign={c} artistId={artistId} taskCount={cTasks.length} />}
+          >
+            <InlineTaskInput artistId={artistId} teamId={teamId} campaigns={campaigns} defaultCampaignId={c.id} autoFocus={isNewlyCreated} />
+            <div className="divide-y divide-border/30">
+              {cTasks.map((t: any) => <TaskRow key={t.id} task={t} artistId={artistId} campaigns={campaigns} />)}
             </div>
-            {isExpanded && (
-              <div className="px-5 pb-4 pt-1">
-                <InlineTaskInput artistId={artistId} teamId={teamId} campaigns={campaigns} defaultCampaignId={c.id} autoFocus={isNewlyCreated} />
-                <div className="divide-y divide-border/40">
-                  {cTasks.map((t: any) => <TaskRow key={t.id} task={t} artistId={artistId} campaigns={campaigns} />)}
-                </div>
-                {cTasks.length === 0 && !isNewlyCreated && <p className="caption text-muted-foreground py-3">No tasks yet.</p>}
-              </div>
-            )}
-          </section>
+            {cTasks.length === 0 && !isNewlyCreated && <p className="caption text-muted-foreground py-3 pl-2">No tasks yet.</p>}
+          </CollapsibleSection>
         );
       })}
 
       {/* Completed */}
       {showCompleted && completedTasks.length > 0 && (
-        <section className="rounded-xl bg-card/50 border border-border/50">
-          <div className="px-5 py-3.5">
-            <div className="flex items-center gap-2.5">
-              <span className="label-lg text-muted-foreground">Completed</span>
-              <span className="caption text-muted-foreground bg-muted/80 px-2 py-0.5 rounded-full">{completedTasks.length}</span>
-            </div>
-          </div>
-          <div className="px-5 pb-4 divide-y divide-border/40">
+        <CollapsibleSection title="Completed" count={completedTasks.length} defaultOpen={false}>
+          <div className="divide-y divide-border/30">
             {completedTasks.map((t: any) => <TaskRow key={t.id} task={t} artistId={artistId} campaigns={campaigns} />)}
           </div>
-        </section>
+        </CollapsibleSection>
       )}
     </div>
   );
@@ -186,23 +164,19 @@ function EmptyWorkState({ artistId, teamId, onCampaignCreated }: { artistId: str
   if (mode === "campaign") {
     return (
       <div className="mt-4">
-        <div className="border border-border rounded-lg overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 bg-muted/50">
-            <input
-              ref={campaignInputRef}
-              autoFocus
-              placeholder="Campaign name"
-              className="flex-1 bg-transparent text-lg font-bold outline-none placeholder:text-muted-foreground/60"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) createCampaign.mutate((e.target as HTMLInputElement).value);
-                if (e.key === "Escape") setMode("idle");
-              }}
-              onBlur={(e) => { if (!e.target.value.trim()) setMode("idle"); }}
-            />
-          </div>
-          <div className="p-4">
-            <p className="text-sm text-muted-foreground">Press Enter to create campaign</p>
-          </div>
+        <div className="bg-muted/30 rounded-lg px-4 py-3">
+          <input
+            ref={campaignInputRef}
+            autoFocus
+            placeholder="Campaign name"
+            className="flex-1 bg-transparent text-base font-bold outline-none placeholder:text-muted-foreground/60 w-full"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) createCampaign.mutate((e.target as HTMLInputElement).value);
+              if (e.key === "Escape") setMode("idle");
+            }}
+            onBlur={(e) => { if (!e.target.value.trim()) setMode("idle"); }}
+          />
+          <p className="text-xs text-muted-foreground mt-2">Press Enter to create campaign</p>
         </div>
       </div>
     );
@@ -237,10 +211,8 @@ function CampaignActions({ campaign, artistId, taskCount }: { campaign: any; art
 
   const deleteCampaign = useMutation({
     mutationFn: async () => {
-      // Delete all tasks in this campaign first
       const { error: tasksError } = await supabase.from("tasks").delete().eq("initiative_id", campaign.id);
       if (tasksError) throw tasksError;
-      // Then delete the campaign
       const { error } = await supabase.from("initiatives").delete().eq("id", campaign.id);
       if (error) throw error;
     },
@@ -254,7 +226,6 @@ function CampaignActions({ campaign, artistId, taskCount }: { campaign: any; art
 
   const archiveCampaign = useMutation({
     mutationFn: async () => {
-      // Mark all tasks in this campaign as completed
       const { error: tasksError } = await supabase
         .from("tasks")
         .update({ is_completed: true, completed_at: new Date().toISOString() })
@@ -273,7 +244,7 @@ function CampaignActions({ campaign, artistId, taskCount }: { campaign: any; art
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="h-7 w-7 flex items-center justify-center rounded hover:bg-accent transition-colors" onClick={(e) => e.stopPropagation()}>
+          <button className="h-7 w-7 flex items-center justify-center rounded hover:bg-accent transition-colors">
             <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
           </button>
         </DropdownMenuTrigger>
@@ -321,7 +292,7 @@ function CampaignName({ campaign, artistId }: { campaign: any; artistId: string 
     <InlineField
       value={campaign.name}
       onSave={(v) => update.mutate(v)}
-      className="text-lg font-bold"
+      className="text-base font-bold"
     />
   );
 }
@@ -336,13 +307,11 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
   const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(!!autoFocus);
 
-  // Dropdown state
   const [showAtDropdown, setShowAtDropdown] = useState(false);
   const [showDollarDropdown, setShowDollarDropdown] = useState(false);
   const [atQuery, setAtQuery] = useState("");
   const [dollarAmount, setDollarAmount] = useState("");
 
-  // Fetch team members for @ mentions
   const { data: teamMembers = [] } = useQuery({
     queryKey: ["team-members", teamId],
     queryFn: async () => {
@@ -366,7 +335,6 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
     enabled: !!teamId,
   });
 
-  // Fetch budgets for $ dropdown
   const { data: budgets = [] } = useQuery({
     queryKey: ["budgets", artistId],
     queryFn: async () => {
@@ -380,7 +348,6 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
     if (autoFocus) inputRef.current?.focus();
   }, [autoFocus]);
 
-  // Detect @ and $ triggers in input
   useEffect(() => {
     const atMatch = value.match(/@(\w*)$/);
     if (atMatch) {
@@ -450,7 +417,6 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
     let initiative_id: string | undefined;
     let assigned_to: string | undefined;
 
-    // Parse @mention -> assigned_to
     const atMentionMatch = title.match(/@(\S+(?:\s\S+)?)/);
     if (atMentionMatch) {
       const mentionName = atMentionMatch[1].toLowerCase();
@@ -483,7 +449,7 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
   }, [value, description, campaigns, teamMembers, addTask]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (showAtDropdown || showDollarDropdown) return; // let dropdown handle
+    if (showAtDropdown || showDollarDropdown) return;
     if (e.key === "Enter" && value.trim()) { e.preventDefault(); parseAndSubmit(); }
     if (e.key === "Escape") { setValue(""); setDescription(""); setIsActive(false); inputRef.current?.blur(); }
   };
@@ -494,10 +460,16 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
     setIsActive(false);
   };
 
+  if (!isActive) {
+    return (
+      <InlineAddTrigger label="New Task" onClick={() => { setIsActive(true); setTimeout(() => inputRef.current?.focus(), 50); }} />
+    );
+  }
+
   return (
-    <div className="mb-3 relative">
-      <div className={`rounded-lg transition-all ${isActive ? "bg-accent/30 ring-1 ring-border/60" : "border border-dashed border-border/50 hover:border-border"}`}>
-        <div className="flex items-start gap-3 px-4 py-3">
+    <div className="mb-2 relative">
+      <div className="rounded-lg bg-muted/40 px-4 py-3">
+        <div className="flex items-start gap-3">
           <Checkbox disabled className="opacity-20 mt-0.5" />
           <div className="flex-1 relative">
             <input
@@ -510,7 +482,6 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
               className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
             />
 
-            {/* @ Team Member Dropdown */}
             {showAtDropdown && filteredMembers.length > 0 && (
               <div className="absolute left-0 top-full mt-1 bg-popover border border-border/60 rounded-lg shadow-xl z-50 min-w-[200px] py-1">
                 {filteredMembers.map((m: any) => (
@@ -526,7 +497,6 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
               </div>
             )}
 
-            {/* $ Budget Dropdown */}
             {showDollarDropdown && budgets.length > 0 && (
               <div className="absolute left-0 top-full mt-1 bg-popover border border-border/60 rounded-lg shadow-xl z-50 min-w-[220px] py-1">
                 {budgets.map((b: any) => (
@@ -542,26 +512,22 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
               </div>
             )}
 
-            {isActive && (
-              <>
-                <input
-                  ref={descRef}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Add a description…"
-                  className="w-full bg-transparent text-xs text-muted-foreground outline-none placeholder:text-muted-foreground/40 mt-2"
-                />
-                <div className="flex items-center gap-1 mt-2.5">
-                  <button className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" title="Assign" onClick={() => { setValue(prev => prev + "@"); inputRef.current?.focus(); }}><User className="h-3.5 w-3.5" /></button>
-                  <button className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" title="Due date" onClick={() => { setValue(prev => prev + " due "); inputRef.current?.focus(); }}><Calendar className="h-3.5 w-3.5" /></button>
-                  <button className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" title="Cost" onClick={() => { setValue(prev => prev + "$"); inputRef.current?.focus(); }}><DollarSign className="h-3.5 w-3.5" /></button>
-                  <div className="flex-1" />
-                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleCancel}>Cancel</Button>
-                  <Button size="sm" className="h-7 text-xs" onClick={parseAndSubmit} disabled={!value.trim()}>Save</Button>
-                </div>
-              </>
-            )}
+            <input
+              ref={descRef}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Description"
+              className="w-full bg-transparent text-xs text-muted-foreground outline-none placeholder:text-muted-foreground/40 mt-2"
+            />
+            <div className="flex items-center gap-1 mt-2.5">
+              <button className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" title="Assign" onClick={() => { setValue(prev => prev + "@"); inputRef.current?.focus(); }}><User className="h-3.5 w-3.5" /></button>
+              <button className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" title="Due date" onClick={() => { setValue(prev => prev + " due "); inputRef.current?.focus(); }}><Calendar className="h-3.5 w-3.5" /></button>
+              <button className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" title="Cost" onClick={() => { setValue(prev => prev + "$"); inputRef.current?.focus(); }}><DollarSign className="h-3.5 w-3.5" /></button>
+              <div className="flex-1" />
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleCancel}>Cancel</Button>
+              <Button size="sm" className="h-7 text-xs" onClick={parseAndSubmit} disabled={!value.trim()}>Save</Button>
+            </div>
           </div>
         </div>
       </div>
@@ -598,7 +564,6 @@ function TaskRow({ task, artistId, campaigns }: { task: any; artistId: string; c
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks", artistId] }),
   });
 
-  // Get assignee name
   const { data: assignee } = useQuery({
     queryKey: ["profile", task.assigned_to],
     queryFn: async () => {
@@ -612,32 +577,34 @@ function TaskRow({ task, artistId, campaigns }: { task: any; artistId: string; c
   const campaign = campaigns.find((c: any) => c.id === task.initiative_id);
 
   return (
-    <div className="flex items-start gap-3 py-3 group">
+    <ListItemRow>
       <Checkbox checked={task.is_completed} onCheckedChange={() => toggleTask.mutate()} className="mt-0.5 shrink-0" />
       <div className="flex-1 min-w-0">
         <div className={`${task.is_completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
           <InlineField value={task.title} onSave={(v) => updateTask.mutate({ title: v })} className="text-sm font-medium" />
         </div>
-        {/* Metadata pills */}
+        {task.description && (
+          <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>
+        )}
         <div className="flex flex-wrap items-center gap-1.5 mt-1.5 empty:hidden">
           {assignee?.full_name && (
-            <span className="caption inline-flex items-center gap-1 text-muted-foreground">
+            <span className="caption inline-flex items-center gap-1 bg-muted/80 px-1.5 py-0.5 rounded">
               <User className="h-3 w-3" /> {assignee.full_name}
             </span>
           )}
-          {campaign && (
-            <span className="caption inline-flex items-center gap-1 bg-accent/60 text-accent-foreground px-1.5 py-0.5 rounded">
-              # {campaign.name}
-            </span>
-          )}
           {task.due_date && (
-            <span className="caption inline-flex items-center gap-1 text-muted-foreground">
+            <span className="caption inline-flex items-center gap-1 bg-muted/80 px-1.5 py-0.5 rounded">
               <Calendar className="h-3 w-3" />
               <InlineField value={task.due_date} onSave={(v) => updateTask.mutate({ due_date: v || null })} className="text-xs text-muted-foreground" />
             </span>
           )}
+          {campaign && (
+            <span className="caption inline-flex items-center gap-1 bg-muted/80 px-1.5 py-0.5 rounded">
+              # {campaign.name}
+            </span>
+          )}
           {task.expense_amount != null && task.expense_amount > 0 && (
-            <span className="caption-bold inline-flex items-center gap-0.5 text-foreground">
+            <span className="caption-bold inline-flex items-center gap-0.5 bg-muted/80 px-1.5 py-0.5 rounded">
               <DollarSign className="h-3 w-3" />
               <InlineField
                 value={`${task.expense_amount.toLocaleString()}`}
@@ -654,7 +621,7 @@ function TaskRow({ task, artistId, campaigns }: { task: any; artistId: string; c
       <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 h-7 w-7 shrink-0 -mr-1" onClick={() => deleteTask.mutate()}>
         <Trash2 className="h-3.5 w-3.5" />
       </Button>
-    </div>
+    </ListItemRow>
   );
 }
 
