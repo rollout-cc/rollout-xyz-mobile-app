@@ -78,31 +78,40 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
   }
 
   return (
-    <div className="mt-4">
-      <div className="flex items-center justify-between mb-4">
-        <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground">
-          <input type="checkbox" checked={showCompleted} onChange={(e) => setShowCompleted(e.target.checked)} className="rounded" />
+    <div className="mt-4 space-y-6">
+      {/* Header controls */}
+      <div className="flex items-center justify-between">
+        <label className="flex items-center gap-2 cursor-pointer caption text-muted-foreground hover:text-foreground transition-colors">
+          <Checkbox checked={showCompleted} onCheckedChange={(v) => setShowCompleted(!!v)} />
           Show Completed
         </label>
         <NewCampaignInline artistId={artistId} onCreated={setNewCampaignId} />
       </div>
 
-      {/* Active Tasks - only show if there are unsorted tasks */}
+      {/* Active Tasks — unsorted */}
       {unsortedTasks.length > 0 && (
-        <div className="border border-border rounded-lg mb-3 overflow-hidden">
-          <button onClick={() => setActiveExpanded(!activeExpanded)} className="flex items-center justify-between w-full px-4 py-3 text-left bg-muted/50 hover:bg-muted transition-colors">
-            <span className="text-lg font-bold">Active Tasks <span className="text-muted-foreground font-normal text-sm ml-2 bg-muted px-2 py-0.5 rounded-full">{activeTasks.length}</span></span>
-            {activeExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
+        <section className="rounded-xl bg-card/50 border border-border/50">
+          <button
+            onClick={() => setActiveExpanded(!activeExpanded)}
+            className="flex items-center justify-between w-full px-5 py-3.5 text-left hover:bg-accent/30 transition-colors rounded-t-xl"
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="label-lg">Active Tasks</span>
+              <span className="caption text-muted-foreground bg-muted/80 px-2 py-0.5 rounded-full">{activeTasks.length}</span>
+            </div>
+            {activeExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
           </button>
           {activeExpanded && (
-            <div className="p-4">
+            <div className="px-5 pb-4 pt-1">
               <InlineTaskInput artistId={artistId} teamId={teamId} campaigns={campaigns} />
-              {unsortedTasks.map((t: any) => (
-                <TaskRow key={t.id} task={t} artistId={artistId} campaigns={campaigns} />
-              ))}
+              <div className="divide-y divide-border/40">
+                {unsortedTasks.map((t: any) => (
+                  <TaskRow key={t.id} task={t} artistId={artistId} campaigns={campaigns} />
+                ))}
+              </div>
             </div>
           )}
-        </div>
+        </section>
       )}
 
       {/* Campaign sections */}
@@ -111,38 +120,43 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
         const isExpanded = expandedCampaigns[c.id] ?? true;
         const isNewlyCreated = newCampaignId === c.id;
         return (
-          <div key={c.id} className="border border-border rounded-lg mb-3 overflow-hidden">
-            <div className="flex items-center justify-between w-full px-4 py-3 bg-muted/50 hover:bg-muted transition-colors">
-              <button onClick={() => toggleCampaign(c.id)} className="flex items-center gap-2 flex-1 text-left">
-                <span className="text-lg font-bold flex items-center gap-2">
-                  <CampaignName campaign={c} artistId={artistId} />
-                  <span className="text-muted-foreground font-normal text-sm bg-muted px-2 py-0.5 rounded-full">{cTasks.length}</span>
-                </span>
+          <section key={c.id} className="rounded-xl bg-card/50 border border-border/50">
+            <div className="flex items-center justify-between w-full px-5 py-3.5 hover:bg-accent/30 transition-colors rounded-t-xl">
+              <button onClick={() => toggleCampaign(c.id)} className="flex items-center gap-2.5 flex-1 text-left min-w-0">
+                <CampaignName campaign={c} artistId={artistId} />
+                <span className="caption text-muted-foreground bg-muted/80 px-2 py-0.5 rounded-full shrink-0">{cTasks.length}</span>
               </button>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5 shrink-0">
                 <CampaignActions campaign={c} artistId={artistId} taskCount={cTasks.length} />
-                {isExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
+                {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
               </div>
             </div>
             {isExpanded && (
-              <div className="p-4">
+              <div className="px-5 pb-4 pt-1">
                 <InlineTaskInput artistId={artistId} teamId={teamId} campaigns={campaigns} defaultCampaignId={c.id} autoFocus={isNewlyCreated} />
-                {cTasks.map((t: any) => <TaskRow key={t.id} task={t} artistId={artistId} campaigns={campaigns} />)}
-                {cTasks.length === 0 && !isNewlyCreated && <p className="text-sm text-muted-foreground py-2">No tasks yet.</p>}
+                <div className="divide-y divide-border/40">
+                  {cTasks.map((t: any) => <TaskRow key={t.id} task={t} artistId={artistId} campaigns={campaigns} />)}
+                </div>
+                {cTasks.length === 0 && !isNewlyCreated && <p className="caption text-muted-foreground py-3">No tasks yet.</p>}
               </div>
             )}
-          </div>
+          </section>
         );
       })}
 
       {/* Completed */}
       {showCompleted && completedTasks.length > 0 && (
-        <div className="border border-border rounded-lg mb-3 overflow-hidden">
-          <div className="px-4 py-3 bg-muted/50"><span className="text-lg font-bold text-muted-foreground">Completed <span className="font-normal text-sm ml-2 bg-muted px-2 py-0.5 rounded-full">{completedTasks.length}</span></span></div>
-          <div className="p-4">
+        <section className="rounded-xl bg-card/50 border border-border/50">
+          <div className="px-5 py-3.5">
+            <div className="flex items-center gap-2.5">
+              <span className="label-lg text-muted-foreground">Completed</span>
+              <span className="caption text-muted-foreground bg-muted/80 px-2 py-0.5 rounded-full">{completedTasks.length}</span>
+            </div>
+          </div>
+          <div className="px-5 pb-4 divide-y divide-border/40">
             {completedTasks.map((t: any) => <TaskRow key={t.id} task={t} artistId={artistId} campaigns={campaigns} />)}
           </div>
-        </div>
+        </section>
       )}
     </div>
   );
@@ -481,10 +495,10 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
   };
 
   return (
-    <div className="mb-4 relative">
-      <div className={`rounded-lg border transition-colors ${isActive ? "border-border bg-card shadow-sm" : "border-dashed border-border hover:border-foreground/30"}`}>
-        <div className="flex items-start gap-3 p-3">
-          <Checkbox disabled className="opacity-30 mt-1" />
+    <div className="mb-3 relative">
+      <div className={`rounded-lg transition-all ${isActive ? "bg-accent/30 ring-1 ring-border/60" : "border border-dashed border-border/50 hover:border-border"}`}>
+        <div className="flex items-start gap-3 px-4 py-3">
+          <Checkbox disabled className="opacity-20 mt-0.5" />
           <div className="flex-1 relative">
             <input
               ref={inputRef}
@@ -493,19 +507,19 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
               onFocus={() => setIsActive(true)}
               onKeyDown={handleKeyDown}
               placeholder="Task name (use @ to assign, # to pick campaign, $ for budget, 'due tomorrow')"
-              className="w-full bg-transparent text-base outline-none placeholder:text-muted-foreground/60"
+              className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
             />
 
             {/* @ Team Member Dropdown */}
             {showAtDropdown && filteredMembers.length > 0 && (
-              <div className="absolute left-0 top-full mt-1 bg-background border border-border rounded-lg shadow-lg z-50 min-w-[200px] py-1">
+              <div className="absolute left-0 top-full mt-1 bg-popover border border-border/60 rounded-lg shadow-xl z-50 min-w-[200px] py-1">
                 {filteredMembers.map((m: any) => (
                   <button
                     key={m.id}
                     className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
                     onMouseDown={(e) => { e.preventDefault(); selectMember(m); }}
                   >
-                    <User className="h-4 w-4 text-muted-foreground" />
+                    <User className="h-3.5 w-3.5 text-muted-foreground" />
                     <span>{m.full_name || "Unknown"}</span>
                   </button>
                 ))}
@@ -514,17 +528,14 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
 
             {/* $ Budget Dropdown */}
             {showDollarDropdown && budgets.length > 0 && (
-              <div className="absolute left-0 top-full mt-1 bg-background border border-border rounded-lg shadow-lg z-50 min-w-[220px] py-1">
+              <div className="absolute left-0 top-full mt-1 bg-popover border border-border/60 rounded-lg shadow-xl z-50 min-w-[220px] py-1">
                 {budgets.map((b: any) => (
                   <button
                     key={b.id}
                     className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      selectBudget(b, dollarAmount || String(b.amount));
-                    }}
+                    onMouseDown={(e) => { e.preventDefault(); selectBudget(b, dollarAmount || String(b.amount)); }}
                   >
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
                     <span>${dollarAmount || b.amount.toLocaleString()} {b.label}</span>
                   </button>
                 ))}
@@ -538,25 +549,22 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Description"
-                  className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/40 mt-2"
+                  placeholder="Add a description…"
+                  className="w-full bg-transparent text-xs text-muted-foreground outline-none placeholder:text-muted-foreground/40 mt-2"
                 />
-                <div className="flex items-center gap-3 mt-3 text-muted-foreground">
-                  <button className="hover:text-foreground transition-colors" title="Assign" onClick={() => { setValue(prev => prev + "@"); inputRef.current?.focus(); }}><User className="h-4 w-4" /></button>
-                  <button className="hover:text-foreground transition-colors" title="Due date" onClick={() => { setValue(prev => prev + " due "); inputRef.current?.focus(); }}><Calendar className="h-4 w-4" /></button>
-                  <button className="hover:text-foreground transition-colors" title="Cost" onClick={() => { setValue(prev => prev + "$"); inputRef.current?.focus(); }}><DollarSign className="h-4 w-4" /></button>
+                <div className="flex items-center gap-1 mt-2.5">
+                  <button className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" title="Assign" onClick={() => { setValue(prev => prev + "@"); inputRef.current?.focus(); }}><User className="h-3.5 w-3.5" /></button>
+                  <button className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" title="Due date" onClick={() => { setValue(prev => prev + " due "); inputRef.current?.focus(); }}><Calendar className="h-3.5 w-3.5" /></button>
+                  <button className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" title="Cost" onClick={() => { setValue(prev => prev + "$"); inputRef.current?.focus(); }}><DollarSign className="h-3.5 w-3.5" /></button>
+                  <div className="flex-1" />
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleCancel}>Cancel</Button>
+                  <Button size="sm" className="h-7 text-xs" onClick={parseAndSubmit} disabled={!value.trim()}>Save</Button>
                 </div>
               </>
             )}
           </div>
         </div>
       </div>
-      {isActive && value && (
-        <div className="flex justify-end gap-2 mt-2">
-          <Button variant="ghost" size="sm" onClick={handleCancel}>Cancel</Button>
-          <Button size="sm" onClick={parseAndSubmit} className="gap-1">✓ Save</Button>
-        </div>
-      )}
     </div>
   );
 }
@@ -604,32 +612,32 @@ function TaskRow({ task, artistId, campaigns }: { task: any; artistId: string; c
   const campaign = campaigns.find((c: any) => c.id === task.initiative_id);
 
   return (
-    <div className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-accent/50 group border-b border-border last:border-b-0">
-      <Checkbox checked={task.is_completed} onCheckedChange={() => toggleTask.mutate()} className="mt-0.5" />
+    <div className="flex items-start gap-3 py-3 group">
+      <Checkbox checked={task.is_completed} onCheckedChange={() => toggleTask.mutate()} className="mt-0.5 shrink-0" />
       <div className="flex-1 min-w-0">
-        <div className={`text-base ${task.is_completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
-          <InlineField value={task.title} onSave={(v) => updateTask.mutate({ title: v })} className="text-base" />
+        <div className={`${task.is_completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
+          <InlineField value={task.title} onSave={(v) => updateTask.mutate({ title: v })} className="text-sm font-medium" />
         </div>
-        {/* Metadata badges */}
-        <div className="flex flex-wrap items-center gap-2 mt-1">
+        {/* Metadata pills */}
+        <div className="flex flex-wrap items-center gap-1.5 mt-1.5 empty:hidden">
           {assignee?.full_name && (
-            <span className="inline-flex items-center gap-1 text-xs bg-muted px-2 py-0.5 rounded-full">
+            <span className="caption inline-flex items-center gap-1 text-muted-foreground">
               <User className="h-3 w-3" /> {assignee.full_name}
             </span>
           )}
           {campaign && (
-            <span className="inline-flex items-center gap-1 text-xs bg-muted px-2 py-0.5 rounded-full">
+            <span className="caption inline-flex items-center gap-1 bg-accent/60 text-accent-foreground px-1.5 py-0.5 rounded">
               # {campaign.name}
             </span>
           )}
           {task.due_date && (
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <span className="caption inline-flex items-center gap-1 text-muted-foreground">
               <Calendar className="h-3 w-3" />
               <InlineField value={task.due_date} onSave={(v) => updateTask.mutate({ due_date: v || null })} className="text-xs text-muted-foreground" />
             </span>
           )}
           {task.expense_amount != null && task.expense_amount > 0 && (
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground">
+            <span className="caption-bold inline-flex items-center gap-0.5 text-foreground">
               <DollarSign className="h-3 w-3" />
               <InlineField
                 value={`${task.expense_amount.toLocaleString()}`}
@@ -637,13 +645,13 @@ function TaskRow({ task, artistId, campaigns }: { task: any; artistId: string; c
                   const num = parseFloat(v.replace(/[^0-9.]/g, ""));
                   updateTask.mutate({ expense_amount: isNaN(num) ? null : num });
                 }}
-                className="text-xs font-medium w-16 text-right"
+                className="text-xs font-semibold w-16 text-right"
               />
             </span>
           )}
         </div>
       </div>
-      <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 h-7 w-7 shrink-0" onClick={() => deleteTask.mutate()}>
+      <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 h-7 w-7 shrink-0 -mr-1" onClick={() => deleteTask.mutate()}>
         <Trash2 className="h-3.5 w-3.5" />
       </Button>
     </div>
