@@ -229,7 +229,7 @@ export default function ArtistDetail() {
                   <span className="text-lg font-bold">Total Budget: ${totalBudget.toLocaleString()}</span>
                 </div>
                 <PerformancePills artistId={artist.id} spotifyId={artist.spotify_id} artistName={artist.name} />
-                <div className="text-xs font-medium uppercase tracking-wider text-white/60 px-1">
+                <div className="overline text-white/60 px-1">
                   Tasks Completed: {completedCount}
                 </div>
               </div>
@@ -283,7 +283,7 @@ export default function ArtistDetail() {
                   <span className="text-lg font-bold">Total Budget: ${totalBudget.toLocaleString()}</span>
                 </div>
                 <PerformancePills artistId={artist.id} spotifyId={artist.spotify_id} artistName={artist.name} />
-                <div className="text-xs font-medium uppercase tracking-wider text-white/70 px-1" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.25)' }}>
+               <div className="overline text-white/70 px-1" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.25)' }}>
                   Tasks Completed: {completedCount}
                 </div>
               </div>

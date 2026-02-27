@@ -247,11 +247,11 @@ export default function Overview() {
       {/* Budget utilization bar */}
       <div className="rounded-xl p-4 sm:p-5 mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-1">
-          <span className="text-sm font-medium">Budget Utilization</span>
+          <span className="label-lg">Budget Utilization</span>
           <div className="flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground flex-wrap">
             <span>Spent: {fmt(totalExpenses)}</span>
             <span>Remaining: {fmt(budgetRemaining)}</span>
-            <span className="font-semibold text-foreground">{budgetUtilization.toFixed(0)}%</span>
+            <span className="font-bold text-foreground">{budgetUtilization.toFixed(0)}%</span>
           </div>
         </div>
         <Progress
@@ -339,7 +339,7 @@ export default function Overview() {
       <div className="rounded-xl p-5">
         <div className="flex items-center justify-between mb-5">
           <h2>Spending Per Act</h2>
-          <span className="text-xs text-muted-foreground">{artists.length} artists</span>
+          <span className="caption-bold">{artists.length} artists</span>
         </div>
 
         <div className="space-y-0">
@@ -358,7 +358,7 @@ export default function Overview() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm truncate">{artist.name}</span>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">{artist.campaignCount} campaigns</span>
+                    <span className="caption whitespace-nowrap">{artist.campaignCount} campaigns</span>
                   </div>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mt-0.5">
                     <span className="flex items-center gap-1">
@@ -372,19 +372,19 @@ export default function Overview() {
               {/* Financial stats – stacked on mobile, row on desktop */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 ml-0 sm:ml-14 mb-2">
                 <div>
-                  <div className="text-xs text-muted-foreground">Budget</div>
+                  <div className="caption-bold">Budget</div>
                   <div className="font-bold text-sm">{fmt(artist.budget)}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-muted-foreground">Spent</div>
+                  <div className="caption-bold">Spent</div>
                   <div className="font-bold text-sm text-destructive">{fmt(artist.expenses)}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-muted-foreground">Revenue</div>
+                  <div className="caption-bold">Revenue</div>
                   <div className="font-bold text-sm text-emerald-600">{fmt(artist.revenue)}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-muted-foreground">P&L</div>
+                  <div className="caption-bold">P&L</div>
                   <div className={cn("font-bold text-sm", artist.gp >= 0 ? "text-emerald-600" : "text-destructive")}>
                     {fmtSigned(artist.gp)}
                   </div>
