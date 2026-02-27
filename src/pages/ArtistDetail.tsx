@@ -178,118 +178,69 @@ export default function ArtistDetail() {
       }
     >
       {/* Banner */}
-      <div className="relative h-80 sm:h-[400px] rounded-lg bg-muted overflow-hidden mb-4 shadow-xl group">
-        {hasBanner ? (
-          <>
-            <img
-              src={bannerUrl!}
-              alt=""
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-            />
-            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center gap-2">
-              {artist.spotify_id && (
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="h-9 w-9 bg-black/40 hover:bg-black/60 text-white border-0 backdrop-blur-md"
-                  onClick={handleRefreshSpotify}
-                  disabled={isRefreshingSpotify}
-                >
-                  <RefreshCw className={`h-4 w-4 ${isRefreshingSpotify ? "animate-spin" : ""}`} />
-                </Button>
-              )}
-              <BannerUpload artistId={artist.id} currentBannerUrl={artist.banner_url} />
-            </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-6 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
-              <div className="flex items-end gap-4">
-                <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-4 border-background shadow-2xl">
-                  <AvatarImage src={avatarUrl ?? undefined} />
-                  <AvatarFallback className="text-2xl">{artist.name[0]}</AvatarFallback>
-                </Avatar>
-                <div className="pb-1">
-                  <h2 className="text-2xl sm:text-3xl font-semibold text-white drop-shadow-md mb-1">{artist.name}</h2>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/90">
-                    {artist.genres && artist.genres.length > 0 && (
-                      <span className="flex items-center gap-1">
-                        <Star className="h-3 w-3 fill-current" /> {artist.genres.slice(0, 3).join(", ")}
-                      </span>
-                    )}
-                    {listenerStat > 0 && (
-                      <span className="bg-white/10 px-2 py-0.5 rounded-full backdrop-blur-md border border-white/20">
-                        {listenerStat.toLocaleString()} {listenerLabel}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col items-start sm:items-end gap-2 text-white/95">
-                <div className="flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/10">
-                  <DollarSign className="h-4 w-4 text-emerald-400" />
-                  <span className="text-lg font-bold">Total Budget: ${totalBudget.toLocaleString()}</span>
-                </div>
-                <PerformancePills artistId={artist.id} spotifyId={artist.spotify_id} artistName={artist.name} />
-                <div className="overline text-white/60 px-1">
-                  Tasks Completed: {completedCount}
-                </div>
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            <img
-              src={defaultBanner}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-black/10" />
-            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center gap-2">
-              {artist.spotify_id && (
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="h-9 w-9 bg-black/40 hover:bg-black/60 text-white border-0 backdrop-blur-md"
-                  onClick={handleRefreshSpotify}
-                  disabled={isRefreshingSpotify}
-                >
-                  <RefreshCw className={`h-4 w-4 ${isRefreshingSpotify ? "animate-spin" : ""}`} />
-                </Button>
-              )}
-              <BannerUpload artistId={artist.id} currentBannerUrl={artist.banner_url} />
-            </div>
-            <div className="absolute inset-0 flex items-end p-8 sm:p-12">
-              <div className="flex items-end gap-6 sm:gap-10 flex-1">
-              <Avatar className="h-36 w-36 sm:h-48 sm:w-48 border-4 border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.25)] shrink-0">
+      <div className="relative rounded-lg bg-muted overflow-hidden mb-4 shadow-xl group">
+        {/* Banner image area */}
+        <div className="relative h-48 sm:h-72 lg:h-[360px]">
+          <img
+            src={hasBanner ? bannerUrl! : defaultBanner}
+            alt=""
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+
+          {/* Action buttons */}
+          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center gap-1.5">
+            {artist.spotify_id && (
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-8 w-8 bg-black/40 hover:bg-black/60 text-white border-0 backdrop-blur-md"
+                onClick={handleRefreshSpotify}
+                disabled={isRefreshingSpotify}
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isRefreshingSpotify ? "animate-spin" : ""}`} />
+              </Button>
+            )}
+            <BannerUpload artistId={artist.id} currentBannerUrl={artist.banner_url} />
+          </div>
+
+          {/* Bottom overlay content */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
+            <div className="flex items-end gap-3 sm:gap-4">
+              <Avatar className="h-16 w-16 sm:h-20 sm:w-20 lg:h-24 lg:w-24 border-[3px] border-background shadow-2xl shrink-0">
                 <AvatarImage src={avatarUrl ?? undefined} />
-                <AvatarFallback className="text-5xl sm:text-6xl font-bold">{artist.name[0]}</AvatarFallback>
+                <AvatarFallback className="text-xl sm:text-2xl font-bold">{artist.name[0]}</AvatarFallback>
               </Avatar>
-              <div className="flex flex-col gap-1 pb-1">
-                <h2 className="text-4xl sm:text-6xl font-semibold text-white tracking-tight" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)' }}>{artist.name}</h2>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/90 mt-1" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.25)' }}>
+              <div className="flex-1 min-w-0 pb-0.5">
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white tracking-tight truncate drop-shadow-md">
+                  {artist.name}
+                </h2>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs sm:text-sm text-white/80 mt-0.5">
                   {artist.genres && artist.genres.length > 0 && (
-                      <span className="flex items-center gap-1">
-                        <Star className="h-3 w-3 fill-current" /> {artist.genres.slice(0, 3).join(", ")}
-                      </span>
-                    )}
-                    {listenerStat > 0 && (
-                      <span>{listenerStat.toLocaleString()} {listenerLabel}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col items-end gap-2 text-white/95 shrink-0">
-              <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/10 shadow-lg">
-                  <DollarSign className="h-4 w-4 text-emerald-400" />
-                  <span className="text-lg font-bold">Total Budget: ${totalBudget.toLocaleString()}</span>
-                </div>
-                <PerformancePills artistId={artist.id} spotifyId={artist.spotify_id} artistName={artist.name} />
-               <div className="overline text-white/70 px-1" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.25)' }}>
-                  Tasks Completed: {completedCount}
+                    <span className="flex items-center gap-1">
+                      <Star className="h-3 w-3 fill-current" /> {artist.genres.slice(0, 2).join(", ")}
+                    </span>
+                  )}
+                  {listenerStat > 0 && (
+                    <span className="font-medium">{listenerStat.toLocaleString()} {listenerLabel}</span>
+                  )}
                 </div>
               </div>
             </div>
-          </>
-        )}
+          </div>
+        </div>
+
+        {/* Stats bar below image */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 bg-card border-t border-border">
+          <div className="flex items-center gap-1.5 text-sm font-bold">
+            <DollarSign className="h-3.5 w-3.5 text-emerald-500" />
+            <span>${totalBudget.toLocaleString()}</span>
+          </div>
+          <span className="text-border">·</span>
+          <div className="caption-bold">{completedCount} tasks done</div>
+          <div className="flex-1" />
+          <PerformancePills artistId={artist.id} spotifyId={artist.spotify_id} artistName={artist.name} />
+        </div>
       </div>
 
       {/* Main content + Finance ledger sidebar */}
