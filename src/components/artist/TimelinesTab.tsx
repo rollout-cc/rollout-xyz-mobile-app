@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
+import { InlineAddTrigger, ListItemRow } from "@/components/ui/CollapsibleSection";
 import {
   format, parse, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   addDays, addMonths, subMonths, isSameMonth, isToday,
@@ -52,7 +53,6 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
     },
   });
 
-  // Fetch folders and links for this artist (for attachment picker)
   const { data: folders = [] } = useQuery({
     queryKey: ["artist_link_folders", artistId],
     queryFn: async () => {
@@ -77,7 +77,6 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
     },
   });
 
-  // Fetch milestone attachments
   const { data: milestoneAttachments = { folders: [], links: [] } } = useQuery({
     queryKey: ["milestone_attachments", artistId],
     queryFn: async () => {
@@ -97,7 +96,6 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
     enabled: milestones.length > 0,
   });
 
-  // Get user profile for initials
   const { data: profile } = useQuery({
     queryKey: ["my-profile-initials"],
     queryFn: async () => {
@@ -211,20 +209,7 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
-          <ShareTimelineButton artist={artist} />
-          <Button
-            size="sm"
-            className="gap-1.5"
-            onClick={() => {
-              // Scroll to add input or activate it
-              const el = document.getElementById("milestone-add-trigger");
-              el?.click();
-            }}
-          >
-            <Plus className="h-3.5 w-3.5" /> Add Milestone
-          </Button>
-        </div>
+        <ShareTimelineButton artist={artist} />
       </div>
 
       {/* Inline add */}
@@ -233,7 +218,7 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
       {isEmpty ? (
         <p className="text-sm text-muted-foreground mt-4">No key dates yet. Add your first one above.</p>
       ) : view === "list" ? (
-        <div className="mt-4 space-y-0">
+        <div className="mt-2 divide-y divide-border/30">
           {milestones.map((m: any) => {
             const mFolders = milestoneAttachments.folders
               .filter((mf: any) => mf.milestone_id === m.id)
@@ -281,7 +266,6 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
 function CalendarView({ milestones }: { milestones: any[] }) {
   const initialMonth = useMemo(() => {
     if (milestones.length > 0) {
-      // Find the nearest milestone to today
       const today = new Date();
       const sorted = [...milestones].sort((a, b) => {
         const da = Math.abs(new Date(a.date).getTime() - today.getTime());
@@ -306,7 +290,6 @@ function CalendarView({ milestones }: { milestones: any[] }) {
   const milestonesByDate = useMemo(() => {
     const map: Record<string, any[]> = {};
     milestones.forEach((m) => {
-      // Normalize: parse the date avoiding timezone shift, then format back
       const normalized = format(new Date(m.date + "T12:00:00"), "yyyy-MM-dd");
       if (!map[normalized]) map[normalized] = [];
       map[normalized].push(m);
@@ -384,40 +367,43 @@ function InlineMilestoneInput({ onAdd }: { onAdd: (title: string, date: string) 
 
   if (!isActive) {
     return (
-      <button
-        id="milestone-add-trigger"
+      <InlineAddTrigger
+        label="New Milestone"
         onClick={() => { setIsActive(true); setTimeout(() => titleRef.current?.focus(), 50); }}
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2 w-full"
-      >
-        <Plus className="h-4 w-4" /> Add a key date...
-      </button>
+      />
     );
   }
 
   return (
-    <div className="flex items-center gap-3 py-2">
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" className={cn("h-9 w-[160px] justify-start text-left font-normal text-sm bg-transparent border-border shrink-0", !date && "text-muted-foreground/50")}>
-            <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-            {date ? format(date, "MMM d, yyyy") : "Pick date"}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 bg-popover border border-border z-50" align="start">
-          <Calendar mode="single" selected={date} onSelect={setDate} initialFocus className="p-3 pointer-events-auto" />
-        </PopoverContent>
-      </Popover>
-      <input
-        ref={titleRef}
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="What's happening on this date?"
-        className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground/60"
-        onKeyDown={(e) => {
-          if (e.key === "Enter") { e.preventDefault(); submit(); }
-          if (e.key === "Escape") { setTitle(""); setDate(undefined); setIsActive(false); }
-        }}
-      />
+    <div className="mb-2 rounded-lg bg-muted/40 px-4 py-3">
+      <div className="flex items-center gap-3">
+        <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" className={cn("h-8 justify-start text-left font-normal text-sm px-2 shrink-0", !date && "text-muted-foreground/50")}>
+              {date ? format(date, "MMM d, yyyy") : "Select Date or Range"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0 bg-popover border border-border z-50" align="start">
+            <Calendar mode="single" selected={date} onSelect={setDate} initialFocus className="p-3 pointer-events-auto" />
+          </PopoverContent>
+        </Popover>
+        <input
+          ref={titleRef}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="What's happening on this date?"
+          className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground/60"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); submit(); }
+            if (e.key === "Escape") { setTitle(""); setDate(undefined); setIsActive(false); }
+          }}
+        />
+      </div>
+      <div className="flex items-center justify-end gap-2 mt-2">
+        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setTitle(""); setDate(undefined); setIsActive(false); }}>Cancel</Button>
+        <Button size="sm" className="h-7 text-xs" onClick={submit} disabled={!title.trim() || !date}>Save</Button>
+      </div>
     </div>
   );
 }
@@ -449,23 +435,12 @@ function MilestoneRow({
   const availableLinks = allLinks.filter((l) => !attachedLinkIds.has(l.id));
 
   return (
-    <div className="flex items-start gap-0 group border-b border-border last:border-b-0">
-      {/* Date column */}
-      <div className="w-[160px] shrink-0 py-5 pr-6">
-        <Popover>
-          <PopoverTrigger asChild>
-            <button className="text-left hover:text-primary transition-colors">
-              <div className="font-semibold text-sm">{format(date, "MMMM d, yyyy")}</div>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 bg-popover border border-border z-50" align="start">
-            <Calendar mode="single" selected={date} onSelect={(d) => d && onUpdate({ date: format(d, "yyyy-MM-dd") })} initialFocus className="p-3 pointer-events-auto" />
-          </PopoverContent>
-        </Popover>
-      </div>
+    <ListItemRow>
+      {/* Icon */}
+      <CalendarIcon className="h-4 w-4 text-muted-foreground mt-1 shrink-0" />
 
-      {/* Content column */}
-      <div className="flex-1 py-5 pl-6 border-l border-border min-w-0">
+      {/* Content */}
+      <div className="flex-1 min-w-0">
         <InlineField value={milestone.title} onSave={(v) => onUpdate({ title: v })} className="font-semibold text-sm" />
         <InlineField
           value={milestone.description ?? ""}
@@ -474,75 +449,78 @@ function MilestoneRow({
           className="text-sm text-muted-foreground mt-0.5"
         />
 
-        {/* Attached badges */}
-        {(attachedFolders.length > 0 || attachedLinks.length > 0) && (
-          <div className="flex flex-wrap items-center gap-2 mt-2">
-            {attachedFolders.map((af: any) => (
-              <span
-                key={af.id}
-                className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-400 px-2 py-1 rounded-md cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-colors"
-                onClick={() => onDetachFolder(af.id)}
-                title="Click to remove"
-              >
-                <FolderOpen className="h-3 w-3" /> {af.folder?.name}
-              </span>
-            ))}
-            {attachedLinks.map((al: any) => (
-              <span
-                key={al.id}
-                className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-400 px-2 py-1 rounded-md cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-colors"
-                onClick={() => onDetachLink(al.id)}
-                title="Click to remove"
-              >
-                <Link2 className="h-3 w-3" /> {al.link?.title}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* Metadata row: date + attachments */}
+        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="caption inline-flex items-center gap-1 bg-muted/80 px-1.5 py-0.5 rounded hover:bg-accent transition-colors">
+                <CalendarIcon className="h-3 w-3" /> {format(date, "MMM d, yyyy")}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 bg-popover border border-border z-50" align="start">
+              <Calendar mode="single" selected={date} onSelect={(d) => d && onUpdate({ date: format(d, "yyyy-MM-dd") })} initialFocus className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+
+          {attachedFolders.map((af: any) => (
+            <span
+              key={af.id}
+              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-colors"
+              onClick={() => onDetachFolder(af.id)}
+              title="Click to remove"
+            >
+              <FolderOpen className="h-3 w-3" /> {af.folder?.name}
+            </span>
+          ))}
+          {attachedLinks.map((al: any) => (
+            <span
+              key={al.id}
+              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-colors"
+              onClick={() => onDetachLink(al.id)}
+              title="Click to remove"
+            >
+              <Link2 className="h-3 w-3" /> {al.link?.title}
+            </span>
+          ))}
+        </div>
       </div>
 
-      {/* Right: user initials + kebab menu */}
-      <div className="flex items-center gap-2 py-5 pl-4 shrink-0">
-        <span className="text-xs font-semibold text-muted-foreground">{userInitials}</span>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            {/* Attach folder */}
-            {availableFolders.length > 0 && (
-              <>
-                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Attach Folder</div>
-                {availableFolders.map((f) => (
-                  <DropdownMenuItem key={f.id} onClick={() => onAttachFolder(f.id)}>
-                    <FolderOpen className="mr-2 h-3.5 w-3.5" /> {f.name}
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-              </>
-            )}
-            {/* Attach link */}
-            {availableLinks.length > 0 && (
-              <>
-                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Attach Link</div>
-                {availableLinks.slice(0, 10).map((l) => (
-                  <DropdownMenuItem key={l.id} onClick={() => onAttachLink(l.id)}>
-                    <Link2 className="mr-2 h-3.5 w-3.5" /> {l.title}
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-              </>
-            )}
-            <DropdownMenuItem className="text-destructive" onClick={onDelete}>
-              <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </div>
+      {/* Actions */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 shrink-0">
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          {availableFolders.length > 0 && (
+            <>
+              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Attach Folder</div>
+              {availableFolders.map((f) => (
+                <DropdownMenuItem key={f.id} onClick={() => onAttachFolder(f.id)}>
+                  <FolderOpen className="mr-2 h-3.5 w-3.5" /> {f.name}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+            </>
+          )}
+          {availableLinks.length > 0 && (
+            <>
+              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Attach Link</div>
+              {availableLinks.slice(0, 10).map((l) => (
+                <DropdownMenuItem key={l.id} onClick={() => onAttachLink(l.id)}>
+                  <Link2 className="mr-2 h-3.5 w-3.5" /> {l.title}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+            </>
+          )}
+          <DropdownMenuItem className="text-destructive" onClick={onDelete}>
+            <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </ListItemRow>
   );
 }
 
