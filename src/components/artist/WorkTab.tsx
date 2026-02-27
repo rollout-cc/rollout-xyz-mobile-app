@@ -292,7 +292,8 @@ function CampaignName({ campaign, artistId }: { campaign: any; artistId: string 
     <InlineField
       value={campaign.name}
       onSave={(v) => update.mutate(v)}
-      className="text-base font-bold"
+      className="text-base font-bold tracking-tight"
+      inputClassName="bg-transparent border-none focus:ring-0 px-0 py-0"
     />
   );
 }
@@ -470,7 +471,7 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
     <div className="mb-2 relative">
       <div className="rounded-lg bg-muted/40 px-4 py-3">
         <div className="flex items-start gap-3">
-          <Checkbox disabled className="opacity-20 mt-0.5" />
+          <Checkbox disabled className="opacity-20 mt-1" />
           <div className="flex-1 relative">
             <input
               ref={inputRef}
@@ -578,7 +579,7 @@ function TaskRow({ task, artistId, campaigns }: { task: any; artistId: string; c
 
   return (
     <ListItemRow>
-      <Checkbox checked={task.is_completed} onCheckedChange={() => toggleTask.mutate()} className="mt-0.5 shrink-0" />
+      <Checkbox checked={task.is_completed} onCheckedChange={() => toggleTask.mutate()} className="mt-1 shrink-0" />
       <div className="flex-1 min-w-0">
         <div className={`${task.is_completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
           <InlineField value={task.title} onSave={(v) => updateTask.mutate({ title: v })} className="text-sm font-medium" />

@@ -33,7 +33,7 @@ export function CollapsibleSection({
   return (
     <div className={cn("", className)}>
       {/* Section header */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-muted/30 rounded-lg">
+      <div className="flex items-center gap-3 px-4 py-3 bg-muted/30 rounded-t-lg border-b border-border/30">
         <button
           onClick={toggle}
           className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
@@ -45,7 +45,7 @@ export function CollapsibleSection({
             )}
           />
           {titleSlot ?? (
-            <span className="text-base font-bold truncate">{title}</span>
+            <span className="text-base font-bold truncate text-foreground">{title}</span>
           )}
           {count != null && (
             <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full shrink-0">
@@ -62,7 +62,7 @@ export function CollapsibleSection({
 
       {/* Content */}
       {isOpen && (
-        <div className="pl-4 pr-2 pt-1 pb-2">{children}</div>
+        <div className="px-4 pr-2 pt-1 pb-2">{children}</div>
       )}
     </div>
   );
@@ -97,7 +97,7 @@ interface ListItemRowProps {
 
 export function ListItemRow({ children, className }: ListItemRowProps) {
   return (
-    <div className={cn("flex items-start gap-3 py-3 group", className)}>
+    <div className={cn("flex items-start gap-3 py-3 px-1 group", className)}>
       {children}
     </div>
   );
