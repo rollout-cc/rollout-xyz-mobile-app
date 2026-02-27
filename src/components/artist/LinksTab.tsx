@@ -162,11 +162,11 @@ function EmptyLinksState({ artistId, folders }: { artistId: string; folders: any
     <div className="flex flex-col items-center justify-center py-20 gap-6 text-center">
       <p className="text-muted-foreground text-lg">No links yet</p>
       <div className="flex items-center gap-3">
-        <Button variant="default" size="lg" className="gap-2 text-base" onClick={() => setMode("folder")}>
-          <FolderPlus className="h-5 w-5" /> New Folder
+        <Button variant="default" size="sm" className="gap-2" onClick={() => setMode("folder")}>
+          <FolderPlus className="h-4 w-4" /> New Folder
         </Button>
-        <Button variant="outline" size="lg" className="gap-2 text-base" onClick={() => setMode("link")}>
-          <LinkIcon className="h-5 w-5" /> New Link
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => setMode("link")}>
+          <LinkIcon className="h-4 w-4" /> New Link
         </Button>
       </div>
     </div>
