@@ -953,6 +953,7 @@ export type Database = {
       prospects: {
         Row: {
           artist_name: string
+          avatar_url: string | null
           city: string | null
           created_at: string
           id: string
@@ -973,6 +974,7 @@ export type Database = {
         }
         Insert: {
           artist_name: string
+          avatar_url?: string | null
           city?: string | null
           created_at?: string
           id?: string
@@ -993,6 +995,7 @@ export type Database = {
         }
         Update: {
           artist_name?: string
+          avatar_url?: string | null
           city?: string | null
           created_at?: string
           id?: string

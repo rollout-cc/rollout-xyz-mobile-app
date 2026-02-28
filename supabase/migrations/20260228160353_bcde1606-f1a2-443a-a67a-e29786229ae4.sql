@@ -1,0 +1,1 @@
+ALTER TABLE public.prospects ADD COLUMN avatar_url text;

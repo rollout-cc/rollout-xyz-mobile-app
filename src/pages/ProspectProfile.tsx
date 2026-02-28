@@ -92,6 +92,9 @@ export default function ProspectProfile() {
       if (data.genres?.length > 0 && !prospect.primary_genre) {
         updates.primary_genre = data.genres[0];
       }
+      if (data.images?.[0]?.url) {
+        updates.avatar_url = data.images[0].url;
+      }
 
       if (Object.keys(updates).length > 0) {
         await updateProspect.mutateAsync({ id: prospect.id, ...updates });

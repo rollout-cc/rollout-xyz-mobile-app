@@ -45,6 +45,7 @@ export function useCreateProspect() {
       primary_genre?: string;
       city?: string;
       spotify_uri?: string;
+      avatar_url?: string;
       instagram?: string;
       tiktok?: string;
       youtube?: string;
