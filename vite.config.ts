@@ -52,6 +52,9 @@ export default defineConfig(({ mode }) => ({
       },
     }),
   ].filter(Boolean),
+  optimizeDeps: {
+    include: ["react", "react-dom", "react/jsx-runtime", "@tiptap/react", "@tiptap/starter-kit", "@tiptap/extension-placeholder"],
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
