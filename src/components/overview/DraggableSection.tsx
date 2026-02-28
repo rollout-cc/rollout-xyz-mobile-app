@@ -29,7 +29,7 @@ export function DraggableSection({
       dragControls={controls}
       className="list-none"
       layout="position"
-      transition={{ layout: { duration: 0.2 } }}
+      style={{ transform: "none" }}
     >
       <CollapsibleSection
         title={title}
