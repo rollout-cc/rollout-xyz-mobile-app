@@ -1,10 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useTeams } from "@/hooks/useTeams";
+import { useSelectedTeam } from "@/contexts/TeamContext";
 
 export function useProspects() {
-  const { data: teams = [] } = useTeams();
-  const teamId = teams[0]?.id;
+  const { selectedTeamId: teamId } = useSelectedTeam();
 
   return useQuery({
     queryKey: ["prospects", teamId],

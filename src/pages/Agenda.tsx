@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
-import { useTeams } from "@/hooks/useTeams";
+import { useSelectedTeam } from "@/contexts/TeamContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -13,8 +13,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export default function Agenda() {
-  const { data: teams = [] } = useTeams();
-  const teamId = teams[0]?.id;
+  const { selectedTeamId: teamId } = useSelectedTeam();
 
   // Artists for picker
   const { data: artists = [] } = useQuery({

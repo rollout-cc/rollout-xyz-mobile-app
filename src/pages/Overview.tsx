@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
-import { useTeams } from "@/hooks/useTeams";
+import { useSelectedTeam } from "@/contexts/TeamContext";
 import { Reorder } from "framer-motion";
 import { Plus } from "lucide-react";
 import { format, startOfQuarter, endOfQuarter, subQuarters, addQuarters } from "date-fns";
@@ -22,8 +22,7 @@ import { SpendingPerActSection } from "@/components/overview/SpendingPerActSecti
 
 
 export default function Overview() {
-  const { data: teams = [] } = useTeams();
-  const teamId = teams[0]?.id;
+  const { selectedTeamId: teamId } = useSelectedTeam();
 
   const { data: profile } = useQuery({
     queryKey: ["my-profile"],

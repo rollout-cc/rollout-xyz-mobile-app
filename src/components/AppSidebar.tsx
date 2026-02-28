@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useTeams, useCreateTeam } from "@/hooks/useTeams";
+import { useSelectedTeam } from "@/contexts/TeamContext";
 import { toast } from "sonner";
 
 interface AppSidebarProps {

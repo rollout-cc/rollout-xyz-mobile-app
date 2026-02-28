@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { useArtists, useCreateArtist } from "@/hooks/useArtists";
-import { useTeams, useCreateTeam } from "@/hooks/useTeams";
+import { useCreateTeam } from "@/hooks/useTeams";
+import { useSelectedTeam } from "@/contexts/TeamContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -23,8 +24,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 export default function Roster() {
   const navigate = useNavigate();
-  const { data: teams = [] } = useTeams();
-  const selectedTeamId = teams[0]?.id ?? null;
+  const { selectedTeamId } = useSelectedTeam();
   const { data: artists = [], isLoading } = useArtists(selectedTeamId);
   const createArtist = useCreateArtist();
   const createTeam = useCreateTeam();
