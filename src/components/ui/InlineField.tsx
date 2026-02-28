@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from "react";
+import { RichTextEditor } from "@/components/ui/RichTextEditor";
 
 interface InlineFieldProps {
   value: string;
@@ -20,7 +21,7 @@ export function InlineField({
   prefix,
 }: InlineFieldProps) {
   const [draft, setDraft] = useState(value);
-  const ref = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+  const ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setDraft(value);
@@ -44,6 +45,21 @@ export function InlineField({
     }
   };
 
+  if (as === "textarea") {
+    return (
+      <RichTextEditor
+        value={draft}
+        onChange={(v) => setDraft(v)}
+        onBlur={(v) => {
+          const clean = v.trim();
+          if (clean !== value) onSave(clean);
+        }}
+        placeholder={placeholder}
+        className={`${inputClassName} ${className}`}
+      />
+    );
+  }
+
   const shared = {
     ref: ref as any,
     value: prefix ? `${prefix}${draft}` : draft,
@@ -57,9 +73,5 @@ export function InlineField({
     className: `w-full bg-transparent border border-border rounded-md outline-none text-foreground py-1.5 px-2 focus:border-ring focus:ring-1 focus:ring-ring transition-colors placeholder:text-muted-foreground/50 ${inputClassName} ${className}`,
   };
 
-  return as === "textarea" ? (
-    <textarea {...shared} rows={2} />
-  ) : (
-    <input {...shared} />
-  );
+  return <input {...shared} />;
 }

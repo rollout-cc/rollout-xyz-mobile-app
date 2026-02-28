@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -71,7 +71,7 @@ export function CampaignsTab({ artistId, teamId }: CampaignsTabProps) {
       {showAdd && (
         <div className="space-y-3 p-4 rounded-lg border border-border mb-4">
           <div className="space-y-1"><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-          <div className="space-y-1"><Label>Description</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+          <div className="space-y-1"><Label>Description</Label><RichTextEditor value={form.description} onChange={(v) => setForm({ ...form, description: v })} /></div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1"><Label>Start Date</Label><Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></div>
             <div className="space-y-1"><Label>End Date</Label><Input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} /></div>
