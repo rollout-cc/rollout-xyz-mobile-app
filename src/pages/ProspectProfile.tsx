@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import {
   Select,
   SelectContent,
@@ -304,12 +305,10 @@ export default function ProspectProfile() {
                   </div>
                   <div>
                     <span className="text-muted-foreground text-xs">Outcome / Notes</span>
-                    <textarea
+                    <RichTextEditor
                       value={engForm.outcome}
-                      onChange={(e) => setEngForm((p) => ({ ...p, outcome: e.target.value }))}
+                      onChange={(v) => setEngForm((p) => ({ ...p, outcome: v }))}
                       placeholder="What happened?"
-                      rows={2}
-                      className="w-full bg-transparent border border-border rounded-md outline-none text-foreground py-1.5 px-2 focus:border-ring focus:ring-1 focus:ring-ring transition-colors placeholder:text-muted-foreground/50 text-sm mt-0.5"
                     />
                   </div>
                   <div>

@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import {
   Select,
   SelectContent,
@@ -117,11 +117,10 @@ export function DealTermsCard({ deal, onUpdate }: DealTermsCardProps) {
 
       <div className="mt-3">
         <Label className="text-xs text-muted-foreground">Deal Notes</Label>
-        <Textarea
-          defaultValue={deal.notes || ""}
-          onBlur={(e) => { if (e.target.value !== (deal.notes || "")) onUpdate("notes", e.target.value); }}
+        <RichTextEditor
+          value={deal.notes || ""}
+          onBlur={(v) => { if (v !== (deal.notes || "")) onUpdate("notes", v); }}
           placeholder="Additional deal notes..."
-          rows={3}
         />
       </div>
     </div>

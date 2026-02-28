@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select,
@@ -284,7 +284,7 @@ export function NewProspectDialog({ open, onOpenChange, teamId }: NewProspectDia
 
               <div>
                 <Label>Notes</Label>
-                <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Initial notes..." rows={3} />
+                <RichTextEditor value={form.notes} onChange={(v) => set("notes", v)} placeholder="Initial notes..." />
               </div>
             </div>
 
