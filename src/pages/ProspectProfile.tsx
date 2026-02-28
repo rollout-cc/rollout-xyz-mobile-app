@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Plus, ExternalLink, User, Music, Phone, MessageSquare } from "lucide-react";
+import { ArrowLeft, Plus, ExternalLink, User, Music, Phone, MessageSquare, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import {
   useProspect,
   useUpdateProspect,
@@ -59,6 +60,48 @@ export default function ProspectProfile() {
   const [engForm, setEngForm] = useState({ engagement_type: "call", outcome: "", next_step: "", engagement_date: new Date().toISOString().split("T")[0] });
   const [showContactForm, setShowContactForm] = useState(false);
   const [contactForm, setContactForm] = useState({ name: "", role: "", email: "", phone: "" });
+  const [syncingSpotify, setSyncingSpotify] = useState(false);
+
+  // Extract Spotify ID from URI
+  const spotifyId = prospect?.spotify_uri?.match(/spotify:artist:(\w+)/)?.[1]
+    || prospect?.spotify_uri?.match(/artist\/(\w+)/)?.[1]
+    || null;
+
+  // Auto-fetch monthly listeners & genre from Spotify on first load
+  useEffect(() => {
+    if (!prospect || !spotifyId) return;
+    // Only auto-sync if monthly_listeners is missing
+    if (prospect.monthly_listeners && prospect.monthly_listeners > 0) return;
+    syncSpotifyData();
+  }, [prospect?.id, spotifyId]);
+
+  const syncSpotifyData = async () => {
+    if (!spotifyId || !prospect) return;
+    setSyncingSpotify(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("spotify-artist", {
+        body: { spotify_id: spotifyId },
+      });
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      const updates: Record<string, any> = {};
+      if (data.monthly_listeners && data.monthly_listeners > 0) {
+        updates.monthly_listeners = data.monthly_listeners;
+      }
+      if (data.genres?.length > 0 && !prospect.primary_genre) {
+        updates.primary_genre = data.genres[0];
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await updateProspect.mutateAsync({ id: prospect.id, ...updates });
+      }
+    } catch (err) {
+      console.error("Spotify sync error:", err);
+    } finally {
+      setSyncingSpotify(false);
+    }
+  };
 
   if (isLoading) return <AppLayout title="A&R"><div className="flex items-center justify-center h-64 text-muted-foreground">Loading...</div></AppLayout>;
   if (!prospect) return <AppLayout title="A&R"><div className="text-center py-12 text-muted-foreground">Prospect not found.</div></AppLayout>;
@@ -164,11 +207,32 @@ export default function ProspectProfile() {
             <div>
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
                 <Music className="h-3.5 w-3.5" /> Artist Info
+                {spotifyId && (
+                  <button
+                    onClick={syncSpotifyData}
+                    disabled={syncingSpotify}
+                    className="ml-auto text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                    title="Refresh from Spotify"
+                  >
+                    <RefreshCw className={cn("h-3.5 w-3.5", syncingSpotify && "animate-spin")} />
+                  </button>
+                )}
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Field label="Genre" value={prospect.primary_genre ?? ""} placeholder="e.g. Hip Hop" onSave={(v) => handleFieldUpdate("primary_genre", v || null)} />
+                <Field label="Genre" value={prospect.primary_genre ?? ""} placeholder="Auto-filled from Spotify" onSave={(v) => handleFieldUpdate("primary_genre", v || null)} />
                 <Field label="City" value={prospect.city ?? ""} placeholder="e.g. Atlanta" onSave={(v) => handleFieldUpdate("city", v || null)} />
-                <Field label="Monthly Listeners" value={prospect.monthly_listeners?.toString() ?? ""} placeholder="e.g. 50000" onSave={(v) => handleFieldUpdate("monthly_listeners", v ? parseInt(v) : null)} />
+                <div>
+                  <span className="text-muted-foreground text-xs">Monthly Listeners</span>
+                  <div className="text-sm font-medium py-1.5 px-2">
+                    {syncingSpotify ? (
+                      <span className="text-muted-foreground">Fetching...</span>
+                    ) : prospect.monthly_listeners ? (
+                      prospect.monthly_listeners.toLocaleString()
+                    ) : (
+                      <span className="text-muted-foreground/50">—</span>
+                    )}
+                  </div>
+                </div>
                 <div>
                   <span className="text-muted-foreground text-xs">Next Follow Up</span>
                   <Input
