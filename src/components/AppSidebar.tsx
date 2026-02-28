@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutGrid, Plus, ChevronsUpDown, Building2, ClipboardList, Users, Radar, CheckCheck, PanelLeft } from "lucide-react";
+import { LayoutGrid, Plus, ChevronsUpDown, Building2, ClipboardList, Users, Radar, CheckCheck, PanelLeftOpen, PanelRightOpen } from "lucide-react";
 import rolloutLogo from "@/assets/rollout-logo.png";
+import rolloutFlag from "@/assets/rollout-flag.svg";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -79,7 +80,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
             onClick={() => navigate("/roster")}
           >
             {collapsed ? (
-              <img src={rolloutLogo} alt="Rollout" className="w-8 h-8 object-contain" />
+              <img src={rolloutFlag} alt="Rollout" className="w-6 h-6 object-contain" />
             ) : (
               <img src={rolloutLogo} alt="Rollout" className="w-full" />
             )}
@@ -158,7 +159,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
               onClick={toggleSidebar}
               className="flex w-full items-center justify-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
             >
-              <PanelLeft className="h-4 w-4" />
+              {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
               {!collapsed && <span className="flex-1 text-left">Collapse</span>}
             </button>
 
