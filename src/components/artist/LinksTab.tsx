@@ -249,7 +249,7 @@ function InlineLinkInput({ artistId, folders, defaultFolderId, autoFocus }: {
       }
     >
       <div className="space-y-1.5">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
           <ItemEditor
             value={url}

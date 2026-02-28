@@ -122,7 +122,7 @@ export function ItemEditor({
   };
 
   return (
-    <div className="relative">
+    <div className="relative flex-1 min-w-0">
       <input
         ref={inputRef}
         value={value}
