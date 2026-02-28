@@ -6,9 +6,6 @@ import { useTeams } from "@/hooks/useTeams";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { Plus, Search, LayoutGrid, List, Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NewProspectDialog } from "@/components/ar/NewProspectDialog";
@@ -44,9 +41,7 @@ export default function ARList() {
   const [spotifyResults, setSpotifyResults] = useState<SpotifyArtist[]>([]);
   const [spotifySearching, setSpotifySearching] = useState(false);
   const [addingIds, setAddingIds] = useState<Set<string>>(new Set());
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [inlineStage, setInlineStage] = useState("discovered");
-  const [inlinePriority, setInlinePriority] = useState("medium");
+  const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const filtered = useMemo(() => {
@@ -64,6 +59,7 @@ export default function ARList() {
   useEffect(() => {
     if (!search.trim() || search.trim().length < 2) {
       setSpotifyResults([]);
+      setAddedIds(new Set());
       return;
     }
     clearTimeout(debounceRef.current);
@@ -88,18 +84,17 @@ export default function ARList() {
     if (!teamId) return;
     setAddingIds((prev) => new Set(prev).add(artist.id));
     try {
-      const result = await createProspect.mutateAsync({
+      await createProspect.mutateAsync({
         team_id: teamId,
         artist_name: artist.name,
         primary_genre: artist.genres?.[0] || undefined,
         spotify_uri: `spotify:artist:${artist.id}`,
         monthly_listeners: artist.followers?.total,
-        stage: inlineStage as any,
-        priority: inlinePriority as any,
+        stage: "discovered",
+        priority: "medium",
       });
+      setAddedIds((prev) => new Set(prev).add(artist.id));
       toast.success(`${artist.name} added as prospect`);
-      setExpandedId(null);
-      navigate(`/ar/${result.id}`);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -207,84 +202,41 @@ export default function ARList() {
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <div className="flex flex-col gap-2 max-h-[280px] overflow-y-auto">
-               {spotifyResults.map((artist) => {
-                const alreadyAdded = existingSpotifyIds.has(artist.id);
+            <div className="flex flex-col gap-2 max-h-[350px] overflow-y-auto">
+              {spotifyResults.map((artist) => {
+                const alreadyAdded = existingSpotifyIds.has(artist.id) || addedIds.has(artist.id);
                 const adding = addingIds.has(artist.id);
-                const isExpanded = expandedId === artist.id;
                 return (
-                  <div key={artist.id} className="rounded-lg border border-border overflow-hidden transition-colors">
-                    <div
-                      className={cn(
-                        "flex items-center gap-3 p-2 transition-colors",
-                        !alreadyAdded && !adding ? "cursor-pointer hover:bg-accent/50" : "opacity-60"
-                      )}
-                      onClick={() => {
-                        if (alreadyAdded || adding) return;
-                        if (isExpanded) {
-                          setExpandedId(null);
-                        } else {
-                          setExpandedId(artist.id);
-                          setInlineStage("discovered");
-                          setInlinePriority("medium");
-                        }
-                      }}
-                    >
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={artist.images?.[0]?.url} />
-                        <AvatarFallback>{artist.name[0]}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{artist.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {artist.genres.slice(0, 3).join(", ") || "No genres"}
-                        </p>
-                      </div>
-                      {alreadyAdded ? (
-                        <span className="text-xs text-muted-foreground">Already added</span>
-                      ) : adding ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      ) : (
-                        <Plus className="h-4 w-4 text-muted-foreground" />
-                      )}
+                  <div
+                    key={artist.id}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-lg border border-border",
+                      !alreadyAdded && !adding && "cursor-pointer hover:bg-accent/50"
+                    )}
+                    onClick={() => {
+                      if (!alreadyAdded && !adding) handleAddFromSpotify(artist);
+                    }}
+                  >
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={artist.images?.[0]?.url} />
+                      <AvatarFallback>{artist.name[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{artist.name}</p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {artist.genres.slice(0, 3).join(", ") || "No genres"}
+                      </p>
                     </div>
-                    {isExpanded && !alreadyAdded && (
-                      <div className="flex items-center gap-2 px-3 pb-2 pt-1 border-t border-border bg-muted/30">
-                        <Select value={inlineStage} onValueChange={setInlineStage}>
-                          <SelectTrigger className="h-8 text-xs w-[140px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {["discovered", "contacted", "in_conversation", "materials_requested", "internal_review"].map((s) => (
-                              <SelectItem key={s} value={s} className="text-xs">
-                                {s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Select value={inlinePriority} onValueChange={setInlinePriority}>
-                          <SelectTrigger className="h-8 text-xs w-[100px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="low" className="text-xs">Low</SelectItem>
-                            <SelectItem value="medium" className="text-xs">Medium</SelectItem>
-                            <SelectItem value="high" className="text-xs">High</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          size="sm"
-                          className="h-8 gap-1 ml-auto"
-                          disabled={adding}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAddFromSpotify(artist);
-                          }}
-                        >
-                          {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-                          Add
-                        </Button>
+                    {alreadyAdded ? (
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Check className="h-4 w-4" /> Added
                       </div>
+                    ) : adding ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleAddFromSpotify(artist); }}>
+                        Add
+                      </Button>
                     )}
                   </div>
                 );
