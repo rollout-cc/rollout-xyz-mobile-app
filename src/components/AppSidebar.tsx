@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutGrid, ListTodo, Plus, ChevronsUpDown, BarChart3, ClipboardList } from "lucide-react";
+import { LayoutGrid, ListTodo, Plus, ChevronsUpDown, BarChart3, ClipboardList, Users } from "lucide-react";
 import rolloutLogo from "@/assets/rollout-logo.png";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -123,6 +123,14 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
                 <NavLink to="/agenda" className="hover:bg-accent" activeClassName="bg-accent font-medium">
                   <ClipboardList className="mr-2 h-4 w-4" />
                   Agenda
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <NavLink to="/staff" className="hover:bg-accent" activeClassName="bg-accent font-medium">
+                  <Users className="mr-2 h-4 w-4" />
+                  Staff
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>

@@ -19,7 +19,7 @@ import { KpiCardsSection } from "@/components/overview/KpiCardsSection";
 import { BudgetUtilizationSection } from "@/components/overview/BudgetUtilizationSection";
 import { QuarterlyPnlSection } from "@/components/overview/QuarterlyPnlSection";
 import { SpendingPerActSection } from "@/components/overview/SpendingPerActSection";
-import { StaffMetricsSection, type StaffMember } from "@/components/overview/StaffMetricsSection";
+
 
 export default function Overview() {
   const { data: teams = [] } = useTeams();
@@ -94,35 +94,6 @@ export default function Overview() {
     enabled: artists.length > 0,
   });
 
-  // ——— Team members + profiles ———
-  const { data: memberships = [] } = useQuery({
-    queryKey: ["overview-memberships", teamId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("team_memberships")
-        .select("user_id, role")
-        .eq("team_id", teamId!);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!teamId,
-  });
-
-  const memberUserIds = useMemo(() => memberships.map((m) => m.user_id), [memberships]);
-
-  const { data: memberProfiles = [] } = useQuery({
-    queryKey: ["overview-member-profiles", memberUserIds],
-    queryFn: async () => {
-      if (memberUserIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name, avatar_url")
-        .in("id", memberUserIds);
-      if (error) throw error;
-      return data;
-    },
-    enabled: memberUserIds.length > 0,
-  });
 
   // ——— Calculations ———
   const totalBudget = budgets.reduce((s, b) => s + Number(b.amount), 0);
@@ -225,55 +196,6 @@ export default function Overview() {
   const fmt = (n: number) => `$${Math.abs(n).toLocaleString()}`;
   const fmtSigned = (n: number) => `${n < 0 ? "-" : ""}$${Math.abs(n).toLocaleString()}`;
 
-  // ——— Staff metrics (weighted composite) ———
-  const staffMembers: StaffMember[] = useMemo(() => {
-    return memberships.map((m) => {
-      const profile = memberProfiles.find((p) => p.id === m.user_id);
-      const memberTasks = tasks.filter((t: any) => t.assigned_to === m.user_id);
-      const assigned = memberTasks.length;
-      const completed = memberTasks.filter((t: any) => t.is_completed).length;
-      const onTime = memberTasks.filter(
-        (t: any) => t.is_completed && t.due_date && t.completed_at && new Date(t.completed_at) <= new Date(t.due_date)
-      ).length;
-
-      // Revenue this member logged (transactions don't have a user column,
-      // so we count revenue from tasks they completed that have expense_amount > 0,
-      // or we approximate from any transactions linked to their completed tasks)
-      const completedTaskIds = new Set(memberTasks.filter((t: any) => t.is_completed).map((t: any) => t.id));
-      const revenue = transactions
-        .filter((t: any) => t.type === "revenue" && t.task_id && completedTaskIds.has(t.task_id))
-        .reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
-
-      // Weighted composite: 50% completion rate, 30% on-time rate, 20% revenue factor
-      const completionRate = assigned > 0 ? completed / assigned : 0;
-      const onTimeRate = completed > 0 ? onTime / completed : 0;
-      const maxRevenue = Math.max(1, ...memberships.map((mm) => {
-        const mTasks = tasks.filter((t: any) => t.assigned_to === mm.user_id && t.is_completed);
-        const mIds = new Set(mTasks.map((t: any) => t.id));
-        return transactions
-          .filter((t: any) => t.type === "revenue" && t.task_id && mIds.has(t.task_id))
-          .reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
-      }));
-      const revenueFactor = revenue / maxRevenue;
-
-      const score = Math.round(
-        completionRate * 50 + onTimeRate * 30 + revenueFactor * 20
-      );
-
-      return {
-        userId: m.user_id,
-        fullName: profile?.full_name ?? "Unknown",
-        avatarUrl: profile?.avatar_url ?? null,
-        role: m.role,
-        tasksAssigned: assigned,
-        tasksCompleted: completed,
-        tasksOnTime: onTime,
-        revenueLogged: revenue,
-        productivityScore: Math.min(score, 100),
-      };
-    }).sort((a, b) => b.productivityScore - a.productivityScore);
-  }, [memberships, memberProfiles, tasks, transactions]);
-
   // ——— Section management ———
   const {
     visibleSections,
@@ -301,10 +223,6 @@ export default function Overview() {
     "spending-per-act": {
       label: "Spending Per Act",
       content: <SpendingPerActSection artistBreakdown={artistBreakdown} artistCount={artists.length} fmt={fmt} fmtSigned={fmtSigned} />,
-    },
-    staff: {
-      label: "Staff",
-      content: <StaffMetricsSection members={staffMembers} fmt={fmt} />,
     },
   };
 
