@@ -209,8 +209,8 @@ export default function Overview() {
 
   const sectionRegistry: Record<string, { label: string; content: React.ReactNode }> = {
     kpis: {
-      label: "KPI Cards",
-      content: <KpiCardsSection totalBudget={totalBudget} totalRevenue={totalRevenue} totalExpenses={totalExpenses} netProfit={netProfit} fmt={fmt} fmtSigned={fmtSigned} />,
+      label: "Financial Snapshot",
+      content: <KpiCardsSection totalBudget={totalBudget} totalRevenue={totalRevenue} totalExpenses={totalExpenses} netProfit={netProfit} openTasks={openTasks} overdueTasks={overdueTasks} fmt={fmt} fmtSigned={fmtSigned} />,
     },
     "budget-utilization": {
       label: "Budget Utilization",
@@ -227,14 +227,14 @@ export default function Overview() {
   };
 
   return (
-    <AppLayout title="Overview">
+    <AppLayout title="Label">
       {/* Welcome */}
       <div className="mb-8">
         <h1 className="text-foreground">
           Welcome back, {profile?.full_name?.split(" ")[0] || "there"}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Here's your label's financial snapshot
+          Here's a snapshot of your label's overall health
         </p>
       </div>
 

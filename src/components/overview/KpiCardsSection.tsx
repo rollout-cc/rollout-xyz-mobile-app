@@ -1,4 +1,4 @@
-import { DollarSign, TrendingUp, TrendingDown } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface KpiCardsSectionProps {
@@ -6,6 +6,8 @@ interface KpiCardsSectionProps {
   totalRevenue: number;
   totalExpenses: number;
   netProfit: number;
+  openTasks: number;
+  overdueTasks: number;
   fmt: (n: number) => string;
   fmtSigned: (n: number) => string;
 }
@@ -24,13 +26,15 @@ function KpiCard({ label, value, icon, accent }: { label: string; value: string;
   );
 }
 
-export function KpiCardsSection({ totalBudget, totalRevenue, totalExpenses, netProfit, fmt, fmtSigned }: KpiCardsSectionProps) {
+export function KpiCardsSection({ totalBudget, totalRevenue, totalExpenses, netProfit, openTasks, overdueTasks, fmt, fmtSigned }: KpiCardsSectionProps) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
       <KpiCard label="Total Budget" value={fmt(totalBudget)} icon={<DollarSign className="h-4 w-4" />} />
       <KpiCard label="Total Revenue" value={fmt(totalRevenue)} icon={<TrendingUp className="h-4 w-4" />} accent="text-emerald-600" />
       <KpiCard label="Total Spending" value={fmt(totalExpenses)} icon={<TrendingDown className="h-4 w-4" />} accent="text-destructive" />
       <KpiCard label="Net P&L" value={fmtSigned(netProfit)} icon={<DollarSign className="h-4 w-4" />} accent={netProfit >= 0 ? "text-emerald-600" : "text-destructive"} />
+      <KpiCard label="Open Tasks" value={String(openTasks)} icon={<CheckCircle2 className="h-4 w-4" />} />
+      <KpiCard label="Overdue Tasks" value={String(overdueTasks)} icon={<AlertCircle className="h-4 w-4" />} accent={overdueTasks > 0 ? "text-destructive" : undefined} />
     </div>
   );
 }

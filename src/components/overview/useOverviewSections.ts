@@ -6,7 +6,7 @@ export interface SectionConfig {
 }
 
 export const ALL_SECTIONS: SectionConfig[] = [
-  { id: "kpis", label: "KPI Cards" },
+  { id: "kpis", label: "Financial Snapshot" },
   { id: "budget-utilization", label: "Budget Utilization" },
   { id: "quarterly-pnl", label: "Quarterly P&L" },
   { id: "spending-per-act", label: "Spending Per Act" },
