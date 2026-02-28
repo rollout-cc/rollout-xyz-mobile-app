@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSelectedTeam } from "@/contexts/TeamContext";
 import { useTeams } from "@/hooks/useTeams";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -80,9 +81,9 @@ const permissionLabelMap: Record<string, string> = {
 
 export function TeamManagement() {
   const { user } = useAuth();
+  const { selectedTeamId: teamId } = useSelectedTeam();
   const { data: teams = [] } = useTeams();
-  const teamId = teams[0]?.id ?? null;
-  const myRole = teams[0]?.role ?? null;
+  const myRole = teams.find((t) => t.id === teamId)?.role ?? null;
   const canManage = myRole === "team_owner" || myRole === "manager";
   const queryClient = useQueryClient();
 

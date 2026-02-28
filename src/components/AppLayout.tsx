@@ -1,9 +1,9 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
-import { useTeams } from "@/hooks/useTeams";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSelectedTeam } from "@/contexts/TeamContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { User } from "lucide-react";
 import {
@@ -21,17 +21,10 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, title, actions }: AppLayoutProps) {
-  const { data: teams = [] } = useTeams();
+  const { selectedTeamId, setSelectedTeamId } = useSelectedTeam();
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (teams.length > 0 && !selectedTeamId) {
-      setSelectedTeamId(teams[0].id);
-    }
-  }, [teams, selectedTeamId]);
 
   return (
     <SidebarProvider>
@@ -78,15 +71,3 @@ export function AppLayout({ children, title, actions }: AppLayoutProps) {
   );
 }
 
-export function useSelectedTeam() {
-  const { data: teams = [] } = useTeams();
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (teams.length > 0 && !selectedTeamId) {
-      setSelectedTeamId(teams[0].id);
-    }
-  }, [teams, selectedTeamId]);
-
-  return { selectedTeamId, setSelectedTeamId, teams };
-}

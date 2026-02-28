@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { useProspects, useCreateProspect } from "@/hooks/useProspects";
-import { useTeams } from "@/hooks/useTeams";
+import { useSelectedTeam } from "@/contexts/TeamContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -27,8 +27,7 @@ interface SpotifyArtist {
 
 export default function ARList() {
   const { data: prospects = [], isLoading } = useProspects();
-  const { data: teams = [] } = useTeams();
-  const teamId = teams[0]?.id;
+  const { selectedTeamId: teamId } = useSelectedTeam();
   const navigate = useNavigate();
   const createProspect = useCreateProspect();
   const updateProspect = useUpdateProspect();

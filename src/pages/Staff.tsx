@@ -2,12 +2,11 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
-import { useTeams } from "@/hooks/useTeams";
+import { useSelectedTeam } from "@/contexts/TeamContext";
 import { StaffMetricsSection, type StaffMember } from "@/components/overview/StaffMetricsSection";
 
 export default function Staff() {
-  const { data: teams = [] } = useTeams();
-  const teamId = teams[0]?.id;
+  const { selectedTeamId: teamId } = useSelectedTeam();
 
   const { data: memberships = [] } = useQuery({
     queryKey: ["staff-memberships", teamId],
