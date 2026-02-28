@@ -207,16 +207,7 @@ function InlineLinkInput({ artistId, folders, defaultFolderId, autoFocus }: {
 
   const submit = useCallback(() => { if (!url.trim()) return; addLink.mutate(); }, [url, addLink]);
 
-  const handleCancel = () => {
-    setUrl(""); setTitle(""); setIsActive(false);
-    if (!defaultFolderId) { setSelectedFolderId(null); setSelectedFolderName(null); }
-  };
-
-  if (!isActive) {
-    return <InlineAddTrigger label="New Link" onClick={() => setIsActive(true)} />;
-  }
-
-  // Trigger config for # folder selection in title
+  // Trigger config for # folder selection in title — must be before conditional returns
   const triggers = useMemo(() => defaultFolderId ? [] : [
     {
       char: "#",
@@ -232,6 +223,15 @@ function InlineLinkInput({ artistId, folders, defaultFolderId, autoFocus }: {
       },
     },
   ], [folders, defaultFolderId]);
+
+  const handleCancel = () => {
+    setUrl(""); setTitle(""); setIsActive(false);
+    if (!defaultFolderId) { setSelectedFolderId(null); setSelectedFolderName(null); }
+  };
+
+  if (!isActive) {
+    return <InlineAddTrigger label="New Link" onClick={() => setIsActive(true)} />;
+  }
 
   return (
     <ItemCardEdit
