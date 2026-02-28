@@ -13,6 +13,7 @@ import { PipelineBoard } from "@/components/ar/PipelineBoard";
 import { ProspectTable } from "@/components/ar/ProspectTable";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useUpdateProspect } from "@/hooks/useProspects";
 
 const STAGES = [
   "discovered", "contacted", "in_conversation", "materials_requested",
@@ -33,6 +34,7 @@ export default function ARList() {
   const teamId = teams[0]?.id;
   const navigate = useNavigate();
   const createProspect = useCreateProspect();
+  const updateProspect = useUpdateProspect();
   const [view, setView] = useState<"board" | "table">("board");
   const [search, setSearch] = useState("");
   const [showNew, setShowNew] = useState(false);
@@ -248,7 +250,14 @@ export default function ARList() {
 
       {/* Content */}
       {view === "board" ? (
-        <PipelineBoard prospects={filtered} onSelect={(id) => navigate(`/ar/${id}`)} />
+        <PipelineBoard
+          prospects={filtered}
+          onSelect={(id) => navigate(`/ar/${id}`)}
+          onStageChange={(id, stage) => {
+            updateProspect.mutate({ id, stage } as any);
+            toast.success("Stage updated");
+          }}
+        />
       ) : (
         <ProspectTable prospects={filtered} onSelect={(id) => navigate(`/ar/${id}`)} />
       )}
