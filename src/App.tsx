@@ -19,6 +19,8 @@ import MyWork from "./pages/MyWork";
 import PublicTimeline from "./pages/PublicTimeline";
 import JoinTeam from "./pages/JoinTeam";
 import Staff from "./pages/Staff";
+import ARList from "./pages/ARList";
+import ProspectProfile from "./pages/ProspectProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,6 +54,8 @@ function AppRoutes() {
       <Route path="/roster/:artistId" element={<ProtectedRoute><ArtistDetail /></ProtectedRoute>} />
       <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
       <Route path="/staff" element={<ProtectedRoute><Staff /></ProtectedRoute>} />
+      <Route path="/ar" element={<ProtectedRoute><ARList /></ProtectedRoute>} />
+      <Route path="/ar/:prospectId" element={<ProtectedRoute><ProspectProfile /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/shared/member/:token" element={<PublicMemberInfo />} />
       <Route path="/shared/timeline/:token" element={<PublicTimeline />} />
