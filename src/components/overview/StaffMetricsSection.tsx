@@ -65,7 +65,7 @@ export function StaffMetricsSection({ members, fmt }: StaffMetricsSectionProps) 
         <span className="caption-bold">{members.length} members</span>
       </div>
 
-      <div className="space-y-0">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {members.map((m) => {
           const completionRate =
             m.tasksAssigned > 0 ? Math.round((m.tasksCompleted / m.tasksAssigned) * 100) : 0;
@@ -73,7 +73,7 @@ export function StaffMetricsSection({ members, fmt }: StaffMetricsSectionProps) 
           return (
             <div
               key={m.userId}
-              className="border-b border-border last:border-b-0 py-4 hover:bg-accent/30 transition-colors"
+              className="rounded-xl border border-border p-4 hover:bg-accent/30 transition-colors"
             >
               <div className="flex items-center gap-3">
                 <ScoreCircle score={m.productivityScore} />
