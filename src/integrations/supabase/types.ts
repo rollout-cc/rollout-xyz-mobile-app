@@ -812,6 +812,212 @@ export type Database = {
         }
         Relationships: []
       }
+      prospect_contacts: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          prospect_id: string
+          role: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          prospect_id: string
+          role?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          prospect_id?: string
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_contacts_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prospect_deals: {
+        Row: {
+          accounting_frequency: string | null
+          advance: number | null
+          created_at: string
+          deal_status: Database["public"]["Enums"]["deal_status"]
+          deal_type: Database["public"]["Enums"]["deal_type"] | null
+          exclusivity: string | null
+          id: string
+          notes: string | null
+          prospect_id: string
+          term_length: string | null
+          territory: string | null
+          type_specific_terms: Json | null
+          updated_at: string
+        }
+        Insert: {
+          accounting_frequency?: string | null
+          advance?: number | null
+          created_at?: string
+          deal_status?: Database["public"]["Enums"]["deal_status"]
+          deal_type?: Database["public"]["Enums"]["deal_type"] | null
+          exclusivity?: string | null
+          id?: string
+          notes?: string | null
+          prospect_id: string
+          term_length?: string | null
+          territory?: string | null
+          type_specific_terms?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          accounting_frequency?: string | null
+          advance?: number | null
+          created_at?: string
+          deal_status?: Database["public"]["Enums"]["deal_status"]
+          deal_type?: Database["public"]["Enums"]["deal_type"] | null
+          exclusivity?: string | null
+          id?: string
+          notes?: string | null
+          prospect_id?: string
+          term_length?: string | null
+          territory?: string | null
+          type_specific_terms?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_deals_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prospect_engagements: {
+        Row: {
+          created_at: string
+          engagement_date: string
+          engagement_type: Database["public"]["Enums"]["engagement_type"]
+          id: string
+          next_step: string | null
+          outcome: string | null
+          owner_id: string | null
+          prospect_id: string
+        }
+        Insert: {
+          created_at?: string
+          engagement_date?: string
+          engagement_type: Database["public"]["Enums"]["engagement_type"]
+          id?: string
+          next_step?: string | null
+          outcome?: string | null
+          owner_id?: string | null
+          prospect_id: string
+        }
+        Update: {
+          created_at?: string
+          engagement_date?: string
+          engagement_type?: Database["public"]["Enums"]["engagement_type"]
+          id?: string
+          next_step?: string | null
+          outcome?: string | null
+          owner_id?: string | null
+          prospect_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_engagements_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prospects: {
+        Row: {
+          artist_name: string
+          city: string | null
+          created_at: string
+          id: string
+          instagram: string | null
+          key_songs: string[] | null
+          monthly_listeners: number | null
+          next_follow_up: string | null
+          notes: string | null
+          owner_id: string | null
+          primary_genre: string | null
+          priority: Database["public"]["Enums"]["prospect_priority"]
+          spotify_uri: string | null
+          stage: Database["public"]["Enums"]["prospect_stage"]
+          team_id: string
+          tiktok: string | null
+          updated_at: string
+          youtube: string | null
+        }
+        Insert: {
+          artist_name: string
+          city?: string | null
+          created_at?: string
+          id?: string
+          instagram?: string | null
+          key_songs?: string[] | null
+          monthly_listeners?: number | null
+          next_follow_up?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          primary_genre?: string | null
+          priority?: Database["public"]["Enums"]["prospect_priority"]
+          spotify_uri?: string | null
+          stage?: Database["public"]["Enums"]["prospect_stage"]
+          team_id: string
+          tiktok?: string | null
+          updated_at?: string
+          youtube?: string | null
+        }
+        Update: {
+          artist_name?: string
+          city?: string | null
+          created_at?: string
+          id?: string
+          instagram?: string | null
+          key_songs?: string[] | null
+          monthly_listeners?: number | null
+          next_follow_up?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          primary_genre?: string | null
+          priority?: Database["public"]["Enums"]["prospect_priority"]
+          spotify_uri?: string | null
+          stage?: Database["public"]["Enums"]["prospect_stage"]
+          team_id?: string
+          tiktok?: string | null
+          updated_at?: string
+          youtube?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospects_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           artist_id: string | null
@@ -1033,6 +1239,7 @@ export type Database = {
         Args: { p_milestone_id: string }
         Returns: string
       }
+      get_prospect_team_id: { Args: { p_prospect_id: string }; Returns: string }
       has_artist_access: {
         Args: {
           p_artist_id: string
@@ -1050,7 +1257,39 @@ export type Database = {
     }
     Enums: {
       app_role: "team_owner" | "manager" | "artist"
+      deal_status:
+        | "not_discussed"
+        | "discussing"
+        | "offer_sent"
+        | "under_negotiation"
+        | "signed"
+        | "passed"
+      deal_type:
+        | "distribution"
+        | "frontline_record"
+        | "partnership"
+        | "publishing"
+      engagement_type:
+        | "call"
+        | "email"
+        | "dm"
+        | "meeting"
+        | "show"
+        | "intro"
+        | "deal_sent"
       permission_level: "no_access" | "view_access" | "full_access"
+      prospect_priority: "low" | "medium" | "high"
+      prospect_stage:
+        | "discovered"
+        | "contacted"
+        | "in_conversation"
+        | "materials_requested"
+        | "internal_review"
+        | "offer_sent"
+        | "negotiating"
+        | "signed"
+        | "passed"
+        | "on_hold"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1179,7 +1418,43 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["team_owner", "manager", "artist"],
+      deal_status: [
+        "not_discussed",
+        "discussing",
+        "offer_sent",
+        "under_negotiation",
+        "signed",
+        "passed",
+      ],
+      deal_type: [
+        "distribution",
+        "frontline_record",
+        "partnership",
+        "publishing",
+      ],
+      engagement_type: [
+        "call",
+        "email",
+        "dm",
+        "meeting",
+        "show",
+        "intro",
+        "deal_sent",
+      ],
       permission_level: ["no_access", "view_access", "full_access"],
+      prospect_priority: ["low", "medium", "high"],
+      prospect_stage: [
+        "discovered",
+        "contacted",
+        "in_conversation",
+        "materials_requested",
+        "internal_review",
+        "offer_sent",
+        "negotiating",
+        "signed",
+        "passed",
+        "on_hold",
+      ],
     },
   },
 } as const
