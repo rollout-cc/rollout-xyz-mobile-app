@@ -1,8 +1,20 @@
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Headphones, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Headphones, MapPin, Trash2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   DragDropContext,
   Droppable,
@@ -31,9 +43,10 @@ interface PipelineBoardProps {
   prospects: any[];
   onSelect: (id: string) => void;
   onStageChange?: (id: string, newStage: string) => void;
+  onDelete?: (id: string) => void;
 }
 
-export function PipelineBoard({ prospects, onSelect, onStageChange }: PipelineBoardProps) {
+export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete }: PipelineBoardProps) {
   const activeStages = STAGES;
 
   const handleDragEnd = (result: DropResult) => {
@@ -99,6 +112,32 @@ export function PipelineBoard({ prospects, onSelect, onStageChange }: PipelineBo
                                     <div className="flex items-center gap-1.5">
                                       <div className={cn("h-2 w-2 rounded-full shrink-0", priorityDot(p.priority))} />
                                       <span className="font-semibold text-sm truncate">{p.artist_name}</span>
+                                      {onDelete && (
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <button
+                                              onClick={(e) => e.stopPropagation()}
+                                              className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0"
+                                            >
+                                              <Trash2 className="h-3.5 w-3.5" />
+                                            </button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>Delete {p.artist_name}?</AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                This will permanently remove this prospect and all associated data.
+                                              </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                              <AlertDialogAction onClick={() => onDelete(p.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                                Delete
+                                              </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
+                                      )}
                                     </div>
                                     <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
                                       {p.primary_genre && (

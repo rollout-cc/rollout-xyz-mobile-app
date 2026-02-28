@@ -87,6 +87,20 @@ export function useUpdateProspect() {
   });
 }
 
+export function useDeleteProspect() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("prospects")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["prospects"] }),
+  });
+}
+
 export function useProspectEngagements(prospectId: string | undefined) {
   return useQuery({
     queryKey: ["prospect-engagements", prospectId],
