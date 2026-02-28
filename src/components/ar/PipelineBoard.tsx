@@ -10,10 +10,7 @@ import {
   type DropResult,
 } from "@hello-pangea/dnd";
 
-const STAGES = [
-  "discovered", "contacted", "in_conversation", "materials_requested",
-  "internal_review", "offer_sent", "negotiating", "signed", "passed", "on_hold",
-] as const;
+const STAGES = ["contacted", "offer_sent", "negotiating", "signed"] as const;
 
 const stageLabel = (s: string) =>
   s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -37,7 +34,7 @@ interface PipelineBoardProps {
 }
 
 export function PipelineBoard({ prospects, onSelect, onStageChange }: PipelineBoardProps) {
-  const activeStages = STAGES.filter((s) => s !== "signed" && s !== "passed");
+  const activeStages = STAGES;
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -50,8 +47,8 @@ export function PipelineBoard({ prospects, onSelect, onStageChange }: PipelineBo
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className="flex gap-0 min-w-max">
+      <div className="pb-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-0">
           {activeStages.map((stage, idx) => {
             const items = prospects.filter((p: any) => p.stage === stage);
             return (
@@ -59,7 +56,7 @@ export function PipelineBoard({ prospects, onSelect, onStageChange }: PipelineBo
                 {idx > 0 && (
                   <Separator orientation="vertical" className="mx-2 h-auto self-stretch" />
                 )}
-                <div className="w-60 shrink-0">
+                <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-3 px-1">
                     <span className="text-sm font-bold text-foreground tracking-wide">
                       {stageLabel(stage)}

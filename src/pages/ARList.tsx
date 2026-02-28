@@ -15,10 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUpdateProspect } from "@/hooks/useProspects";
 
-const STAGES = [
-  "discovered", "contacted", "in_conversation", "materials_requested",
-  "internal_review", "offer_sent", "negotiating", "signed", "passed", "on_hold",
-] as const;
+const STAGES = ["contacted", "offer_sent", "negotiating", "signed"] as const;
 
 interface SpotifyArtist {
   id: string;
