@@ -88,6 +88,7 @@ export default function ARList() {
         primary_genre: artist.genres?.[0] || undefined,
         spotify_uri: `spotify:artist:${artist.id}`,
         monthly_listeners: artist.followers?.total,
+        avatar_url: artist.images?.[0]?.url,
         stage: "contacted",
       });
       toast.success(`${artist.name} added as prospect`);

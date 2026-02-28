@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Headphones, MapPin } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -56,7 +56,7 @@ export function PipelineBoard({ prospects, onSelect, onStageChange }: PipelineBo
                 {idx > 0 && (
                   <Separator orientation="vertical" className="mx-2 h-auto self-stretch" />
                 )}
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-3 px-1">
                     <span className="text-sm font-bold text-foreground tracking-wide">
                       {stageLabel(stage)}
@@ -90,6 +90,7 @@ export function PipelineBoard({ prospects, onSelect, onStageChange }: PipelineBo
                               >
                                 <div className="flex items-start gap-3">
                                   <Avatar className="h-10 w-10 shrink-0 border border-border">
+                                    {p.avatar_url && <AvatarImage src={p.avatar_url} alt={p.artist_name} />}
                                     <AvatarFallback className="text-sm font-bold">
                                       {p.artist_name?.[0]}
                                     </AvatarFallback>
