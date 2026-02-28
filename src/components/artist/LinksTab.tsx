@@ -244,25 +244,44 @@ function LinkItem({ link, isNew, artistId, folders, defaultFolderId, autoFocus, 
     (defaultFolderId || link?.folder_id) ? folders.find((f: any) => f.id === (defaultFolderId || link?.folder_id))?.name || null : null
   );
   const lastFetchedUrl = useRef("");
+  const titleRef = useRef(title);
+  const descRef = useRef(description);
+  titleRef.current = title;
+  descRef.current = description;
 
-  // Auto-fetch metadata when URL looks valid (for new links or when editing URL)
-  useEffect(() => {
-    const trimmed = url.trim();
-    if (!trimmed || lastFetchedUrl.current === trimmed) return;
+  // Auto-fetch metadata when URL looks valid
+  const fetchMeta = useCallback((targetUrl: string) => {
+    const trimmed = targetUrl.trim();
+    if (!trimmed) return;
     if (!/^https?:\/\/.+\..+/.test(trimmed)) return;
+    if (lastFetchedUrl.current === trimmed) return;
     lastFetchedUrl.current = trimmed;
     setIsFetchingMeta(true);
     supabase.functions.invoke("scrape-link-metadata", { body: { url: trimmed } })
       .then(({ data, error }) => {
         console.log("Metadata fetch result:", { data, error });
+        if (error) {
+          console.error("Metadata fetch edge fn error:", error);
+          return;
+        }
         if (data?.success) {
-          if (data.title && !title) setTitle(data.title);
-          if (data.description && !description) setDescription(data.description);
+          // Always overwrite title if it matches the URL or is empty
+          const currentTitle = titleRef.current;
+          if (data.title && (!currentTitle || currentTitle === trimmed || currentTitle.startsWith("http"))) {
+            setTitle(data.title);
+          }
+          if (data.description && !descRef.current) {
+            setDescription(data.description);
+          }
         }
       })
       .catch((err) => console.error("Metadata fetch error:", err))
       .finally(() => setIsFetchingMeta(false));
-  }, [url]);
+  }, []);
+
+  useEffect(() => {
+    fetchMeta(url);
+  }, [url, fetchMeta]);
 
   // Trigger config for # folder selection
   const triggers = useMemo(() => defaultFolderId ? [] : [
@@ -364,8 +383,13 @@ function LinkItem({ link, isNew, artistId, folders, defaultFolderId, autoFocus, 
     setDescription(link.description || "");
     setSelectedFolderId(link.folder_id || null);
     setSelectedFolderName(link.folder_id ? folders.find((f: any) => f.id === link.folder_id)?.name || null : null);
-    lastFetchedUrl.current = link.url;
     setEditing(true);
+    // If link title looks like a URL (no metadata was fetched), auto-fetch
+    if (link.title === link.url || link.title.startsWith("http")) {
+      lastFetchedUrl.current = ""; // Reset so fetchMeta will trigger
+    } else {
+      lastFetchedUrl.current = link.url;
+    }
   };
 
   /* ── New link trigger ── */
