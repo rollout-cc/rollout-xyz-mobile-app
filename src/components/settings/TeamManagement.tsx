@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeams } from "@/hooks/useTeams";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,31 +20,43 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserPlus, Copy, Check } from "lucide-react";
+import { UserPlus, Copy, Check, Trash2, Send } from "lucide-react";
 import { toast } from "sonner";
 
 interface TeamMember {
   user_id: string;
   role: string;
+  created_at: string;
   profile: {
     full_name: string | null;
     avatar_url: string | null;
     job_role: string | null;
   } | null;
+  email?: string;
 }
 
 const roleLabelMap: Record<string, string> = {
-  team_owner: "Owner",
+  team_owner: "Team Owner",
   manager: "Manager",
   artist: "Artist",
 };
 
-const roleVariantMap: Record<string, "default" | "secondary" | "outline"> = {
-  team_owner: "default",
-  manager: "secondary",
-  artist: "outline",
+const roleDescriptionMap: Record<string, string> = {
+  team_owner: "Full access to all functions including budgets, users, plans, account deletion.",
+  manager: "Broad permissions for budgets, plans, and tasks.",
+  artist: "Restricted role with access limited to viewing certain information only.",
 };
 
 export function TeamManagement() {
@@ -53,20 +64,21 @@ export function TeamManagement() {
   const { data: teams = [] } = useTeams();
   const teamId = teams[0]?.id ?? null;
   const myRole = teams[0]?.role ?? null;
-  const canInvite = myRole === "team_owner" || myRole === "manager";
+  const canManage = myRole === "team_owner" || myRole === "manager";
   const queryClient = useQueryClient();
 
   const [showInvite, setShowInvite] = useState(false);
   const [inviteRole, setInviteRole] = useState<string>("manager");
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
 
   const { data: members = [], isLoading } = useQuery({
     queryKey: ["team-members", teamId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("team_memberships")
-        .select("user_id, role")
+        .select("user_id, role, created_at")
         .eq("team_id", teamId!);
       if (error) throw error;
 
@@ -82,10 +94,49 @@ export function TeamManagement() {
       return data.map((m) => ({
         user_id: m.user_id,
         role: m.role,
+        created_at: m.created_at,
         profile: profileMap.get(m.user_id) ?? null,
       })) as TeamMember[];
     },
     enabled: !!teamId,
+  });
+
+  const updateRole = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      const { error } = await supabase
+        .from("team_memberships")
+        .update({ role: role as any })
+        .eq("team_id", teamId!)
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team-members", teamId] });
+      toast.success("Role updated");
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to update role");
+    },
+  });
+
+  const removeMember = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase
+        .from("team_memberships")
+        .delete()
+        .eq("team_id", teamId!)
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team-members", teamId] });
+      toast.success("Member removed");
+      setDeleteUserId(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to remove member");
+      setDeleteUserId(null);
+    },
   });
 
   const createInvite = useMutation({
@@ -149,64 +200,132 @@ export function TeamManagement() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">Team Members</h2>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Team Members</h2>
+          <p className="text-sm text-muted-foreground">
             {members.length} member{members.length !== 1 ? "s" : ""}
-          </span>
-          {canInvite && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowInvite(true)}
-            >
-              <UserPlus className="h-4 w-4 mr-1.5" />
-              Invite
-            </Button>
-          )}
+          </p>
         </div>
+        {canManage && (
+          <Button onClick={() => setShowInvite(true)}>
+            <UserPlus className="h-4 w-4 mr-1.5" />
+            Invite Member
+          </Button>
+        )}
       </div>
 
-      <div className="divide-y divide-border rounded-lg border border-border bg-card max-w-lg">
+      {/* Members list */}
+      <div className="space-y-3">
         {members.map((member) => {
           const name = member.profile?.full_name || "Unnamed";
-          const initials = name[0]?.toUpperCase() ?? "?";
+          const initials = name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2);
+          const isMe = member.user_id === user?.id;
+          const isOwner = member.role === "team_owner";
 
           return (
             <div
               key={member.user_id}
-              className="flex items-center gap-3 px-4 py-3"
+              className="flex items-start gap-4 p-4 rounded-lg border border-border bg-card"
             >
-              <Avatar className="h-9 w-9">
+              {/* Avatar & info */}
+              <Avatar className="h-10 w-10 mt-0.5">
                 <AvatarImage src={member.profile?.avatar_url ?? undefined} />
                 <AvatarFallback className="text-xs bg-muted text-muted-foreground">
                   {initials}
                 </AvatarFallback>
               </Avatar>
 
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
-                  {name}
-                </p>
-                {member.profile?.job_role && (
-                  <p className="text-xs text-muted-foreground truncate">
-                    {member.profile.job_role}
-                  </p>
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {name}
+                      {isMe && (
+                        <span className="text-muted-foreground font-normal ml-1">(you)</span>
+                      )}
+                    </p>
+                    {member.profile?.job_role && (
+                      <p className="text-xs text-muted-foreground">
+                        {member.profile.job_role}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Role selector */}
+                {canManage && !isMe ? (
+                  <Select
+                    value={member.role}
+                    onValueChange={(val) =>
+                      updateRole.mutate({ userId: member.user_id, role: val })
+                    }
+                  >
+                    <SelectTrigger className="w-48 h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="team_owner">
+                        <div>
+                          <div className="font-medium">Team Owner</div>
+                          <div className="text-xs text-muted-foreground">
+                            {roleDescriptionMap.team_owner}
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="manager">
+                        <div>
+                          <div className="font-medium">Manager</div>
+                          <div className="text-xs text-muted-foreground">
+                            {roleDescriptionMap.manager}
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="artist">
+                        <div>
+                          <div className="font-medium">Artist</div>
+                          <div className="text-xs text-muted-foreground">
+                            {roleDescriptionMap.artist}
+                          </div>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <span className="inline-block text-sm text-muted-foreground">
+                    {roleLabelMap[member.role] ?? member.role}
+                  </span>
                 )}
               </div>
 
-              <Badge variant={roleVariantMap[member.role] ?? "outline"}>
-                {roleLabelMap[member.role] ?? member.role}
-              </Badge>
+              {/* Actions */}
+              {canManage && !isMe && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => setDeleteUserId(member.user_id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Remove
+                  </Button>
+                </div>
+              )}
             </div>
           );
         })}
 
         {members.length === 0 && (
-          <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-            No team members yet.
+          <div className="p-8 text-center text-sm text-muted-foreground border border-border rounded-lg">
+            No team members yet. Invite someone to get started.
           </div>
         )}
       </div>
@@ -287,6 +406,30 @@ export function TeamManagement() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog
+        open={!!deleteUserId}
+        onOpenChange={(open) => !open && setDeleteUserId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove team member?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove their access to the team. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteUserId && removeMember.mutate(deleteUserId)}
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
