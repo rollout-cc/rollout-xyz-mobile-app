@@ -3,13 +3,21 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, FolderPlus, ListPlus, Calendar, DollarSign, User, MoreHorizontal, Archive, Trash } from "lucide-react";
+import {
+  Plus, Trash2, FolderPlus, ListPlus, Calendar, DollarSign, User,
+  MoreHorizontal, Archive, Trash, GripVertical, Hash, Link2, Bookmark,
+  Star, Check,
+} from "lucide-react";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
 import { CollapsibleSection, InlineAddTrigger } from "@/components/ui/CollapsibleSection";
-import { ItemCardRead, ItemCardEdit, MetaBadge, DeleteAction } from "@/components/ui/ItemCard";
 import { ItemEditor, DescriptionEditor } from "@/components/ui/ItemEditor";
+import { MetaBadge } from "@/components/ui/ItemCard";
 import { ToolbarButton } from "@/components/ui/ItemPickers";
+import { cn } from "@/lib/utils";
+import {
+  DragDropContext, Droppable, Draggable, type DropResult,
+} from "@hello-pangea/dnd";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -48,6 +56,29 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
     },
   });
 
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ["team-members", teamId],
+    queryFn: async () => {
+      const { data: memberships, error } = await supabase.from("team_memberships").select("user_id, role").eq("team_id", teamId);
+      if (error) throw error;
+      if (!memberships || memberships.length === 0) return [];
+      const userIds = memberships.map((m: any) => m.user_id);
+      const { data: profiles, error: pErr } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", userIds);
+      if (pErr) throw pErr;
+      return (profiles || []).map((p: any) => ({ ...p, role: memberships.find((m: any) => m.user_id === p.id)?.role }));
+    },
+    enabled: !!teamId,
+  });
+
+  const { data: budgets = [] } = useQuery({
+    queryKey: ["budgets", artistId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("budgets").select("*").eq("artist_id", artistId).order("created_at");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const activeTasks = tasks.filter((t: any) => !t.is_completed);
   const completedTasks = tasks.filter((t: any) => t.is_completed);
   const unsortedTasks = activeTasks.filter((t: any) => !t.initiative_id);
@@ -70,6 +101,8 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
     return <EmptyWorkState artistId={artistId} teamId={teamId} onCampaignCreated={setNewCampaignId} />;
   }
 
+  const sharedContext = { artistId, teamId, campaigns, teamMembers, budgets };
+
   return (
     <div className="mt-4 space-y-2">
       <div className="flex items-center justify-between mb-2">
@@ -82,12 +115,8 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
 
       {unsortedTasks.length > 0 && (
         <CollapsibleSection title="Unsorted" count={unsortedTasks.length} open={activeExpanded} onToggle={() => setActiveExpanded(!activeExpanded)}>
-          <InlineTaskInput artistId={artistId} teamId={teamId} campaigns={campaigns} />
-          <div className="divide-y divide-border/30">
-            {unsortedTasks.map((t: any) => (
-              <TaskRow key={t.id} task={t} artistId={artistId} campaigns={campaigns} />
-            ))}
-          </div>
+          <TaskItem key="__new_unsorted" isNew {...sharedContext} />
+          <TaskList tasks={unsortedTasks} {...sharedContext} droppableId="unsorted" />
         </CollapsibleSection>
       )}
 
@@ -102,22 +131,405 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
             titleSlot={<CampaignName campaign={c} artistId={artistId} />}
             actions={<CampaignActions campaign={c} artistId={artistId} taskCount={cTasks.length} />}
           >
-            <InlineTaskInput artistId={artistId} teamId={teamId} campaigns={campaigns} defaultCampaignId={c.id} autoFocus={isNewlyCreated} />
-            <div className="divide-y divide-border/30">
-              {cTasks.map((t: any) => <TaskRow key={t.id} task={t} artistId={artistId} campaigns={campaigns} />)}
-            </div>
+            <TaskItem key={`__new_${c.id}`} isNew {...sharedContext} defaultCampaignId={c.id} autoFocus={isNewlyCreated} />
+            <TaskList tasks={cTasks} {...sharedContext} droppableId={c.id} />
             {cTasks.length === 0 && !isNewlyCreated && <p className="caption text-muted-foreground py-3 pl-2">No tasks yet.</p>}
           </CollapsibleSection>
         );
       })}
 
+      {/* If no unsorted but there's no campaigns, still show new task input */}
+      {unsortedTasks.length === 0 && campaigns.length === 0 && (
+        <TaskItem isNew {...sharedContext} />
+      )}
+
       {showCompleted && completedTasks.length > 0 && (
         <CollapsibleSection title="Completed" count={completedTasks.length} defaultOpen={false}>
-          <div className="divide-y divide-border/30">
-            {completedTasks.map((t: any) => <TaskRow key={t.id} task={t} artistId={artistId} campaigns={campaigns} />)}
-          </div>
+          <TaskList tasks={completedTasks} {...sharedContext} droppableId="completed" />
         </CollapsibleSection>
       )}
+    </div>
+  );
+}
+
+/* ── Task List with drag-and-drop ── */
+function TaskList({ tasks, droppableId, ...ctx }: {
+  tasks: any[]; droppableId: string;
+  artistId: string; teamId: string; campaigns: any[]; teamMembers: any[]; budgets: any[];
+}) {
+  const queryClient = useQueryClient();
+
+  const handleDragEnd = useCallback((result: DropResult) => {
+    // For now, reorder is visual only within the section
+    // Could persist order in the future with a sort_order column
+  }, []);
+
+  return (
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <Droppable droppableId={droppableId}>
+        {(provided) => (
+          <div ref={provided.innerRef} {...provided.droppableProps} className="divide-y divide-border/30">
+            {tasks.map((task: any, index: number) => (
+              <Draggable key={task.id} draggableId={task.id} index={index}>
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.draggableProps}
+                    className={cn(snapshot.isDragging && "opacity-80 bg-background rounded-lg shadow-lg")}
+                  >
+                    <TaskItem
+                      task={task}
+                      dragHandleProps={provided.dragHandleProps}
+                      {...ctx}
+                    />
+                  </div>
+                )}
+              </Draggable>
+            ))}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
+    </DragDropContext>
+  );
+}
+
+/* ── Unified Task Item (new + existing) ── */
+interface TaskItemProps {
+  task?: any;
+  isNew?: boolean;
+  artistId: string;
+  teamId: string;
+  campaigns: any[];
+  teamMembers: any[];
+  budgets: any[];
+  defaultCampaignId?: string;
+  autoFocus?: boolean;
+  dragHandleProps?: any;
+}
+
+function TaskItem({
+  task, isNew, artistId, teamId, campaigns, teamMembers, budgets,
+  defaultCampaignId, autoFocus, dragHandleProps,
+}: TaskItemProps) {
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(!!isNew && !!autoFocus);
+  const [title, setTitle] = useState(task?.title || "");
+  const [description, setDescription] = useState(task?.description || "");
+  const [activeField, setActiveField] = useState<string | null>(null);
+
+  // For new tasks: show "+ New Task" trigger when not editing
+  const [showNew, setShowNew] = useState(false);
+
+  const triggers = useMemo(() => [
+    {
+      char: "@",
+      items: teamMembers.map((m: any) => ({
+        id: m.id,
+        label: m.full_name || "Unknown",
+        icon: <User className="h-3.5 w-3.5 text-muted-foreground" />,
+      })),
+      onSelect: (item: any, current: string) => current.replace(/@\S*$/, `@${item.label} `),
+    },
+    {
+      char: "#",
+      items: campaigns.map((c: any) => ({ id: c.id, label: c.name })),
+      onSelect: (item: any, current: string) => current.replace(/#\S*$/, `#${item.label} `),
+    },
+    {
+      char: "$",
+      items: budgets.map((b: any) => ({
+        id: b.id,
+        label: `$${b.amount.toLocaleString()} ${b.label}`,
+        icon: <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />,
+      })),
+      onSelect: (item: any, current: string) => {
+        const budget = budgets.find((b: any) => b.id === item.id);
+        return current.replace(/\$\S*$/, `$${budget?.amount || 0} `);
+      },
+    },
+  ], [teamMembers, campaigns, budgets]);
+
+  // Fetch assignee name for existing tasks
+  const { data: assignee } = useQuery({
+    queryKey: ["profile", task?.assigned_to],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("full_name").eq("id", task.assigned_to).single();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!task?.assigned_to,
+  });
+
+  const campaign = campaigns.find((c: any) => c.id === task?.initiative_id);
+
+  /* ── Mutations ── */
+  const addTask = useMutation({
+    mutationFn: async (parsed: any) => {
+      const { error } = await supabase.from("tasks").insert({
+        artist_id: artistId, team_id: teamId, title: parsed.title,
+        description: parsed.description || null,
+        due_date: parsed.due_date || null, expense_amount: parsed.expense_amount || null,
+        initiative_id: parsed.initiative_id || defaultCampaignId || null,
+        assigned_to: parsed.assigned_to || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
+      setTitle(""); setDescription(""); setShowNew(false);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const updateTask = useMutation({
+    mutationFn: async (patch: Record<string, any>) => {
+      const { error } = await supabase.from("tasks").update(patch).eq("id", task.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
+      setEditing(false);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const toggleTask = useMutation({
+    mutationFn: async () => {
+      const completed = !task.is_completed;
+      const { error } = await supabase.from("tasks").update({ is_completed: completed, completed_at: completed ? new Date().toISOString() : null }).eq("id", task.id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks", artistId] }),
+  });
+
+  const deleteTask = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("tasks").delete().eq("id", task.id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks", artistId] }),
+  });
+
+  /* ── Parse shortcuts from title ── */
+  const parseAndSubmit = useCallback(() => {
+    if (!title.trim()) return;
+    let parsed_title = title.trim();
+    let due_date: string | undefined;
+    let expense_amount: number | undefined;
+    let initiative_id: string | undefined;
+    let assigned_to: string | undefined;
+
+    const atMatch = parsed_title.match(/@(\S+(?:\s\S+)?)/);
+    if (atMatch) {
+      const name = atMatch[1].toLowerCase();
+      const found = teamMembers.find((m: any) => m.full_name?.toLowerCase().startsWith(name));
+      if (found) assigned_to = found.id;
+      parsed_title = parsed_title.replace(atMatch[0], "").trim();
+    }
+
+    const dollarMatch = parsed_title.match(/\$(\d+(?:,\d{3})*(?:\.\d{2})?)/);
+    if (dollarMatch) { expense_amount = parseFloat(dollarMatch[1].replace(/,/g, "")); parsed_title = parsed_title.replace(dollarMatch[0], "").trim(); }
+
+    const hashMatch = parsed_title.match(/#(\S+)/);
+    if (hashMatch) {
+      const found = campaigns.find((c: any) => c.name.toLowerCase().startsWith(hashMatch[1].toLowerCase()));
+      if (found) initiative_id = found.id;
+      parsed_title = parsed_title.replace(hashMatch[0], "").trim();
+    }
+
+    const dateMatch = parsed_title.match(/\bdue\s+(\S+)/i);
+    if (dateMatch) {
+      const ds = dateMatch[1].toLowerCase(); const today = new Date();
+      if (ds === "today") due_date = today.toISOString().split("T")[0];
+      else if (ds === "tomorrow") { today.setDate(today.getDate() + 1); due_date = today.toISOString().split("T")[0]; }
+      else if (/^\d{4}-\d{2}-\d{2}$/.test(ds)) due_date = ds;
+      else if (/^\d{1,2}\/\d{1,2}$/.test(ds)) { const [m, d] = ds.split("/").map(Number); due_date = `${today.getFullYear()}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`; }
+      parsed_title = parsed_title.replace(dateMatch[0], "").trim();
+    }
+
+    if (isNew) {
+      addTask.mutate({ title: parsed_title, description: description.trim() || undefined, due_date, expense_amount, initiative_id, assigned_to });
+    } else {
+      updateTask.mutate({
+        title: parsed_title,
+        description: description.trim() || null,
+        ...(due_date && { due_date }),
+        ...(expense_amount != null && { expense_amount }),
+        ...(initiative_id && { initiative_id }),
+        ...(assigned_to && { assigned_to }),
+      });
+    }
+  }, [title, description, campaigns, teamMembers, isNew, addTask, updateTask]);
+
+  const handleCancel = () => {
+    if (isNew) {
+      setTitle(""); setDescription(""); setShowNew(false);
+    } else {
+      setTitle(task.title);
+      setDescription(task.description || "");
+      setEditing(false);
+    }
+  };
+
+  const enterEdit = () => {
+    if (task?.is_completed) return;
+    setTitle(task?.title || "");
+    setDescription(task?.description || "");
+    setEditing(true);
+  };
+
+  /* ── New task trigger ── */
+  if (isNew && !showNew && !autoFocus) {
+    return <InlineAddTrigger label="New Task" onClick={() => setShowNew(true)} />;
+  }
+
+  /* ── Editing mode (shared for new and existing) ── */
+  if (editing || (isNew && (showNew || autoFocus))) {
+    return (
+      <div className="mb-2 rounded-lg border border-border bg-card px-4 py-3 space-y-2">
+        <div className="flex items-start gap-3">
+          <Checkbox disabled className="opacity-20 mt-1" />
+          <div className="flex-1 min-w-0">
+            <ItemEditor
+              value={title}
+              onChange={setTitle}
+              onSubmit={parseAndSubmit}
+              onCancel={handleCancel}
+              placeholder={`Task name (use @ to assign, # to pick initiative, $ to select budget and just type the date like "tomorrow" to set due date easily)`}
+              autoFocus={autoFocus || showNew || editing}
+              triggers={triggers}
+              className="font-medium"
+            />
+            <DescriptionEditor
+              value={description}
+              onChange={setDescription}
+              onSubmit={parseAndSubmit}
+              onCancel={handleCancel}
+              placeholder="Description"
+              className="mt-1"
+            />
+          </div>
+          {!isNew && (
+            <button onClick={() => deleteTask.mutate()} className="p-1 text-muted-foreground hover:text-foreground shrink-0">
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Icon toolbar row */}
+        <div className="flex items-center gap-0.5 pl-8">
+          <ToolbarButton icon={<Star className="h-3.5 w-3.5" />} title="Priority" onClick={() => {}} />
+          <ToolbarButton icon={<User className="h-3.5 w-3.5" />} title="Assign (@)" onClick={() => setTitle(prev => prev + "@")} />
+          <ToolbarButton icon={<Calendar className="h-3.5 w-3.5" />} title="Due date" onClick={() => setTitle(prev => prev + " due ")} />
+          <ToolbarButton icon={<Hash className="h-3.5 w-3.5" />} title="Initiative (#)" onClick={() => setTitle(prev => prev + "#")} />
+          <ToolbarButton icon={<DollarSign className="h-3.5 w-3.5" />} title="Cost ($)" onClick={() => setTitle(prev => prev + "$")} />
+          <ToolbarButton icon={<Link2 className="h-3.5 w-3.5" />} title="Link" onClick={() => {}} />
+          <ToolbarButton icon={<Bookmark className="h-3.5 w-3.5" />} title="Timeline" onClick={() => {}} />
+        </div>
+
+        {/* Bottom bar: cancel/save */}
+        <div className="flex items-center justify-end pt-1 gap-2">
+          <Button variant="ghost" size="sm" className="h-8 text-sm" onClick={handleCancel}>Cancel</Button>
+          <Button size="sm" className="h-8 text-sm gap-1.5" onClick={parseAndSubmit} disabled={!title.trim()}>
+            <Check className="h-3.5 w-3.5" /> Save
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Read mode (existing task) ── */
+  return (
+    <div
+      className={cn(
+        "flex items-start gap-2 py-3 px-1 group cursor-pointer",
+        task?.is_completed && "opacity-60",
+      )}
+      onClick={enterEdit}
+    >
+      {/* Grip handle */}
+      <div
+        {...dragHandleProps}
+        className="touch-none p-0.5 text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity mt-1 shrink-0"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <GripVertical className="h-4 w-4" />
+      </div>
+
+      {/* Checkbox */}
+      <div className="shrink-0 mt-0.5" onClick={(e) => e.stopPropagation()}>
+        <Checkbox checked={task.is_completed} onCheckedChange={() => toggleTask.mutate()} />
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <p className={cn(
+          "text-sm font-medium",
+          task.is_completed && "line-through text-muted-foreground"
+        )}>
+          {task.title}
+        </p>
+        {task.description && (
+          <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>
+        )}
+
+        {/* Metadata badges row — filled values are "active" MetaBadges, empties are muted icons */}
+        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+          {assignee?.full_name ? (
+            <MetaBadge icon={<User className="h-3 w-3" />} onClick={() => { enterEdit(); }}>
+              {assignee.full_name}
+            </MetaBadge>
+          ) : (
+            <button onClick={(e) => { e.stopPropagation(); setTitle(task.title + " @"); enterEdit(); }} className="p-1 text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+              <User className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          {task.due_date ? (
+            <MetaBadge icon={<Calendar className="h-3 w-3" />} onClick={() => { enterEdit(); }}>
+              {task.due_date}
+            </MetaBadge>
+          ) : (
+            <button onClick={(e) => { e.stopPropagation(); setTitle(task.title + " due "); enterEdit(); }} className="p-1 text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+              <Calendar className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          {campaign ? (
+            <MetaBadge onClick={() => { enterEdit(); }}># {campaign.name}</MetaBadge>
+          ) : (
+            <button onClick={(e) => { e.stopPropagation(); setTitle(task.title + " #"); enterEdit(); }} className="p-1 text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+              <Hash className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          {task.expense_amount != null && task.expense_amount > 0 ? (
+            <MetaBadge icon={<DollarSign className="h-3 w-3" />} onClick={() => { enterEdit(); }}>
+              {task.expense_amount.toLocaleString()}
+            </MetaBadge>
+          ) : (
+            <button onClick={(e) => { e.stopPropagation(); setTitle(task.title + " $"); enterEdit(); }} className="p-1 text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+              <DollarSign className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          <button onClick={(e) => { e.stopPropagation(); }} className="p-1 text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+            <Link2 className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); }} className="p-1 text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+            <Bookmark className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Delete action on hover */}
+      <button
+        onClick={(e) => { e.stopPropagation(); deleteTask.mutate(); }}
+        className="p-1 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hover:text-destructive"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
@@ -165,7 +577,7 @@ function EmptyWorkState({ artistId, teamId, onCampaignCreated }: { artistId: str
   if (mode === "task") {
     return (
       <div className="mt-4">
-        <InlineTaskInput artistId={artistId} teamId={teamId} campaigns={[]} autoFocus />
+        <TaskItem isNew artistId={artistId} teamId={teamId} campaigns={[]} teamMembers={[]} budgets={[]} autoFocus />
       </div>
     );
   }
@@ -270,260 +682,6 @@ function CampaignName({ campaign, artistId }: { campaign: any; artistId: string 
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["initiatives", artistId] }),
   });
   return <InlineField value={campaign.name} onSave={(v) => update.mutate(v)} className="text-base font-bold tracking-tight" inputClassName="bg-transparent border-none focus:ring-0 px-0 py-0" />;
-}
-
-/* ── Inline Task Input (using ItemCardEdit + ItemEditor) ── */
-function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoFocus }: {
-  artistId: string; teamId: string; campaigns: any[]; defaultCampaignId?: string; autoFocus?: boolean;
-}) {
-  const queryClient = useQueryClient();
-  const [value, setValue] = useState("");
-  const [description, setDescription] = useState("");
-  const [isActive, setIsActive] = useState(!!autoFocus);
-
-  const { data: teamMembers = [] } = useQuery({
-    queryKey: ["team-members", teamId],
-    queryFn: async () => {
-      const { data: memberships, error } = await supabase.from("team_memberships").select("user_id, role").eq("team_id", teamId);
-      if (error) throw error;
-      if (!memberships || memberships.length === 0) return [];
-      const userIds = memberships.map((m: any) => m.user_id);
-      const { data: profiles, error: pErr } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", userIds);
-      if (pErr) throw pErr;
-      return (profiles || []).map((p: any) => ({ ...p, role: memberships.find((m: any) => m.user_id === p.id)?.role }));
-    },
-    enabled: !!teamId,
-  });
-
-  const { data: budgets = [] } = useQuery({
-    queryKey: ["budgets", artistId],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("budgets").select("*").eq("artist_id", artistId).order("created_at");
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const triggers = useMemo(() => [
-    {
-      char: "@",
-      items: teamMembers.map((m: any) => ({
-        id: m.id,
-        label: m.full_name || "Unknown",
-        icon: <User className="h-3.5 w-3.5 text-muted-foreground" />,
-      })),
-      onSelect: (item: any, current: string) => current.replace(/@\S*$/, `@${item.label} `),
-    },
-    {
-      char: "#",
-      items: campaigns.map((c: any) => ({
-        id: c.id,
-        label: c.name,
-      })),
-      onSelect: (item: any, current: string) => current.replace(/#\S*$/, `#${item.label} `),
-    },
-    {
-      char: "$",
-      items: budgets.map((b: any) => ({
-        id: b.id,
-        label: `$${b.amount.toLocaleString()} ${b.label}`,
-        icon: <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />,
-      })),
-      onSelect: (item: any, current: string) => {
-        const budget = budgets.find((b: any) => b.id === item.id);
-        return current.replace(/\$\S*$/, `$${budget?.amount || 0} `);
-      },
-    },
-  ], [teamMembers, campaigns, budgets]);
-
-  const addTask = useMutation({
-    mutationFn: async (parsed: { title: string; description?: string; due_date?: string; expense_amount?: number; initiative_id?: string; assigned_to?: string }) => {
-      const { error } = await supabase.from("tasks").insert({
-        artist_id: artistId, team_id: teamId, title: parsed.title,
-        description: parsed.description || null,
-        due_date: parsed.due_date || null, expense_amount: parsed.expense_amount || null,
-        initiative_id: parsed.initiative_id || defaultCampaignId || null,
-        assigned_to: parsed.assigned_to || null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
-      setValue("");
-      setDescription("");
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const parseAndSubmit = useCallback(() => {
-    if (!value.trim()) return;
-    let title = value.trim();
-    let due_date: string | undefined;
-    let expense_amount: number | undefined;
-    let initiative_id: string | undefined;
-    let assigned_to: string | undefined;
-
-    const atMentionMatch = title.match(/@(\S+(?:\s\S+)?)/);
-    if (atMentionMatch) {
-      const mentionName = atMentionMatch[1].toLowerCase();
-      const found = teamMembers.find((m: any) => m.full_name?.toLowerCase().startsWith(mentionName));
-      if (found) assigned_to = found.id;
-      title = title.replace(atMentionMatch[0], "").trim();
-    }
-
-    const dollarMatchParse = title.match(/\$(\d+(?:,\d{3})*(?:\.\d{2})?)/);
-    if (dollarMatchParse) { expense_amount = parseFloat(dollarMatchParse[1].replace(/,/g, "")); title = title.replace(dollarMatchParse[0], "").trim(); }
-
-    const hashMatch = title.match(/#(\S+)/);
-    if (hashMatch) {
-      const found = campaigns.find((c: any) => c.name.toLowerCase().startsWith(hashMatch[1].toLowerCase()));
-      if (found) initiative_id = found.id;
-      title = title.replace(hashMatch[0], "").trim();
-    }
-
-    const dateMatch = title.match(/\bdue\s+(\S+)/i);
-    if (dateMatch) {
-      const ds = dateMatch[1].toLowerCase(); const today = new Date();
-      if (ds === "today") due_date = today.toISOString().split("T")[0];
-      else if (ds === "tomorrow") { today.setDate(today.getDate() + 1); due_date = today.toISOString().split("T")[0]; }
-      else if (/^\d{4}-\d{2}-\d{2}$/.test(ds)) due_date = ds;
-      else if (/^\d{1,2}\/\d{1,2}$/.test(ds)) { const [m, d] = ds.split("/").map(Number); due_date = `${today.getFullYear()}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`; }
-      title = title.replace(dateMatch[0], "").trim();
-    }
-
-    addTask.mutate({ title, description: description.trim() || undefined, due_date, expense_amount, initiative_id, assigned_to });
-  }, [value, description, campaigns, teamMembers, addTask]);
-
-  const handleCancel = () => {
-    setValue("");
-    setDescription("");
-    setIsActive(false);
-  };
-
-  if (!isActive) {
-    return <InlineAddTrigger label="New Task" onClick={() => setIsActive(true)} />;
-  }
-
-  return (
-    <ItemCardEdit
-      onCancel={handleCancel}
-      onSave={parseAndSubmit}
-      saveDisabled={!value.trim()}
-      bottomLeft={
-        <div className="flex items-center gap-1">
-          <ToolbarButton icon={<User className="h-3.5 w-3.5" />} title="Assign" onClick={() => setValue(prev => prev + "@")} />
-          <ToolbarButton icon={<Calendar className="h-3.5 w-3.5" />} title="Due date" onClick={() => setValue(prev => prev + " due ")} />
-          <ToolbarButton icon={<DollarSign className="h-3.5 w-3.5" />} title="Cost" onClick={() => setValue(prev => prev + "$")} />
-        </div>
-      }
-    >
-      <div className="flex items-start gap-3">
-        <Checkbox disabled className="opacity-20 mt-1" />
-        <div className="flex-1">
-          <ItemEditor
-            value={value}
-            onChange={setValue}
-            onSubmit={parseAndSubmit}
-            onCancel={handleCancel}
-            placeholder="Task name (use @ to assign, # for campaign, $ for budget, 'due tomorrow')"
-            autoFocus={autoFocus || isActive}
-            triggers={triggers}
-            className="font-medium"
-          />
-          <DescriptionEditor
-            value={description}
-            onChange={setDescription}
-            onSubmit={parseAndSubmit}
-            onCancel={handleCancel}
-            className="mt-2"
-          />
-        </div>
-      </div>
-    </ItemCardEdit>
-  );
-}
-
-/* ── Task Row (using ItemCardRead) ── */
-function TaskRow({ task, artistId, campaigns }: { task: any; artistId: string; campaigns: any[] }) {
-  const queryClient = useQueryClient();
-
-  const toggleTask = useMutation({
-    mutationFn: async () => {
-      const completed = !task.is_completed;
-      const { error } = await supabase.from("tasks").update({ is_completed: completed, completed_at: completed ? new Date().toISOString() : null }).eq("id", task.id);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks", artistId] }),
-  });
-
-  const updateTask = useMutation({
-    mutationFn: async (patch: Record<string, any>) => {
-      const { error } = await supabase.from("tasks").update(patch).eq("id", task.id);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks", artistId] }),
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const deleteTask = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("tasks").delete().eq("id", task.id);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks", artistId] }),
-  });
-
-  const { data: assignee } = useQuery({
-    queryKey: ["profile", task.assigned_to],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("full_name").eq("id", task.assigned_to).single();
-      if (error) return null;
-      return data;
-    },
-    enabled: !!task.assigned_to,
-  });
-
-  const campaign = campaigns.find((c: any) => c.id === task.initiative_id);
-
-  return (
-    <ItemCardRead
-      icon={<Checkbox checked={task.is_completed} onCheckedChange={() => toggleTask.mutate()} className="mt-1 shrink-0" />}
-      title={
-        <div className={task.is_completed ? "line-through text-muted-foreground" : "text-foreground"}>
-          <InlineField value={task.title} onSave={(v) => updateTask.mutate({ title: v })} className="text-sm font-medium" />
-        </div>
-      }
-      subtitle={task.description ? <p className="text-xs text-muted-foreground">{task.description}</p> : undefined}
-      badges={
-        <>
-          {assignee?.full_name && (
-            <MetaBadge icon={<User className="h-3 w-3" />}>{assignee.full_name}</MetaBadge>
-          )}
-          {task.due_date && (
-            <MetaBadge icon={<Calendar className="h-3 w-3" />}>
-              <InlineField value={task.due_date} onSave={(v) => updateTask.mutate({ due_date: v || null })} className="text-xs text-muted-foreground" />
-            </MetaBadge>
-          )}
-          {campaign && (
-            <MetaBadge># {campaign.name}</MetaBadge>
-          )}
-          {task.expense_amount != null && task.expense_amount > 0 && (
-            <MetaBadge icon={<DollarSign className="h-3 w-3" />}>
-              <InlineField
-                value={`${task.expense_amount.toLocaleString()}`}
-                onSave={(v) => {
-                  const num = parseFloat(v.replace(/[^0-9.]/g, ""));
-                  updateTask.mutate({ expense_amount: isNaN(num) ? null : num });
-                }}
-                className="text-xs font-semibold w-16 text-right"
-              />
-            </MetaBadge>
-          )}
-        </>
-      }
-      actions={<DeleteAction onDelete={() => deleteTask.mutate()} />}
-    />
-  );
 }
 
 /* ── New Campaign Inline ── */
