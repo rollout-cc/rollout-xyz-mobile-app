@@ -6,7 +6,10 @@ import { useTeams } from "@/hooks/useTeams";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Search, LayoutGrid, List, Loader2 } from "lucide-react";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Plus, Search, LayoutGrid, List, Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NewProspectDialog } from "@/components/ar/NewProspectDialog";
 import { PipelineBoard } from "@/components/ar/PipelineBoard";
@@ -41,6 +44,9 @@ export default function ARList() {
   const [spotifyResults, setSpotifyResults] = useState<SpotifyArtist[]>([]);
   const [spotifySearching, setSpotifySearching] = useState(false);
   const [addingIds, setAddingIds] = useState<Set<string>>(new Set());
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [inlineStage, setInlineStage] = useState("discovered");
+  const [inlinePriority, setInlinePriority] = useState("medium");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const filtered = useMemo(() => {
@@ -88,10 +94,11 @@ export default function ARList() {
         primary_genre: artist.genres?.[0] || undefined,
         spotify_uri: `spotify:artist:${artist.id}`,
         monthly_listeners: artist.followers?.total,
-        stage: "discovered",
-        priority: "medium",
+        stage: inlineStage as any,
+        priority: inlinePriority as any,
       });
       toast.success(`${artist.name} added as prospect`);
+      setExpandedId(null);
       navigate(`/ar/${result.id}`);
     } catch (err: any) {
       toast.error(err.message);
@@ -201,18 +208,26 @@ export default function ARList() {
             </div>
           ) : (
             <div className="flex flex-col gap-2 max-h-[280px] overflow-y-auto">
-              {spotifyResults.map((artist) => {
+               {spotifyResults.map((artist) => {
                 const alreadyAdded = existingSpotifyIds.has(artist.id);
                 const adding = addingIds.has(artist.id);
-                  return (
+                const isExpanded = expandedId === artist.id;
+                return (
+                  <div key={artist.id} className="rounded-lg border border-border overflow-hidden transition-colors">
                     <div
-                      key={artist.id}
                       className={cn(
-                        "flex items-center gap-3 p-2 rounded-lg transition-colors",
+                        "flex items-center gap-3 p-2 transition-colors",
                         !alreadyAdded && !adding ? "cursor-pointer hover:bg-accent/50" : "opacity-60"
                       )}
                       onClick={() => {
-                        if (!alreadyAdded && !adding) handleAddFromSpotify(artist);
+                        if (alreadyAdded || adding) return;
+                        if (isExpanded) {
+                          setExpandedId(null);
+                        } else {
+                          setExpandedId(artist.id);
+                          setInlineStage("discovered");
+                          setInlinePriority("medium");
+                        }
                       }}
                     >
                       <Avatar className="h-10 w-10">
@@ -233,6 +248,45 @@ export default function ARList() {
                         <Plus className="h-4 w-4 text-muted-foreground" />
                       )}
                     </div>
+                    {isExpanded && !alreadyAdded && (
+                      <div className="flex items-center gap-2 px-3 pb-2 pt-1 border-t border-border bg-muted/30">
+                        <Select value={inlineStage} onValueChange={setInlineStage}>
+                          <SelectTrigger className="h-8 text-xs w-[140px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {["discovered", "contacted", "in_conversation", "materials_requested", "internal_review"].map((s) => (
+                              <SelectItem key={s} value={s} className="text-xs">
+                                {s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={inlinePriority} onValueChange={setInlinePriority}>
+                          <SelectTrigger className="h-8 text-xs w-[100px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="low" className="text-xs">Low</SelectItem>
+                            <SelectItem value="medium" className="text-xs">Medium</SelectItem>
+                            <SelectItem value="high" className="text-xs">High</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          size="sm"
+                          className="h-8 gap-1 ml-auto"
+                          disabled={adding}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddFromSpotify(artist);
+                          }}
+                        >
+                          {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                          Add
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
