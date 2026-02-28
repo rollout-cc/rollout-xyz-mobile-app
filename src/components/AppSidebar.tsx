@@ -76,8 +76,11 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
         <SidebarContent className="flex flex-col h-full p-0">
           {/* Logo — optically centered with consistent vertical rhythm */}
           <div
-            className="flex items-center justify-center cursor-pointer transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-            style={{ padding: collapsed ? "20px 0 12px" : "20px 16px 8px" }}
+            className="flex items-center cursor-pointer transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+            style={{
+              padding: collapsed ? "16px 0 8px" : "16px 16px 8px",
+              justifyContent: "center",
+            }}
             onClick={() => navigate("/roster")}
           >
             <img
@@ -85,8 +88,8 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
               alt="Rollout"
               className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
               style={{
-                width: collapsed ? "22px" : "100%",
-                height: collapsed ? "22px" : "auto",
+                width: collapsed ? "28px" : "100%",
+                height: collapsed ? "28px" : "auto",
                 objectFit: "contain",
               }}
             />
