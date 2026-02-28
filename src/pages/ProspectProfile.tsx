@@ -2,10 +2,9 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -13,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Plus, ExternalLink } from "lucide-react";
+import { ArrowLeft, Plus, ExternalLink, User, Music, Phone, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useProspect,
@@ -27,6 +26,7 @@ import {
 } from "@/hooks/useProspects";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { InlineField } from "@/components/ui/InlineField";
 import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import { DealTermsCard } from "@/components/ar/DealTermsCard";
 
@@ -158,32 +158,75 @@ export default function ProspectProfile() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left column: Info + Contacts */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Profile Info */}
+          {/* Profile Info - inline editing like artist info tab */}
           <CollapsibleSection title="Profile" defaultOpen>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <EditableField label="Spotify URI" value={prospect.spotify_uri} onSave={(v) => handleFieldUpdate("spotify_uri", v)} link />
-              <EditableField label="Instagram" value={prospect.instagram} onSave={(v) => handleFieldUpdate("instagram", v)} />
-              <EditableField label="TikTok" value={prospect.tiktok} onSave={(v) => handleFieldUpdate("tiktok", v)} />
-              <EditableField label="YouTube" value={prospect.youtube} onSave={(v) => handleFieldUpdate("youtube", v)} />
-              <EditableField label="Monthly Listeners" value={prospect.monthly_listeners?.toString()} onSave={(v) => handleFieldUpdate("monthly_listeners", v ? parseInt(v) : null)} />
-              <EditableField label="Next Follow Up" value={prospect.next_follow_up} type="date" onSave={(v) => handleFieldUpdate("next_follow_up", v || null)} />
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <Music className="h-3.5 w-3.5" /> Artist Info
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Field label="Genre" value={prospect.primary_genre ?? ""} placeholder="e.g. Hip Hop" onSave={(v) => handleFieldUpdate("primary_genre", v || null)} />
+                <Field label="City" value={prospect.city ?? ""} placeholder="e.g. Atlanta" onSave={(v) => handleFieldUpdate("city", v || null)} />
+                <Field label="Monthly Listeners" value={prospect.monthly_listeners?.toString() ?? ""} placeholder="e.g. 50000" onSave={(v) => handleFieldUpdate("monthly_listeners", v ? parseInt(v) : null)} />
+                <div>
+                  <span className="text-muted-foreground text-xs">Next Follow Up</span>
+                  <Input
+                    type="date"
+                    defaultValue={prospect.next_follow_up || ""}
+                    onBlur={(e) => handleFieldUpdate("next_follow_up", e.target.value || null)}
+                    className="h-9 mt-0.5 bg-transparent border-border"
+                  />
+                </div>
+              </div>
             </div>
+
             <div className="mt-4">
-              <Label className="text-xs text-muted-foreground">Key Songs</Label>
-              <Textarea
-                defaultValue={(prospect.key_songs || []).join("\n")}
-                onBlur={(e) => handleFieldUpdate("key_songs", e.target.value.split("\n").filter(Boolean))}
-                placeholder="One song per line"
-                rows={3}
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <ExternalLink className="h-3.5 w-3.5" /> Socials & Links
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <span className="text-muted-foreground text-xs">Spotify URI</span>
+                  <div className="flex items-center gap-1">
+                    <InlineField
+                      value={prospect.spotify_uri ?? ""}
+                      placeholder="spotify:artist:... or URL"
+                      onSave={(v) => handleFieldUpdate("spotify_uri", v || null)}
+                    />
+                    {prospect.spotify_uri && (
+                      <a
+                        href={prospect.spotify_uri.startsWith("http") ? prospect.spotify_uri : `https://open.spotify.com/artist/${prospect.spotify_uri.replace("spotify:artist:", "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+                <Field label="Instagram" value={prospect.instagram ?? ""} placeholder="@handle" onSave={(v) => handleFieldUpdate("instagram", v || null)} />
+                <Field label="TikTok" value={prospect.tiktok ?? ""} placeholder="@handle" onSave={(v) => handleFieldUpdate("tiktok", v || null)} />
+                <Field label="YouTube" value={prospect.youtube ?? ""} placeholder="Channel URL" onSave={(v) => handleFieldUpdate("youtube", v || null)} />
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <span className="text-muted-foreground text-xs">Key Songs</span>
+              <InlineField
+                value={(prospect.key_songs || []).join(", ")}
+                placeholder="Song 1, Song 2, Song 3"
+                onSave={(v) => handleFieldUpdate("key_songs", v.split(",").map((s: string) => s.trim()).filter(Boolean))}
               />
             </div>
-            <div className="mt-4">
-              <Label className="text-xs text-muted-foreground">Notes</Label>
-              <Textarea
-                defaultValue={prospect.notes || ""}
-                onBlur={(e) => handleFieldUpdate("notes", e.target.value)}
+
+            <div className="mt-3">
+              <span className="text-muted-foreground text-xs">Notes</span>
+              <InlineField
+                value={prospect.notes ?? ""}
                 placeholder="General notes..."
-                rows={4}
+                onSave={(v) => handleFieldUpdate("notes", v || null)}
+                as="textarea"
               />
             </div>
           </CollapsibleSection>
@@ -193,6 +236,7 @@ export default function ProspectProfile() {
             <div className="space-y-2">
               {contacts.map((c: any) => (
                 <div key={c.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
+                  <User className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm">{c.name}</div>
                     <div className="text-xs text-muted-foreground">{[c.role, c.email, c.phone].filter(Boolean).join(" · ")}</div>
@@ -200,12 +244,24 @@ export default function ProspectProfile() {
                 </div>
               ))}
               {showContactForm ? (
-                <div className="rounded-lg border border-border p-3 space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input placeholder="Name" value={contactForm.name} onChange={(e) => setContactForm((p) => ({ ...p, name: e.target.value }))} />
-                    <Input placeholder="Role (Manager, Lawyer...)" value={contactForm.role} onChange={(e) => setContactForm((p) => ({ ...p, role: e.target.value }))} />
-                    <Input placeholder="Email" value={contactForm.email} onChange={(e) => setContactForm((p) => ({ ...p, email: e.target.value }))} />
-                    <Input placeholder="Phone" value={contactForm.phone} onChange={(e) => setContactForm((p) => ({ ...p, phone: e.target.value }))} />
+                <div className="rounded-lg border border-border p-3 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-muted-foreground text-xs">Name</span>
+                      <Input value={contactForm.name} onChange={(e) => setContactForm((p) => ({ ...p, name: e.target.value }))} placeholder="Contact name" className="h-9 mt-0.5 bg-transparent border-border" />
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Role</span>
+                      <Input value={contactForm.role} onChange={(e) => setContactForm((p) => ({ ...p, role: e.target.value }))} placeholder="Manager, Lawyer..." className="h-9 mt-0.5 bg-transparent border-border" />
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Email</span>
+                      <Input value={contactForm.email} onChange={(e) => setContactForm((p) => ({ ...p, email: e.target.value }))} placeholder="email@example.com" className="h-9 mt-0.5 bg-transparent border-border" />
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Phone</span>
+                      <Input value={contactForm.phone} onChange={(e) => setContactForm((p) => ({ ...p, phone: e.target.value }))} placeholder="+1 555 555 5555" className="h-9 mt-0.5 bg-transparent border-border" />
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" onClick={handleAddContact} disabled={!contactForm.name.trim()}>Add</Button>
@@ -223,24 +279,8 @@ export default function ProspectProfile() {
           {/* Deal Summary */}
           <CollapsibleSection title="Deal Summary" defaultOpen>
             <div className="grid grid-cols-2 gap-3 mb-4">
-              <div>
-                <Label className="text-xs text-muted-foreground">Deal Status</Label>
-                <Select value={deal?.deal_status || "not_discussed"} onValueChange={(v) => handleDealChange("deal_status", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {DEAL_STATUSES.map((s) => <SelectItem key={s} value={s}>{stageLabel(s)}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Deal Type</Label>
-                <Select value={deal?.deal_type || ""} onValueChange={(v) => handleDealChange("deal_type", v)}>
-                  <SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger>
-                  <SelectContent>
-                    {DEAL_TYPES.map((t) => <SelectItem key={t} value={t}>{stageLabel(t)}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+              <SelectField label="Deal Status" value={deal?.deal_status || "not_discussed"} options={DEAL_STATUSES} placeholder="Select status" onSave={(v) => handleDealChange("deal_status", v)} />
+              <SelectField label="Deal Type" value={deal?.deal_type || ""} options={DEAL_TYPES} placeholder="Select type..." onSave={(v) => handleDealChange("deal_type", v)} />
             </div>
 
             {deal?.deal_type && (
@@ -254,24 +294,28 @@ export default function ProspectProfile() {
           <CollapsibleSection title="Engagement Log" defaultOpen>
             <div className="space-y-3">
               {showEngagementForm ? (
-                <div className="rounded-lg border border-border p-3 space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-lg border border-border p-3 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <SelectField label="Type" value={engForm.engagement_type} options={ENGAGEMENT_TYPES} placeholder="Select type" onSave={(v) => setEngForm((p) => ({ ...p, engagement_type: v }))} />
                     <div>
-                      <Label className="text-xs">Type</Label>
-                      <Select value={engForm.engagement_type} onValueChange={(v) => setEngForm((p) => ({ ...p, engagement_type: v }))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {ENGAGEMENT_TYPES.map((t) => <SelectItem key={t} value={t}>{stageLabel(t)}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label className="text-xs">Date</Label>
-                      <Input type="date" value={engForm.engagement_date} onChange={(e) => setEngForm((p) => ({ ...p, engagement_date: e.target.value }))} />
+                      <span className="text-muted-foreground text-xs">Date</span>
+                      <Input type="date" value={engForm.engagement_date} onChange={(e) => setEngForm((p) => ({ ...p, engagement_date: e.target.value }))} className="h-9 mt-0.5 bg-transparent border-border" />
                     </div>
                   </div>
-                  <Textarea placeholder="Outcome / notes" value={engForm.outcome} onChange={(e) => setEngForm((p) => ({ ...p, outcome: e.target.value }))} rows={2} />
-                  <Input placeholder="Next step" value={engForm.next_step} onChange={(e) => setEngForm((p) => ({ ...p, next_step: e.target.value }))} />
+                  <div>
+                    <span className="text-muted-foreground text-xs">Outcome / Notes</span>
+                    <textarea
+                      value={engForm.outcome}
+                      onChange={(e) => setEngForm((p) => ({ ...p, outcome: e.target.value }))}
+                      placeholder="What happened?"
+                      rows={2}
+                      className="w-full bg-transparent border border-border rounded-md outline-none text-foreground py-1.5 px-2 focus:border-ring focus:ring-1 focus:ring-ring transition-colors placeholder:text-muted-foreground/50 text-sm mt-0.5"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Next Step</span>
+                    <Input value={engForm.next_step} onChange={(e) => setEngForm((p) => ({ ...p, next_step: e.target.value }))} placeholder="What's next?" className="h-9 mt-0.5 bg-transparent border-border" />
+                  </div>
                   <div className="flex gap-2">
                     <Button size="sm" onClick={handleAddEngagement}>Log</Button>
                     <Button size="sm" variant="outline" onClick={() => setShowEngagementForm(false)}>Cancel</Button>
@@ -315,31 +359,39 @@ export default function ProspectProfile() {
   );
 }
 
-function EditableField({ label, value, onSave, type = "text", link }: {
-  label: string;
-  value: string | null | undefined;
-  onSave: (v: string) => void;
-  type?: string;
-  link?: boolean;
+/* ── Reusable inline field with label (matches artist info pattern) ── */
+function Field({
+  label, value, placeholder, onSave, as,
+}: {
+  label: string; value: string; placeholder: string; onSave: (v: string) => void; as?: "input" | "textarea";
 }) {
   return (
     <div>
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      <div className="flex items-center gap-1">
-        <Input
-          type={type}
-          defaultValue={value || ""}
-          onBlur={(e) => {
-            if (e.target.value !== (value || "")) onSave(e.target.value);
-          }}
-          className="h-8 text-sm"
-        />
-        {link && value && (
-          <a href={value.startsWith("http") ? value : `https://open.spotify.com/artist/${value.replace("spotify:artist:", "")}`} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
-          </a>
-        )}
-      </div>
+      <span className="text-muted-foreground text-xs">{label}</span>
+      <InlineField value={value} placeholder={placeholder} onSave={onSave} as={as} />
+    </div>
+  );
+}
+
+/* ── Select dropdown field (matches artist info pattern) ── */
+function SelectField({
+  label, value, options, placeholder, onSave,
+}: {
+  label: string; value: string; options: string[]; placeholder: string; onSave: (v: string) => void;
+}) {
+  return (
+    <div>
+      <span className="text-muted-foreground text-xs">{label}</span>
+      <Select value={value} onValueChange={onSave}>
+        <SelectTrigger className="w-full bg-transparent border border-border rounded-md text-foreground h-9 mt-0.5">
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent className="bg-popover border border-border z-50">
+          {options.map((opt) => (
+            <SelectItem key={opt} value={opt}>{stageLabel(opt)}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
