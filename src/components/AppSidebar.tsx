@@ -74,78 +74,72 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
     <>
       <Sidebar collapsible="icon" className="border-r border-border bg-sidebar">
         <SidebarContent className="flex flex-col h-full p-0">
-          {/* Logo */}
+          {/* Logo — optically centered with consistent vertical rhythm */}
           <div
-            className="px-4 pt-4 pb-2 cursor-pointer flex items-center justify-center"
+            className="flex items-center justify-center cursor-pointer transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+            style={{ padding: collapsed ? "20px 0 12px" : "20px 16px 8px" }}
             onClick={() => navigate("/roster")}
           >
-            {collapsed ? (
-              <img src={rolloutFlag} alt="Rollout" className="w-6 h-6 object-contain" />
-            ) : (
-              <img src={rolloutLogo} alt="Rollout" className="w-full" />
-            )}
+            <img
+              src={collapsed ? rolloutFlag : rolloutLogo}
+              alt="Rollout"
+              className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+              style={{
+                width: collapsed ? "22px" : "100%",
+                height: collapsed ? "22px" : "auto",
+                objectFit: "contain",
+              }}
+            />
           </div>
 
-          {/* Team Switcher */}
-          {!collapsed && (
-            <div className="px-3 pb-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent transition-colors">
-                    <div className="flex h-6 w-6 items-center justify-center rounded bg-muted text-xs font-medium shrink-0">
-                      {selectedTeam?.name?.[0] ?? "?"}
-                    </div>
-                    <span className="flex-1 text-left truncate text-foreground">
-                      {selectedTeam?.name ?? "Select team"}
-                    </span>
-                    <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48">
-                  {teams.map((team) => (
-                    <DropdownMenuItem key={team.id} onClick={() => onSelectTeam(team.id)}>
-                      {team.name}
-                    </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuItem onClick={() => setShowCreateTeam(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create team
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )}
-
-          {collapsed && (
-            <div className="flex justify-center pb-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex h-8 w-8 items-center justify-center rounded bg-muted text-xs font-medium hover:bg-accent transition-colors">
+          {/* Team Switcher — unified for both states */}
+          <div
+            className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+            style={{ padding: collapsed ? "0 8px 8px" : "0 12px 8px" }}
+          >
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="flex w-full items-center gap-2 rounded-md text-sm hover:bg-accent transition-colors"
+                  style={{ padding: collapsed ? "6px 0" : "6px 8px", justifyContent: collapsed ? "center" : "flex-start" }}
+                >
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted text-xs font-semibold shrink-0">
                     {selectedTeam?.name?.[0] ?? "?"}
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent side="right" align="start" className="w-48">
-                  {teams.map((team) => (
-                    <DropdownMenuItem key={team.id} onClick={() => onSelectTeam(team.id)}>
-                      {team.name}
-                    </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuItem onClick={() => setShowCreateTeam(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create team
+                  </div>
+                  {!collapsed && (
+                    <>
+                      <span className="flex-1 text-left truncate text-foreground">
+                        {selectedTeam?.name ?? "Select team"}
+                      </span>
+                      <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    </>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side={collapsed ? "right" : "bottom"} align="start" className="w-48">
+                {teams.map((team) => (
+                  <DropdownMenuItem key={team.id} onClick={() => onSelectTeam(team.id)}>
+                    {team.name}
                   </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )}
+                ))}
+                <DropdownMenuItem onClick={() => setShowCreateTeam(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create team
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
-          {/* Nav */}
-          <SidebarMenu className={collapsed ? "px-2" : "px-3"}>
+          {/* Nav — consistent padding, centered icons in collapsed */}
+          <SidebarMenu
+            className="transition-[padding] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+            style={{ padding: collapsed ? "0 8px" : "0 12px" }}
+          >
             {navItems.map((item) => (
               <SidebarMenuItem key={item.to}>
                 <SidebarMenuButton asChild tooltip={collapsed ? item.label : undefined}>
                   <NavLink to={item.to} className="hover:bg-accent" activeClassName="bg-accent font-medium">
-                    <item.icon className={collapsed ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+                    <item.icon className="h-4 w-4 shrink-0" />
                     {!collapsed && <span>{item.label}</span>}
                   </NavLink>
                 </SidebarMenuButton>
@@ -154,14 +148,33 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
           </SidebarMenu>
 
           {/* Bottom: collapse toggle + add button */}
-          <div className="mt-auto p-3 space-y-2">
-            <button
-              onClick={toggleSidebar}
-              className="flex w-full items-center justify-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            >
-              {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
-              {!collapsed && <span className="flex-1 text-left">Collapse</span>}
-            </button>
+          <div
+            className="mt-auto space-y-1.5 transition-[padding] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+            style={{ padding: collapsed ? "12px 8px" : "12px" }}
+          >
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={toggleSidebar}
+                  className="flex w-full items-center rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                  style={{
+                    padding: "6px 8px",
+                    justifyContent: collapsed ? "center" : "flex-start",
+                    gap: collapsed ? "0" : "8px",
+                  }}
+                >
+                  {collapsed ? (
+                    <PanelLeftOpen className="h-4 w-4 shrink-0" />
+                  ) : (
+                    <>
+                      <PanelRightOpen className="h-4 w-4 shrink-0" />
+                      <span className="flex-1 text-left">Collapse</span>
+                    </>
+                  )}
+                </button>
+              </TooltipTrigger>
+              {collapsed && <TooltipContent side="right">Expand</TooltipContent>}
+            </Tooltip>
 
             {!collapsed ? (
               <Button
