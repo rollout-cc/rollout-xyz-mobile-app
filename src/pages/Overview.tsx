@@ -3,23 +3,24 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { useTeams } from "@/hooks/useTeams";
-import {
-  CheckCircle2,
-  AlertTriangle,
-  Clock,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  ArrowRight,
-} from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
+import { Reorder } from "framer-motion";
+import { Plus } from "lucide-react";
 import { format, startOfQuarter, endOfQuarter, subQuarters, addQuarters } from "date-fns";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { DraggableSection } from "@/components/overview/DraggableSection";
+import { useOverviewSections, ALL_SECTIONS } from "@/components/overview/useOverviewSections";
+import { KpiCardsSection } from "@/components/overview/KpiCardsSection";
+import { BudgetUtilizationSection } from "@/components/overview/BudgetUtilizationSection";
+import { QuarterlyPnlSection } from "@/components/overview/QuarterlyPnlSection";
+import { SpendingPerActSection } from "@/components/overview/SpendingPerActSection";
 
 export default function Overview() {
-  const navigate = useNavigate();
   const { data: teams = [] } = useTeams();
   const teamId = teams[0]?.id;
 
@@ -78,18 +79,6 @@ export default function Overview() {
       return data;
     },
     enabled: !!teamId,
-  });
-
-  const { data: categories = [] } = useQuery({
-    queryKey: ["overview-categories", teamId],
-    queryFn: async () => {
-      const artistIds = artists.map((a) => a.id);
-      if (artistIds.length === 0) return [];
-      const { data, error } = await supabase.from("finance_categories").select("*").in("artist_id", artistIds);
-      if (error) throw error;
-      return data;
-    },
-    enabled: artists.length > 0,
   });
 
   const { data: initiatives = [] } = useQuery({
@@ -181,12 +170,8 @@ export default function Overview() {
       const totalTasks = aTasks.length;
       const utilization = budget > 0 ? Math.min((expenses / budget) * 100, 100) : 0;
 
-      // Category breakdown for this artist
       const catBreakdown = aBudgets.map((b: any) => {
-        const catTxns = aTxns.filter((t: any) => {
-          // Match transactions to budgets via budget_id
-          return t.budget_id === b.id;
-        });
+        const catTxns = aTxns.filter((t: any) => t.budget_id === b.id);
         const spent = catTxns.reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
         return { label: b.label, budget: Number(b.amount), spent, pct: Number(b.amount) > 0 ? (spent / Number(b.amount)) * 100 : 0 };
       });
@@ -209,6 +194,36 @@ export default function Overview() {
   const fmt = (n: number) => `$${Math.abs(n).toLocaleString()}`;
   const fmtSigned = (n: number) => `${n < 0 ? "-" : ""}$${Math.abs(n).toLocaleString()}`;
 
+  // ——— Section management ———
+  const {
+    visibleSections,
+    hiddenSections,
+    collapsed,
+    setOrder,
+    toggleVisibility,
+    showSection,
+    toggleCollapse,
+  } = useOverviewSections();
+
+  const sectionRegistry: Record<string, { label: string; content: React.ReactNode }> = {
+    kpis: {
+      label: "KPI Cards",
+      content: <KpiCardsSection totalBudget={totalBudget} totalRevenue={totalRevenue} totalExpenses={totalExpenses} netProfit={netProfit} fmt={fmt} fmtSigned={fmtSigned} />,
+    },
+    "budget-utilization": {
+      label: "Budget Utilization",
+      content: <BudgetUtilizationSection totalExpenses={totalExpenses} budgetRemaining={budgetRemaining} budgetUtilization={budgetUtilization} openTasks={openTasks} overdueTasks={overdueTasks} fmt={fmt} />,
+    },
+    "quarterly-pnl": {
+      label: "Quarterly P&L",
+      content: <QuarterlyPnlSection quarterlyData={quarterlyData} departments={departments} totalRevenue={totalRevenue} totalExpenses={totalExpenses} netProfit={netProfit} fmt={fmt} fmtSigned={fmtSigned} />,
+    },
+    "spending-per-act": {
+      label: "Spending Per Act",
+      content: <SpendingPerActSection artistBreakdown={artistBreakdown} artistCount={artists.length} fmt={fmt} fmtSigned={fmtSigned} />,
+    },
+  };
+
   return (
     <AppLayout title="Overview">
       {/* Welcome */}
@@ -221,241 +236,45 @@ export default function Overview() {
         </p>
       </div>
 
-      {/* Top KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-8">
-        <KpiCard label="Total Budget" value={fmt(totalBudget)} icon={<DollarSign className="h-4 w-4" />} />
-        <KpiCard
-          label="Total Revenue"
-          value={fmt(totalRevenue)}
-          icon={<TrendingUp className="h-4 w-4" />}
-          accent="text-emerald-600"
-        />
-        <KpiCard
-          label="Total Spending"
-          value={fmt(totalExpenses)}
-          icon={<TrendingDown className="h-4 w-4" />}
-          accent="text-destructive"
-        />
-        <KpiCard
-          label="Net P&L"
-          value={fmtSigned(netProfit)}
-          icon={<DollarSign className="h-4 w-4" />}
-          accent={netProfit >= 0 ? "text-emerald-600" : "text-destructive"}
-        />
-      </div>
-
-      {/* Budget utilization bar */}
-      <div className="rounded-xl p-4 sm:p-5 mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-1">
-          <span className="label-lg">Budget Utilization</span>
-          <div className="flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground flex-wrap">
-            <span>Spent: {fmt(totalExpenses)}</span>
-            <span>Remaining: {fmt(budgetRemaining)}</span>
-            <span className="font-bold text-foreground">{budgetUtilization.toFixed(0)}%</span>
-          </div>
-        </div>
-        <Progress
-          value={budgetUtilization}
-          className={cn("h-3 [&>div]:transition-all", budgetUtilization > 90 ? "[&>div]:bg-destructive" : budgetUtilization > 70 ? "[&>div]:bg-amber-500" : "[&>div]:bg-emerald-500")}
-        />
-        <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-          <span>{openTasks} open tasks</span>
-          {overdueTasks > 0 && (
-            <span className="flex items-center gap-1 text-destructive">
-              <AlertTriangle className="h-3 w-3" /> {overdueTasks} overdue
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Quarterly P&L */}
-      <div className="rounded-xl p-5 mb-8">
-        <h2 className="mb-4">Quarterly P&L</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-2 pr-4 text-xs text-muted-foreground font-medium" />
-                {quarterlyData.map((q) => (
-                  <th key={q.label} className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">
-                    {q.label}
-                  </th>
-                ))}
-                <th className="text-right py-2 pl-3 text-xs text-muted-foreground font-medium">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-border">
-                <td className="py-2.5 pr-4 font-medium">Revenue</td>
-                {quarterlyData.map((q) => (
-                  <td key={q.label} className="text-right py-2.5 px-3 text-emerald-600 font-medium">
-                    {q.revenue > 0 ? fmt(q.revenue) : "—"}
-                  </td>
-                ))}
-                <td className="text-right py-2.5 pl-3 font-bold text-emerald-600">{fmt(totalRevenue)}</td>
-              </tr>
-              <tr className="border-b border-border">
-                <td className="py-2.5 pr-4 font-medium">Expenses</td>
-                {quarterlyData.map((q) => (
-                  <td key={q.label} className="text-right py-2.5 px-3 text-destructive font-medium">
-                    {q.expenses > 0 ? fmt(q.expenses) : "—"}
-                  </td>
-                ))}
-                <td className="text-right py-2.5 pl-3 font-bold text-destructive">{fmt(totalExpenses)}</td>
-              </tr>
-              {/* Department breakdown rows */}
-              {[...departments, ...(quarterlyData.some(q => q.deptExpenses["Other"] > 0) ? ["Other"] : [])].filter((v, i, a) => a.indexOf(v) === i).map((dept) => {
-                const deptTotal = quarterlyData.reduce((s, q) => s + (q.deptExpenses[dept] || 0), 0);
-                if (deptTotal === 0) return null;
-                return (
-                  <tr key={dept} className="border-b border-border">
-                    <td className="py-2 pr-4 text-muted-foreground text-xs pl-4">{dept}</td>
-                    {quarterlyData.map((q) => (
-                      <td key={q.label} className="text-right py-2 px-3 text-xs text-muted-foreground">
-                        {(q.deptExpenses[dept] || 0) > 0 ? fmt(q.deptExpenses[dept]) : "—"}
-                      </td>
-                    ))}
-                    <td className="text-right py-2 pl-3 text-xs font-medium text-muted-foreground">{fmt(deptTotal)}</td>
-                  </tr>
-                );
-              })}
-              <tr>
-                <td className="py-2.5 pr-4 font-semibold">Gross Profit</td>
-                {quarterlyData.map((q) => (
-                  <td key={q.label} className={cn("text-right py-2.5 px-3 font-bold", q.gp >= 0 ? "text-emerald-600" : "text-destructive")}>
-                    {q.revenue > 0 || q.expenses > 0 ? fmtSigned(q.gp) : "—"}
-                  </td>
-                ))}
-                <td className={cn("text-right py-2.5 pl-3 font-bold", netProfit >= 0 ? "text-emerald-600" : "text-destructive")}>
-                  {fmtSigned(netProfit)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Per-Artist Spending Breakdown */}
-      <div className="rounded-xl p-5">
-        <div className="flex items-center justify-between mb-5">
-          <h2>Spending Per Act</h2>
-          <span className="caption-bold">{artists.length} artists</span>
-        </div>
-
-        <div className="space-y-0">
-          {artistBreakdown.map((artist) => (
-            <div
-              key={artist.id}
-              className="border-b border-border last:border-b-0 py-4 -mx-5 px-5 hover:bg-accent/30 cursor-pointer transition-colors"
-              onClick={() => navigate(`/roster/${artist.id}`)}
+      {/* Draggable sections */}
+      <Reorder.Group axis="y" values={visibleSections} onReorder={setOrder} className="space-y-6">
+        {visibleSections.map((id) => {
+          const section = sectionRegistry[id];
+          if (!section) return null;
+          return (
+            <DraggableSection
+              key={id}
+              id={id}
+              title={section.label}
+              isOpen={!collapsed.has(id)}
+              onToggle={() => toggleCollapse(id)}
+              onHide={() => toggleVisibility(id)}
             >
-              {/* Artist header row */}
-              <div className="flex items-center gap-3 mb-3">
-                <Avatar className="h-10 w-10 shrink-0">
-                  <AvatarImage src={artist.avatar_url ?? undefined} />
-                  <AvatarFallback className="text-sm font-bold">{artist.name[0]}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm truncate">{artist.name}</span>
-                    <span className="caption whitespace-nowrap">{artist.campaignCount} campaigns</span>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground mt-0.5">
-                    <span className="flex items-center gap-1">
-                      <CheckCircle2 className="h-3 w-3 text-emerald-500" /> {artist.completedTasks}/{artist.totalTasks} tasks
-                    </span>
-                  </div>
-                </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-              </div>
+              {section.content}
+            </DraggableSection>
+          );
+        })}
+      </Reorder.Group>
 
-              {/* Financial stats – stacked on mobile, row on desktop */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 ml-0 sm:ml-14 mb-2">
-                <div>
-                  <div className="caption-bold">Budget</div>
-                  <div className="font-bold text-sm">{fmt(artist.budget)}</div>
-                </div>
-                <div>
-                  <div className="caption-bold">Spent</div>
-                  <div className="font-bold text-sm text-destructive">{fmt(artist.expenses)}</div>
-                </div>
-                <div>
-                  <div className="caption-bold">Revenue</div>
-                  <div className="font-bold text-sm text-emerald-600">{fmt(artist.revenue)}</div>
-                </div>
-                <div>
-                  <div className="caption-bold">P&L</div>
-                  <div className={cn("font-bold text-sm", artist.gp >= 0 ? "text-emerald-600" : "text-destructive")}>
-                    {fmtSigned(artist.gp)}
-                  </div>
-                </div>
-              </div>
-
-              {/* Budget category bars */}
-              {artist.categories.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 ml-0 sm:ml-14">
-                  {artist.categories.map((cat, i) => (
-                    <div key={i}>
-                      <div className="flex items-center justify-between text-xs mb-0.5">
-                        <span className="text-muted-foreground truncate">{cat.label}</span>
-                        <span className="font-medium ml-2">{fmt(cat.spent)} / {fmt(cat.budget)}</span>
-                      </div>
-                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                        <div
-                          className={cn(
-                            "h-full rounded-full transition-all",
-                            cat.pct > 90 ? "bg-destructive" : cat.pct > 70 ? "bg-amber-500" : "bg-emerald-500"
-                          )}
-                          style={{ width: `${Math.min(cat.pct, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Utilization bar */}
-              <div className="ml-0 sm:ml-14 mt-2">
-                <div className="flex items-center justify-between text-xs mb-0.5">
-                  <span className="text-muted-foreground">Overall Utilization</span>
-                  <span className="font-semibold">{artist.utilization.toFixed(0)}%</span>
-                </div>
-                <Progress
-                  value={artist.utilization}
-                  className={cn("h-1.5 [&>div]:transition-all", artist.utilization > 90 ? "[&>div]:bg-destructive" : artist.utilization > 70 ? "[&>div]:bg-amber-500" : "[&>div]:bg-emerald-500")}
-                />
-              </div>
-            </div>
-          ))}
-
-          {artistBreakdown.length === 0 && (
-            <div className="text-center py-8 text-sm text-muted-foreground">
-              No artists yet. Add artists from the Roster page.
-            </div>
-          )}
+      {/* Add hidden sections back */}
+      {hiddenSections.length > 0 && (
+        <div className="mt-6 flex justify-center">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Plus className="h-4 w-4" /> Add Section
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center">
+              {hiddenSections.map((s) => (
+                <DropdownMenuItem key={s.id} onClick={() => showSection(s.id)}>
+                  {s.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-
-        <button
-          onClick={() => navigate("/roster")}
-          className="text-sm font-medium text-muted-foreground hover:text-foreground mt-4 block ml-auto transition-colors"
-        >
-          View Full Roster →
-        </button>
-      </div>
+      )}
     </AppLayout>
-  );
-}
-
-function KpiCard({ label, value, icon, accent }: { label: string; value: string; icon: React.ReactNode; accent?: string }) {
-  return (
-    <div className="rounded-xl p-4 hover:bg-accent/40 transition-colors">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-muted text-muted-foreground">
-          {icon}
-        </div>
-        <span className="text-xs text-muted-foreground">{label}</span>
-      </div>
-      <div className={cn("text-xl sm:text-2xl font-bold break-all", accent)}>{value}</div>
-    </div>
   );
 }
