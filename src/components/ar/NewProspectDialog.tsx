@@ -55,7 +55,7 @@ export function NewProspectDialog({ open, onOpenChange, teamId }: NewProspectDia
     tiktok: "",
     youtube: "",
     notes: "",
-    stage: "discovered",
+    stage: "contacted",
     priority: "medium",
     monthly_listeners: undefined as number | undefined,
   });
@@ -68,7 +68,7 @@ export function NewProspectDialog({ open, onOpenChange, teamId }: NewProspectDia
       setSearchResults([]);
       setForm({
         artist_name: "", primary_genre: "", city: "", spotify_uri: "",
-        instagram: "", tiktok: "", youtube: "", notes: "", stage: "discovered",
+        instagram: "", tiktok: "", youtube: "", notes: "", stage: "contacted",
         priority: "medium", monthly_listeners: undefined,
       });
     }
@@ -232,17 +232,12 @@ export function NewProspectDialog({ open, onOpenChange, teamId }: NewProspectDia
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Genre</Label>
-                  <Input value={form.primary_genre} onChange={(e) => set("primary_genre", e.target.value)} placeholder="e.g. Hip Hop" />
+                  <Input value={form.primary_genre} readOnly className="bg-muted" placeholder="Auto-filled from Spotify" />
                 </div>
                 <div>
                   <Label>City</Label>
                   <Input value={form.city} onChange={(e) => set("city", e.target.value)} placeholder="e.g. Atlanta" />
                 </div>
-              </div>
-
-              <div>
-                <Label>Spotify URI</Label>
-                <Input value={form.spotify_uri} onChange={(e) => set("spotify_uri", e.target.value)} placeholder="spotify:artist:... or URL" />
               </div>
 
               <div className="grid grid-cols-3 gap-3">
@@ -266,7 +261,7 @@ export function NewProspectDialog({ open, onOpenChange, teamId }: NewProspectDia
                   <Select value={form.stage} onValueChange={(v) => set("stage", v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {["discovered", "contacted", "in_conversation", "materials_requested", "internal_review"].map((s) => (
+                      {["contacted", "offer_sent", "negotiating", "signed"].map((s) => (
                         <SelectItem key={s} value={s}>
                           {s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
                         </SelectItem>
