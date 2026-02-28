@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
-import { useProspects, useCreateProspect } from "@/hooks/useProspects";
+import { useProspects, useCreateProspect, useUpdateProspect, useDeleteProspect } from "@/hooks/useProspects";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,6 @@ import { PipelineBoard } from "@/components/ar/PipelineBoard";
 import { ProspectTable } from "@/components/ar/ProspectTable";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useUpdateProspect } from "@/hooks/useProspects";
 
 const STAGES = ["contacted", "offer_sent", "negotiating", "signed"] as const;
 
@@ -31,6 +30,7 @@ export default function ARList() {
   const navigate = useNavigate();
   const createProspect = useCreateProspect();
   const updateProspect = useUpdateProspect();
+  const deleteProspect = useDeleteProspect();
   const [view, setView] = useState<"board" | "table">("board");
   const [search, setSearch] = useState("");
   const [showNew, setShowNew] = useState(false);
@@ -253,9 +253,18 @@ export default function ARList() {
             updateProspect.mutate({ id, stage } as any);
             toast.success("Stage updated");
           }}
+          onDelete={(id) => {
+            deleteProspect.mutate(id, { onSuccess: () => toast.success("Prospect deleted") });
+          }}
         />
       ) : (
-        <ProspectTable prospects={filtered} onSelect={(id) => navigate(`/ar/${id}`)} />
+        <ProspectTable
+          prospects={filtered}
+          onSelect={(id) => navigate(`/ar/${id}`)}
+          onDelete={(id) => {
+            deleteProspect.mutate(id, { onSuccess: () => toast.success("Prospect deleted") });
+          }}
+        />
       )}
 
       <NewProspectDialog open={showNew} onOpenChange={setShowNew} teamId={teamId} />
