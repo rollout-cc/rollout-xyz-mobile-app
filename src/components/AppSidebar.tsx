@@ -88,8 +88,8 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
               alt="Rollout"
               className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
               style={{
-                width: collapsed ? "28px" : "100%",
-                height: collapsed ? "28px" : "auto",
+                width: collapsed ? "32px" : "100%",
+                height: collapsed ? "32px" : "auto",
                 objectFit: "contain",
               }}
             />
@@ -97,16 +97,15 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
 
           {/* Team Switcher — unified for both states */}
           <div
-            className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-            style={{ padding: collapsed ? "0 8px 8px" : "0 12px 8px" }}
+            className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex justify-center"
+            style={{ padding: collapsed ? "0 0 8px" : "0 12px 8px" }}
           >
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="flex w-full items-center gap-2 rounded-md text-sm hover:bg-accent transition-colors"
-                  style={{ padding: collapsed ? "6px 0" : "6px 8px", justifyContent: collapsed ? "center" : "flex-start" }}
+                  className={`flex items-center gap-2 rounded-md text-sm hover:bg-accent transition-colors ${collapsed ? "justify-center w-8 h-8 p-0" : "w-full px-2 py-1.5"}`}
                 >
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted text-xs font-semibold shrink-0">
+                  <div className={`flex items-center justify-center rounded-md bg-muted text-xs font-semibold shrink-0 ${collapsed ? "h-8 w-8" : "h-7 w-7"}`}>
                     {selectedTeam?.name?.[0] ?? "?"}
                   </div>
                   {!collapsed && (
@@ -133,7 +132,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
             </DropdownMenu>
           </div>
 
-          {/* Nav — consistent padding, centered icons in collapsed */}
+          {/* Nav — all items center-aligned in collapsed via SidebarMenuButton's built-in !size-8 */}
           <SidebarMenu
             className="transition-[padding] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
             style={{ padding: collapsed ? "0 8px" : "0 12px" }}
@@ -141,7 +140,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
             {navItems.map((item) => (
               <SidebarMenuItem key={item.to}>
                 <SidebarMenuButton asChild tooltip={collapsed ? item.label : undefined}>
-                  <NavLink to={item.to} className="hover:bg-accent" activeClassName="bg-accent font-medium">
+                  <NavLink to={item.to} className={`hover:bg-accent ${collapsed ? "justify-center" : ""}`} activeClassName="bg-accent font-medium">
                     <item.icon className="h-4 w-4 shrink-0" />
                     {!collapsed && <span>{item.label}</span>}
                   </NavLink>
