@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutGrid, ListTodo, Plus, ChevronsUpDown, BarChart3, ClipboardList, Users, Radar } from "lucide-react";
+import { LayoutGrid, ListTodo, Plus, ChevronsUpDown, Building2, ClipboardList, Users, Radar, CheckCheck } from "lucide-react";
 import rolloutLogo from "@/assets/rollout-logo.png";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -97,8 +97,8 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <NavLink to="/overview" className="hover:bg-accent" activeClassName="bg-accent font-medium">
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  Overview
+                  <Building2 className="mr-2 h-4 w-4" />
+                  Label
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -112,9 +112,9 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
-                <NavLink to="/tasks" className="hover:bg-accent" activeClassName="bg-accent font-medium">
-                  <ListTodo className="mr-2 h-4 w-4" />
-                  Tasks
+                <NavLink to="/my-work" className="hover:bg-accent" activeClassName="bg-accent font-medium">
+                  <CheckCheck className="mr-2 h-4 w-4" />
+                  My Work
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
