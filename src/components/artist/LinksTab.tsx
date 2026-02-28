@@ -525,13 +525,14 @@ function LinkItem({ link, isNew, artistId, folders, defaultFolderId, autoFocus, 
         >
           <Copy className="h-4 w-4 text-muted-foreground" />
         </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); window.open(link.url, "_blank"); }}
+        <a
+          href={link.url} target="_blank" rel="noopener noreferrer"
+          onClick={(e) => { e.stopPropagation(); }}
           className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors"
           title="Open"
         >
           <ExternalLink className="h-4 w-4 text-muted-foreground" />
-        </button>
+        </a>
         <button
           onClick={(e) => { e.stopPropagation(); deleteLink.mutate(); }}
           className="p-1 text-muted-foreground hover:text-destructive transition-colors"
