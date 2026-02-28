@@ -204,26 +204,35 @@ export default function ARList() {
               {spotifyResults.map((artist) => {
                 const alreadyAdded = existingSpotifyIds.has(artist.id);
                 const adding = addingIds.has(artist.id);
-                return (
-                  <div key={artist.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/50 transition-colors">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={artist.images?.[0]?.url} />
-                      <AvatarFallback>{artist.name[0]}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{artist.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {artist.genres.slice(0, 3).join(", ") || "No genres"}
-                      </p>
+                  return (
+                    <div
+                      key={artist.id}
+                      className={cn(
+                        "flex items-center gap-3 p-2 rounded-lg transition-colors",
+                        !alreadyAdded && !adding ? "cursor-pointer hover:bg-accent/50" : "opacity-60"
+                      )}
+                      onClick={() => {
+                        if (!alreadyAdded && !adding) handleAddFromSpotify(artist);
+                      }}
+                    >
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={artist.images?.[0]?.url} />
+                        <AvatarFallback>{artist.name[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{artist.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {artist.genres.slice(0, 3).join(", ") || "No genres"}
+                        </p>
+                      </div>
+                      {alreadyAdded ? (
+                        <span className="text-xs text-muted-foreground">Already added</span>
+                      ) : adding ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      ) : (
+                        <Plus className="h-4 w-4 text-muted-foreground" />
+                      )}
                     </div>
-                    {alreadyAdded ? (
-                      <span className="text-xs text-muted-foreground">Already added</span>
-                    ) : (
-                      <Button size="sm" variant="outline" onClick={() => handleAddFromSpotify(artist)} disabled={adding}>
-                        {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
-                      </Button>
-                    )}
-                  </div>
                 );
               })}
             </div>
