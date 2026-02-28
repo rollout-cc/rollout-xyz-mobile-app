@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserPlus, Copy, Check, Trash2, Shield } from "lucide-react";
+import { UserPlus, Copy, Check, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface TeamMember {
@@ -91,7 +91,7 @@ export function TeamManagement() {
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
-  const [permissionsUserId, setPermissionsUserId] = useState<string | null>(null);
+  
 
   // Fetch team members
   const { data: members = [], isLoading } = useQuery({
@@ -277,21 +277,6 @@ export function TeamManagement() {
     setInviteRole("manager");
   };
 
-  // Helper: get permissions for a specific user
-  const getUserPermissions = (userId: string) =>
-    allPermissions.filter((p) => p.user_id === userId);
-
-  // Helper: get accessible artists (view or full) for a user
-  const getAccessibleArtists = (userId: string) => {
-    const perms = getUserPermissions(userId);
-    return perms
-      .filter((p) => p.permission !== "no_access")
-      .map((p) => artists.find((a) => a.id === p.artist_id))
-      .filter(Boolean) as Artist[];
-  };
-
-  const permissionsMember = members.find((m) => m.user_id === permissionsUserId);
-
   if (isLoading) {
     return (
       <div className="text-sm text-muted-foreground py-4">
@@ -337,8 +322,6 @@ export function TeamManagement() {
             .toUpperCase()
             .slice(0, 2);
           const isMe = member.user_id === user?.id;
-          const accessibleArtists = getAccessibleArtists(member.user_id);
-          const MAX_CHIPS = 4;
 
           return (
             <div
@@ -412,32 +395,55 @@ export function TeamManagement() {
                   </span>
                 )}
 
-                {/* Artist access chips */}
-                {member.role !== "team_owner" && (
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {accessibleArtists.slice(0, MAX_CHIPS).map((artist) => (
-                      <Badge
-                        key={artist.id}
-                        variant="secondary"
-                        className="flex items-center gap-1 pl-1 pr-2 py-0.5 text-xs"
-                      >
-                        <Avatar className="h-4 w-4">
-                          <AvatarImage src={artist.avatar_url ?? undefined} />
-                          <AvatarFallback className="text-[8px] bg-muted">
-                            {artist.name[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        {artist.name}
-                      </Badge>
-                    ))}
-                    {accessibleArtists.length > MAX_CHIPS && (
-                      <Badge variant="outline" className="text-xs py-0.5">
-                        +{accessibleArtists.length - MAX_CHIPS}
-                      </Badge>
-                    )}
-                    {accessibleArtists.length === 0 && canManage && (
-                      <span className="text-xs text-muted-foreground">No artist access</span>
-                    )}
+                {/* Inline artist permissions */}
+                {member.role !== "team_owner" && artists.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    <p className="text-xs font-medium text-muted-foreground">Artist Access</p>
+                    <div className="space-y-1">
+                      {artists.map((artist) => {
+                        const existingPerm = allPermissions.find(
+                          (p) => p.user_id === member.user_id && p.artist_id === artist.id
+                        );
+                        const currentLevel = existingPerm?.permission ?? "no_access";
+
+                        return (
+                          <div key={artist.id} className="flex items-center gap-2">
+                            <Avatar className="h-5 w-5">
+                              <AvatarImage src={artist.avatar_url ?? undefined} />
+                              <AvatarFallback className="text-[8px] bg-muted text-muted-foreground">
+                                {artist.name[0]?.toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-xs text-foreground min-w-[80px] truncate">{artist.name}</span>
+                            {canManage ? (
+                              <Select
+                                value={currentLevel}
+                                onValueChange={(val) =>
+                                  upsertPermission.mutate({
+                                    userId: member.user_id,
+                                    artistId: artist.id,
+                                    permission: val,
+                                  })
+                                }
+                              >
+                                <SelectTrigger className="h-7 w-28 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="no_access">No Access</SelectItem>
+                                  <SelectItem value="view_access">View Access</SelectItem>
+                                  <SelectItem value="full_access">Full Access</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <Badge variant="outline" className="text-xs py-0 h-5">
+                                {permissionLabelMap[currentLevel] ?? currentLevel}
+                              </Badge>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -445,16 +451,6 @@ export function TeamManagement() {
               {/* Actions */}
               {canManage && !isMe && (
                 <div className="flex items-center gap-2 shrink-0">
-                  {member.role !== "team_owner" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPermissionsUserId(member.user_id)}
-                    >
-                      <Shield className="h-3.5 w-3.5 mr-1" />
-                      Permissions
-                    </Button>
-                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -476,84 +472,6 @@ export function TeamManagement() {
           </div>
         )}
       </div>
-
-      {/* Permission Settings Dialog */}
-      <Dialog
-        open={!!permissionsUserId}
-        onOpenChange={(open) => !open && setPermissionsUserId(null)}
-      >
-        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Permission Settings</DialogTitle>
-            <DialogDescription>
-              {permissionsMember?.profile?.full_name ?? "User"}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 py-2">
-            {artists.map((artist) => {
-              const existingPerm = allPermissions.find(
-                (p) =>
-                  p.user_id === permissionsUserId && p.artist_id === artist.id
-              );
-              const currentLevel = existingPerm?.permission ?? "no_access";
-
-              return (
-                <div
-                  key={artist.id}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-border"
-                >
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src={artist.avatar_url ?? undefined} />
-                    <AvatarFallback className="text-xs bg-muted text-muted-foreground">
-                      {artist.name[0]?.toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {artist.name}
-                    </p>
-                  </div>
-
-                  <Select
-                    value={currentLevel}
-                    onValueChange={(val) =>
-                      permissionsUserId &&
-                      upsertPermission.mutate({
-                        userId: permissionsUserId,
-                        artistId: artist.id,
-                        permission: val,
-                      })
-                    }
-                  >
-                    <SelectTrigger className="w-36 h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="no_access">No Access</SelectItem>
-                      <SelectItem value="view_access">View Access</SelectItem>
-                      <SelectItem value="full_access">Full Access</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              );
-            })}
-
-            {artists.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No artists on this team yet.
-              </p>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPermissionsUserId(null)}>
-              Done
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Invite Dialog */}
       <Dialog open={showInvite} onOpenChange={(open) => !open && handleClose()}>
