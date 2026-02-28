@@ -12,12 +12,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+type SettingsSection = "profile" | "team";
+
 export default function Settings() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [activeSection, setActiveSection] = useState<SettingsSection>("profile");
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -65,7 +68,6 @@ export default function Settings() {
         .from("profile-photos")
         .getPublicUrl(path);
 
-      // Bust cache with timestamp
       const url = `${publicUrl}?t=${Date.now()}`;
 
       const { error: updateError } = await supabase
@@ -90,7 +92,6 @@ export default function Settings() {
     if (!user || !avatarUrl) return;
     setUploading(true);
     try {
-      // List files in the user's folder and delete them
       const { data: files } = await supabase.storage
         .from("profile-photos")
         .list(user.id);
@@ -139,7 +140,7 @@ export default function Settings() {
 
   if (isLoading) {
     return (
-      <AppLayout title="Profile Settings">
+      <AppLayout title="Settings">
         <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground">
           Loading...
         </div>
@@ -147,9 +148,11 @@ export default function Settings() {
     );
   }
 
+  const title = activeSection === "profile" ? "Profile Settings" : "Team Settings";
+
   return (
-    <AppLayout title="Profile Settings">
-      <div className="max-w-2xl">
+    <AppLayout title={title}>
+      <div className="max-w-3xl">
         {/* Back button */}
         <button
           onClick={() => navigate(-1)}
@@ -159,110 +162,124 @@ export default function Settings() {
           Back
         </button>
 
-        {/* Tabs */}
+        {/* Top-level section tabs */}
         <div className="flex gap-1 mb-6">
-          <button className="px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground">
-            Profile
+          <button
+            onClick={() => setActiveSection("profile")}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              activeSection === "profile"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent"
+            }`}
+          >
+            Profile Settings
           </button>
-          <button className="px-3 py-1.5 text-sm text-muted-foreground rounded-md hover:bg-accent transition-colors">
-            Notifications
+          <button
+            onClick={() => setActiveSection("team")}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              activeSection === "team"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent"
+            }`}
+          >
+            Team Settings
           </button>
         </div>
 
         <div className="border-t border-border" />
 
-        <div className="mt-6 space-y-8">
-          {/* Section heading */}
-          <h2 className="text-foreground">Profile</h2>
+        {activeSection === "profile" ? (
+          <div className="mt-6 space-y-8">
+            <h2 className="text-foreground">Profile</h2>
 
-          {/* Full Name */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">Full Name</Label>
-            <Input
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Your name"
-              className="max-w-lg"
-            />
-          </div>
+            {/* Full Name */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">Full Name</Label>
+              <Input
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Your name"
+                className="max-w-lg"
+              />
+            </div>
 
-          {/* Profile Photo */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">Profile Photo</Label>
-            <div className="flex items-center gap-4 p-4 rounded-lg border border-border bg-card max-w-lg">
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={avatarUrl ?? undefined} />
-                <AvatarFallback className="text-sm bg-muted text-muted-foreground">
-                  {fullName?.[0]?.toUpperCase() ?? "?"}
-                </AvatarFallback>
-              </Avatar>
+            {/* Profile Photo */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">Profile Photo</Label>
+              <div className="flex items-center gap-4 p-4 rounded-lg border border-border bg-card max-w-lg">
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={avatarUrl ?? undefined} />
+                  <AvatarFallback className="text-sm bg-muted text-muted-foreground">
+                    {fullName?.[0]?.toUpperCase() ?? "?"}
+                  </AvatarFallback>
+                </Avatar>
 
-              <div className="flex gap-2 ml-auto">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handlePhotoUpload}
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                >
-                  <Upload className="h-4 w-4 mr-1.5" />
-                  {uploading ? "Uploading..." : "Upload"}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePhotoDelete}
-                  disabled={uploading || !avatarUrl}
-                >
-                  <Trash2 className="h-4 w-4 mr-1.5" />
-                  Delete
-                </Button>
+                <div className="flex gap-2 ml-auto">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    <Upload className="h-4 w-4 mr-1.5" />
+                    {uploading ? "Uploading..." : "Upload"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePhotoDelete}
+                    disabled={uploading || !avatarUrl}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1.5" />
+                    Delete
+                  </Button>
+                </div>
               </div>
             </div>
+
+            {/* Email */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">Email</Label>
+              <p className="text-xs text-muted-foreground">You are logged in as</p>
+              <Input
+                value={user?.email ?? ""}
+                disabled
+                className="max-w-lg bg-muted/50"
+              />
+            </div>
+
+            {/* Phone Number */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">Phone Number</Label>
+              <Input
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="(555) 123-4567"
+                type="tel"
+                className="max-w-xs"
+              />
+            </div>
+
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="rounded-md"
+            >
+              {saving ? "Saving..." : "Save Settings"}
+            </Button>
           </div>
-
-          {/* Email (read-only) */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">Email</Label>
-            <p className="text-xs text-muted-foreground">You are logged in as</p>
-            <Input
-              value={user?.email ?? ""}
-              disabled
-              className="max-w-lg bg-muted/50"
-            />
-          </div>
-
-          {/* Phone Number */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">Phone Number</Label>
-            <Input
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              placeholder="(555) 123-4567"
-              type="tel"
-              className="max-w-xs"
-            />
-          </div>
-
-          {/* Save button */}
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="rounded-md"
-          >
-            {saving ? "Saving..." : "Save Settings"}
-          </Button>
-
-          <div className="border-t border-border pt-8">
+        ) : (
+          <div className="mt-6">
             <TeamManagement />
           </div>
-        </div>
+        )}
       </div>
     </AppLayout>
   );
