@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo, useLayoutEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -177,17 +177,38 @@ function InlineLinkInput({ artistId, folders, defaultFolderId, autoFocus }: {
   const queryClient = useQueryClient();
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(!!autoFocus);
+  const [isFetchingMeta, setIsFetchingMeta] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(defaultFolderId || null);
   const [selectedFolderName, setSelectedFolderName] = useState<string | null>(
     defaultFolderId ? folders.find((f: any) => f.id === defaultFolderId)?.name || null : null
   );
+  const lastFetchedUrl = useRef("");
+
+  // Auto-fetch metadata when URL looks valid
+  useEffect(() => {
+    const trimmed = url.trim();
+    if (!trimmed || lastFetchedUrl.current === trimmed) return;
+    if (!/^https?:\/\/.+\..+/.test(trimmed)) return;
+    lastFetchedUrl.current = trimmed;
+    setIsFetchingMeta(true);
+    supabase.functions.invoke("scrape-link-metadata", { body: { url: trimmed } })
+      .then(({ data }) => {
+        if (data?.success) {
+          if (data.title && !title) setTitle(data.title);
+          if (data.description) setDescription(data.description);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setIsFetchingMeta(false));
+  }, [url]);
 
   const addLink = useMutation({
     mutationFn: async () => {
       const finalUrl = url.trim();
       const finalTitle = title.trim() || finalUrl;
-      const insert: any = { title: finalTitle, url: finalUrl };
+      const insert: any = { title: finalTitle, url: finalUrl, description: description.trim() || null };
       if (selectedFolderId || defaultFolderId) {
         insert.folder_id = selectedFolderId || defaultFolderId;
       } else {
@@ -199,7 +220,7 @@ function InlineLinkInput({ artistId, folders, defaultFolderId, autoFocus }: {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["artist_links", artistId] });
       queryClient.invalidateQueries({ queryKey: ["artist_link_folders", artistId] });
-      setUrl(""); setTitle("");
+      setUrl(""); setTitle(""); setDescription(""); lastFetchedUrl.current = "";
       if (!defaultFolderId) { setSelectedFolderId(null); setSelectedFolderName(null); }
     },
     onError: (e: any) => toast.error(e.message),
@@ -225,7 +246,7 @@ function InlineLinkInput({ artistId, folders, defaultFolderId, autoFocus }: {
   ], [folders, defaultFolderId]);
 
   const handleCancel = () => {
-    setUrl(""); setTitle(""); setIsActive(false);
+    setUrl(""); setTitle(""); setDescription(""); setIsActive(false); lastFetchedUrl.current = "";
     if (!defaultFolderId) { setSelectedFolderId(null); setSelectedFolderName(null); }
   };
 
@@ -261,18 +282,24 @@ function InlineLinkInput({ artistId, folders, defaultFolderId, autoFocus }: {
           />
         </div>
         {url.trim() && (
-          <div className="pl-6">
+          <div className="pl-6 space-y-1">
+            {isFetchingMeta && (
+              <p className="text-xs text-muted-foreground animate-pulse">Fetching page info…</p>
+            )}
             <ItemEditor
               value={title}
               onChange={setTitle}
               onSubmit={submit}
               onCancel={handleCancel}
-              placeholder={`Enter Title${!defaultFolderId ? "  (# to assign folder)" : ""}`}
+              placeholder={isFetchingMeta ? "Loading title…" : `Enter Title${!defaultFolderId ? "  (# to assign folder)" : ""}`}
               triggers={triggers}
-              autoFocus
+              autoFocus={!isFetchingMeta}
             />
+            {description && (
+              <p className="text-xs text-muted-foreground line-clamp-2">{description}</p>
+            )}
             {selectedFolderName && !defaultFolderId && (
-              <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full inline-flex items-center gap-1 mt-1.5">
+              <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full inline-flex items-center gap-1 mt-1">
                 <FolderOpen className="h-3 w-3" /> {selectedFolderName}
                 <button onClick={() => { setSelectedFolderId(null); setSelectedFolderName(null); }} className="hover:text-foreground">×</button>
               </span>
