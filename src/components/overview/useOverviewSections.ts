@@ -28,7 +28,6 @@ function readJson<T>(key: string, fallback: T): T {
 export function useOverviewSections() {
   const [order, setOrderState] = useState<string[]>(() => {
     const saved = readJson<string[]>(STORAGE_ORDER_KEY, DEFAULT_ORDER);
-    // Merge in any new sections not yet persisted
     const merged = [...saved];
     for (const id of DEFAULT_ORDER) {
       if (!merged.includes(id)) merged.push(id);
@@ -42,9 +41,15 @@ export function useOverviewSections() {
 
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
-  const setOrder = useCallback((newOrder: string[]) => {
-    setOrderState(newOrder);
-    localStorage.setItem(STORAGE_ORDER_KEY, JSON.stringify(newOrder));
+  // When Reorder.Group reorders, it only has visible IDs.
+  // Preserve hidden IDs in their original positions.
+  const setOrder = useCallback((newVisibleOrder: string[]) => {
+    setOrderState((prev) => {
+      const hiddenInOrder = prev.filter((id) => !newVisibleOrder.includes(id));
+      const full = [...newVisibleOrder, ...hiddenInOrder];
+      localStorage.setItem(STORAGE_ORDER_KEY, JSON.stringify(full));
+      return full;
+    });
   }, []);
 
   const toggleVisibility = useCallback((id: string) => {
@@ -58,6 +63,15 @@ export function useOverviewSections() {
   }, []);
 
   const showSection = useCallback((id: string) => {
+    // Ensure the section is in the order array
+    setOrderState((prev) => {
+      if (!prev.includes(id)) {
+        const updated = [...prev, id];
+        localStorage.setItem(STORAGE_ORDER_KEY, JSON.stringify(updated));
+        return updated;
+      }
+      return prev;
+    });
     setHiddenState((prev) => {
       const next = new Set(prev);
       next.delete(id);
