@@ -1,0 +1,1 @@
+ALTER TABLE public.artist_links ADD COLUMN IF NOT EXISTS sort_order integer DEFAULT 0;

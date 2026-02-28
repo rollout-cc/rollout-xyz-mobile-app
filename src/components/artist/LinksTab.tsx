@@ -1,17 +1,21 @@
-import { useState, useRef, useCallback, useEffect, useMemo, useLayoutEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   FolderOpen, ExternalLink, LinkIcon, MoreHorizontal,
-  Trash, FolderPlus, Copy,
+  Trash, FolderPlus, Copy, GripVertical, Trash2, Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
 import { CollapsibleSection, InlineAddTrigger } from "@/components/ui/CollapsibleSection";
-import { ItemCardRead, ItemCardEdit, MetaBadge } from "@/components/ui/ItemCard";
-import { ItemEditor } from "@/components/ui/ItemEditor";
+import { MetaBadge } from "@/components/ui/ItemCard";
+import { ItemEditor, DescriptionEditor } from "@/components/ui/ItemEditor";
 import { FolderPicker } from "@/components/ui/ItemPickers";
+import { cn } from "@/lib/utils";
+import {
+  DragDropContext, Droppable, Draggable, type DropResult,
+} from "@hello-pangea/dnd";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -44,11 +48,11 @@ export function LinksTab({ artistId }: LinksTabProps) {
       const { data: folderLinks, error: fErr } = await supabase
         .from("artist_links").select("*")
         .in("folder_id", folders.map((f: any) => f.id))
-        .order("created_at", { ascending: false });
+        .order("sort_order", { ascending: true });
       const { data: unfiledLinks, error: uErr } = await (supabase as any)
         .from("artist_links").select("*")
         .eq("artist_id", artistId).is("folder_id", null)
-        .order("created_at", { ascending: false });
+        .order("sort_order", { ascending: true });
       if (fErr) throw fErr;
       if (uErr) throw uErr;
       return [...(folderLinks || []), ...(unfiledLinks || [])];
@@ -70,12 +74,8 @@ export function LinksTab({ artistId }: LinksTabProps) {
     <div className="mt-4 space-y-2">
       {unfiledLinks.length > 0 && (
         <CollapsibleSection title="Unsorted" count={unfiledLinks.length}>
-          <InlineLinkInput artistId={artistId} folders={folders} />
-          <div className="divide-y divide-border/30">
-            {unfiledLinks.map((link: any) => (
-              <LinkRow key={link.id} link={link} artistId={artistId} folders={folders} />
-            ))}
-          </div>
+          <LinkItem isNew artistId={artistId} folders={folders} />
+          <LinkList links={unfiledLinks} artistId={artistId} folders={folders} droppableId="unsorted" />
         </CollapsibleSection>
       )}
 
@@ -90,12 +90,8 @@ export function LinksTab({ artistId }: LinksTabProps) {
             actions={<FolderActions folder={folder} artistId={artistId} linkCount={fLinks.length} />}
             defaultOpen={false}
           >
-            <InlineLinkInput artistId={artistId} folders={folders} defaultFolderId={folder.id} />
-            <div className="divide-y divide-border/30">
-              {fLinks.map((link: any) => (
-                <LinkRow key={link.id} link={link} artistId={artistId} folders={folders} />
-              ))}
-            </div>
+            <LinkItem isNew artistId={artistId} folders={folders} defaultFolderId={folder.id} />
+            <LinkList links={fLinks} artistId={artistId} folders={folders} droppableId={folder.id} />
             {fLinks.length === 0 && <p className="caption text-muted-foreground py-3 pl-2">No links yet.</p>}
           </CollapsibleSection>
         );
@@ -103,7 +99,7 @@ export function LinksTab({ artistId }: LinksTabProps) {
 
       {unfiledLinks.length === 0 && folders.length > 0 && (
         <div className="pt-2">
-          <InlineLinkInput artistId={artistId} folders={folders} />
+          <LinkItem isNew artistId={artistId} folders={folders} />
         </div>
       )}
     </div>
@@ -132,7 +128,7 @@ function EmptyLinksState({ artistId, folders }: { artistId: string; folders: any
   if (mode === "folder") {
     return (
       <div className="mt-4">
-        <ItemCardEdit onCancel={() => setMode("idle")} onSave={() => {}} saveDisabled>
+        <div className="mb-2 rounded-lg border border-border bg-card px-4 py-3">
           <input
             autoFocus placeholder="Folder name"
             className="w-full bg-transparent outline-none text-sm font-medium placeholder:text-muted-foreground/50"
@@ -142,7 +138,7 @@ function EmptyLinksState({ artistId, folders }: { artistId: string; folders: any
             }}
             onBlur={(e) => { if (!e.target.value.trim()) setMode("idle"); }}
           />
-        </ItemCardEdit>
+        </div>
       </div>
     );
   }
@@ -150,7 +146,7 @@ function EmptyLinksState({ artistId, folders }: { artistId: string; folders: any
   if (mode === "link") {
     return (
       <div className="mt-4">
-        <InlineLinkInput artistId={artistId} folders={folders} autoFocus />
+        <LinkItem isNew artistId={artistId} folders={folders} autoFocus />
       </div>
     );
   }
@@ -170,23 +166,86 @@ function EmptyLinksState({ artistId, folders }: { artistId: string; folders: any
   );
 }
 
-/* ── Inline Link Input (using ItemCardEdit + ItemEditor) ── */
-function InlineLinkInput({ artistId, folders, defaultFolderId, autoFocus }: {
-  artistId: string; folders: any[]; defaultFolderId?: string; autoFocus?: boolean;
+/* ── Link List with drag-and-drop ── */
+function LinkList({ links, artistId, folders, droppableId }: {
+  links: any[]; artistId: string; folders: any[]; droppableId: string;
 }) {
   const queryClient = useQueryClient();
-  const [url, setUrl] = useState("");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [isActive, setIsActive] = useState(!!autoFocus);
+
+  const handleDragEnd = useCallback(async (result: DropResult) => {
+    if (!result.destination || result.source.index === result.destination.index) return;
+
+    const reordered = [...links];
+    const [moved] = reordered.splice(result.source.index, 1);
+    reordered.splice(result.destination.index, 0, moved);
+
+    // Optimistic update
+    const updates = reordered.map((link, idx) => ({ id: link.id, sort_order: idx }));
+
+    // Update in DB
+    for (const u of updates) {
+      await supabase.from("artist_links").update({ sort_order: u.sort_order }).eq("id", u.id);
+    }
+    queryClient.invalidateQueries({ queryKey: ["artist_links", artistId] });
+  }, [links, artistId, queryClient]);
+
+  return (
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <Droppable droppableId={droppableId}>
+        {(provided) => (
+          <div ref={provided.innerRef} {...provided.droppableProps} className="divide-y divide-border/30">
+            {links.map((link: any, index: number) => (
+              <Draggable key={link.id} draggableId={link.id} index={index}>
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.draggableProps}
+                    className={cn(snapshot.isDragging && "opacity-80 bg-background rounded-lg shadow-lg")}
+                  >
+                    <LinkItem
+                      link={link}
+                      artistId={artistId}
+                      folders={folders}
+                      dragHandleProps={provided.dragHandleProps}
+                    />
+                  </div>
+                )}
+              </Draggable>
+            ))}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
+    </DragDropContext>
+  );
+}
+
+/* ── Unified Link Item (new + existing) ── */
+interface LinkItemProps {
+  link?: any;
+  isNew?: boolean;
+  artistId: string;
+  folders: any[];
+  defaultFolderId?: string;
+  autoFocus?: boolean;
+  dragHandleProps?: any;
+}
+
+function LinkItem({ link, isNew, artistId, folders, defaultFolderId, autoFocus, dragHandleProps }: LinkItemProps) {
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [url, setUrl] = useState(link?.url || "");
+  const [title, setTitle] = useState(link?.title || "");
+  const [description, setDescription] = useState(link?.description || "");
+  const [showNew, setShowNew] = useState(false);
   const [isFetchingMeta, setIsFetchingMeta] = useState(false);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(defaultFolderId || null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(defaultFolderId || link?.folder_id || null);
   const [selectedFolderName, setSelectedFolderName] = useState<string | null>(
-    defaultFolderId ? folders.find((f: any) => f.id === defaultFolderId)?.name || null : null
+    (defaultFolderId || link?.folder_id) ? folders.find((f: any) => f.id === (defaultFolderId || link?.folder_id))?.name || null : null
   );
   const lastFetchedUrl = useRef("");
 
-  // Auto-fetch metadata when URL looks valid
+  // Auto-fetch metadata when URL looks valid (for new links or when editing URL)
   useEffect(() => {
     const trimmed = url.trim();
     if (!trimmed || lastFetchedUrl.current === trimmed) return;
@@ -194,41 +253,18 @@ function InlineLinkInput({ artistId, folders, defaultFolderId, autoFocus }: {
     lastFetchedUrl.current = trimmed;
     setIsFetchingMeta(true);
     supabase.functions.invoke("scrape-link-metadata", { body: { url: trimmed } })
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        console.log("Metadata fetch result:", { data, error });
         if (data?.success) {
           if (data.title && !title) setTitle(data.title);
-          if (data.description) setDescription(data.description);
+          if (data.description && !description) setDescription(data.description);
         }
       })
-      .catch(() => {})
+      .catch((err) => console.error("Metadata fetch error:", err))
       .finally(() => setIsFetchingMeta(false));
   }, [url]);
 
-  const addLink = useMutation({
-    mutationFn: async () => {
-      const finalUrl = url.trim();
-      const finalTitle = title.trim() || finalUrl;
-      const insert: any = { title: finalTitle, url: finalUrl, description: description.trim() || null };
-      if (selectedFolderId || defaultFolderId) {
-        insert.folder_id = selectedFolderId || defaultFolderId;
-      } else {
-        insert.artist_id = artistId;
-      }
-      const { error } = await (supabase as any).from("artist_links").insert(insert);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["artist_links", artistId] });
-      queryClient.invalidateQueries({ queryKey: ["artist_link_folders", artistId] });
-      setUrl(""); setTitle(""); setDescription(""); lastFetchedUrl.current = "";
-      if (!defaultFolderId) { setSelectedFolderId(null); setSelectedFolderName(null); }
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const submit = useCallback(() => { if (!url.trim()) return; addLink.mutate(); }, [url, addLink]);
-
-  // Trigger config for # folder selection in title — must be before conditional returns
+  // Trigger config for # folder selection
   const triggers = useMemo(() => defaultFolderId ? [] : [
     {
       char: "#",
@@ -245,75 +281,48 @@ function InlineLinkInput({ artistId, folders, defaultFolderId, autoFocus }: {
     },
   ], [folders, defaultFolderId]);
 
-  const handleCancel = () => {
-    setUrl(""); setTitle(""); setDescription(""); setIsActive(false); lastFetchedUrl.current = "";
-    if (!defaultFolderId) { setSelectedFolderId(null); setSelectedFolderName(null); }
-  };
-
-  if (!isActive) {
-    return <InlineAddTrigger label="New Link" onClick={() => setIsActive(true)} />;
-  }
-
-  return (
-    <ItemCardEdit
-      onCancel={handleCancel}
-      onSave={submit}
-      saveDisabled={!url.trim()}
-      bottomLeft={
-        !defaultFolderId ? (
-          <FolderPicker
-            folders={folders}
-            value={selectedFolderId}
-            onChange={(id, name) => { setSelectedFolderId(id); setSelectedFolderName(name); }}
-          />
-        ) : undefined
+  /* ── Mutations ── */
+  const addLink = useMutation({
+    mutationFn: async () => {
+      const finalUrl = url.trim();
+      const finalTitle = title.trim() || finalUrl;
+      const insert: any = { title: finalTitle, url: finalUrl, description: description.trim() || null, sort_order: 0 };
+      if (selectedFolderId || defaultFolderId) {
+        insert.folder_id = selectedFolderId || defaultFolderId;
+      } else {
+        insert.artist_id = artistId;
       }
-    >
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-2 min-w-0">
-          <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-          <ItemEditor
-            value={url}
-            onChange={setUrl}
-            onSubmit={() => {/* focus title next — handled by Enter below */}}
-            onCancel={handleCancel}
-            placeholder="Paste URL"
-            autoFocus={autoFocus || isActive}
-          />
-        </div>
-        {url.trim() && (
-          <div className="pl-6 space-y-1">
-            {isFetchingMeta && (
-              <p className="text-xs text-muted-foreground animate-pulse">Fetching page info…</p>
-            )}
-            <ItemEditor
-              value={title}
-              onChange={setTitle}
-              onSubmit={submit}
-              onCancel={handleCancel}
-              placeholder={isFetchingMeta ? "Loading title…" : `Enter Title${!defaultFolderId ? "  (# to assign folder)" : ""}`}
-              triggers={triggers}
-              autoFocus={!isFetchingMeta}
-            />
-            {description && (
-              <p className="text-xs text-muted-foreground line-clamp-2">{description}</p>
-            )}
-            {selectedFolderName && !defaultFolderId && (
-              <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full inline-flex items-center gap-1 mt-1">
-                <FolderOpen className="h-3 w-3" /> {selectedFolderName}
-                <button onClick={() => { setSelectedFolderId(null); setSelectedFolderName(null); }} className="hover:text-foreground">×</button>
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-    </ItemCardEdit>
-  );
-}
+      const { error } = await (supabase as any).from("artist_links").insert(insert);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["artist_links", artistId] });
+      queryClient.invalidateQueries({ queryKey: ["artist_link_folders", artistId] });
+      resetForm();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
 
-/* ── Link Row (using ItemCardRead) ── */
-function LinkRow({ link, artistId, folders }: { link: any; artistId: string; folders: any[] }) {
-  const queryClient = useQueryClient();
+  const updateLink = useMutation({
+    mutationFn: async () => {
+      const patch: any = {
+        title: title.trim() || url.trim(),
+        url: url.trim(),
+        description: description.trim() || null,
+      };
+      if (!defaultFolderId) {
+        patch.folder_id = selectedFolderId || null;
+        if (!selectedFolderId) patch.artist_id = artistId;
+      }
+      const { error } = await supabase.from("artist_links").update(patch).eq("id", link.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["artist_links", artistId] });
+      setEditing(false);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   const deleteLink = useMutation({
     mutationFn: async () => {
@@ -326,11 +335,113 @@ function LinkRow({ link, artistId, folders }: { link: any; artistId: string; fol
     },
   });
 
-  const copyUrl = () => {
-    navigator.clipboard.writeText(link.url);
-    toast.success("URL copied");
+  const resetForm = () => {
+    setUrl(""); setTitle(""); setDescription(""); setShowNew(false);
+    lastFetchedUrl.current = "";
+    if (!defaultFolderId) { setSelectedFolderId(null); setSelectedFolderName(null); }
   };
 
+  const handleCancel = () => {
+    if (isNew) {
+      resetForm();
+    } else {
+      setUrl(link.url);
+      setTitle(link.title);
+      setDescription(link.description || "");
+      setEditing(false);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!url.trim()) return;
+    if (isNew) addLink.mutate();
+    else updateLink.mutate();
+  };
+
+  const enterEdit = () => {
+    setUrl(link.url);
+    setTitle(link.title);
+    setDescription(link.description || "");
+    setSelectedFolderId(link.folder_id || null);
+    setSelectedFolderName(link.folder_id ? folders.find((f: any) => f.id === link.folder_id)?.name || null : null);
+    lastFetchedUrl.current = link.url;
+    setEditing(true);
+  };
+
+  /* ── New link trigger ── */
+  if (isNew && !showNew && !autoFocus) {
+    return <InlineAddTrigger label="New Link" onClick={() => setShowNew(true)} />;
+  }
+
+  /* ── Editing mode (shared for new and existing) ── */
+  if (editing || (isNew && (showNew || autoFocus))) {
+    return (
+      <div className="mb-2 rounded-lg border border-border bg-card px-4 py-3 space-y-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+          <ItemEditor
+            value={url}
+            onChange={setUrl}
+            onSubmit={() => {}}
+            onCancel={handleCancel}
+            placeholder="Paste URL"
+            autoFocus={autoFocus || showNew || editing}
+            className="flex-1 min-w-0"
+          />
+        </div>
+        {url.trim() && (
+          <div className="pl-6 space-y-1">
+            {isFetchingMeta && (
+              <p className="text-xs text-muted-foreground animate-pulse">Fetching page info…</p>
+            )}
+            <ItemEditor
+              value={title}
+              onChange={setTitle}
+              onSubmit={handleSubmit}
+              onCancel={handleCancel}
+              placeholder={isFetchingMeta ? "Loading title…" : `Enter Title${!defaultFolderId ? "  (# to assign folder)" : ""}`}
+              triggers={triggers}
+              autoFocus={!isFetchingMeta && !!url.trim()}
+            />
+            <DescriptionEditor
+              value={description}
+              onChange={setDescription}
+              onSubmit={handleSubmit}
+              onCancel={handleCancel}
+              placeholder="Description"
+            />
+            {selectedFolderName && !defaultFolderId && (
+              <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full inline-flex items-center gap-1 mt-1">
+                <FolderOpen className="h-3 w-3" /> {selectedFolderName}
+                <button onClick={() => { setSelectedFolderId(null); setSelectedFolderName(null); }} className="hover:text-foreground">×</button>
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Bottom bar */}
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-1">
+            {!defaultFolderId && (
+              <FolderPicker
+                folders={folders}
+                value={selectedFolderId}
+                onChange={(id, name) => { setSelectedFolderId(id); setSelectedFolderName(name); }}
+              />
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="h-8 text-sm" onClick={handleCancel}>Cancel</Button>
+            <Button size="sm" className="h-8 text-sm gap-1.5" onClick={handleSubmit} disabled={!url.trim()}>
+              <Check className="h-3.5 w-3.5" /> Save
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Read mode (existing link) ── */
   let faviconUrl: string | null = null;
   try {
     const domain = new URL(link.url).hostname;
@@ -345,40 +456,66 @@ function LinkRow({ link, artistId, folders }: { link: any; artistId: string; fol
   const folder = link.folder_id ? folders.find((f: any) => f.id === link.folder_id) : null;
 
   return (
-    <ItemCardRead
-      icon={
-        <div className="h-9 w-9 shrink-0 rounded-lg bg-muted/60 flex items-center justify-center overflow-hidden">
-          {faviconUrl ? (
-            <img src={faviconUrl} alt="" className="h-5 w-5" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-          ) : (
-            <LinkIcon className="h-4 w-4 text-muted-foreground" />
-          )}
-        </div>
-      }
-      title={
-        <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-foreground hover:underline truncate block">
-          {link.title}
-        </a>
-      }
-      subtitle={
-        <div className="flex items-center gap-2">
-          {domainLabel && <span className="caption">{domainLabel}</span>}
+    <div
+      className="flex items-start gap-2 py-3 px-1 group cursor-pointer"
+      onClick={enterEdit}
+    >
+      {/* Grip handle */}
+      <div
+        {...dragHandleProps}
+        className="touch-none p-0.5 text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity mt-1 shrink-0"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <GripVertical className="h-4 w-4" />
+      </div>
+
+      {/* Favicon */}
+      <div className="h-9 w-9 shrink-0 rounded-lg bg-muted/60 flex items-center justify-center overflow-hidden mt-0.5">
+        {faviconUrl ? (
+          <img src={faviconUrl} alt="" className="h-5 w-5" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+        ) : (
+          <LinkIcon className="h-4 w-4 text-muted-foreground" />
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{link.title}</p>
+        <div className="flex items-center gap-2 mt-0.5">
+          {domainLabel && <span className="caption text-muted-foreground">{domainLabel}</span>}
           {folder && (
             <MetaBadge icon={<FolderOpen className="h-3 w-3" />}>{folder.name}</MetaBadge>
           )}
         </div>
-      }
-      actions={
-        <>
-          <button onClick={copyUrl} className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors" title="Copy URL">
-            <Copy className="h-4 w-4 text-muted-foreground" />
-          </button>
-          <button onClick={() => window.open(link.url, "_blank")} className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors" title="Open">
-            <ExternalLink className="h-4 w-4 text-muted-foreground" />
-          </button>
-        </>
-      }
-    />
+        {link.description && (
+          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{link.description}</p>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        <button
+          onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(link.url); toast.success("URL copied"); }}
+          className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors"
+          title="Copy URL"
+        >
+          <Copy className="h-4 w-4 text-muted-foreground" />
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); window.open(link.url, "_blank"); }}
+          className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors"
+          title="Open"
+        >
+          <ExternalLink className="h-4 w-4 text-muted-foreground" />
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); deleteLink.mutate(); }}
+          className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
   );
 }
 

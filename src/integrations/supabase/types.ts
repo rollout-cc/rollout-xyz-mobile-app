@@ -135,6 +135,7 @@ export type Database = {
           description: string | null
           folder_id: string | null
           id: string
+          sort_order: number | null
           title: string
           url: string
         }
@@ -144,6 +145,7 @@ export type Database = {
           description?: string | null
           folder_id?: string | null
           id?: string
+          sort_order?: number | null
           title: string
           url: string
         }
@@ -153,6 +155,7 @@ export type Database = {
           description?: string | null
           folder_id?: string | null
           id?: string
+          sort_order?: number | null
           title?: string
           url?: string
         }
