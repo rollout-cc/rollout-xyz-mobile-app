@@ -84,7 +84,7 @@ export default function ARList() {
     if (!teamId) return;
     setAddingIds((prev) => new Set(prev).add(artist.id));
     try {
-      await createProspect.mutateAsync({
+      const result = await createProspect.mutateAsync({
         team_id: teamId,
         artist_name: artist.name,
         primary_genre: artist.genres?.[0] || undefined,
@@ -93,8 +93,8 @@ export default function ARList() {
         stage: "discovered",
         priority: "medium",
       });
-      setAddedIds((prev) => new Set(prev).add(artist.id));
       toast.success(`${artist.name} added as prospect`);
+      navigate(`/ar/${result.id}`);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
