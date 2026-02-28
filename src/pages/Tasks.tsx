@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,8 +6,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Calendar, DollarSign } from "lucide-react";
+import { ItemCardRead } from "@/components/ui/ItemCard";
 
 export default function Tasks() {
   const { user } = useAuth();
@@ -51,48 +51,51 @@ export default function Tasks() {
       ) : (
         <div className="flex flex-col gap-1">
           {tasks.map((task) => (
-            <div
+            <ItemCardRead
               key={task.id}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border hover:bg-accent/50 transition-colors group"
-            >
-              <Checkbox
-                checked={false}
-                onCheckedChange={() => toggleComplete.mutate(task.id)}
-                className="shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{task.title}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  {task.artists && (
-                    <button
-                      onClick={() => navigate(`/roster/${task.artists.id}`)}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {task.artists.name}
-                    </button>
+              icon={
+                <Checkbox
+                  checked={false}
+                  onCheckedChange={() => toggleComplete.mutate(task.id)}
+                  className="shrink-0"
+                />
+              }
+              title={<span className="text-sm font-medium truncate">{task.title}</span>}
+              subtitle={
+                (task.artists || task.initiatives) ? (
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {task.artists && (
+                      <button
+                        onClick={() => navigate(`/roster/${task.artists.id}`)}
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {task.artists.name}
+                      </button>
+                    )}
+                    {task.initiatives && (
+                      <span className="text-xs text-muted-foreground">· {task.initiatives.name}</span>
+                    )}
+                  </div>
+                ) : undefined
+              }
+              actions={
+                <div className="flex items-center gap-2 shrink-0">
+                  {task.expense_amount != null && task.expense_amount > 0 && (
+                    <Badge variant="secondary" className="gap-1 text-xs">
+                      <DollarSign className="h-3 w-3" />
+                      {task.expense_amount.toLocaleString()}
+                    </Badge>
                   )}
-                  {task.initiatives && (
-                    <span className="text-xs text-muted-foreground">
-                      · {task.initiatives.name}
-                    </span>
+                  {task.due_date && (
+                    <Badge variant="outline" className="gap-1 text-xs">
+                      <Calendar className="h-3 w-3" />
+                      {format(new Date(task.due_date), "MMM d")}
+                    </Badge>
                   )}
                 </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {task.expense_amount != null && task.expense_amount > 0 && (
-                  <Badge variant="secondary" className="gap-1 text-xs">
-                    <DollarSign className="h-3 w-3" />
-                    {task.expense_amount.toLocaleString()}
-                  </Badge>
-                )}
-                {task.due_date && (
-                  <Badge variant="outline" className="gap-1 text-xs">
-                    <Calendar className="h-3 w-3" />
-                    {format(new Date(task.due_date), "MMM d")}
-                  </Badge>
-                )}
-              </div>
-            </div>
+              }
+              className="px-3 py-2.5 rounded-lg border border-border hover:bg-accent/50 transition-colors"
+            />
           ))}
         </div>
       )}

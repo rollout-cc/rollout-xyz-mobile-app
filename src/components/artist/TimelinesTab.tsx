@@ -5,12 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  Plus, Trash2, CalendarIcon, Share2, Check, Copy, List, CalendarDays,
+  Trash2, CalendarIcon, Share2, Check, Copy, List, CalendarDays,
   ChevronLeft, ChevronRight, FolderOpen, Link2, MoreVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
-import { InlineAddTrigger, ListItemRow } from "@/components/ui/CollapsibleSection";
+import { InlineAddTrigger } from "@/components/ui/CollapsibleSection";
+import { ItemCardRead, ItemCardEdit, MetaBadge } from "@/components/ui/ItemCard";
+import { ItemEditor, DescriptionEditor } from "@/components/ui/ItemEditor";
+import { DatePicker } from "@/components/ui/ItemPickers";
 import {
   format, parse, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   addDays, addMonths, subMonths, isSameMonth, isToday,
@@ -44,10 +47,7 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
     queryKey: ["artist_milestones", artistId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("artist_milestones")
-        .select("*")
-        .eq("artist_id", artistId)
-        .order("date", { ascending: true });
+        .from("artist_milestones").select("*").eq("artist_id", artistId).order("date", { ascending: true });
       if (error) throw error;
       return data;
     },
@@ -56,10 +56,7 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
   const { data: folders = [] } = useQuery({
     queryKey: ["artist_link_folders", artistId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("artist_link_folders")
-        .select("id, name")
-        .eq("artist_id", artistId);
+      const { data, error } = await supabase.from("artist_link_folders").select("id, name").eq("artist_id", artistId);
       if (error) throw error;
       return data;
     },
@@ -69,8 +66,7 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
     queryKey: ["artist_links_for_milestones", artistId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("artist_links")
-        .select("id, title, url, folder_id")
+        .from("artist_links").select("id, title, url, folder_id")
         .or(`artist_id.eq.${artistId},folder_id.not.is.null`);
       if (error) throw error;
       return data;
@@ -82,16 +78,11 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
     queryFn: async () => {
       const milestoneIds = milestones.map((m: any) => m.id);
       if (milestoneIds.length === 0) return { folders: [], links: [] };
-
       const [foldersRes, linksRes] = await Promise.all([
         supabase.from("milestone_folders" as any).select("*").in("milestone_id", milestoneIds),
         supabase.from("milestone_links" as any).select("*").in("milestone_id", milestoneIds),
       ]);
-
-      return {
-        folders: (foldersRes.data || []) as any[],
-        links: (linksRes.data || []) as any[],
-      };
+      return { folders: (foldersRes.data || []) as any[], links: (linksRes.data || []) as any[] };
     },
     enabled: milestones.length > 0,
   });
@@ -111,11 +102,7 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
 
   const addMilestone = useMutation({
     mutationFn: async ({ title, date }: { title: string; date: string }) => {
-      const { error } = await supabase.from("artist_milestones").insert({
-        artist_id: artistId,
-        title,
-        date,
-      });
+      const { error } = await supabase.from("artist_milestones").insert({ artist_id: artistId, title, date });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -144,10 +131,7 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
 
   const attachFolder = useMutation({
     mutationFn: async ({ milestoneId, folderId }: { milestoneId: string; folderId: string }) => {
-      const { error } = await (supabase as any).from("milestone_folders").insert({
-        milestone_id: milestoneId,
-        folder_id: folderId,
-      });
+      const { error } = await (supabase as any).from("milestone_folders").insert({ milestone_id: milestoneId, folder_id: folderId });
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["milestone_attachments", artistId] }),
@@ -164,10 +148,7 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
 
   const attachLink = useMutation({
     mutationFn: async ({ milestoneId, linkId }: { milestoneId: string; linkId: string }) => {
-      const { error } = await (supabase as any).from("milestone_links").insert({
-        milestone_id: milestoneId,
-        link_id: linkId,
-      });
+      const { error } = await (supabase as any).from("milestone_links").insert({ milestone_id: milestoneId, link_id: linkId });
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["milestone_attachments", artistId] }),
@@ -187,7 +168,6 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
   return (
     <div className="mt-4">
       <div className="flex items-center justify-between mb-4">
-        {/* View toggle */}
         <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5">
           <button
             onClick={() => setView("list")}
@@ -208,11 +188,9 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
             <CalendarDays className="h-3.5 w-3.5" /> Calendar
           </button>
         </div>
-
         <ShareTimelineButton artist={artist} />
       </div>
 
-      {/* Inline add */}
       <InlineMilestoneInput onAdd={(title, date) => addMilestone.mutate({ title, date })} />
 
       {isEmpty ? (
@@ -222,28 +200,18 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
           {milestones.map((m: any) => {
             const mFolders = milestoneAttachments.folders
               .filter((mf: any) => mf.milestone_id === m.id)
-              .map((mf: any) => {
-                const folder = folders.find((f) => f.id === mf.folder_id);
-                return { ...mf, folder };
-              })
+              .map((mf: any) => ({ ...mf, folder: folders.find((f) => f.id === mf.folder_id) }))
               .filter((mf: any) => mf.folder);
-
             const mLinks = milestoneAttachments.links
               .filter((ml: any) => ml.milestone_id === m.id)
-              .map((ml: any) => {
-                const link = links.find((l) => l.id === ml.link_id);
-                return { ...ml, link };
-              })
+              .map((ml: any) => ({ ...ml, link: links.find((l) => l.id === ml.link_id) }))
               .filter((ml: any) => ml.link);
 
             return (
               <MilestoneRow
-                key={m.id}
-                milestone={m}
-                attachedFolders={mFolders}
-                attachedLinks={mLinks}
-                allFolders={folders}
-                allLinks={links}
+                key={m.id} milestone={m}
+                attachedFolders={mFolders} attachedLinks={mLinks}
+                allFolders={folders} allLinks={links}
                 userInitials={userInitials}
                 onUpdate={(patch) => updateMilestone.mutate({ id: m.id, patch })}
                 onDelete={() => deleteMilestone.mutate(m.id)}
@@ -350,107 +318,105 @@ function CalendarView({ milestones }: { milestones: any[] }) {
   );
 }
 
-/* ── Inline Milestone Input ── */
+/* ── Inline Milestone Input (using ItemCardEdit + DatePicker) ── */
 function InlineMilestoneInput({ onAdd }: { onAdd: (title: string, date: string) => void }) {
   const [isActive, setIsActive] = useState(false);
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [date, setDate] = useState<Date | undefined>(undefined);
-  const titleRef = useRef<HTMLInputElement>(null);
 
   const submit = () => {
     if (!title.trim() || !date) return;
     onAdd(title.trim(), format(date, "yyyy-MM-dd"));
     setTitle("");
+    setDescription("");
     setDate(undefined);
-    setTimeout(() => titleRef.current?.focus(), 50);
+  };
+
+  const handleCancel = () => {
+    setTitle("");
+    setDescription("");
+    setDate(undefined);
+    setIsActive(false);
   };
 
   if (!isActive) {
-    return (
-      <InlineAddTrigger
-        label="New Milestone"
-        onClick={() => { setIsActive(true); setTimeout(() => titleRef.current?.focus(), 50); }}
-      />
-    );
+    return <InlineAddTrigger label="New Milestone" onClick={() => setIsActive(true)} />;
   }
 
   return (
-    <div className="mb-2 rounded-lg bg-muted/40 px-4 py-3">
+    <ItemCardEdit
+      onCancel={handleCancel}
+      onSave={submit}
+      saveDisabled={!title.trim() || !date}
+      bottomLeft={
+        <DatePicker
+          value={date}
+          onChange={setDate}
+          placeholder="Select Date or Range"
+        />
+      }
+    >
       <div className="flex items-center gap-3">
         <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" className={cn("h-8 justify-start text-left font-normal text-sm px-2 shrink-0", !date && "text-muted-foreground/50")}>
-              {date ? format(date, "MMM d, yyyy") : "Select Date or Range"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 bg-popover border border-border z-50" align="start">
-            <Calendar mode="single" selected={date} onSelect={setDate} initialFocus className="p-3 pointer-events-auto" />
-          </PopoverContent>
-        </Popover>
-        <input
-          ref={titleRef}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="What's happening on this date?"
-          className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground/60"
-          onKeyDown={(e) => {
-            if (e.key === "Enter") { e.preventDefault(); submit(); }
-            if (e.key === "Escape") { setTitle(""); setDate(undefined); setIsActive(false); }
-          }}
-        />
+        <div className="flex-1">
+          <ItemEditor
+            value={title}
+            onChange={setTitle}
+            onSubmit={submit}
+            onCancel={handleCancel}
+            placeholder="What's happening on this date?"
+            autoFocus
+            className="font-semibold"
+          />
+          <DescriptionEditor
+            value={description}
+            onChange={setDescription}
+            onSubmit={submit}
+            onCancel={handleCancel}
+            placeholder="Add description"
+            className="mt-1"
+          />
+        </div>
       </div>
-      <div className="flex items-center justify-end gap-2 mt-2">
-        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setTitle(""); setDate(undefined); setIsActive(false); }}>Cancel</Button>
-        <Button size="sm" className="h-7 text-xs" onClick={submit} disabled={!title.trim() || !date}>Save</Button>
-      </div>
-    </div>
+    </ItemCardEdit>
   );
 }
 
-/* ── Milestone Row ── */
+/* ── Milestone Row (using ItemCardRead + MetaBadge) ── */
 function MilestoneRow({
   milestone, attachedFolders, attachedLinks, allFolders, allLinks,
   userInitials, onUpdate, onDelete,
   onAttachFolder, onDetachFolder, onAttachLink, onDetachLink,
 }: {
-  milestone: any;
-  attachedFolders: any[];
-  attachedLinks: any[];
-  allFolders: any[];
-  allLinks: any[];
-  userInitials: string;
-  onUpdate: (patch: Record<string, any>) => void;
-  onDelete: () => void;
-  onAttachFolder: (folderId: string) => void;
-  onDetachFolder: (id: string) => void;
-  onAttachLink: (linkId: string) => void;
-  onDetachLink: (id: string) => void;
+  milestone: any; attachedFolders: any[]; attachedLinks: any[];
+  allFolders: any[]; allLinks: any[]; userInitials: string;
+  onUpdate: (patch: Record<string, any>) => void; onDelete: () => void;
+  onAttachFolder: (folderId: string) => void; onDetachFolder: (id: string) => void;
+  onAttachLink: (linkId: string) => void; onDetachLink: (id: string) => void;
 }) {
   const date = parse(milestone.date, "yyyy-MM-dd", new Date());
-
   const attachedFolderIds = new Set(attachedFolders.map((f: any) => f.folder_id));
   const attachedLinkIds = new Set(attachedLinks.map((l: any) => l.link_id));
   const availableFolders = allFolders.filter((f) => !attachedFolderIds.has(f.id));
   const availableLinks = allLinks.filter((l) => !attachedLinkIds.has(l.id));
 
   return (
-    <ListItemRow>
-      {/* Icon */}
-      <CalendarIcon className="h-4 w-4 text-muted-foreground mt-1 shrink-0" />
-
-      {/* Content */}
-      <div className="flex-1 min-w-0">
+    <ItemCardRead
+      icon={<CalendarIcon className="h-4 w-4 text-muted-foreground mt-1 shrink-0" />}
+      title={
         <InlineField value={milestone.title} onSave={(v) => onUpdate({ title: v })} className="font-semibold text-sm" />
+      }
+      subtitle={
         <InlineField
           value={milestone.description ?? ""}
           placeholder="Add description"
           onSave={(v) => onUpdate({ description: v || null })}
-          className="text-sm text-muted-foreground mt-0.5"
+          className="text-sm text-muted-foreground"
         />
-
-        {/* Metadata row: date + attachments */}
-        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+      }
+      badges={
+        <>
           <Popover>
             <PopoverTrigger asChild>
               <button className="caption inline-flex items-center gap-1 bg-muted/80 px-1.5 py-0.5 rounded hover:bg-accent transition-colors">
@@ -463,64 +429,64 @@ function MilestoneRow({
           </Popover>
 
           {attachedFolders.map((af: any) => (
-            <span
+            <MetaBadge
               key={af.id}
-              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-colors"
+              variant="blue"
+              icon={<FolderOpen className="h-3 w-3" />}
               onClick={() => onDetachFolder(af.id)}
-              title="Click to remove"
             >
-              <FolderOpen className="h-3 w-3" /> {af.folder?.name}
-            </span>
+              {af.folder?.name}
+            </MetaBadge>
           ))}
           {attachedLinks.map((al: any) => (
-            <span
+            <MetaBadge
               key={al.id}
-              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-colors"
+              variant="blue"
+              icon={<Link2 className="h-3 w-3" />}
               onClick={() => onDetachLink(al.id)}
-              title="Click to remove"
             >
-              <Link2 className="h-3 w-3" /> {al.link?.title}
-            </span>
+              {al.link?.title}
+            </MetaBadge>
           ))}
-        </div>
-      </div>
-
-      {/* Actions */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 shrink-0">
-            <MoreVertical className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          {availableFolders.length > 0 && (
-            <>
-              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Attach Folder</div>
-              {availableFolders.map((f) => (
-                <DropdownMenuItem key={f.id} onClick={() => onAttachFolder(f.id)}>
-                  <FolderOpen className="mr-2 h-3.5 w-3.5" /> {f.name}
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
-            </>
-          )}
-          {availableLinks.length > 0 && (
-            <>
-              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Attach Link</div>
-              {availableLinks.slice(0, 10).map((l) => (
-                <DropdownMenuItem key={l.id} onClick={() => onAttachLink(l.id)}>
-                  <Link2 className="mr-2 h-3.5 w-3.5" /> {l.title}
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
-            </>
-          )}
-          <DropdownMenuItem className="text-destructive" onClick={onDelete}>
-            <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </ListItemRow>
+        </>
+      }
+      actions={
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            {availableFolders.length > 0 && (
+              <>
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Attach Folder</div>
+                {availableFolders.map((f) => (
+                  <DropdownMenuItem key={f.id} onClick={() => onAttachFolder(f.id)}>
+                    <FolderOpen className="mr-2 h-3.5 w-3.5" /> {f.name}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+              </>
+            )}
+            {availableLinks.length > 0 && (
+              <>
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Attach Link</div>
+                {availableLinks.slice(0, 10).map((l) => (
+                  <DropdownMenuItem key={l.id} onClick={() => onAttachLink(l.id)}>
+                    <Link2 className="mr-2 h-3.5 w-3.5" /> {l.title}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+              </>
+            )}
+            <DropdownMenuItem className="text-destructive" onClick={onDelete}>
+              <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      }
+    />
   );
 }
 
@@ -535,9 +501,7 @@ function ShareTimelineButton({ artist }: { artist: any }) {
   const toggleShare = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
-        .from("artists")
-        .update({ timeline_is_public: !isPublic } as any)
-        .eq("id", artist.id);
+        .from("artists").update({ timeline_is_public: !isPublic } as any).eq("id", artist.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -571,12 +535,7 @@ function ShareTimelineButton({ artist }: { artist: any }) {
           {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
         </Button>
       )}
-      <Button
-        variant="outline"
-        size="sm"
-        className="gap-1.5"
-        onClick={() => toggleShare.mutate()}
-      >
+      <Button variant="outline" size="sm" className="gap-1.5" onClick={() => toggleShare.mutate()}>
         <Share2 className="h-4 w-4" />
         {isPublic ? "Sharing On" : "Share Timeline"}
       </Button>

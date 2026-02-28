@@ -3,25 +3,19 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, ChevronDown, ChevronUp, FolderPlus, ListPlus, Calendar, DollarSign, User, MoreHorizontal, Archive, Trash } from "lucide-react";
+import { Plus, Trash2, FolderPlus, ListPlus, Calendar, DollarSign, User, MoreHorizontal, Archive, Trash } from "lucide-react";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
-import { CollapsibleSection, InlineAddTrigger, ListItemRow } from "@/components/ui/CollapsibleSection";
+import { CollapsibleSection, InlineAddTrigger } from "@/components/ui/CollapsibleSection";
+import { ItemCardRead, ItemCardEdit, MetaBadge, DeleteAction } from "@/components/ui/ItemCard";
+import { ItemEditor, DescriptionEditor } from "@/components/ui/ItemEditor";
+import { ToolbarButton } from "@/components/ui/ItemPickers";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
 interface WorkTabProps {
@@ -78,7 +72,6 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
 
   return (
     <div className="mt-4 space-y-2">
-      {/* Header controls */}
       <div className="flex items-center justify-between mb-2">
         <label className="flex items-center gap-2 cursor-pointer caption text-muted-foreground hover:text-foreground transition-colors">
           <Checkbox checked={showCompleted} onCheckedChange={(v) => setShowCompleted(!!v)} />
@@ -87,14 +80,8 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
         <NewCampaignInline artistId={artistId} onCreated={setNewCampaignId} />
       </div>
 
-      {/* Unsorted tasks */}
       {unsortedTasks.length > 0 && (
-        <CollapsibleSection
-          title="Unsorted"
-          count={unsortedTasks.length}
-          open={activeExpanded}
-          onToggle={() => setActiveExpanded(!activeExpanded)}
-        >
+        <CollapsibleSection title="Unsorted" count={unsortedTasks.length} open={activeExpanded} onToggle={() => setActiveExpanded(!activeExpanded)}>
           <InlineTaskInput artistId={artistId} teamId={teamId} campaigns={campaigns} />
           <div className="divide-y divide-border/30">
             {unsortedTasks.map((t: any) => (
@@ -104,18 +91,14 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
         </CollapsibleSection>
       )}
 
-      {/* Campaign sections */}
       {campaigns.map((c: any) => {
         const cTasks = campaignTasks(c.id);
         const isExpanded = expandedCampaigns[c.id] ?? true;
         const isNewlyCreated = newCampaignId === c.id;
         return (
           <CollapsibleSection
-            key={c.id}
-            title={c.name}
-            count={cTasks.length}
-            open={isExpanded}
-            onToggle={() => toggleCampaign(c.id)}
+            key={c.id} title={c.name} count={cTasks.length}
+            open={isExpanded} onToggle={() => toggleCampaign(c.id)}
             titleSlot={<CampaignName campaign={c} artistId={artistId} />}
             actions={<CampaignActions campaign={c} artistId={artistId} taskCount={cTasks.length} />}
           >
@@ -128,7 +111,6 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
         );
       })}
 
-      {/* Completed */}
       {showCompleted && completedTasks.length > 0 && (
         <CollapsibleSection title="Completed" count={completedTasks.length} defaultOpen={false}>
           <div className="divide-y divide-border/30">
@@ -140,7 +122,7 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
   );
 }
 
-/* Empty state */
+/* ── Empty State ── */
 function EmptyWorkState({ artistId, teamId, onCampaignCreated }: { artistId: string; teamId: string; onCampaignCreated: (id: string) => void }) {
   const queryClient = useQueryClient();
   const campaignInputRef = useRef<HTMLInputElement>(null);
@@ -166,9 +148,7 @@ function EmptyWorkState({ artistId, teamId, onCampaignCreated }: { artistId: str
       <div className="mt-4">
         <div className="bg-muted/30 rounded-lg px-4 py-3">
           <input
-            ref={campaignInputRef}
-            autoFocus
-            placeholder="Campaign name"
+            ref={campaignInputRef} autoFocus placeholder="Campaign name"
             className="flex-1 bg-transparent text-base font-bold outline-none placeholder:text-muted-foreground/60 w-full"
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) createCampaign.mutate((e.target as HTMLInputElement).value);
@@ -205,6 +185,7 @@ function EmptyWorkState({ artistId, teamId, onCampaignCreated }: { artistId: str
   );
 }
 
+/* ── Campaign Actions ── */
 function CampaignActions({ campaign, artistId, taskCount }: { campaign: any; artistId: string; taskCount: number }) {
   const queryClient = useQueryClient();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -278,6 +259,7 @@ function CampaignActions({ campaign, artistId, taskCount }: { campaign: any; art
   );
 }
 
+/* ── Campaign Name ── */
 function CampaignName({ campaign, artistId }: { campaign: any; artistId: string }) {
   const queryClient = useQueryClient();
   const update = useMutation({
@@ -287,51 +269,28 @@ function CampaignName({ campaign, artistId }: { campaign: any; artistId: string 
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["initiatives", artistId] }),
   });
-
-  return (
-    <InlineField
-      value={campaign.name}
-      onSave={(v) => update.mutate(v)}
-      className="text-base font-bold tracking-tight"
-      inputClassName="bg-transparent border-none focus:ring-0 px-0 py-0"
-    />
-  );
+  return <InlineField value={campaign.name} onSave={(v) => update.mutate(v)} className="text-base font-bold tracking-tight" inputClassName="bg-transparent border-none focus:ring-0 px-0 py-0" />;
 }
 
+/* ── Inline Task Input (using ItemCardEdit + ItemEditor) ── */
 function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoFocus }: {
   artistId: string; teamId: string; campaigns: any[]; defaultCampaignId?: string; autoFocus?: boolean;
 }) {
   const queryClient = useQueryClient();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const descRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
   const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(!!autoFocus);
 
-  const [showAtDropdown, setShowAtDropdown] = useState(false);
-  const [showDollarDropdown, setShowDollarDropdown] = useState(false);
-  const [atQuery, setAtQuery] = useState("");
-  const [dollarAmount, setDollarAmount] = useState("");
-
   const { data: teamMembers = [] } = useQuery({
     queryKey: ["team-members", teamId],
     queryFn: async () => {
-      const { data: memberships, error } = await supabase
-        .from("team_memberships")
-        .select("user_id, role")
-        .eq("team_id", teamId);
+      const { data: memberships, error } = await supabase.from("team_memberships").select("user_id, role").eq("team_id", teamId);
       if (error) throw error;
       if (!memberships || memberships.length === 0) return [];
       const userIds = memberships.map((m: any) => m.user_id);
-      const { data: profiles, error: pErr } = await supabase
-        .from("profiles")
-        .select("id, full_name, avatar_url")
-        .in("id", userIds);
+      const { data: profiles, error: pErr } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", userIds);
       if (pErr) throw pErr;
-      return (profiles || []).map((p: any) => ({
-        ...p,
-        role: memberships.find((m: any) => m.user_id === p.id)?.role,
-      }));
+      return (profiles || []).map((p: any) => ({ ...p, role: memberships.find((m: any) => m.user_id === p.id)?.role }));
     },
     enabled: !!teamId,
   });
@@ -345,50 +304,37 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
     },
   });
 
-  useEffect(() => {
-    if (autoFocus) inputRef.current?.focus();
-  }, [autoFocus]);
-
-  useEffect(() => {
-    const atMatch = value.match(/@(\w*)$/);
-    if (atMatch) {
-      setShowAtDropdown(true);
-      setAtQuery(atMatch[1].toLowerCase());
-      setShowDollarDropdown(false);
-    } else {
-      setShowAtDropdown(false);
-      setAtQuery("");
-    }
-
-    const dollarMatch = value.match(/\$(\d*(?:,\d{3})*(?:\.\d{0,2})?)$/);
-    if (dollarMatch) {
-      setShowDollarDropdown(true);
-      setDollarAmount(dollarMatch[1]);
-      setShowAtDropdown(false);
-    } else {
-      setShowDollarDropdown(false);
-      setDollarAmount("");
-    }
-  }, [value]);
-
-  const filteredMembers = useMemo(() => {
-    if (!atQuery) return teamMembers;
-    return teamMembers.filter((m: any) => m.full_name?.toLowerCase().includes(atQuery));
-  }, [teamMembers, atQuery]);
-
-  const selectMember = (member: any) => {
-    const name = member.full_name || "Unknown";
-    setValue(prev => prev.replace(/@\w*$/, `@${name} `));
-    setShowAtDropdown(false);
-    inputRef.current?.focus();
-  };
-
-  const selectBudget = (budget: any, amount: string) => {
-    const amountStr = amount || "0";
-    setValue(prev => prev.replace(/\$[\d,]*\.?\d*$/, `$${amountStr} `));
-    setShowDollarDropdown(false);
-    inputRef.current?.focus();
-  };
+  const triggers = useMemo(() => [
+    {
+      char: "@",
+      items: teamMembers.map((m: any) => ({
+        id: m.id,
+        label: m.full_name || "Unknown",
+        icon: <User className="h-3.5 w-3.5 text-muted-foreground" />,
+      })),
+      onSelect: (item: any, current: string) => current.replace(/@\S*$/, `@${item.label} `),
+    },
+    {
+      char: "#",
+      items: campaigns.map((c: any) => ({
+        id: c.id,
+        label: c.name,
+      })),
+      onSelect: (item: any, current: string) => current.replace(/#\S*$/, `#${item.label} `),
+    },
+    {
+      char: "$",
+      items: budgets.map((b: any) => ({
+        id: b.id,
+        label: `$${b.amount.toLocaleString()} ${b.label}`,
+        icon: <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />,
+      })),
+      onSelect: (item: any, current: string) => {
+        const budget = budgets.find((b: any) => b.id === item.id);
+        return current.replace(/\$\S*$/, `$${budget?.amount || 0} `);
+      },
+    },
+  ], [teamMembers, campaigns, budgets]);
 
   const addTask = useMutation({
     mutationFn: async (parsed: { title: string; description?: string; due_date?: string; expense_amount?: number; initiative_id?: string; assigned_to?: string }) => {
@@ -405,7 +351,6 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
       queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
       setValue("");
       setDescription("");
-      setTimeout(() => inputRef.current?.focus(), 50);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -449,12 +394,6 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
     addTask.mutate({ title, description: description.trim() || undefined, due_date, expense_amount, initiative_id, assigned_to });
   }, [value, description, campaigns, teamMembers, addTask]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (showAtDropdown || showDollarDropdown) return;
-    if (e.key === "Enter" && value.trim()) { e.preventDefault(); parseAndSubmit(); }
-    if (e.key === "Escape") { setValue(""); setDescription(""); setIsActive(false); inputRef.current?.blur(); }
-  };
-
   const handleCancel = () => {
     setValue("");
     setDescription("");
@@ -462,80 +401,49 @@ function InlineTaskInput({ artistId, teamId, campaigns, defaultCampaignId, autoF
   };
 
   if (!isActive) {
-    return (
-      <InlineAddTrigger label="New Task" onClick={() => { setIsActive(true); setTimeout(() => inputRef.current?.focus(), 50); }} />
-    );
+    return <InlineAddTrigger label="New Task" onClick={() => setIsActive(true)} />;
   }
 
   return (
-    <div className="mb-2 relative">
-      <div className="rounded-lg bg-muted/40 px-4 py-3">
-        <div className="flex items-start gap-3">
-          <Checkbox disabled className="opacity-20 mt-1" />
-          <div className="flex-1 relative">
-            <input
-              ref={inputRef}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onFocus={() => setIsActive(true)}
-              onKeyDown={handleKeyDown}
-              placeholder="Task name (use @ to assign, # to pick campaign, $ for budget, 'due tomorrow')"
-              className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
-            />
-
-            {showAtDropdown && filteredMembers.length > 0 && (
-              <div className="absolute left-0 top-full mt-1 bg-popover border border-border/60 rounded-lg shadow-xl z-50 min-w-[200px] py-1">
-                {filteredMembers.map((m: any) => (
-                  <button
-                    key={m.id}
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
-                    onMouseDown={(e) => { e.preventDefault(); selectMember(m); }}
-                  >
-                    <User className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>{m.full_name || "Unknown"}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {showDollarDropdown && budgets.length > 0 && (
-              <div className="absolute left-0 top-full mt-1 bg-popover border border-border/60 rounded-lg shadow-xl z-50 min-w-[220px] py-1">
-                {budgets.map((b: any) => (
-                  <button
-                    key={b.id}
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
-                    onMouseDown={(e) => { e.preventDefault(); selectBudget(b, dollarAmount || String(b.amount)); }}
-                  >
-                    <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>${dollarAmount || b.amount.toLocaleString()} {b.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <input
-              ref={descRef}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Description"
-              className="w-full bg-transparent text-xs text-muted-foreground outline-none placeholder:text-muted-foreground/40 mt-2"
-            />
-            <div className="flex items-center gap-1 mt-2.5">
-              <button className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" title="Assign" onClick={() => { setValue(prev => prev + "@"); inputRef.current?.focus(); }}><User className="h-3.5 w-3.5" /></button>
-              <button className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" title="Due date" onClick={() => { setValue(prev => prev + " due "); inputRef.current?.focus(); }}><Calendar className="h-3.5 w-3.5" /></button>
-              <button className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" title="Cost" onClick={() => { setValue(prev => prev + "$"); inputRef.current?.focus(); }}><DollarSign className="h-3.5 w-3.5" /></button>
-              <div className="flex-1" />
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleCancel}>Cancel</Button>
-              <Button size="sm" className="h-7 text-xs" onClick={parseAndSubmit} disabled={!value.trim()}>Save</Button>
-            </div>
-          </div>
+    <ItemCardEdit
+      onCancel={handleCancel}
+      onSave={parseAndSubmit}
+      saveDisabled={!value.trim()}
+      bottomLeft={
+        <div className="flex items-center gap-1">
+          <ToolbarButton icon={<User className="h-3.5 w-3.5" />} title="Assign" onClick={() => setValue(prev => prev + "@")} />
+          <ToolbarButton icon={<Calendar className="h-3.5 w-3.5" />} title="Due date" onClick={() => setValue(prev => prev + " due ")} />
+          <ToolbarButton icon={<DollarSign className="h-3.5 w-3.5" />} title="Cost" onClick={() => setValue(prev => prev + "$")} />
+        </div>
+      }
+    >
+      <div className="flex items-start gap-3">
+        <Checkbox disabled className="opacity-20 mt-1" />
+        <div className="flex-1">
+          <ItemEditor
+            value={value}
+            onChange={setValue}
+            onSubmit={parseAndSubmit}
+            onCancel={handleCancel}
+            placeholder="Task name (use @ to assign, # for campaign, $ for budget, 'due tomorrow')"
+            autoFocus={autoFocus || isActive}
+            triggers={triggers}
+            className="font-medium"
+          />
+          <DescriptionEditor
+            value={description}
+            onChange={setDescription}
+            onSubmit={parseAndSubmit}
+            onCancel={handleCancel}
+            className="mt-2"
+          />
         </div>
       </div>
-    </div>
+    </ItemCardEdit>
   );
 }
 
+/* ── Task Row (using ItemCardRead) ── */
 function TaskRow({ task, artistId, campaigns }: { task: any; artistId: string; campaigns: any[] }) {
   const queryClient = useQueryClient();
 
@@ -578,35 +486,29 @@ function TaskRow({ task, artistId, campaigns }: { task: any; artistId: string; c
   const campaign = campaigns.find((c: any) => c.id === task.initiative_id);
 
   return (
-    <ListItemRow>
-      <Checkbox checked={task.is_completed} onCheckedChange={() => toggleTask.mutate()} className="mt-1 shrink-0" />
-      <div className="flex-1 min-w-0">
-        <div className={`${task.is_completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
+    <ItemCardRead
+      icon={<Checkbox checked={task.is_completed} onCheckedChange={() => toggleTask.mutate()} className="mt-1 shrink-0" />}
+      title={
+        <div className={task.is_completed ? "line-through text-muted-foreground" : "text-foreground"}>
           <InlineField value={task.title} onSave={(v) => updateTask.mutate({ title: v })} className="text-sm font-medium" />
         </div>
-        {task.description && (
-          <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>
-        )}
-        <div className="flex flex-wrap items-center gap-1.5 mt-1.5 empty:hidden">
+      }
+      subtitle={task.description ? <p className="text-xs text-muted-foreground">{task.description}</p> : undefined}
+      badges={
+        <>
           {assignee?.full_name && (
-            <span className="caption inline-flex items-center gap-1 bg-muted/80 px-1.5 py-0.5 rounded">
-              <User className="h-3 w-3" /> {assignee.full_name}
-            </span>
+            <MetaBadge icon={<User className="h-3 w-3" />}>{assignee.full_name}</MetaBadge>
           )}
           {task.due_date && (
-            <span className="caption inline-flex items-center gap-1 bg-muted/80 px-1.5 py-0.5 rounded">
-              <Calendar className="h-3 w-3" />
+            <MetaBadge icon={<Calendar className="h-3 w-3" />}>
               <InlineField value={task.due_date} onSave={(v) => updateTask.mutate({ due_date: v || null })} className="text-xs text-muted-foreground" />
-            </span>
+            </MetaBadge>
           )}
           {campaign && (
-            <span className="caption inline-flex items-center gap-1 bg-muted/80 px-1.5 py-0.5 rounded">
-              # {campaign.name}
-            </span>
+            <MetaBadge># {campaign.name}</MetaBadge>
           )}
           {task.expense_amount != null && task.expense_amount > 0 && (
-            <span className="caption-bold inline-flex items-center gap-0.5 bg-muted/80 px-1.5 py-0.5 rounded">
-              <DollarSign className="h-3 w-3" />
+            <MetaBadge icon={<DollarSign className="h-3 w-3" />}>
               <InlineField
                 value={`${task.expense_amount.toLocaleString()}`}
                 onSave={(v) => {
@@ -615,17 +517,16 @@ function TaskRow({ task, artistId, campaigns }: { task: any; artistId: string; c
                 }}
                 className="text-xs font-semibold w-16 text-right"
               />
-            </span>
+            </MetaBadge>
           )}
-        </div>
-      </div>
-      <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 h-7 w-7 shrink-0 -mr-1" onClick={() => deleteTask.mutate()}>
-        <Trash2 className="h-3.5 w-3.5" />
-      </Button>
-    </ListItemRow>
+        </>
+      }
+      actions={<DeleteAction onDelete={() => deleteTask.mutate()} />}
+    />
   );
 }
 
+/* ── New Campaign Inline ── */
 function NewCampaignInline({ artistId, onCreated }: { artistId: string; onCreated: (id: string) => void }) {
   const queryClient = useQueryClient();
   const [show, setShow] = useState(false);
@@ -652,9 +553,7 @@ function NewCampaignInline({ artistId, onCreated }: { artistId: string; onCreate
 
   return (
     <input
-      ref={inputRef}
-      autoFocus
-      placeholder="Campaign name, press Enter"
+      ref={inputRef} autoFocus placeholder="Campaign name, press Enter"
       className="bg-transparent border-b border-primary/40 outline-none text-sm py-1 w-48"
       onKeyDown={(e) => {
         if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) create.mutate((e.target as HTMLInputElement).value);

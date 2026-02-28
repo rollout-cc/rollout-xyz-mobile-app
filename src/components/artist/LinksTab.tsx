@@ -3,12 +3,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
-  Plus, Trash2, FolderOpen, ExternalLink, LinkIcon, MoreHorizontal,
+  FolderOpen, ExternalLink, LinkIcon, MoreHorizontal,
   Trash, FolderPlus, Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
-import { CollapsibleSection, InlineAddTrigger, ListItemRow } from "@/components/ui/CollapsibleSection";
+import { CollapsibleSection, InlineAddTrigger } from "@/components/ui/CollapsibleSection";
+import { ItemCardRead, ItemCardEdit, MetaBadge } from "@/components/ui/ItemCard";
+import { ItemEditor } from "@/components/ui/ItemEditor";
+import { FolderPicker } from "@/components/ui/ItemPickers";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -16,7 +19,6 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { format } from "date-fns";
 
 interface LinksTabProps {
   artistId: string;
@@ -66,7 +68,6 @@ export function LinksTab({ artistId }: LinksTabProps) {
 
   return (
     <div className="mt-4 space-y-2">
-      {/* Unfiled links */}
       {unfiledLinks.length > 0 && (
         <CollapsibleSection title="Unsorted" count={unfiledLinks.length}>
           <InlineLinkInput artistId={artistId} folders={folders} />
@@ -78,17 +79,13 @@ export function LinksTab({ artistId }: LinksTabProps) {
         </CollapsibleSection>
       )}
 
-      {/* Folder sections */}
       {folders.map((folder: any) => {
         const fLinks = folderLinks(folder.id);
         const isExpanded = expandedFolders[folder.id] ?? false;
         return (
           <CollapsibleSection
-            key={folder.id}
-            title={folder.name}
-            count={fLinks.length}
-            open={isExpanded}
-            onToggle={() => toggleFolder(folder.id)}
+            key={folder.id} title={folder.name} count={fLinks.length}
+            open={isExpanded} onToggle={() => toggleFolder(folder.id)}
             titleSlot={<FolderName folder={folder} artistId={artistId} />}
             actions={<FolderActions folder={folder} artistId={artistId} linkCount={fLinks.length} />}
             defaultOpen={false}
@@ -104,7 +101,6 @@ export function LinksTab({ artistId }: LinksTabProps) {
         );
       })}
 
-      {/* If only unfiled links exist, show inline add at the bottom */}
       {unfiledLinks.length === 0 && folders.length > 0 && (
         <div className="pt-2">
           <InlineLinkInput artistId={artistId} folders={folders} />
@@ -136,16 +132,17 @@ function EmptyLinksState({ artistId, folders }: { artistId: string; folders: any
   if (mode === "folder") {
     return (
       <div className="mt-4">
-        <input
-          autoFocus
-          placeholder="Folder name, press Enter"
-          className="bg-transparent border-b border-primary/40 outline-none text-sm py-2 w-64"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) createFolder.mutate((e.target as HTMLInputElement).value);
-            if (e.key === "Escape") setMode("idle");
-          }}
-          onBlur={(e) => { if (!e.target.value.trim()) setMode("idle"); }}
-        />
+        <ItemCardEdit onCancel={() => setMode("idle")} onSave={() => {}} saveDisabled>
+          <input
+            autoFocus placeholder="Folder name"
+            className="w-full bg-transparent outline-none text-sm font-medium placeholder:text-muted-foreground/50"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) createFolder.mutate((e.target as HTMLInputElement).value);
+              if (e.key === "Escape") setMode("idle");
+            }}
+            onBlur={(e) => { if (!e.target.value.trim()) setMode("idle"); }}
+          />
+        </ItemCardEdit>
       </div>
     );
   }
@@ -173,49 +170,18 @@ function EmptyLinksState({ artistId, folders }: { artistId: string; folders: any
   );
 }
 
-/* ── Inline Link Input ── */
+/* ── Inline Link Input (using ItemCardEdit + ItemEditor) ── */
 function InlineLinkInput({ artistId, folders, defaultFolderId, autoFocus }: {
   artistId: string; folders: any[]; defaultFolderId?: string; autoFocus?: boolean;
 }) {
   const queryClient = useQueryClient();
-  const urlRef = useRef<HTMLInputElement>(null);
-  const titleRef = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
   const [isActive, setIsActive] = useState(!!autoFocus);
-
-  const [showHashDropdown, setShowHashDropdown] = useState(false);
-  const [hashQuery, setHashQuery] = useState("");
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(defaultFolderId || null);
   const [selectedFolderName, setSelectedFolderName] = useState<string | null>(
     defaultFolderId ? folders.find((f: any) => f.id === defaultFolderId)?.name || null : null
   );
-
-  useEffect(() => { if (autoFocus) urlRef.current?.focus(); }, [autoFocus]);
-
-  useEffect(() => {
-    const match = title.match(/#(\w*)$/);
-    if (match && !defaultFolderId) {
-      setShowHashDropdown(true);
-      setHashQuery(match[1].toLowerCase());
-    } else {
-      setShowHashDropdown(false);
-      setHashQuery("");
-    }
-  }, [title, defaultFolderId]);
-
-  const filteredFolders = useMemo(() => {
-    if (!hashQuery) return folders;
-    return folders.filter((f: any) => f.name.toLowerCase().includes(hashQuery));
-  }, [folders, hashQuery]);
-
-  const selectFolder = (folder: any) => {
-    setTitle(prev => prev.replace(/#\w*$/, "").trim());
-    setSelectedFolderId(folder.id);
-    setSelectedFolderName(folder.name);
-    setShowHashDropdown(false);
-    titleRef.current?.focus();
-  };
 
   const addLink = useMutation({
     mutationFn: async () => {
@@ -235,81 +201,92 @@ function InlineLinkInput({ artistId, folders, defaultFolderId, autoFocus }: {
       queryClient.invalidateQueries({ queryKey: ["artist_link_folders", artistId] });
       setUrl(""); setTitle("");
       if (!defaultFolderId) { setSelectedFolderId(null); setSelectedFolderName(null); }
-      setTimeout(() => urlRef.current?.focus(), 50);
     },
     onError: (e: any) => toast.error(e.message),
   });
 
-  const submit = useCallback(() => { if (!url.trim()) return; addLink.mutate(); }, [url, title, selectedFolderId]);
+  const submit = useCallback(() => { if (!url.trim()) return; addLink.mutate(); }, [url, addLink]);
+
+  const handleCancel = () => {
+    setUrl(""); setTitle(""); setIsActive(false);
+    if (!defaultFolderId) { setSelectedFolderId(null); setSelectedFolderName(null); }
+  };
 
   if (!isActive) {
-    return (
-      <InlineAddTrigger label="New Link" onClick={() => { setIsActive(true); setTimeout(() => urlRef.current?.focus(), 50); }} />
-    );
+    return <InlineAddTrigger label="New Link" onClick={() => setIsActive(true)} />;
   }
 
+  // Trigger config for # folder selection in title
+  const triggers = useMemo(() => defaultFolderId ? [] : [
+    {
+      char: "#",
+      items: folders.map((f: any) => ({
+        id: f.id,
+        label: f.name,
+        icon: <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" />,
+      })),
+      onSelect: (item: any, current: string) => {
+        setSelectedFolderId(item.id);
+        setSelectedFolderName(item.label);
+        return current.replace(/#\S*$/, "").trim();
+      },
+    },
+  ], [folders, defaultFolderId]);
+
   return (
-    <div className="mb-2 rounded-lg bg-muted/40 px-4 py-3 space-y-1.5">
-      <div className="flex items-center gap-2">
-        <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-        <input
-          ref={urlRef} value={url} onChange={(e) => setUrl(e.target.value)}
-          placeholder="Paste URL"
-          className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground/60"
-          onKeyDown={(e) => {
-            if (e.key === "Enter") { e.preventDefault(); titleRef.current?.focus(); }
-            if (e.key === "Escape") { setUrl(""); setTitle(""); setIsActive(false); }
-          }}
-        />
-      </div>
-      {url.trim() && (
-        <div className="flex items-center gap-2 pl-6 relative">
-          <input
-            ref={titleRef} value={title} onChange={(e) => setTitle(e.target.value)}
-            placeholder={`Link name${!defaultFolderId ? "  (# to assign folder)" : ""}`}
-            className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground/60"
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !showHashDropdown) { e.preventDefault(); submit(); }
-              if (e.key === "Escape") { setUrl(""); setTitle(""); setIsActive(false); }
-            }}
+    <ItemCardEdit
+      onCancel={handleCancel}
+      onSave={submit}
+      saveDisabled={!url.trim()}
+      bottomLeft={
+        !defaultFolderId ? (
+          <FolderPicker
+            folders={folders}
+            value={selectedFolderId}
+            onChange={(id, name) => { setSelectedFolderId(id); setSelectedFolderName(name); }}
           />
-          {selectedFolderName && !defaultFolderId && (
-            <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
-              <FolderOpen className="h-3 w-3" /> {selectedFolderName}
-              <button onClick={() => { setSelectedFolderId(null); setSelectedFolderName(null); }} className="hover:text-foreground">×</button>
-            </span>
-          )}
-          {showHashDropdown && filteredFolders.length > 0 && (
-            <div className="absolute top-full left-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-50 w-56 py-1">
-              {filteredFolders.map((f: any) => (
-                <button key={f.id} className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
-                  onMouseDown={(e) => { e.preventDefault(); selectFolder(f); }}>
-                  <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" /> {f.name}
-                </button>
-              ))}
-            </div>
-          )}
+        ) : undefined
+      }
+    >
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+          <ItemEditor
+            value={url}
+            onChange={setUrl}
+            onSubmit={() => {/* focus title next — handled by Enter below */}}
+            onCancel={handleCancel}
+            placeholder="Paste URL"
+            autoFocus={autoFocus || isActive}
+          />
         </div>
-      )}
-    </div>
+        {url.trim() && (
+          <div className="pl-6">
+            <ItemEditor
+              value={title}
+              onChange={setTitle}
+              onSubmit={submit}
+              onCancel={handleCancel}
+              placeholder={`Enter Title${!defaultFolderId ? "  (# to assign folder)" : ""}`}
+              triggers={triggers}
+              autoFocus
+            />
+            {selectedFolderName && !defaultFolderId && (
+              <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full inline-flex items-center gap-1 mt-1.5">
+                <FolderOpen className="h-3 w-3" /> {selectedFolderName}
+                <button onClick={() => { setSelectedFolderId(null); setSelectedFolderName(null); }} className="hover:text-foreground">×</button>
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    </ItemCardEdit>
   );
 }
 
-/* ── Link Row ── */
+/* ── Link Row (using ItemCardRead) ── */
 function LinkRow({ link, artistId, folders }: { link: any; artistId: string; folders: any[] }) {
   const queryClient = useQueryClient();
-
-  const updateLink = useMutation({
-    mutationFn: async (patch: Record<string, any>) => {
-      const { error } = await supabase.from("artist_links").update(patch).eq("id", link.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["artist_links", artistId] });
-      queryClient.invalidateQueries({ queryKey: ["artist_link_folders", artistId] });
-    },
-  });
 
   const deleteLink = useMutation({
     mutationFn: async () => {
@@ -341,45 +318,44 @@ function LinkRow({ link, artistId, folders }: { link: any; artistId: string; fol
   const folder = link.folder_id ? folders.find((f: any) => f.id === link.folder_id) : null;
 
   return (
-    <ListItemRow>
-      {/* Favicon */}
-      <div className="h-9 w-9 shrink-0 rounded-lg bg-muted/60 flex items-center justify-center overflow-hidden mt-0.5">
-        {faviconUrl ? (
-          <img src={faviconUrl} alt="" className="h-5 w-5" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-        ) : (
-          <LinkIcon className="h-4 w-4 text-muted-foreground" />
-        )}
-      </div>
-
-      {/* Title + domain + folder */}
-      <div className="flex-1 min-w-0">
+    <ItemCardRead
+      icon={
+        <div className="h-9 w-9 shrink-0 rounded-lg bg-muted/60 flex items-center justify-center overflow-hidden">
+          {faviconUrl ? (
+            <img src={faviconUrl} alt="" className="h-5 w-5" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+          ) : (
+            <LinkIcon className="h-4 w-4 text-muted-foreground" />
+          )}
+        </div>
+      }
+      title={
         <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-foreground hover:underline truncate block">
           {link.title}
         </a>
-        <div className="flex items-center gap-2 mt-0.5">
+      }
+      subtitle={
+        <div className="flex items-center gap-2">
           {domainLabel && <span className="caption">{domainLabel}</span>}
           {folder && (
-            <span className="caption inline-flex items-center gap-1 bg-muted/80 px-1.5 py-0.5 rounded">
-              <FolderOpen className="h-3 w-3" /> {folder.name}
-            </span>
+            <MetaBadge icon={<FolderOpen className="h-3 w-3" />}>{folder.name}</MetaBadge>
           )}
         </div>
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-        <button onClick={copyUrl} className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors" title="Copy URL">
-          <Copy className="h-4 w-4 text-muted-foreground" />
-        </button>
-        <button onClick={() => window.open(link.url, "_blank")} className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors" title="Open">
-          <ExternalLink className="h-4 w-4 text-muted-foreground" />
-        </button>
-      </div>
-    </ListItemRow>
+      }
+      actions={
+        <>
+          <button onClick={copyUrl} className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors" title="Copy URL">
+            <Copy className="h-4 w-4 text-muted-foreground" />
+          </button>
+          <button onClick={() => window.open(link.url, "_blank")} className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors" title="Open">
+            <ExternalLink className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </>
+      }
+    />
   );
 }
 
-/* ── Folder Name (inline editable) ── */
+/* ── Folder Name ── */
 function FolderName({ folder, artistId }: { folder: any; artistId: string }) {
   const queryClient = useQueryClient();
   const update = useMutation({
