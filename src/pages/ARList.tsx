@@ -1,33 +1,47 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
-import { useProspects } from "@/hooks/useProspects";
+import { useProspects, useCreateProspect } from "@/hooks/useProspects";
 import { useTeams } from "@/hooks/useTeams";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Search, LayoutGrid, List, Calendar } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Plus, Search, LayoutGrid, List, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NewProspectDialog } from "@/components/ar/NewProspectDialog";
 import { PipelineBoard } from "@/components/ar/PipelineBoard";
 import { ProspectTable } from "@/components/ar/ProspectTable";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const STAGES = [
   "discovered", "contacted", "in_conversation", "materials_requested",
   "internal_review", "offer_sent", "negotiating", "signed", "passed", "on_hold",
 ] as const;
 
-const stageLabel = (s: string) =>
-  s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+interface SpotifyArtist {
+  id: string;
+  name: string;
+  genres: string[];
+  images: { url: string }[];
+  followers?: { total: number };
+}
 
 export default function ARList() {
   const { data: prospects = [], isLoading } = useProspects();
   const { data: teams = [] } = useTeams();
   const teamId = teams[0]?.id;
   const navigate = useNavigate();
+  const createProspect = useCreateProspect();
   const [view, setView] = useState<"board" | "table">("board");
   const [search, setSearch] = useState("");
   const [showNew, setShowNew] = useState(false);
+
+  // Spotify search state
+  const [spotifyResults, setSpotifyResults] = useState<SpotifyArtist[]>([]);
+  const [spotifySearching, setSpotifySearching] = useState(false);
+  const [addingIds, setAddingIds] = useState<Set<string>>(new Set());
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const filtered = useMemo(() => {
     if (!search.trim()) return prospects;
@@ -39,6 +53,56 @@ export default function ARList() {
         p.city?.toLowerCase().includes(q)
     );
   }, [prospects, search]);
+
+  // Spotify search on typing
+  useEffect(() => {
+    if (!search.trim() || search.trim().length < 2) {
+      setSpotifyResults([]);
+      return;
+    }
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setSpotifySearching(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("spotify-search", {
+          body: { q: search.trim() },
+        });
+        if (error) throw error;
+        setSpotifyResults(data?.artists ?? []);
+      } catch {
+        setSpotifyResults([]);
+      } finally {
+        setSpotifySearching(false);
+      }
+    }, 400);
+    return () => clearTimeout(debounceRef.current);
+  }, [search]);
+
+  const handleAddFromSpotify = async (artist: SpotifyArtist) => {
+    if (!teamId) return;
+    setAddingIds((prev) => new Set(prev).add(artist.id));
+    try {
+      const result = await createProspect.mutateAsync({
+        team_id: teamId,
+        artist_name: artist.name,
+        primary_genre: artist.genres?.[0] || undefined,
+        spotify_uri: `spotify:artist:${artist.id}`,
+        monthly_listeners: artist.followers?.total,
+        stage: "discovered",
+        priority: "medium",
+      });
+      toast.success(`${artist.name} added as prospect`);
+      navigate(`/ar/${result.id}`);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setAddingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(artist.id);
+        return next;
+      });
+    }
+  };
 
   // Quick metrics
   const now = new Date();
@@ -59,6 +123,20 @@ export default function ARList() {
   const followUpsDue = prospects.filter(
     (p: any) => p.next_follow_up && new Date(p.next_follow_up) <= endOfWeek && !["signed", "passed"].includes(p.stage)
   ).length;
+
+  const showSpotifySection = search.trim().length >= 2 && (spotifyResults.length > 0 || spotifySearching);
+
+  // Existing prospect spotify URIs to mark duplicates
+  const existingSpotifyIds = useMemo(() => {
+    const ids = new Set<string>();
+    prospects.forEach((p: any) => {
+      if (p.spotify_uri) {
+        const match = p.spotify_uri.match(/spotify:artist:(\w+)/);
+        if (match) ids.add(match[1]);
+      }
+    });
+    return ids;
+  }, [prospects]);
 
   return (
     <AppLayout title="A&R">
@@ -84,7 +162,7 @@ export default function ARList() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search prospects..."
+            placeholder="Search prospects or find on Spotify..."
             className="pl-9"
           />
         </div>
@@ -112,6 +190,46 @@ export default function ARList() {
           <Plus className="h-4 w-4" /> New Prospect
         </Button>
       </div>
+
+      {/* Spotify search results */}
+      {showSpotifySection && (
+        <div className="mb-4 rounded-xl border border-border p-3">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Spotify Results</p>
+          {spotifySearching ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 max-h-[280px] overflow-y-auto">
+              {spotifyResults.map((artist) => {
+                const alreadyAdded = existingSpotifyIds.has(artist.id);
+                const adding = addingIds.has(artist.id);
+                return (
+                  <div key={artist.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/50 transition-colors">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={artist.images?.[0]?.url} />
+                      <AvatarFallback>{artist.name[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{artist.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {artist.genres.slice(0, 3).join(", ") || "No genres"}
+                      </p>
+                    </div>
+                    {alreadyAdded ? (
+                      <span className="text-xs text-muted-foreground">Already added</span>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => handleAddFromSpotify(artist)} disabled={adding}>
+                        {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Content */}
       {view === "board" ? (
