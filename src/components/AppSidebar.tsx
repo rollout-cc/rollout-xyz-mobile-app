@@ -140,7 +140,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
           )}
 
           {/* Nav */}
-          <SidebarMenu className="px-3">
+          <SidebarMenu className={collapsed ? "px-2" : "px-3"}>
             {navItems.map((item) => (
               <SidebarMenuItem key={item.to}>
                 <SidebarMenuButton asChild tooltip={collapsed ? item.label : undefined}>
