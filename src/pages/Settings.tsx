@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-type SettingsSection = "profile" | "team";
+type SettingsSection = "profile" | "notifications" | "team";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -164,26 +164,19 @@ export default function Settings() {
 
         {/* Top-level section tabs */}
         <div className="flex gap-1 mb-6">
-          <button
-            onClick={() => setActiveSection("profile")}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-              activeSection === "profile"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent"
-            }`}
-          >
-            Profile Settings
-          </button>
-          <button
-            onClick={() => setActiveSection("team")}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-              activeSection === "team"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent"
-            }`}
-          >
-            Team Settings
-          </button>
+          {(["profile", "notifications", "team"] as const).map((section) => (
+            <button
+              key={section}
+              onClick={() => setActiveSection(section)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                activeSection === section
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent"
+              }`}
+            >
+              {section === "profile" ? "Profile" : section === "notifications" ? "Notifications" : "Team"}
+            </button>
+          ))}
         </div>
 
         <div className="border-t border-border" />
@@ -274,6 +267,13 @@ export default function Settings() {
             >
               {saving ? "Saving..." : "Save Settings"}
             </Button>
+          </div>
+        ) : activeSection === "notifications" ? (
+          <div className="mt-6 space-y-6">
+            <h2 className="text-foreground">Notifications</h2>
+            <p className="text-sm text-muted-foreground">
+              Notification preferences coming soon.
+            </p>
           </div>
         ) : (
           <div className="mt-6">
