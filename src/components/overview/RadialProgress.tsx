@@ -9,7 +9,7 @@ interface RadialProgressProps {
   className?: string;
 }
 
-export function RadialProgress({ value, size = 72, strokeWidth = 5, label, detail, className }: RadialProgressProps) {
+export function RadialProgress({ value, size = 56, strokeWidth = 4, label, detail, className }: RadialProgressProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const clamped = Math.min(Math.max(value, 0), 100);
@@ -19,7 +19,7 @@ export function RadialProgress({ value, size = 72, strokeWidth = 5, label, detai
     clamped > 90 ? "stroke-destructive" : clamped > 70 ? "stroke-amber-500" : "stroke-emerald-500";
 
   return (
-    <div className={cn("flex flex-col items-center gap-1.5", className)}>
+    <div className={cn("flex flex-col items-center gap-1", className)}>
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} className="-rotate-90">
           <circle
@@ -42,12 +42,12 @@ export function RadialProgress({ value, size = 72, strokeWidth = 5, label, detai
             className={cn("transition-all duration-500", color)}
           />
         </svg>
-        <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-foreground">
+        <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-foreground">
           {clamped.toFixed(0)}%
         </span>
       </div>
-      <span className="text-[11px] text-muted-foreground truncate max-w-[80px] text-center leading-tight">{label}</span>
-      <span className="text-[10px] text-muted-foreground/70 whitespace-nowrap">{detail}</span>
+      <span className="text-[10px] text-muted-foreground truncate max-w-[72px] text-center leading-tight">{label}</span>
+      <span className="text-[9px] text-muted-foreground/60 whitespace-nowrap">{detail}</span>
     </div>
   );
 }
