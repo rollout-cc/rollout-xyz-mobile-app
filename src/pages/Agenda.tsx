@@ -268,7 +268,7 @@ export default function Agenda() {
   return (
     <AppLayout title="Agenda">
       {/* Filters */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-6 min-w-0 overflow-x-auto">
         <Select value={artistId || ""} onValueChange={(v) => setSelectedArtistId(v)}>
           <SelectTrigger className="w-[200px]">
             <div className="flex items-center gap-2">
@@ -337,7 +337,7 @@ export default function Agenda() {
       ) : (
         <>
           {/* Artist header */}
-          <div className="flex items-start gap-5 mb-6">
+          <div className="flex items-start gap-5 mb-6 min-w-0">
             <Avatar className="h-16 w-16">
               <AvatarImage src={artist.avatar_url ?? undefined} />
               <AvatarFallback className="text-xl">{artist.name[0]}</AvatarFallback>
@@ -353,7 +353,7 @@ export default function Agenda() {
 
           {/* Budget categories row */}
           {budgetCards.length > 0 && (
-            <div className="flex gap-3 overflow-x-auto pb-2 mb-8">
+            <div className="flex gap-3 overflow-x-auto pb-2 mb-8 min-w-0">
               {budgetCards.map((b) => {
                 const pctColor = b.pct > 90 ? "bg-destructive" : b.pct > 60 ? "bg-orange-500" : "bg-emerald-500";
                 return (

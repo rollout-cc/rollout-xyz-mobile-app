@@ -33,7 +33,7 @@ export function AppLayout({ children, title, actions }: AppLayoutProps) {
           <AppSidebar selectedTeamId={selectedTeamId} onSelectTeam={setSelectedTeamId} />
         )}
 
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Top bar */}
           <header className="flex h-14 items-center justify-between border-b border-border px-4 sm:px-6">
             <div className="flex items-center gap-2">
@@ -60,7 +60,7 @@ export function AppLayout({ children, title, actions }: AppLayoutProps) {
           </header>
 
           {/* Content */}
-          <main className="flex-1 p-4 sm:p-6 pb-20 sm:pb-6 overflow-x-hidden">
+          <main className="flex-1 p-4 sm:p-6 pb-20 sm:pb-6 overflow-x-hidden min-w-0">
             {children}
           </main>
         </div>
