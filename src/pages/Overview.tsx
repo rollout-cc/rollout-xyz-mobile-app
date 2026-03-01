@@ -408,7 +408,7 @@ export default function Overview() {
       )}
 
       {/* Masonry grid */}
-      <div className="columns-1 lg:columns-2 gap-4" style={{ columnFill: "balance" }}>
+      <div className="columns-1 xl:columns-2 gap-4" style={{ columnFill: "balance" }}>
         <Reorder.Group axis="y" values={gridSections} onReorder={setOrder} className="contents">
           {gridSections.map((id) => {
             const section = sectionRegistry[id];
