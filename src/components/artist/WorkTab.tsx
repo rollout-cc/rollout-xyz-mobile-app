@@ -34,6 +34,7 @@ interface WorkTabProps {
 export function WorkTab({ artistId, teamId }: WorkTabProps) {
   const queryClient = useQueryClient();
   const [showCompleted, setShowCompleted] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [expandedCampaigns, setExpandedCampaigns] = useState<Record<string, boolean>>({});
   const [activeExpanded, setActiveExpanded] = useState(true);
   const [newCampaignId, setNewCampaignId] = useState<string | null>(null);
@@ -80,10 +81,14 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
     },
   });
 
-  const activeTasks = tasks.filter((t: any) => !t.is_completed);
+  const activeCampaigns = campaigns.filter((c: any) => !c.is_archived);
+  const archivedCampaigns = campaigns.filter((c: any) => c.is_archived);
+  const archivedCampaignIds = new Set(archivedCampaigns.map((c: any) => c.id));
+
+  const activeTasks = tasks.filter((t: any) => !t.is_completed && !archivedCampaignIds.has(t.initiative_id));
   const completedTasks = tasks.filter((t: any) => t.is_completed);
   const unsortedTasks = activeTasks.filter((t: any) => !t.initiative_id);
-  const campaignTasks = (campaignId: string) => activeTasks.filter((t: any) => t.initiative_id === campaignId);
+  const campaignTasks = (campaignId: string) => tasks.filter((t: any) => t.initiative_id === campaignId && !t.is_completed);
 
   const toggleCampaign = (id: string) => {
     setExpandedCampaigns(prev => ({ ...prev, [id]: !prev[id] }));
@@ -107,10 +112,18 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
   return (
     <div className="mt-4 space-y-2">
       <div className="flex items-center justify-between mb-2">
-        <label className="flex items-center gap-2 cursor-pointer caption text-muted-foreground hover:text-foreground transition-colors">
-          <Checkbox checked={showCompleted} onCheckedChange={(v) => setShowCompleted(!!v)} />
-          Show Completed
-        </label>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 cursor-pointer caption text-muted-foreground hover:text-foreground transition-colors">
+            <Checkbox checked={showCompleted} onCheckedChange={(v) => setShowCompleted(!!v)} />
+            Show Completed
+          </label>
+          {archivedCampaigns.length > 0 && (
+            <label className="flex items-center gap-2 cursor-pointer caption text-muted-foreground hover:text-foreground transition-colors">
+              <Checkbox checked={showArchived} onCheckedChange={(v) => setShowArchived(!!v)} />
+              Show Archived
+            </label>
+          )}
+        </div>
         <NewCampaignInline artistId={artistId} onCreated={setNewCampaignId} />
       </div>
 
@@ -121,7 +134,7 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
         </CollapsibleSection>
       )}
 
-      {campaigns.map((c: any) => {
+      {activeCampaigns.map((c: any) => {
         const cTasks = campaignTasks(c.id);
         const isExpanded = expandedCampaigns[c.id] ?? true;
         const isNewlyCreated = newCampaignId === c.id;
@@ -140,8 +153,28 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
       })}
 
       {/* If no unsorted but there's no campaigns, still show new task input */}
-      {unsortedTasks.length === 0 && campaigns.length === 0 && (
+      {unsortedTasks.length === 0 && activeCampaigns.length === 0 && (
         <TaskItem isNew {...sharedContext} />
+      )}
+
+      {showArchived && archivedCampaigns.length > 0 && (
+        <div className="mt-4 pt-2 border-t border-border/50">
+          <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Archived</p>
+          {archivedCampaigns.map((c: any) => {
+            const cTasks = tasks.filter((t: any) => t.initiative_id === c.id);
+            const isExpanded = expandedCampaigns[c.id] ?? false;
+            return (
+              <CollapsibleSection
+                key={c.id} title={c.name} count={cTasks.length}
+                open={isExpanded} onToggle={() => toggleCampaign(c.id)}
+                titleSlot={<span className="text-base font-bold tracking-tight truncate text-muted-foreground">{c.name}</span>}
+                actions={<CampaignActions campaign={c} artistId={artistId} taskCount={cTasks.length} />}
+              >
+                <TaskList tasks={cTasks} {...sharedContext} droppableId={`archived-${c.id}`} />
+              </CollapsibleSection>
+            );
+          })}
+        </div>
       )}
 
       {showCompleted && completedTasks.length > 0 && (
@@ -628,16 +661,16 @@ function CampaignActions({ campaign, artistId, taskCount }: { campaign: any; art
 
   const archiveCampaign = useMutation({
     mutationFn: async () => {
-      const { error: tasksError } = await supabase
-        .from("tasks")
-        .update({ is_completed: true, completed_at: new Date().toISOString() })
-        .eq("initiative_id", campaign.id)
-        .eq("is_completed", false);
-      if (tasksError) throw tasksError;
+      const { error } = await supabase
+        .from("initiatives")
+        .update({ is_archived: true })
+        .eq("id", campaign.id);
+      if (error) throw error;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["initiatives", artistId] });
       queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
-      toast.success("Campaign archived — all tasks marked complete");
+      toast.success("Campaign archived");
     },
     onError: (e: any) => toast.error(e.message),
   });
