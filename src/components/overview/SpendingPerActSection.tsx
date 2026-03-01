@@ -31,7 +31,7 @@ export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSi
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-4">
         <span className="caption-bold">{artistCount} artists</span>
       </div>
 
@@ -39,56 +39,54 @@ export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSi
         {artistBreakdown.map((artist) => (
           <div
             key={artist.id}
-            className="border-b border-border last:border-b-0 py-4 hover:bg-accent/30 cursor-pointer transition-colors"
+            className="border-b border-border last:border-b-0 py-5 px-2 hover:bg-accent/30 cursor-pointer transition-colors -mx-2"
             onClick={() => navigate(`/roster/${artist.id}`)}
           >
-            <div className="flex items-center gap-3 mb-3">
-              <Avatar className="h-10 w-10 shrink-0">
+            {/* Header row */}
+            <div className="flex items-center gap-3 mb-4">
+              <Avatar className="h-11 w-11 shrink-0 border border-border">
                 <AvatarImage src={artist.avatar_url ?? undefined} />
                 <AvatarFallback className="text-sm font-bold">{artist.name[0]}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-sm truncate">{artist.name}</span>
-                  <span className="caption whitespace-nowrap">{artist.campaignCount} campaigns</span>
-                </div>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground mt-0.5">
-                  <span className="flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3 text-emerald-500" /> {artist.completedTasks}/{artist.totalTasks} tasks
-                  </span>
-                </div>
+                <span className="font-bold text-base text-foreground truncate block">{artist.name}</span>
+                <span className="caption text-muted-foreground">
+                  {artist.campaignCount} campaigns · <CheckCircle2 className="inline h-3 w-3 text-emerald-500 -mt-px" /> {artist.completedTasks}/{artist.totalTasks} tasks
+                </span>
               </div>
               <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 ml-0 sm:ml-14 mb-2">
+            {/* Financial metrics */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
               <div>
-                <div className="caption-bold">Budget</div>
-                <div className="font-bold text-sm">{fmt(artist.budget)}</div>
+                <div className="caption text-muted-foreground mb-0.5">Budget</div>
+                <div className="text-base font-bold text-foreground">{fmt(artist.budget)}</div>
               </div>
               <div>
-                <div className="caption-bold">Spent</div>
-                <div className="font-bold text-sm text-destructive">{fmt(artist.expenses)}</div>
+                <div className="caption text-muted-foreground mb-0.5">Spent</div>
+                <div className="text-base font-bold text-destructive">{fmt(artist.expenses)}</div>
               </div>
               <div>
-                <div className="caption-bold">Revenue</div>
-                <div className="font-bold text-sm text-emerald-600">{fmt(artist.revenue)}</div>
+                <div className="caption text-muted-foreground mb-0.5">Revenue</div>
+                <div className="text-base font-bold text-emerald-500">{fmt(artist.revenue)}</div>
               </div>
               <div>
-                <div className="caption-bold">P&L</div>
-                <div className={cn("font-bold text-sm", artist.gp >= 0 ? "text-emerald-600" : "text-destructive")}>{fmtSigned(artist.gp)}</div>
+                <div className="caption text-muted-foreground mb-0.5">P&L</div>
+                <div className={cn("text-base font-bold", artist.gp >= 0 ? "text-emerald-500" : "text-destructive")}>{fmtSigned(artist.gp)}</div>
               </div>
             </div>
 
+            {/* Category progress bars */}
             {artist.categories.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 ml-0 sm:ml-14">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 mb-4">
                 {artist.categories.map((cat, i) => (
                   <div key={i}>
-                    <div className="flex items-center justify-between text-xs mb-0.5">
+                    <div className="flex items-center justify-between text-xs mb-1">
                       <span className="text-muted-foreground truncate">{cat.label}</span>
-                      <span className="font-medium ml-2">{fmt(cat.spent)} / {fmt(cat.budget)}</span>
+                      <span className="font-medium ml-2 whitespace-nowrap">{fmt(cat.spent)} / {fmt(cat.budget)}</span>
                     </div>
-                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
                       <div
                         className={cn("h-full rounded-full transition-all", cat.pct > 90 ? "bg-destructive" : cat.pct > 70 ? "bg-amber-500" : "bg-emerald-500")}
                         style={{ width: `${Math.min(cat.pct, 100)}%` }}
@@ -99,14 +97,15 @@ export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSi
               </div>
             )}
 
-            <div className="ml-0 sm:ml-14 mt-2">
-              <div className="flex items-center justify-between text-xs mb-0.5">
+            {/* Overall utilization */}
+            <div>
+              <div className="flex items-center justify-between text-xs mb-1">
                 <span className="text-muted-foreground">Overall Utilization</span>
-                <span className="font-semibold">{artist.utilization.toFixed(0)}%</span>
+                <span className="font-bold text-sm text-foreground">{artist.utilization.toFixed(0)}%</span>
               </div>
               <Progress
                 value={artist.utilization}
-                className={cn("h-1.5 [&>div]:transition-all", artist.utilization > 90 ? "[&>div]:bg-destructive" : artist.utilization > 70 ? "[&>div]:bg-amber-500" : "[&>div]:bg-emerald-500")}
+                className={cn("h-2 [&>div]:transition-all", artist.utilization > 90 ? "[&>div]:bg-destructive" : artist.utilization > 70 ? "[&>div]:bg-amber-500" : "[&>div]:bg-emerald-500")}
               />
             </div>
           </div>
@@ -118,13 +117,6 @@ export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSi
           </div>
         )}
       </div>
-
-      <button
-        onClick={() => navigate("/roster")}
-        className="text-sm font-medium text-muted-foreground hover:text-foreground mt-4 block ml-auto transition-colors"
-      >
-        View Full Roster →
-      </button>
     </div>
   );
 }
