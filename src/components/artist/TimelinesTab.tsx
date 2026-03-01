@@ -9,6 +9,7 @@ import {
   ChevronLeft, ChevronRight, FolderOpen, Link2, MoreVertical,
   Plus, Archive, Trash, MoreHorizontal, FolderPlus, ListPlus,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
 import { CollapsibleSection, InlineAddTrigger } from "@/components/ui/CollapsibleSection";
@@ -28,7 +29,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Switch } from "@/components/ui/switch";
+
 import { useAuth } from "@/contexts/AuthContext";
 
 interface TimelinesTabProps {
@@ -227,30 +228,30 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
     <div className="mt-4 space-y-2">
       {/* Top bar */}
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1 text-xs font-medium">
             <button
               onClick={() => setView("list")}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
+                "px-2.5 py-1 rounded-md transition-colors",
                 view === "list" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <List className="h-3.5 w-3.5" /> List
+              List
             </button>
             <button
               onClick={() => setView("chart")}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
+                "px-2.5 py-1 rounded-md transition-colors",
                 view === "chart" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <CalendarDays className="h-3.5 w-3.5" /> Calendar
+              Calendar
             </button>
           </div>
           {archivedTimelines.length > 0 && (
             <label className="flex items-center gap-2 cursor-pointer caption text-muted-foreground hover:text-foreground transition-colors">
-              <Switch checked={showArchived} onCheckedChange={setShowArchived} className="scale-90" />
+              <Checkbox checked={showArchived} onCheckedChange={(v) => setShowArchived(!!v)} />
               Archived ({archivedTimelines.length})
             </label>
           )}
