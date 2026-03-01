@@ -386,7 +386,7 @@ export default function Overview() {
 
       {/* Hero widget — full width */}
       {heroId && sectionRegistry[heroId] && (
-        <div className="mb-6">
+        <div className="mb-4">
           <CollapsibleSection
             title={sectionRegistry[heroId].label}
             open={!collapsed.has(heroId)}
@@ -407,26 +407,28 @@ export default function Overview() {
         </div>
       )}
 
-      {/* Two-column grid */}
-      <Reorder.Group axis="y" values={gridSections} onReorder={setOrder} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {gridSections.map((id) => {
-          const section = sectionRegistry[id];
-          if (!section) return null;
-          return (
-            <DraggableSection
-              key={id}
-              id={id}
-              title={section.label}
-              isOpen={!collapsed.has(id)}
-              onToggle={() => toggleCollapse(id)}
-              onHide={() => toggleVisibility(id)}
-              onSetHero={heroId !== id ? () => setHeroSection(id) : undefined}
-            >
-              {section.content}
-            </DraggableSection>
-          );
-        })}
-      </Reorder.Group>
+      {/* Masonry grid */}
+      <div className="columns-1 lg:columns-2 gap-4" style={{ columnFill: "balance" }}>
+        <Reorder.Group axis="y" values={gridSections} onReorder={setOrder} className="contents">
+          {gridSections.map((id) => {
+            const section = sectionRegistry[id];
+            if (!section) return null;
+            return (
+              <DraggableSection
+                key={id}
+                id={id}
+                title={section.label}
+                isOpen={!collapsed.has(id)}
+                onToggle={() => toggleCollapse(id)}
+                onHide={() => toggleVisibility(id)}
+                onSetHero={heroId !== id ? () => setHeroSection(id) : undefined}
+              >
+                {section.content}
+              </DraggableSection>
+            );
+          })}
+        </Reorder.Group>
+      </div>
 
       {/* Add hidden sections back */}
       {hiddenSections.length > 0 && (

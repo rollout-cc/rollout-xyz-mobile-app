@@ -29,7 +29,7 @@ export function DraggableSection({
       value={id}
       dragListener={false}
       dragControls={controls}
-      className="list-none"
+      className="list-none break-inside-avoid mb-4"
       layout="position"
       style={{ transform: "none" }}
     >
