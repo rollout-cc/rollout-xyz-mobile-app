@@ -109,15 +109,17 @@ export default function ARList() {
 
   const byStage = useMemo(() => {
     const counts: Record<string, number> = {};
-    (["contacted", "offer_sent", "negotiating", "signed"] as const).forEach((s) => (counts[s] = 0));
+    (["contacted", "internal_review", "offer_sent", "negotiating", "signed", "passed"] as const).forEach((s) => (counts[s] = 0));
     prospects.forEach((p: any) => {
       counts[p.stage] = (counts[p.stage] || 0) + 1;
     });
     return counts;
   }, [prospects]);
 
+  const pipelineCount = prospects.filter((p: any) => p.stage !== "passed").length;
   const offersSent = (byStage["offer_sent"] || 0) + (byStage["negotiating"] || 0);
   const signedCount = byStage["signed"] || 0;
+  const declinedCount = byStage["passed"] || 0;
   const followUpsDue = prospects.filter(
     (p: any) => p.next_follow_up && new Date(p.next_follow_up) <= endOfWeek && !["signed", "passed"].includes(p.stage)
   ).length;
@@ -146,9 +148,10 @@ export default function ARList() {
           </p>
         </div>
         <div className="flex items-center gap-4 pt-1">
-          <MetricPill label="Pipeline" value={prospects.length} />
+          <MetricPill label="Pipeline" value={pipelineCount} />
           <MetricPill label="Offers" value={offersSent} />
           <MetricPill label="Signed" value={signedCount} accent="text-emerald-500" />
+          <MetricPill label="Declined" value={declinedCount} accent={declinedCount > 0 ? "text-destructive" : undefined} />
           <MetricPill label="Follow-ups" value={followUpsDue} accent={followUpsDue > 0 ? "text-amber-500" : undefined} />
         </div>
       </div>
