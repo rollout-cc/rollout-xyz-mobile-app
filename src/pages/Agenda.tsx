@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
@@ -7,7 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarDays, DollarSign, ChevronDown, ChevronUp, User, Copy } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CalendarDays, DollarSign, ChevronDown, ChevronUp, User, Copy, Check } from "lucide-react";
 import { format, startOfWeek, endOfWeek, parse } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -30,7 +32,7 @@ export default function Agenda() {
   });
 
   const [selectedArtistId, setSelectedArtistId] = useState<string | null>(null);
-  const [selectedAssignee, setSelectedAssignee] = useState<string>("all");
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const artistId = selectedArtistId || artists[0]?.id;
   const artist = artists.find((a) => a.id === artistId);
 
@@ -99,6 +101,21 @@ export default function Agenda() {
     enabled: !!artistId,
   });
 
+  // Artist-specific permissions (members with access)
+  const { data: artistPerms = [] } = useQuery({
+    queryKey: ["agenda-artist-perms", artistId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("artist_permissions")
+        .select("user_id")
+        .eq("artist_id", artistId!)
+        .in("permission", ["view_access", "full_access"]);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!artistId,
+  });
+
   // Profiles for assignees
   const { data: profiles = [] } = useQuery({
     queryKey: ["agenda-profiles", teamId],
@@ -121,15 +138,50 @@ export default function Agenda() {
     return map;
   }, [profiles]);
 
+  // Scoped member list: if artist has permissions configured, use those; else all team members
+  const scopedMemberIds = useMemo(() => {
+    const allIds = Object.keys(profileMap);
+    if (artistPerms.length === 0) return allIds;
+    const permIds = artistPerms.map((p) => p.user_id);
+    return allIds.filter((id) => permIds.includes(id));
+  }, [profileMap, artistPerms]);
+
+  // Reset assignees when artist changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setSelectedAssignees([]); }, [artistId]);
+
+  const allSelected = selectedAssignees.length === 0 || selectedAssignees.length === scopedMemberIds.length;
+
+  const toggleAssignee = useCallback((uid: string) => {
+    setSelectedAssignees((prev) => {
+      if (prev.length === 0) {
+        // Currently "all" — deselect this one by selecting everyone else
+        return scopedMemberIds.filter((id) => id !== uid);
+      }
+      if (prev.includes(uid)) {
+        const next = prev.filter((id) => id !== uid);
+        return next.length === 0 ? [] : next; // empty = all
+      }
+      const next = [...prev, uid];
+      return next.length === scopedMemberIds.length ? [] : next;
+    });
+  }, [scopedMemberIds]);
+
+  const toggleAll = useCallback(() => {
+    setSelectedAssignees((prev) => (prev.length === 0 ? ["__none__"] : []));
+  }, []);
+
   // Calculations
   const now = new Date();
   const weekStart = startOfWeek(now);
   const weekEnd = endOfWeek(now);
 
-  // Filter tasks by assignee
-  const filteredTasks = selectedAssignee === "all"
+  // Filter tasks by assignees
+  const filteredTasks = allSelected
     ? tasks
-    : tasks.filter((t) => t.assigned_to === selectedAssignee);
+    : selectedAssignees[0] === "__none__"
+      ? []
+      : tasks.filter((t) => t.assigned_to && selectedAssignees.includes(t.assigned_to));
 
   const openTaskCount = filteredTasks.length;
   const campaignCount = initiatives.length;
@@ -235,20 +287,44 @@ export default function Agenda() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={selectedAssignee} onValueChange={setSelectedAssignee}>
-          <SelectTrigger className="w-[180px]">
-            <div className="flex items-center gap-2">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="w-[180px] justify-start gap-2">
               <User className="h-3.5 w-3.5 text-muted-foreground" />
-              <SelectValue placeholder="All Members" />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Members</SelectItem>
-            {Object.entries(profileMap).map(([uid, name]) => (
-              <SelectItem key={uid} value={uid}>{name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+              <span className="truncate text-sm">
+                {allSelected
+                  ? "All Members"
+                  : selectedAssignees.length === 1
+                    ? profileMap[selectedAssignees[0]] || "1 Member"
+                    : `${selectedAssignees.length} Members`}
+              </span>
+              <ChevronDown className="h-3.5 w-3.5 ml-auto text-muted-foreground" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-[200px] p-1">
+            <button
+              onClick={toggleAll}
+              className="flex items-center gap-2 w-full rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+            >
+              <Checkbox checked={allSelected} onCheckedChange={toggleAll} />
+              <span>Select All</span>
+            </button>
+            <div className="h-px bg-border my-1" />
+            {scopedMemberIds.map((uid) => {
+              const checked = allSelected || selectedAssignees.includes(uid);
+              return (
+                <button
+                  key={uid}
+                  onClick={() => toggleAssignee(uid)}
+                  className="flex items-center gap-2 w-full rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+                >
+                  <Checkbox checked={checked} onCheckedChange={() => toggleAssignee(uid)} />
+                  <span className="truncate">{profileMap[uid] || "?"}</span>
+                </button>
+              );
+            })}
+          </PopoverContent>
+        </Popover>
         {artist && (
           <Button variant="outline" size="sm" className="gap-1.5" onClick={exportAgenda}>
             <Copy className="h-3.5 w-3.5" /> Export View
