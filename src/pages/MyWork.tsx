@@ -4,15 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { Checkbox } from "@/components/ui/checkbox";
-import { format, isToday, isTomorrow, isPast } from "date-fns";
+import { format, isToday, isTomorrow, isPast, isYesterday } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import { Calendar, DollarSign, AlertCircle, Clock, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { cn, parseDateFromText } from "@/lib/utils";
 import { PullToRefresh } from "@/components/PullToRefresh";
-import { useCallback, useState } from "react";
-import { ItemCardRead, MetaBadge } from "@/components/ui/ItemCard";
-import { Badge } from "@/components/ui/badge";
-import { ItemEditor } from "@/components/ui/ItemEditor";
+import { useCallback, useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 
 export default function MyWork() {
@@ -20,8 +17,8 @@ export default function MyWork() {
   const { selectedTeamId: teamId } = useSelectedTeam();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["my-work", user?.id],
@@ -63,7 +60,6 @@ export default function MyWork() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-work"] });
       setNewTitle("");
-      setIsAdding(false);
       toast.success("Task added");
     },
     onError: (err: any) => toast.error(err.message),
@@ -79,150 +75,103 @@ export default function MyWork() {
     });
   };
 
-  const overdue = tasks.filter((t) => t.due_date && isPast(new Date(t.due_date)) && !isToday(new Date(t.due_date)));
-  const today = tasks.filter((t) => t.due_date && isToday(new Date(t.due_date)));
-  const tomorrow = tasks.filter((t) => t.due_date && isTomorrow(new Date(t.due_date)));
-  const upcoming = tasks.filter((t) => {
-    if (!t.due_date) return false;
-    const d = new Date(t.due_date);
-    return !isPast(d) && !isToday(d) && !isTomorrow(d);
-  });
-  const noDue = tasks.filter((t) => !t.due_date);
-
-  const sections = [
-    { label: "Overdue", items: overdue, icon: AlertCircle, color: "text-destructive" },
-    { label: "Today", items: today, icon: Clock, color: "text-primary" },
-    { label: "Tomorrow", items: tomorrow, icon: Calendar, color: "text-foreground" },
-    { label: "Upcoming", items: upcoming, icon: Calendar, color: "text-muted-foreground" },
-    { label: "No Due Date", items: noDue, icon: Calendar, color: "text-muted-foreground" },
-  ].filter((s) => s.items.length > 0);
-
   const handleRefresh = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["my-work"] });
   }, [queryClient]);
 
+  const formatDue = (date: string) => {
+    const d = new Date(date);
+    if (isToday(d)) return "Today";
+    if (isTomorrow(d)) return "Tomorrow";
+    if (isYesterday(d)) return "Yesterday";
+    return format(d, "MMM d");
+  };
+
+  const isDueOverdue = (date: string) => {
+    const d = new Date(date);
+    return isPast(d) && !isToday(d);
+  };
+
   return (
     <AppLayout title="My Work">
-      <div className="mb-4">
-        <h1 className="text-foreground">My Work</h1>
-      </div>
-      <PullToRefresh onRefresh={handleRefresh}>
-      {isLoading ? (
-        <div className="flex items-center justify-center min-h-[40vh] text-muted-foreground">Loading...</div>
-      ) : tasks.length === 0 ? (
-        <div className="flex flex-col items-center justify-center min-h-[40vh] text-muted-foreground gap-2">
-          <p className="text-lg font-medium">You're all caught up!</p>
-          <p className="text-sm">No tasks assigned to you right now.</p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-6 pb-20">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <SummaryCard label="Overdue" count={overdue.length} variant="destructive" />
-            <SummaryCard label="Today" count={today.length} variant="primary" />
-            <SummaryCard label="Tomorrow" count={tomorrow.length} variant="default" />
-            <SummaryCard label="Total" count={tasks.length} variant="muted" />
+      <div className="max-w-2xl mx-auto pb-20">
+        <h1 className="text-foreground mb-6">My Work</h1>
+
+        <PullToRefresh onRefresh={handleRefresh}>
+          {/* Add task input — always visible, feels like a notes app */}
+          <div className="flex items-center gap-3 mb-6">
+            <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
+            <input
+              ref={inputRef}
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAddSubmit();
+                if (e.key === "Escape") { setNewTitle(""); inputRef.current?.blur(); }
+              }}
+              placeholder="Add a task…"
+              className="w-full bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground/50"
+            />
           </div>
 
-          {isAdding ? (
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-primary/50 bg-card">
-              <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
-              <ItemEditor
-                value={newTitle}
-                onChange={setNewTitle}
-                onSubmit={handleAddSubmit}
-                onCancel={() => { setIsAdding(false); setNewTitle(""); }}
-                placeholder="Task title — press Enter to add"
-                autoFocus
-              />
+          <div className="border-t border-border" />
+
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20 text-muted-foreground text-sm">Loading…</div>
+          ) : tasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-1">
+              <p className="text-base font-medium">All clear</p>
+              <p className="text-sm">No tasks right now. Type above to add one.</p>
             </div>
           ) : (
-            <button
-              onClick={() => setIsAdding(true)}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            >
-              <Plus className="h-4 w-4" /> Add Task
-            </button>
-          )}
-
-          {sections.map(({ label, items, icon: Icon, color }) => (
-            <div key={label}>
-              <h3 className={cn("label-lg mb-2 flex items-center gap-1.5", color)}>
-                <Icon className="h-4 w-4" />
-                {label}
-                <span className="caption font-normal">({items.length})</span>
-              </h3>
-              <div className="flex flex-col gap-1">
-                {items.map((task) => (
-                  <ItemCardRead
-                    key={task.id}
-                    icon={
-                      <Checkbox
-                        checked={false}
-                        onCheckedChange={() => toggleComplete.mutate(task.id)}
-                        className="shrink-0"
-                      />
-                    }
-                    title={<span className="text-sm font-medium truncate">{task.title}</span>}
-                    subtitle={
-                      (task.artists || task.initiatives) ? (
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {task.artists && (
-                            <button
-                              onClick={() => navigate(`/roster/${task.artists.id}`)}
-                              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                            >
-                              {task.artists.name}
-                            </button>
-                          )}
-                          {task.initiatives && (
-                            <span className="text-xs text-muted-foreground">· {task.initiatives.name}</span>
-                          )}
-                        </div>
-                      ) : undefined
-                    }
-                    actions={
-                      <div className="flex items-center gap-2 shrink-0">
-                        {task.expense_amount != null && task.expense_amount > 0 && (
-                          <Badge variant="secondary" className="gap-1 text-xs">
-                            <DollarSign className="h-3 w-3" />
-                            {task.expense_amount.toLocaleString()}
-                          </Badge>
-                        )}
-                        {task.due_date && (
-                          <Badge
-                            variant={isPast(new Date(task.due_date)) && !isToday(new Date(task.due_date)) ? "destructive" : "outline"}
-                            className="gap-1 text-xs"
-                          >
-                            <Calendar className="h-3 w-3" />
-                            {format(new Date(task.due_date), "MMM d")}
-                          </Badge>
-                        )}
-                      </div>
-                    }
-                    className="px-3 py-2.5 rounded-lg border border-border hover:bg-accent/50 transition-colors"
+            <ul className="divide-y divide-border">
+              {tasks.map((task) => (
+                <li
+                  key={task.id}
+                  className="flex items-start gap-3 py-3 group"
+                >
+                  <Checkbox
+                    checked={false}
+                    onCheckedChange={() => toggleComplete.mutate(task.id)}
+                    className="mt-0.5 shrink-0"
                   />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-      </PullToRefresh>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-foreground leading-snug">{task.title}</p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      {task.artists && (
+                        <button
+                          onClick={() => navigate(`/roster/${task.artists.id}`)}
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {task.artists.name}
+                        </button>
+                      )}
+                      {task.initiatives && (
+                        <span className="text-xs text-muted-foreground">
+                          {task.artists ? "· " : ""}{task.initiatives.name}
+                        </span>
+                      )}
+                      {task.due_date && (
+                        <span className={cn(
+                          "text-xs",
+                          isDueOverdue(task.due_date) ? "text-destructive" : "text-muted-foreground"
+                        )}>
+                          {task.artists || task.initiatives ? "· " : ""}{formatDue(task.due_date)}
+                        </span>
+                      )}
+                      {task.expense_amount != null && task.expense_amount > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          · ${task.expense_amount.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </PullToRefresh>
+      </div>
     </AppLayout>
-  );
-}
-
-function SummaryCard({ label, count, variant }: { label: string; count: number; variant: string }) {
-  return (
-    <div className={cn(
-      "rounded-lg border p-3 text-center",
-      variant === "destructive" && count > 0 && "border-destructive/50 bg-destructive/10",
-      variant === "primary" && "border-primary/50 bg-primary/10",
-      variant === "default" && "border-border",
-      variant === "muted" && "border-border bg-muted/50",
-    )}>
-      <p className="stat-value">{count}</p>
-      <p className="stat-label">{label}</p>
-    </div>
   );
 }
