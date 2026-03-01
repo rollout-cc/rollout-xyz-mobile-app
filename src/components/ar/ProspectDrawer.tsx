@@ -10,7 +10,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -28,8 +27,7 @@ import {
   Music,
   RefreshCw,
   Headphones,
-  MapPin,
-  Calendar,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -87,7 +85,6 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
   const [contactForm, setContactForm] = useState({ name: "", role: "", email: "", phone: "" });
   const [syncingSpotify, setSyncingSpotify] = useState(false);
 
-  // Reset forms when prospect changes
   useEffect(() => {
     setShowEngagementForm(false);
     setShowContactForm(false);
@@ -194,39 +191,46 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
           </div>
         ) : (
           <>
-            {/* Header */}
-            <div className="px-5 pt-5 pb-4 border-b border-border shrink-0">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-11 w-11 border border-border">
+            {/* ─── Header ─── */}
+            <div className="px-6 pt-6 pb-5 shrink-0">
+              {/* Close button */}
+              <button
+                onClick={onClose}
+                className="absolute top-4 right-4 p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              {/* Profile */}
+              <div className="flex items-center gap-4">
+                <Avatar className="h-14 w-14 border-2 border-border">
                   {prospect.avatar_url && <AvatarImage src={prospect.avatar_url} alt={prospect.artist_name} />}
-                  <AvatarFallback className="text-sm font-bold">{prospect.artist_name?.[0]}</AvatarFallback>
+                  <AvatarFallback className="text-lg font-bold">{prospect.artist_name?.[0]}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-lg font-bold text-foreground truncate">{prospect.artist_name}</h2>
-                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                    {prospect.primary_genre && <Badge variant="secondary" className="text-[10px]">{prospect.primary_genre}</Badge>}
-                    {prospect.city && (
-                      <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3" />{prospect.city}
-                      </span>
-                    )}
-                    {prospect.monthly_listeners && prospect.monthly_listeners > 0 && (
-                      <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
-                        <Headphones className="h-3 w-3" />{prospect.monthly_listeners.toLocaleString()}
-                      </span>
-                    )}
-                  </div>
+                  <h2 className="text-xl font-bold text-foreground truncate">{prospect.artist_name}</h2>
+                  {prospect.monthly_listeners && prospect.monthly_listeners > 0 ? (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                      <Headphones className="h-3 w-3" />
+                      {prospect.monthly_listeners.toLocaleString()}
+                    </span>
+                  ) : null}
                 </div>
               </div>
-              <div className="flex items-center gap-2 mt-3">
+
+              {/* Stage + Priority controls */}
+              <div className="flex items-center gap-2 mt-4">
                 <Select value={prospect.stage} onValueChange={(v) => handleFieldUpdate("stage", v)}>
-                  <SelectTrigger className="h-8 text-xs flex-1"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-9 text-sm flex-1 bg-card border-border rounded-lg">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {STAGES.map((s) => <SelectItem key={s} value={s}>{stageLabel(s)}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <Select value={prospect.priority} onValueChange={(v) => handleFieldUpdate("priority", v)}>
-                  <SelectTrigger className="h-8 text-xs w-24">
+                  <SelectTrigger className="h-9 text-sm w-[110px] bg-card border-border rounded-lg">
                     <div className="flex items-center gap-1.5">
                       <div className={cn("h-2 w-2 rounded-full shrink-0", priorityDot(prospect.priority))} />
                       <SelectValue />
@@ -238,9 +242,9 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
                 </Select>
                 {spotifyId && (
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
-                    className="h-8 w-8 shrink-0"
+                    className="h-9 w-9 shrink-0 rounded-lg"
                     onClick={syncSpotifyData}
                     disabled={syncingSpotify}
                     title="Refresh from Spotify"
@@ -251,28 +255,30 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
               </div>
             </div>
 
-            {/* Tabs */}
+            <div className="border-t border-border" />
+
+            {/* ─── Tabs ─── */}
             <Tabs defaultValue="details" className="flex-1 flex flex-col overflow-hidden">
-              <TabsList className="mx-5 mt-3 mb-0 w-auto justify-start bg-transparent gap-1 h-auto p-0 border-b border-border rounded-none">
-                <TabsTrigger value="details" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-3 pb-2 text-xs">Details</TabsTrigger>
-                <TabsTrigger value="engagement" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-3 pb-2 text-xs">Engagement</TabsTrigger>
-                <TabsTrigger value="deal" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-3 pb-2 text-xs">Deal</TabsTrigger>
+              <TabsList className="mx-6 mt-4 mb-0 w-auto justify-start bg-transparent gap-4 h-auto p-0 border-b border-border rounded-none">
+                <TabsTrigger value="details" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-2.5 text-sm font-medium">Details</TabsTrigger>
+                <TabsTrigger value="engagement" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-2.5 text-sm font-medium">Engagement</TabsTrigger>
+                <TabsTrigger value="deal" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-2.5 text-sm font-medium">Deal</TabsTrigger>
               </TabsList>
 
               <div className="flex-1 overflow-y-auto">
-                {/* Details Tab */}
-                <TabsContent value="details" className="px-5 py-4 space-y-5 mt-0">
+                {/* ── Details Tab ── */}
+                <TabsContent value="details" className="px-6 py-5 space-y-7 mt-0">
                   {/* Artist Info */}
                   <section>
-                    <h4 className="overline mb-2 flex items-center gap-1.5">
+                    <h4 className="overline mb-3 flex items-center gap-1.5">
                       <Music className="h-3.5 w-3.5" /> Artist Info
                     </h4>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-x-5 gap-y-4">
                       <Field label="Genre" value={prospect.primary_genre ?? ""} placeholder="Auto-filled from Spotify" onSave={(v) => handleFieldUpdate("primary_genre", v || null)} />
                       <Field label="City" value={prospect.city ?? ""} placeholder="e.g. Atlanta" onSave={(v) => handleFieldUpdate("city", v || null)} />
                       <div>
-                        <span className="text-muted-foreground text-xs">Monthly Listeners</span>
-                        <div className="text-sm font-medium py-1.5 px-2">
+                        <span className="text-muted-foreground text-xs font-medium">Monthly Listeners</span>
+                        <div className="text-sm font-semibold py-2 px-3 mt-1 rounded-lg bg-card border border-border">
                           {syncingSpotify ? (
                             <span className="text-muted-foreground">Fetching...</span>
                           ) : prospect.monthly_listeners ? (
@@ -283,12 +289,12 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
                         </div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground text-xs">Next Follow Up</span>
+                        <span className="text-muted-foreground text-xs font-medium">Next Follow Up</span>
                         <Input
                           type="date"
                           defaultValue={prospect.next_follow_up || ""}
                           onBlur={(e) => handleFieldUpdate("next_follow_up", e.target.value || null)}
-                          className="h-9 mt-0.5 bg-transparent border-border"
+                          className="h-9 mt-1 bg-card border-border rounded-lg"
                         />
                       </div>
                     </div>
@@ -296,13 +302,13 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
 
                   {/* Socials */}
                   <section>
-                    <h4 className="overline mb-2 flex items-center gap-1.5">
+                    <h4 className="overline mb-3 flex items-center gap-1.5">
                       <ExternalLink className="h-3.5 w-3.5" /> Socials & Links
                     </h4>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-x-5 gap-y-4">
                       <div>
-                        <span className="text-muted-foreground text-xs">Spotify URI</span>
-                        <div className="flex items-center gap-1">
+                        <span className="text-muted-foreground text-xs font-medium">Spotify URI</span>
+                        <div className="flex items-center gap-1.5 mt-1">
                           <InlineField
                             value={prospect.spotify_uri ?? ""}
                             placeholder="spotify:artist:... or URL"
@@ -313,7 +319,7 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
                               href={prospect.spotify_uri.startsWith("http") ? prospect.spotify_uri : `https://open.spotify.com/artist/${prospect.spotify_uri.replace("spotify:artist:", "")}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="shrink-0"
+                              className="shrink-0 p-1 rounded hover:bg-accent transition-colors"
                             >
                               <ExternalLink className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
                             </a>
@@ -328,58 +334,64 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
 
                   {/* Key Songs */}
                   <section>
-                    <span className="text-muted-foreground text-xs">Key Songs</span>
-                    <InlineField
-                      value={(prospect.key_songs || []).join(", ")}
-                      placeholder="Song 1, Song 2, Song 3"
-                      onSave={(v) => handleFieldUpdate("key_songs", v.split(",").map((s: string) => s.trim()).filter(Boolean))}
-                    />
+                    <span className="text-muted-foreground text-xs font-medium">Key Songs</span>
+                    <div className="mt-1">
+                      <InlineField
+                        value={(prospect.key_songs || []).join(", ")}
+                        placeholder="Song 1, Song 2, Song 3"
+                        onSave={(v) => handleFieldUpdate("key_songs", v.split(",").map((s: string) => s.trim()).filter(Boolean))}
+                      />
+                    </div>
                   </section>
 
                   {/* Notes */}
                   <section>
-                    <span className="text-muted-foreground text-xs">Notes</span>
-                    <InlineField
-                      value={prospect.notes ?? ""}
-                      placeholder="General notes..."
-                      onSave={(v) => handleFieldUpdate("notes", v || null)}
-                      as="textarea"
-                    />
+                    <span className="text-muted-foreground text-xs font-medium">Notes</span>
+                    <div className="mt-1">
+                      <InlineField
+                        value={prospect.notes ?? ""}
+                        placeholder="General notes..."
+                        onSave={(v) => handleFieldUpdate("notes", v || null)}
+                        as="textarea"
+                      />
+                    </div>
                   </section>
 
                   {/* Team Contacts */}
                   <section>
-                    <h4 className="overline mb-2 flex items-center gap-1.5">
+                    <h4 className="overline mb-3 flex items-center gap-1.5">
                       <User className="h-3.5 w-3.5" /> Team Contacts
                     </h4>
                     <div className="space-y-2">
                       {contacts.map((c: any) => (
-                        <div key={c.id} className="flex items-center gap-3 rounded-lg border border-border p-2.5">
-                          <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div key={c.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+                          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                            <User className="h-3.5 w-3.5 text-muted-foreground" />
+                          </div>
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm">{c.name}</div>
+                            <div className="font-semibold text-sm">{c.name}</div>
                             <div className="text-xs text-muted-foreground">{[c.role, c.email, c.phone].filter(Boolean).join(" · ")}</div>
                           </div>
                         </div>
                       ))}
                       {showContactForm ? (
-                        <div className="rounded-lg border border-border p-3 space-y-3">
+                        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
                           <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <span className="text-muted-foreground text-xs">Name</span>
-                              <Input value={contactForm.name} onChange={(e) => setContactForm((p) => ({ ...p, name: e.target.value }))} placeholder="Contact name" className="h-8 mt-0.5 bg-transparent border-border text-sm" />
+                              <span className="text-muted-foreground text-xs font-medium">Name</span>
+                              <Input value={contactForm.name} onChange={(e) => setContactForm((p) => ({ ...p, name: e.target.value }))} placeholder="Contact name" className="h-9 mt-1 bg-transparent border-border rounded-lg text-sm" />
                             </div>
                             <div>
-                              <span className="text-muted-foreground text-xs">Role</span>
-                              <Input value={contactForm.role} onChange={(e) => setContactForm((p) => ({ ...p, role: e.target.value }))} placeholder="Manager, Lawyer..." className="h-8 mt-0.5 bg-transparent border-border text-sm" />
+                              <span className="text-muted-foreground text-xs font-medium">Role</span>
+                              <Input value={contactForm.role} onChange={(e) => setContactForm((p) => ({ ...p, role: e.target.value }))} placeholder="Manager, Lawyer..." className="h-9 mt-1 bg-transparent border-border rounded-lg text-sm" />
                             </div>
                             <div>
-                              <span className="text-muted-foreground text-xs">Email</span>
-                              <Input value={contactForm.email} onChange={(e) => setContactForm((p) => ({ ...p, email: e.target.value }))} placeholder="email@example.com" className="h-8 mt-0.5 bg-transparent border-border text-sm" />
+                              <span className="text-muted-foreground text-xs font-medium">Email</span>
+                              <Input value={contactForm.email} onChange={(e) => setContactForm((p) => ({ ...p, email: e.target.value }))} placeholder="email@example.com" className="h-9 mt-1 bg-transparent border-border rounded-lg text-sm" />
                             </div>
                             <div>
-                              <span className="text-muted-foreground text-xs">Phone</span>
-                              <Input value={contactForm.phone} onChange={(e) => setContactForm((p) => ({ ...p, phone: e.target.value }))} placeholder="+1 555 555 5555" className="h-8 mt-0.5 bg-transparent border-border text-sm" />
+                              <span className="text-muted-foreground text-xs font-medium">Phone</span>
+                              <Input value={contactForm.phone} onChange={(e) => setContactForm((p) => ({ ...p, phone: e.target.value }))} placeholder="+1 555 555 5555" className="h-9 mt-1 bg-transparent border-border rounded-lg text-sm" />
                             </div>
                           </div>
                           <div className="flex gap-2">
@@ -388,7 +400,7 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
                           </div>
                         </div>
                       ) : (
-                        <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => setShowContactForm(true)}>
+                        <Button size="sm" variant="outline" className="gap-1.5 text-xs rounded-lg" onClick={() => setShowContactForm(true)}>
                           <Plus className="h-3.5 w-3.5" /> Add Contact
                         </Button>
                       )}
@@ -396,69 +408,71 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
                   </section>
                 </TabsContent>
 
-                {/* Engagement Tab */}
-                <TabsContent value="engagement" className="px-5 py-4 space-y-4 mt-0">
+                {/* ── Engagement Tab ── */}
+                <TabsContent value="engagement" className="px-6 py-5 space-y-5 mt-0">
                   {showEngagementForm ? (
-                    <div className="rounded-lg border border-border p-3 space-y-3">
+                    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
                         <SelectField label="Type" value={engForm.engagement_type} options={ENGAGEMENT_TYPES} placeholder="Select type" onSave={(v) => setEngForm((p) => ({ ...p, engagement_type: v }))} />
                         <div>
-                          <span className="text-muted-foreground text-xs">Date</span>
-                          <Input type="date" value={engForm.engagement_date} onChange={(e) => setEngForm((p) => ({ ...p, engagement_date: e.target.value }))} className="h-8 mt-0.5 bg-transparent border-border text-sm" />
+                          <span className="text-muted-foreground text-xs font-medium">Date</span>
+                          <Input type="date" value={engForm.engagement_date} onChange={(e) => setEngForm((p) => ({ ...p, engagement_date: e.target.value }))} className="h-9 mt-1 bg-transparent border-border rounded-lg text-sm" />
                         </div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground text-xs">Outcome / Notes</span>
-                        <RichTextEditor
-                          value={engForm.outcome}
-                          onChange={(v) => setEngForm((p) => ({ ...p, outcome: v }))}
-                          placeholder="What happened?"
-                        />
+                        <span className="text-muted-foreground text-xs font-medium">Outcome / Notes</span>
+                        <div className="mt-1">
+                          <RichTextEditor
+                            value={engForm.outcome}
+                            onChange={(v) => setEngForm((p) => ({ ...p, outcome: v }))}
+                            placeholder="What happened?"
+                          />
+                        </div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground text-xs">Next Step</span>
-                        <Input value={engForm.next_step} onChange={(e) => setEngForm((p) => ({ ...p, next_step: e.target.value }))} placeholder="What's next?" className="h-8 mt-0.5 bg-transparent border-border text-sm" />
+                        <span className="text-muted-foreground text-xs font-medium">Next Step</span>
+                        <Input value={engForm.next_step} onChange={(e) => setEngForm((p) => ({ ...p, next_step: e.target.value }))} placeholder="What's next?" className="h-9 mt-1 bg-transparent border-border rounded-lg text-sm" />
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 pt-1">
                         <Button size="sm" onClick={handleAddEngagement}>Log</Button>
                         <Button size="sm" variant="outline" onClick={() => setShowEngagementForm(false)}>Cancel</Button>
                       </div>
                     </div>
                   ) : (
-                    <Button size="sm" variant="outline" className="w-full gap-1 text-xs" onClick={() => setShowEngagementForm(true)}>
+                    <Button size="sm" variant="outline" className="w-full gap-1.5 text-xs rounded-lg" onClick={() => setShowEngagementForm(true)}>
                       <Plus className="h-3.5 w-3.5" /> Log Engagement
                     </Button>
                   )}
 
                   {/* Timeline */}
-                  <div className="relative">
+                  <div className="relative pl-1">
                     {engagements.map((eng: any, i: number) => (
-                      <div key={eng.id} className="flex gap-3 pb-4">
+                      <div key={eng.id} className="flex gap-3.5 pb-5">
                         <div className="flex flex-col items-center">
-                          <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1.5" />
+                          <div className="h-2.5 w-2.5 rounded-full bg-primary shrink-0 mt-1.5" />
                           {i < engagements.length - 1 && <div className="w-px flex-1 bg-border" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-[10px]">{stageLabel(eng.engagement_type)}</Badge>
-                            <span className="text-[10px] text-muted-foreground">
+                            <Badge variant="secondary" className="text-[10px] font-semibold">{stageLabel(eng.engagement_type)}</Badge>
+                            <span className="text-[11px] text-muted-foreground">
                               {new Date(eng.engagement_date).toLocaleDateString()}
                             </span>
                           </div>
-                          {eng.outcome && <p className="text-xs mt-1 text-foreground">{eng.outcome}</p>}
-                          {eng.next_step && <p className="text-xs text-muted-foreground mt-0.5">Next: {eng.next_step}</p>}
+                          {eng.outcome && <p className="text-xs mt-1.5 text-foreground leading-relaxed">{eng.outcome}</p>}
+                          {eng.next_step && <p className="text-xs text-muted-foreground mt-1">Next: {eng.next_step}</p>}
                         </div>
                       </div>
                     ))}
                     {engagements.length === 0 && (
-                      <div className="text-xs text-muted-foreground text-center py-6">No engagements yet.</div>
+                      <div className="text-xs text-muted-foreground text-center py-8">No engagements yet.</div>
                     )}
                   </div>
                 </TabsContent>
 
-                {/* Deal Tab */}
-                <TabsContent value="deal" className="px-5 py-4 space-y-4 mt-0">
-                  <div className="grid grid-cols-2 gap-3">
+                {/* ── Deal Tab ── */}
+                <TabsContent value="deal" className="px-6 py-5 space-y-5 mt-0">
+                  <div className="grid grid-cols-2 gap-x-5 gap-y-4">
                     <SelectField label="Deal Status" value={deal?.deal_status || "not_discussed"} options={DEAL_STATUSES} placeholder="Select status" onSave={(v) => handleDealChange("deal_status", v)} />
                     <SelectField label="Deal Type" value={deal?.deal_type || ""} options={DEAL_TYPES} placeholder="Select type..." onSave={(v) => handleDealChange("deal_type", v)} />
                   </div>
@@ -466,7 +480,7 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
                     <DealTermsCard deal={deal} onUpdate={handleDealChange} />
                   )}
                   {!deal?.deal_type && (
-                    <div className="text-xs text-muted-foreground text-center py-6">
+                    <div className="text-xs text-muted-foreground text-center py-8">
                       Select a deal type to configure terms.
                     </div>
                   )}
@@ -488,8 +502,10 @@ function Field({
 }) {
   return (
     <div>
-      <span className="text-muted-foreground text-xs">{label}</span>
-      <InlineField value={value} placeholder={placeholder} onSave={onSave} />
+      <span className="text-muted-foreground text-xs font-medium">{label}</span>
+      <div className="mt-1">
+        <InlineField value={value} placeholder={placeholder} onSave={onSave} />
+      </div>
     </div>
   );
 }
@@ -502,14 +518,14 @@ function SelectField({
 }) {
   return (
     <div>
-      <span className="text-muted-foreground text-xs">{label}</span>
+      <span className="text-muted-foreground text-xs font-medium">{label}</span>
       <Select value={value} onValueChange={onSave}>
-        <SelectTrigger className="w-full bg-transparent border border-border rounded-md text-foreground h-8 mt-0.5 text-sm">
+        <SelectTrigger className="w-full bg-card border border-border rounded-lg text-foreground h-9 mt-1 text-sm">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
-        <SelectContent className="bg-popover border border-border z-50">
-          {options.map((opt) => (
-            <SelectItem key={opt} value={opt}>{stageLabel(opt)}</SelectItem>
+        <SelectContent>
+          {options.map((o) => (
+            <SelectItem key={o} value={o} className="capitalize text-sm">{stageLabel(o)}</SelectItem>
           ))}
         </SelectContent>
       </Select>
