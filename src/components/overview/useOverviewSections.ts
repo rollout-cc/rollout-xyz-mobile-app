@@ -10,6 +10,9 @@ export const ALL_SECTIONS: SectionConfig[] = [
   { id: "budget-utilization", label: "Budget Utilization" },
   { id: "quarterly-pnl", label: "Quarterly P&L" },
   { id: "spending-per-act", label: "Spending Per Act" },
+  { id: "staff-productivity", label: "Team Metrics" },
+  { id: "ar-pipeline", label: "A&R Pipeline" },
+  { id: "streaming-trends", label: "Streaming Trends" },
 ];
 
 const DEFAULT_ORDER = ALL_SECTIONS.map((s) => s.id);

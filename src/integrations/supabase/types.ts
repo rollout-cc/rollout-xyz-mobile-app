@@ -740,6 +740,38 @@ export type Database = {
           },
         ]
       }
+      monthly_listener_history: {
+        Row: {
+          artist_id: string
+          created_at: string
+          id: string
+          monthly_listeners: number | null
+          recorded_at: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          id?: string
+          monthly_listeners?: number | null
+          recorded_at?: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          id?: string
+          monthly_listeners?: number | null
+          recorded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_listener_history_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           created_at: string

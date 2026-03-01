@@ -19,6 +19,10 @@ import { KpiCardsSection } from "@/components/overview/KpiCardsSection";
 import { BudgetUtilizationSection } from "@/components/overview/BudgetUtilizationSection";
 import { QuarterlyPnlSection } from "@/components/overview/QuarterlyPnlSection";
 import { SpendingPerActSection } from "@/components/overview/SpendingPerActSection";
+import { StaffProductivityWidget } from "@/components/overview/StaffProductivityWidget";
+import { ARPipelineWidget } from "@/components/overview/ARPipelineWidget";
+import { StreamingTrendsWidget } from "@/components/overview/StreamingTrendsWidget";
+import type { StaffMember } from "@/components/overview/StaffMetricsSection";
 
 
 export default function Overview() {
@@ -89,6 +93,64 @@ export default function Overview() {
       const { data, error } = await supabase.from("initiatives").select("*").in("artist_id", artistIds);
       if (error) throw error;
       return data;
+    },
+    enabled: artists.length > 0,
+  });
+
+  // ——— Staff data ———
+  const { data: memberships = [] } = useQuery({
+    queryKey: ["overview-memberships", teamId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("team_memberships").select("user_id, role").eq("team_id", teamId!);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!teamId,
+  });
+
+  const memberUserIds = useMemo(() => memberships.map((m) => m.user_id), [memberships]);
+
+  const { data: memberProfiles = [] } = useQuery({
+    queryKey: ["overview-member-profiles", memberUserIds],
+    queryFn: async () => {
+      if (memberUserIds.length === 0) return [];
+      const { data, error } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", memberUserIds);
+      if (error) throw error;
+      return data;
+    },
+    enabled: memberUserIds.length > 0,
+  });
+
+  // ——— Prospects data ———
+  const { data: prospects = [] } = useQuery({
+    queryKey: ["overview-prospects", teamId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("prospects")
+        .select("id, stage, artist_name, avatar_url, priority")
+        .eq("team_id", teamId!);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!teamId,
+  });
+
+  // ——— Listener history ———
+  const { data: listenerHistory = [] } = useQuery({
+    queryKey: ["listener-history", teamId],
+    queryFn: async () => {
+      const artistIds = artists.map((a) => a.id);
+      if (artistIds.length === 0) return [];
+      // Get the most recent previous record for each artist (not today)
+      const today = new Date().toISOString().split("T")[0];
+      const { data, error } = await supabase
+        .from("monthly_listener_history" as any)
+        .select("artist_id, monthly_listeners, recorded_at")
+        .in("artist_id", artistIds)
+        .lt("recorded_at", today)
+        .order("recorded_at", { ascending: false });
+      if (error) throw error;
+      return (data as unknown) as { artist_id: string; monthly_listeners: number; recorded_at: string }[];
     },
     enabled: artists.length > 0,
   });
@@ -192,6 +254,72 @@ export default function Overview() {
     }).sort((a, b) => b.budget - a.budget);
   }, [artists, budgets, transactions, tasks, initiatives]);
 
+  // ——— Staff members ———
+  const staffMembers: StaffMember[] = useMemo(() => {
+    return memberships.map((m) => {
+      const profile2 = memberProfiles.find((p) => p.id === m.user_id);
+      const memberTasks = tasks.filter((t: any) => t.assigned_to === m.user_id);
+      const assigned = memberTasks.length;
+      const completed = memberTasks.filter((t: any) => t.is_completed).length;
+      const onTime = memberTasks.filter(
+        (t: any) => t.is_completed && t.due_date && t.completed_at && new Date(t.completed_at) <= new Date(t.due_date)
+      ).length;
+
+      const completedTaskIds = new Set(memberTasks.filter((t: any) => t.is_completed).map((t: any) => t.id));
+      const revenue = transactions
+        .filter((t: any) => t.type === "revenue" && t.task_id && completedTaskIds.has(t.task_id))
+        .reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
+
+      const completionRate = assigned > 0 ? completed / assigned : 0;
+      const onTimeRate = completed > 0 ? onTime / completed : 0;
+      const maxRevenue = Math.max(
+        1,
+        ...memberships.map((mm) => {
+          const mTasks = tasks.filter((t: any) => t.assigned_to === mm.user_id && t.is_completed);
+          const mIds = new Set(mTasks.map((t: any) => t.id));
+          return transactions
+            .filter((t: any) => t.type === "revenue" && t.task_id && mIds.has(t.task_id))
+            .reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
+        })
+      );
+      const revenueFactor = revenue / maxRevenue;
+      const score = Math.round(completionRate * 50 + onTimeRate * 30 + revenueFactor * 20);
+
+      return {
+        userId: m.user_id,
+        fullName: profile2?.full_name ?? "Unknown",
+        avatarUrl: profile2?.avatar_url ?? null,
+        role: m.role,
+        tasksAssigned: assigned,
+        tasksCompleted: completed,
+        tasksOnTime: onTime,
+        revenueLogged: revenue,
+        productivityScore: Math.min(score, 100),
+      };
+    }).sort((a, b) => b.productivityScore - a.productivityScore);
+  }, [memberships, memberProfiles, tasks, transactions]);
+
+  // ——— Streaming trends data ———
+  const artistStreamData = useMemo(() => {
+    // Build a map of most recent previous listeners per artist
+    const prevMap: Record<string, number> = {};
+    for (const row of listenerHistory) {
+      if (!prevMap[row.artist_id]) {
+        prevMap[row.artist_id] = row.monthly_listeners;
+      }
+    }
+
+    return artists
+      .map((a) => ({
+        id: a.id,
+        name: a.name,
+        avatar_url: a.avatar_url,
+        monthly_listeners: a.monthly_listeners,
+        previousListeners: prevMap[a.id] ?? null,
+      }))
+      .sort((a, b) => (b.monthly_listeners ?? 0) - (a.monthly_listeners ?? 0));
+  }, [artists, listenerHistory]);
+
   const fmt = (n: number) => `$${Math.abs(n).toLocaleString()}`;
   const fmtSigned = (n: number) => `${n < 0 ? "-" : ""}$${Math.abs(n).toLocaleString()}`;
 
@@ -222,6 +350,18 @@ export default function Overview() {
     "spending-per-act": {
       label: "Spending Per Act",
       content: <SpendingPerActSection artistBreakdown={artistBreakdown} artistCount={artists.length} fmt={fmt} fmtSigned={fmtSigned} />,
+    },
+    "staff-productivity": {
+      label: "Team Metrics",
+      content: <StaffProductivityWidget members={staffMembers} fmt={fmt} />,
+    },
+    "ar-pipeline": {
+      label: "A&R Pipeline",
+      content: <ARPipelineWidget prospects={prospects} />,
+    },
+    "streaming-trends": {
+      label: "Streaming Trends",
+      content: <StreamingTrendsWidget artists={artistStreamData} teamId={teamId} />,
     },
   };
 
