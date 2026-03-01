@@ -452,8 +452,12 @@ export default function Overview() {
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
-              className={cn("gap-4", layout === "two-column" ? "columns-1 lg:columns-2" : "columns-1")}
-              style={{ columnFill: "balance" }}
+              className={cn(
+                "gap-4",
+                layout === "two-column"
+                  ? "grid grid-cols-1 lg:grid-cols-2"
+                  : "flex flex-col"
+              )}
             >
               {gridSections.map((id, index) => {
                 const section = sectionRegistry[id];
