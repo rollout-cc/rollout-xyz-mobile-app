@@ -458,6 +458,7 @@ export type Database = {
           avatar_url: string | null
           banner_url: string | null
           created_at: string
+          folder_id: string | null
           genres: string[] | null
           id: string
           monthly_listeners: number | null
@@ -480,6 +481,7 @@ export type Database = {
           avatar_url?: string | null
           banner_url?: string | null
           created_at?: string
+          folder_id?: string | null
           genres?: string[] | null
           id?: string
           monthly_listeners?: number | null
@@ -502,6 +504,7 @@ export type Database = {
           avatar_url?: string | null
           banner_url?: string | null
           created_at?: string
+          folder_id?: string | null
           genres?: string[] | null
           id?: string
           monthly_listeners?: number | null
@@ -519,6 +522,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "artists_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "roster_folders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "artists_team_id_fkey"
             columns: ["team_id"]
@@ -1218,6 +1228,35 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "prospects_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roster_folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          team_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          team_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roster_folders_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
