@@ -75,7 +75,6 @@ export function DealTermsCard({ deal, onUpdate }: DealTermsCardProps) {
         {deal.deal_type === "distribution" && (
           <>
             <TermSelect label="Exclusivity" value={terms.exclusivity || ""} options={["Exclusive", "Non Exclusive"]} onChange={(v) => ut("exclusivity", v)} />
-            <TermSelect label="Scope" value={terms.scope || ""} options={["Digital Only", "Physical Only", "Digital + Physical"]} onChange={(v) => ut("scope", v)} />
             <TermField label="Distributor Fee %" value={terms.distributor_fee_pct} onChange={(v) => ut("distributor_fee_pct", v)} type="number" placeholder="15" />
             <TermField label="Returns Reserve %" value={terms.returns_reserve_pct} onChange={(v) => ut("returns_reserve_pct", v)} type="number" placeholder="20" />
             <TermSelect label="Audit Right" value={terms.audit_right || "Yes"} options={["Yes", "No"]} onChange={(v) => ut("audit_right", v)} />

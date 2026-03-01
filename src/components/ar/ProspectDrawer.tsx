@@ -48,8 +48,7 @@ const STAGES = [
 ];
 const PRIORITIES = ["low", "medium", "high"];
 const ENGAGEMENT_TYPES = [
-  "call", "email", "dm", "meeting", "show", "intro", "deal_sent",
-  "discovered", "in_conversation", "materials_requested", "on_hold",
+  "call", "email", "dm", "meeting", "show", "intro",
 ];
 const DEAL_STATUSES = ["not_discussed", "discussing", "offer_sent", "under_negotiation", "signed", "passed"];
 const DEAL_TYPES = ["distribution", "frontline_record", "partnership", "publishing"];
@@ -285,15 +284,6 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
                           )}
                         </div>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground text-xs font-medium">Next Follow Up</span>
-                        <Input
-                          type="date"
-                          defaultValue={prospect.next_follow_up || ""}
-                          onBlur={(e) => handleFieldUpdate("next_follow_up", e.target.value || null)}
-                          className="h-9 mt-1 bg-card border-border rounded-lg"
-                        />
-                      </div>
                     </div>
                   </section>
 
@@ -327,18 +317,6 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
                     </div>
                   </section>
 
-                  {/* Key Songs */}
-                  <section>
-                    <span className="text-muted-foreground text-xs font-medium">Key Songs</span>
-                    <div className="mt-1">
-                      <InlineField
-                        value={(prospect.key_songs || []).join(", ")}
-                        placeholder="Song 1, Song 2, Song 3"
-                        onSave={(v) => handleFieldUpdate("key_songs", v.split(",").map((s: string) => s.trim()).filter(Boolean))}
-                      />
-                    </div>
-                  </section>
-
                   {/* Notes */}
                   <section>
                     <span className="text-muted-foreground text-xs font-medium">Notes</span>
@@ -349,54 +327,6 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
                         onSave={(v) => handleFieldUpdate("notes", v || null)}
                         as="textarea"
                       />
-                    </div>
-                  </section>
-
-                  {/* Team Contacts */}
-                  <section>
-                    <h4 className="text-xs font-semibold text-muted-foreground mb-3">Team Contacts</h4>
-                    <div className="space-y-2">
-                      {contacts.map((c: any) => (
-                        <div key={c.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
-                          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                            <User className="h-3.5 w-3.5 text-muted-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-sm">{c.name}</div>
-                            <div className="text-xs text-muted-foreground">{[c.role, c.email, c.phone].filter(Boolean).join(" · ")}</div>
-                          </div>
-                        </div>
-                      ))}
-                      {showContactForm ? (
-                        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <span className="text-muted-foreground text-xs font-medium">Name</span>
-                              <Input value={contactForm.name} onChange={(e) => setContactForm((p) => ({ ...p, name: e.target.value }))} placeholder="Contact name" className="h-9 mt-1 bg-transparent border-border rounded-lg text-sm" />
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-xs font-medium">Role</span>
-                              <Input value={contactForm.role} onChange={(e) => setContactForm((p) => ({ ...p, role: e.target.value }))} placeholder="Manager, Lawyer..." className="h-9 mt-1 bg-transparent border-border rounded-lg text-sm" />
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-xs font-medium">Email</span>
-                              <Input value={contactForm.email} onChange={(e) => setContactForm((p) => ({ ...p, email: e.target.value }))} placeholder="email@example.com" className="h-9 mt-1 bg-transparent border-border rounded-lg text-sm" />
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-xs font-medium">Phone</span>
-                              <Input value={contactForm.phone} onChange={(e) => setContactForm((p) => ({ ...p, phone: e.target.value }))} placeholder="+1 555 555 5555" className="h-9 mt-1 bg-transparent border-border rounded-lg text-sm" />
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button size="sm" onClick={handleAddContact} disabled={!contactForm.name.trim()}>Add</Button>
-                            <Button size="sm" variant="outline" onClick={() => setShowContactForm(false)}>Cancel</Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <Button size="sm" variant="outline" className="gap-1.5 text-xs rounded-lg" onClick={() => setShowContactForm(true)}>
-                          <Plus className="h-3.5 w-3.5" /> Add Contact
-                        </Button>
-                      )}
                     </div>
                   </section>
                 </TabsContent>
