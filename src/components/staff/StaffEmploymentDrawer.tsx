@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { DatePicker } from "@/components/ui/ItemPickers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -143,30 +145,20 @@ export function StaffEmploymentDrawer({ open, onOpenChange, userId, teamId, staf
             {form.employment_type === "w2" ? (
               <div className="space-y-2">
                 <Label className="text-xs font-semibold">Annual Salary</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                  <Input
-                    type="number"
-                    value={form.annual_salary}
-                    onChange={(e) => setForm({ ...form, annual_salary: e.target.value })}
-                    placeholder="75,000"
-                    className="pl-7"
-                  />
-                </div>
+                <CurrencyInput
+                  value={form.annual_salary}
+                  onChange={(v) => setForm({ ...form, annual_salary: v })}
+                  placeholder="75,000"
+                />
               </div>
             ) : (
               <div className="space-y-2">
                 <Label className="text-xs font-semibold">Monthly Retainer</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                  <Input
-                    type="number"
-                    value={form.monthly_retainer}
-                    onChange={(e) => setForm({ ...form, monthly_retainer: e.target.value })}
-                    placeholder="5,000"
-                    className="pl-7"
-                  />
-                </div>
+                <CurrencyInput
+                  value={form.monthly_retainer}
+                  onChange={(v) => setForm({ ...form, monthly_retainer: v })}
+                  placeholder="5,000"
+                />
                 {annualCost > 0 && (
                   <p className="text-xs text-muted-foreground">
                     Annual cost: ${annualCost.toLocaleString()}
@@ -192,10 +184,10 @@ export function StaffEmploymentDrawer({ open, onOpenChange, userId, teamId, staf
             {/* Start Date */}
             <div className="space-y-2">
               <Label className="text-xs font-semibold">Start Date</Label>
-              <Input
-                type="date"
-                value={form.start_date}
-                onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+              <DatePicker
+                value={form.start_date ? new Date(form.start_date + "T00:00:00") : undefined}
+                onChange={(d) => setForm({ ...form, start_date: d ? d.toISOString().split("T")[0] : "" })}
+                placeholder="Select start date"
               />
             </div>
 

@@ -5,6 +5,7 @@ import { useSelectedTeam } from "@/contexts/TeamContext";
 import { Plus, Trash2, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -284,12 +285,10 @@ function CategoryCard({
       </button>
       <p className="text-sm font-medium mb-2">{name}</p>
       {editing ? (
-        <div className="relative mb-2">
-          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-          <Input
-            type="number"
+        <div className="mb-2">
+          <CurrencyInput
             value={budgetVal}
-            onChange={(e) => setBudgetVal(e.target.value)}
+            onChange={setBudgetVal}
             onBlur={() => {
               onBudgetChange(parseFloat(budgetVal) || 0);
               setEditing(false);
@@ -300,7 +299,7 @@ function CategoryCard({
                 setEditing(false);
               }
             }}
-            className="h-7 text-xs pl-5"
+            className="h-7 text-xs"
             autoFocus
           />
         </div>
