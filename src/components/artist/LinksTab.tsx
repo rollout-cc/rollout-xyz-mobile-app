@@ -102,6 +102,9 @@ export function LinksTab({ artistId }: LinksTabProps) {
           <LinkItem isNew artistId={artistId} folders={folders} />
         </div>
       )}
+
+      {/* Inline new folder creation */}
+      <NewFolderInline artistId={artistId} />
     </div>
   );
 }
@@ -609,5 +612,51 @@ function FolderActions({ folder, artistId, linkCount }: { folder: any; artistId:
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+/* ── Inline New Folder ── */
+function NewFolderInline({ artistId }: { artistId: string }) {
+  const queryClient = useQueryClient();
+  const [isActive, setIsActive] = useState(false);
+  const [name, setName] = useState("");
+
+  const createFolder = useMutation({
+    mutationFn: async (folderName: string) => {
+      const { error } = await supabase.from("artist_link_folders").insert({ artist_id: artistId, name: folderName.trim() });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["artist_link_folders", artistId] });
+      setName("");
+      setIsActive(false);
+      toast.success("Folder created");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const handleSubmit = () => {
+    if (!name.trim()) return;
+    createFolder.mutate(name);
+  };
+
+  if (!isActive) {
+    return <InlineAddTrigger label="New Folder" onClick={() => setIsActive(true)} />;
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-card px-4 py-3">
+      <div className="flex items-center gap-2">
+        <FolderPlus className="h-4 w-4 text-muted-foreground shrink-0" />
+        <ItemEditor
+          value={name}
+          onChange={setName}
+          onSubmit={handleSubmit}
+          onCancel={() => { setIsActive(false); setName(""); }}
+          placeholder="Folder name — press Enter to create"
+          autoFocus
+        />
+      </div>
+    </div>
   );
 }
