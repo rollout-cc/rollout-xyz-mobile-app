@@ -29,11 +29,11 @@ export function useCreateTeam() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (name: string) => {
+    mutationFn: async ({ name, companyType }: { name: string; companyType?: string }) => {
       // Create team
       const { data: team, error: teamError } = await supabase
         .from("teams")
-        .insert({ name, created_by: user!.id })
+        .insert({ name, created_by: user!.id, company_type: companyType || null })
         .select()
         .single();
       if (teamError) throw teamError;

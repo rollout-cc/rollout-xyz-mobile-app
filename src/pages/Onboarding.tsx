@@ -30,6 +30,7 @@ export default function Onboarding() {
   const [teamSize, setTeamSize] = useState("1-5");
   const [revenue, setRevenue] = useState("less than $10,000");
   const [artistCount, setArtistCount] = useState("2-5");
+  const [companyType, setCompanyType] = useState("");
 
   const canGoNext = () => {
     if (step === 1) return true;
@@ -60,7 +61,7 @@ export default function Onboarding() {
       // Create team
       setLoading(true);
       try {
-        await createTeam.mutateAsync(teamName.trim());
+        await createTeam.mutateAsync({ name: teamName.trim(), companyType });
       } catch (err: any) {
         toast.error(err.message);
         setLoading(false);
@@ -135,6 +136,8 @@ export default function Onboarding() {
               <StepTeam
                 teamName={teamName}
                 setTeamName={setTeamName}
+                companyType={companyType}
+                setCompanyType={setCompanyType}
                 teamSize={teamSize}
                 setTeamSize={setTeamSize}
                 revenue={revenue}
@@ -253,29 +256,46 @@ function StepTailored({
 
 /* ── Step 3: Team details ── */
 function StepTeam({
-  teamName, setTeamName, teamSize, setTeamSize, revenue, setRevenue, artistCount, setArtistCount,
+  teamName, setTeamName, companyType, setCompanyType, teamSize, setTeamSize, revenue, setRevenue, artistCount, setArtistCount,
 }: {
   teamName: string; setTeamName: (v: string) => void;
+  companyType: string; setCompanyType: (v: string) => void;
   teamSize: string; setTeamSize: (v: string) => void;
   revenue: string; setRevenue: (v: string) => void;
   artistCount: string; setArtistCount: (v: string) => void;
 }) {
   return (
     <>
-      <h1 className="text-3xl font-bold mb-3">Tell us more about your team</h1>
+      <h1 className="text-3xl font-bold mb-3">Tell us more about your company</h1>
       <p className="text-muted-foreground leading-relaxed mb-6">
-        Just a few more questions about your team.
+        Just a few more questions about your company so we can tailor your experience.
       </p>
 
       <div className="space-y-5">
         <div>
-          <Label className="font-semibold text-sm mb-2 block">What's your team or label name?</Label>
+          <Label className="font-semibold text-sm mb-2 block">What's your company name?</Label>
           <Input
             value={teamName}
             onChange={(e) => setTeamName(e.target.value)}
-            placeholder="e.g. My Label"
+            placeholder="e.g. My Company"
             autoFocus
           />
+        </div>
+
+        <div>
+          <Label className="font-semibold text-sm mb-2 block">What type of company are you?</Label>
+          <Select value={companyType} onValueChange={setCompanyType}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select company type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="label">Record Label</SelectItem>
+              <SelectItem value="distribution">Distribution Company</SelectItem>
+              <SelectItem value="management">Management Company</SelectItem>
+              <SelectItem value="publishing">Publishing Company</SelectItem>
+              <SelectItem value="multi_service">Multi-Service</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
@@ -294,7 +314,7 @@ function StepTeam({
         </div>
 
         <div>
-          <Label className="font-semibold text-sm mb-2 block">What is your team's monthly revenue?</Label>
+          <Label className="font-semibold text-sm mb-2 block">What is your company's monthly revenue?</Label>
           <Select value={revenue} onValueChange={setRevenue}>
             <SelectTrigger className="w-full">
               <SelectValue />
@@ -309,7 +329,7 @@ function StepTeam({
         </div>
 
         <div>
-          <Label className="font-semibold text-sm mb-2 block">How many artists does your team manage?</Label>
+          <Label className="font-semibold text-sm mb-2 block">How many artists does your company manage?</Label>
           <Select value={artistCount} onValueChange={setArtistCount}>
             <SelectTrigger className="w-full">
               <SelectValue />

@@ -1423,6 +1423,7 @@ export type Database = {
         Row: {
           annual_budget: number | null
           avatar_url: string | null
+          company_type: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -1431,6 +1432,7 @@ export type Database = {
         Insert: {
           annual_budget?: number | null
           avatar_url?: string | null
+          company_type?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -1439,6 +1441,7 @@ export type Database = {
         Update: {
           annual_budget?: number | null
           avatar_url?: string | null
+          company_type?: string | null
           created_at?: string
           created_by?: string | null
           id?: string

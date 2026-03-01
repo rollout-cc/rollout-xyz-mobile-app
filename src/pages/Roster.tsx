@@ -49,7 +49,7 @@ export default function Roster() {
 
   const ensureTeam = async (): Promise<string> => {
     if (selectedTeamId) return selectedTeamId;
-    const team = await createTeam.mutateAsync("My Team");
+    const team = await createTeam.mutateAsync({ name: "My Team" });
     return team.id;
   };
 

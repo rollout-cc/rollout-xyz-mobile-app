@@ -51,7 +51,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
   const handleCreateTeam = async () => {
     if (!newTeamName.trim()) return;
     try {
-      const team = await createTeam.mutateAsync(newTeamName.trim());
+      const team = await createTeam.mutateAsync({ name: newTeamName.trim() });
       onSelectTeam(team.id);
       setShowCreateTeam(false);
       setNewTeamName("");
