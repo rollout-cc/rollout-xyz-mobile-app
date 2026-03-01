@@ -86,25 +86,30 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
             <img
               src={rolloutFlag}
               alt="Rollout"
-              className="absolute transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+              className="absolute"
               style={{
                 width: "32px",
                 height: "32px",
                 objectFit: "contain",
                 opacity: collapsed ? 1 : 0,
                 transform: collapsed ? "scale(1)" : "scale(0.8)",
+                transition: collapsed
+                  ? "opacity 250ms ease 150ms, transform 250ms ease 150ms"
+                  : "opacity 150ms ease, transform 150ms ease",
               }}
             />
             <img
               src={rolloutLogo}
               alt="Rollout"
-              className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
               style={{
                 width: "100%",
                 height: "auto",
                 objectFit: "contain",
                 opacity: collapsed ? 0 : 1,
                 transform: collapsed ? "scale(0.8)" : "scale(1)",
+                transition: collapsed
+                  ? "opacity 150ms ease, transform 150ms ease"
+                  : "opacity 250ms ease 150ms, transform 250ms ease 150ms",
               }}
             />
           </div>
