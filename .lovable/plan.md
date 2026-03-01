@@ -1,34 +1,103 @@
 
-## Update Assignee Filter to Multi-Select with "Select All"
 
-### What Changes
-The "All Members" dropdown on the Agenda page will be converted from a single-select to a multi-select dropdown. "Select All" will toggle all members on/off, and individual members can be selected or deselected independently. The member list will be scoped to those who have permissions for the currently selected artist.
+## A&R Section Refactoring Plan
 
-### How It Works
-- Default state: all members selected (equivalent to current "All Members" behavior)
-- Clicking "Select All" toggles between all selected and none selected
-- Clicking an individual member toggles them on/off
-- When all members are selected, the trigger shows "All Members"
-- When a subset is selected, it shows the count (e.g., "2 Members") or a single name
-- The task list filters to show tasks assigned to any of the selected members
+### Overview
+Refactor the A&R section from a multi-page layout (list page + separate detail page) into a single-page kanban experience with an inline detail drawer. Inspired by the Linear/Notion/Attio references: clean columns, compact cards, and a slide-in detail panel that keeps the board visible underneath.
 
-### Technical Details
+### Key Design Changes
 
-**File: `src/pages/Agenda.tsx`**
+**1. Kanban Board (Primary View)**
+- Cleaner column headers with colored stage dots (like Linear's status dots) and counts
+- More compact prospect cards: avatar (smaller, 32px), name, priority dot, genre badge -- single tight row
+- Monthly listeners shown as a subtle caption beneath the name
+- Follow-up date shown as a small pill when due soon (amber) or overdue (red)
+- Remove the vertical separators between columns; use subtle background differentiation or spacing instead
+- Empty columns show a minimal dashed placeholder (already exists, keep it)
+- "+" button at the bottom of each column to add a new prospect directly into that stage
 
-1. Replace `selectedAssignee: string` state with `selectedAssignees: string[]` (array of user IDs)
+**2. Detail Drawer (replaces ProspectProfile page)**
+- Create a new `ProspectDrawer` component using the existing `Sheet` (right side, wider -- `sm:max-w-lg` or `sm:max-w-xl`)
+- Opens when clicking a prospect card, instead of navigating to `/ar/:prospectId`
+- Contains all the current ProspectProfile content reorganized into a scrollable drawer:
+  - Header: Avatar + name + stage select + priority select (compact row)
+  - Tabs: Details | Engagement | Deal (instead of collapsible sections, use tabs to reduce scroll)
+  - Details tab: Artist info fields, socials, key songs, notes, team contacts
+  - Engagement tab: Log form + timeline
+  - Deal tab: Deal status/type + DealTermsCard
+- Remove the `/ar/:prospectId` route from App.tsx (or keep as a redirect to `/ar?prospect=id`)
 
-2. Add a query to fetch artist-specific team members using the `artist_permissions` table, filtered by the selected `artistId`. Fall back to all team members if no permissions are configured.
+**3. Table View**
+- Keep the existing table view but open the drawer on row click instead of navigating
+- Add the same compact styling improvements
 
-3. Replace the Radix `Select` component with a `Popover` + checkbox list pattern (since Radix Select doesn't support multi-select):
-   - A trigger button styled like the current select
-   - A popover with:
-     - "Select All" checkbox at the top
-     - Individual member checkboxes below
-   - Checkmark indicators matching the screenshot style
+**4. Toolbar Refinements**
+- Keep the search + view toggle + new prospect button
+- Spotify search results overlay remains the same
+- Move the metric cards into a more compact horizontal strip (smaller text, tighter padding)
 
-4. Update task filtering logic:
-   - When `selectedAssignees` includes all members (or is empty = all), show all tasks
-   - Otherwise, filter tasks to only those where `assigned_to` is in the `selectedAssignees` array
+### Technical Implementation
 
-5. Reset `selectedAssignees` to all when the artist changes (so switching artists doesn't carry over stale member selections)
+**Files to create:**
+- `src/components/ar/ProspectDrawer.tsx` -- New drawer component containing all detail content from ProspectProfile, using Sheet + Tabs
+
+**Files to modify:**
+- `src/pages/ARList.tsx`
+  - Add `selectedProspectId` state
+  - Replace `navigate('/ar/:id')` calls with `setSelectedProspectId(id)`
+  - Render `<ProspectDrawer>` at bottom of page
+  - Tighten metric card styling (smaller padding, text-xl instead of text-2xl)
+- `src/components/ar/PipelineBoard.tsx`
+  - Redesign card layout: smaller avatar (h-8 w-8), tighter padding (p-2.5)
+  - Replace vertical Separators with gap spacing
+  - Add colored dots to column headers matching stage semantics
+  - Add "+ New" button at bottom of each column
+- `src/components/ar/ProspectTable.tsx`
+  - Minor: ensure `onSelect` opens drawer, no navigation
+- `src/App.tsx`
+  - Remove or redirect the `/ar/:prospectId` route (keep redirect for backwards compatibility)
+- `src/pages/ProspectProfile.tsx`
+  - Can be kept as a thin redirect to `/ar?prospect=:id`, or removed entirely
+
+**Component structure of ProspectDrawer:**
+```text
+Sheet (right, max-w-xl)
+ +-- Header: Avatar | Name | Stage Select | Priority Select | Close
+ +-- Tabs
+      +-- "Details" tab
+      |    +-- Artist Info (genre, city, listeners, follow-up)
+      |    +-- Socials (spotify, ig, tiktok, youtube)
+      |    +-- Key Songs
+      |    +-- Notes
+      |    +-- Team Contacts
+      +-- "Engagement" tab
+      |    +-- Log Engagement form
+      |    +-- Engagement timeline
+      +-- "Deal" tab
+           +-- Deal status + type selects
+           +-- DealTermsCard
+```
+
+**Card layout in board (simplified):**
+```text
++----------------------------------+
+| [Avatar] [*] Name        [Trash] |
+|          Genre  |  123k          |
+|          Follow up: Mar 5        |
++----------------------------------+
+```
+
+### What stays the same
+- All data hooks (`useProspects`, `useProspect`, etc.) remain unchanged
+- DealTermsCard component stays as-is
+- NewProspectDialog stays as-is
+- Drag-and-drop logic stays as-is (with existing optimistic updates)
+- Delete confirmation dialog pattern stays
+
+### Sequence
+1. Create `ProspectDrawer` component (extract + reorganize from ProspectProfile)
+2. Refactor `ARList` to use drawer state instead of navigation
+3. Redesign `PipelineBoard` card and column styling
+4. Update `App.tsx` routing
+5. Clean up `ProspectProfile` page (redirect or remove)
+
