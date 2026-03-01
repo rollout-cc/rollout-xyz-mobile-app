@@ -98,16 +98,8 @@ export default function MyWork() {
 
   return (
     <AppLayout title="My Work">
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4">
         <h1 className="text-foreground">My Work</h1>
-        {!isAdding && (
-          <button
-            onClick={() => setIsAdding(true)}
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Plus className="h-4 w-4" /> Add Task
-          </button>
-        )}
       </div>
       <PullToRefresh onRefresh={handleRefresh}>
       {isLoading ? (
@@ -119,7 +111,14 @@ export default function MyWork() {
         </div>
       ) : (
         <div className="flex flex-col gap-6 pb-20">
-          {isAdding && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <SummaryCard label="Overdue" count={overdue.length} variant="destructive" />
+            <SummaryCard label="Today" count={today.length} variant="primary" />
+            <SummaryCard label="Tomorrow" count={tomorrow.length} variant="default" />
+            <SummaryCard label="Total" count={tasks.length} variant="muted" />
+          </div>
+
+          {isAdding ? (
             <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-primary/50 bg-card">
               <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
               <ItemEditor
@@ -131,14 +130,14 @@ export default function MyWork() {
                 autoFocus
               />
             </div>
+          ) : (
+            <button
+              onClick={() => setIsAdding(true)}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+            >
+              <Plus className="h-4 w-4" /> Add Task
+            </button>
           )}
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <SummaryCard label="Overdue" count={overdue.length} variant="destructive" />
-            <SummaryCard label="Today" count={today.length} variant="primary" />
-            <SummaryCard label="Tomorrow" count={tomorrow.length} variant="default" />
-            <SummaryCard label="Total" count={tasks.length} variant="muted" />
-          </div>
 
           {sections.map(({ label, items, icon: Icon, color }) => (
             <div key={label}>
