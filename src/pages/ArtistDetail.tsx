@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { DollarSign, Target, Star, Upload, RefreshCw, Receipt } from "lucide-react";
 import { PerformancePills } from "@/components/artist/PerformancePills";
 import { useArtistDetail } from "@/hooks/useArtistDetail";
@@ -18,7 +19,8 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import defaultBanner from "@/assets/default-banner.png";
 
-type ActiveView = "work" | "links" | "timelines" | "finance" | "budgets" | "objectives" | "information";
+type TabView = "work" | "links" | "timelines";
+type ActiveView = TabView | "finance" | "budgets" | "objectives" | "information";
 
 export default function ArtistDetail() {
   const { artistId } = useParams<{ artistId: string }>();
@@ -27,6 +29,8 @@ export default function ArtistDetail() {
   const { data: spotifyData, refetch: refetchSpotify, isFetching: isRefreshingSpotify } = useSpotifyArtist(artist?.spotify_id);
   const totalBudget = useTotalBudget(artistId!);
   const [activeView, setActiveView] = useState<ActiveView>("work");
+  const [showCompleted, setShowCompleted] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const queryClient = useQueryClient();
 
   const handleRefreshSpotify = async () => {
@@ -247,22 +251,34 @@ export default function ArtistDetail() {
       <div className="flex gap-6">
         {/* Left: main content area */}
         <div className="flex-1 min-w-0">
-          {/* Tab row for Work/Links/Timelines */}
+          {/* Tab row with controls */}
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-1 border-b border-border">
+            {/* Capsule tabs */}
+            <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden">
               {(["work", "links", "timelines"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveView(tab)}
-                  className={`px-4 py-2 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
+                  className={`px-4 py-1.5 text-sm font-medium capitalize transition-colors ${
                     activeView === tab
-                      ? "border-primary text-foreground"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
+                      ? "bg-foreground text-background"
+                      : "bg-background text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 >
-                  {tab}
+                  {tab === "timelines" ? "Release Plans" : tab === "work" ? "Tasks" : tab}
                 </button>
               ))}
+            </div>
+
+            {/* Right-side controls */}
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Show Completed
+                <Switch checked={showCompleted} onCheckedChange={setShowCompleted} />
+              </label>
+              {activeView === "work" && (
+                <WorkTabControls artistId={artist.id} showArchived={showArchived} setShowArchived={setShowArchived} />
+              )}
             </div>
           </div>
 
@@ -271,12 +287,26 @@ export default function ArtistDetail() {
           {activeView === "budgets" && <BudgetSection artistId={artist.id} />}
           {activeView === "objectives" && <ObjectivesPanel artist={artist} />}
           {activeView === "information" && <ArtistInfoTab artist={artist} />}
-          {activeView === "work" && <WorkTab artistId={artist.id} teamId={artist.team_id} />}
+          {activeView === "work" && <WorkTab artistId={artist.id} teamId={artist.team_id} showCompleted={showCompleted} showArchived={showArchived} />}
           {activeView === "links" && <LinksTab artistId={artist.id} />}
           {activeView === "timelines" && <TimelinesTab artistId={artist.id} />}
         </div>
       </div>
     </AppLayout>
+  );
+}
+
+// Work tab extra controls (New Campaign + Show Archived)  
+import { Plus } from "lucide-react";
+
+function WorkTabControls({ artistId, showArchived, setShowArchived }: { artistId: string; showArchived: boolean; setShowArchived: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center gap-3">
+      <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors">
+        Show Archived
+        <Switch checked={showArchived} onCheckedChange={setShowArchived} />
+      </label>
+    </div>
   );
 }
 
