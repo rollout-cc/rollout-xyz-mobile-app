@@ -51,7 +51,7 @@ export function BuildYourCompany({ teamId, onComplete }: BuildYourCompanyProps) 
     if (!file) return;
     setUploading(true);
     const ext = file.name.split(".").pop();
-    const path = `team-logos/${teamId}.${ext}`;
+    const path = `${teamId}/logo.${ext}`;
     const { error: uploadError } = await supabase.storage
       .from("profile-photos")
       .upload(path, file, { upsert: true });
