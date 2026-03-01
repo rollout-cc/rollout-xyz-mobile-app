@@ -29,12 +29,12 @@ import {
 interface WorkTabProps {
   artistId: string;
   teamId: string;
+  showCompleted: boolean;
+  showArchived: boolean;
 }
 
-export function WorkTab({ artistId, teamId }: WorkTabProps) {
+export function WorkTab({ artistId, teamId, showCompleted, showArchived }: WorkTabProps) {
   const queryClient = useQueryClient();
-  const [showCompleted, setShowCompleted] = useState(false);
-  const [showArchived, setShowArchived] = useState(false);
   const [expandedCampaigns, setExpandedCampaigns] = useState<Record<string, boolean>>({});
   const [activeExpanded, setActiveExpanded] = useState(true);
   const [newCampaignId, setNewCampaignId] = useState<string | null>(null);
@@ -111,19 +111,7 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
 
   return (
     <div className="mt-4 space-y-2">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 cursor-pointer caption text-muted-foreground hover:text-foreground transition-colors">
-            <Checkbox checked={showCompleted} onCheckedChange={(v) => setShowCompleted(!!v)} />
-            Show Completed
-          </label>
-          {archivedCampaigns.length > 0 && (
-            <label className="flex items-center gap-2 cursor-pointer caption text-muted-foreground hover:text-foreground transition-colors">
-              <Checkbox checked={showArchived} onCheckedChange={(v) => setShowArchived(!!v)} />
-              Show Archived
-            </label>
-          )}
-        </div>
+      <div className="flex items-center justify-end mb-2">
         <NewCampaignInline artistId={artistId} onCreated={setNewCampaignId} />
       </div>
 
