@@ -180,7 +180,7 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete, on
                       ref={provided.innerRef}
                       {...provided.droppableProps}
                       className={cn(
-                        "space-y-2 min-h-[120px] rounded-xl p-1.5 transition-colors",
+                        "space-y-2 rounded-xl p-1.5 transition-colors",
                         snapshot.isDraggingOver && "bg-accent/40"
                       )}
                     >
@@ -199,7 +199,7 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete, on
                       ))}
                       {provided.placeholder}
                       {items.length === 0 && !snapshot.isDraggingOver && (
-                        <div className="text-xs text-muted-foreground text-center py-8 border border-dashed border-border rounded-xl">
+                        <div className="text-xs text-muted-foreground text-center py-6 border border-dashed border-border rounded-xl">
                           No prospects
                         </div>
                       )}
