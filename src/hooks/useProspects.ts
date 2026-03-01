@@ -80,7 +80,20 @@ export function useUpdateProspect() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_, vars) => {
+    onMutate: async ({ id, ...values }) => {
+      await qc.cancelQueries({ queryKey: ["prospects"] });
+      const previous = qc.getQueriesData({ queryKey: ["prospects"] });
+      qc.setQueriesData<any[]>({ queryKey: ["prospects"] }, (old) =>
+        old?.map((p) => (p.id === id ? { ...p, ...values } : p)) ?? []
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      context?.previous?.forEach(([key, data]: [any, any]) => {
+        qc.setQueryData(key, data);
+      });
+    },
+    onSettled: (_, __, vars) => {
       qc.invalidateQueries({ queryKey: ["prospects"] });
       qc.invalidateQueries({ queryKey: ["prospect", vars.id] });
     },
