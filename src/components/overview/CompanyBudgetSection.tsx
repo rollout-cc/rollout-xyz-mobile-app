@@ -1,30 +1,50 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSelectedTeam } from "@/contexts/TeamContext";
-import { Plus, Trash2, DollarSign } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { ItemEditor } from "@/components/ui/ItemEditor";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const DEFAULT_CATEGORIES = [
-  "Staff Payroll",
-  "Marketing",
-  "Office & Rent",
-  "Legal & Accounting",
-  "Software & Tools",
   "Travel & Entertainment",
+  "Software & Tools",
+  "Legal & Accounting",
+  "Office & Rent",
+  "Marketing",
+  "Staff Payroll",
 ];
 
 export function CompanyBudgetSection() {
   const { selectedTeamId: teamId } = useSelectedTeam();
   const queryClient = useQueryClient();
-  const [isAddingCategory, setIsAddingCategory] = useState(false);
-  const [newCatName, setNewCatName] = useState("");
+  const [editingBudget, setEditingBudget] = useState(false);
+  const [budgetInput, setBudgetInput] = useState("");
+
+  // Fetch team for annual_budget
+  const { data: team } = useQuery({
+    queryKey: ["team-budget", teamId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("teams")
+        .select("id, annual_budget")
+        .eq("id", teamId!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!teamId,
+  });
 
   // Fetch company budget categories
   const { data: categories = [] } = useQuery({
@@ -78,7 +98,7 @@ export function CompanyBudgetSection() {
     enabled: !!teamId,
   });
 
-  // Fetch staff employment for payroll calculation
+  // Fetch staff employment for payroll
   const { data: staffEmployment = [] } = useQuery({
     queryKey: ["staff-employment-all", teamId],
     queryFn: async () => {
@@ -93,6 +113,18 @@ export function CompanyBudgetSection() {
   });
 
   // Mutations
+  const updateAnnualBudget = useMutation({
+    mutationFn: async (amount: number) => {
+      const { error } = await supabase
+        .from("teams")
+        .update({ annual_budget: amount })
+        .eq("id", teamId!);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["team-budget"] }),
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const addCategory = useMutation({
     mutationFn: async (name: string) => {
       const { error } = await (supabase as any)
@@ -102,8 +134,6 @@ export function CompanyBudgetSection() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["company-budget-categories"] });
-      setNewCatName("");
-      setIsAddingCategory(false);
       toast.success("Category added");
     },
     onError: (e: any) => toast.error(e.message),
@@ -136,31 +166,55 @@ export function CompanyBudgetSection() {
   });
 
   // Calculations
-  const totalCategoryBudget = categories.reduce((s: number, c: any) => s + Number(c.annual_budget || 0), 0);
+  const annualBudget = Number(team?.annual_budget || 0);
   const totalArtistAllocated = artistBudgets.reduce((s: number, a: any) => s + a.totalBudget, 0);
-  const totalCompanyExpenses = companyExpenses.reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
   const totalPayroll = staffEmployment.reduce((s: number, e: any) => {
     if (e.employment_type === "w2") return s + Number(e.annual_salary || 0);
     return s + (Number(e.monthly_retainer || 0) * 12);
   }, 0);
-  const overallBudget = totalCategoryBudget;
-  const totalAllocated = totalArtistAllocated + totalPayroll + totalCompanyExpenses;
-  const remaining = overallBudget - totalAllocated;
+  const totalCategorySpend = categories.reduce((s: number, c: any) => s + Number(c.annual_budget || 0), 0);
+  const remaining = annualBudget - totalArtistAllocated - totalPayroll - totalCategorySpend;
 
   const fmt = (n: number) => `$${Math.abs(n).toLocaleString()}`;
 
-  const handleAddSubmit = () => {
-    if (!newCatName.trim()) return;
-    addCategory.mutate(newCatName);
+  // Categories available to add (not yet added)
+  const existingNames = new Set(categories.map((c: any) => c.name));
+  const availableCategories = DEFAULT_CATEGORIES.filter((name) => !existingNames.has(name));
+
+  const handleAddCategory = (name: string) => {
+    addCategory.mutate(name);
   };
 
-  const isEmpty = categories.length === 0;
+  const handleBudgetSave = () => {
+    const val = parseFloat(budgetInput.replace(/,/g, "")) || 0;
+    updateAnnualBudget.mutate(val);
+    setEditingBudget(false);
+  };
 
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <SummaryCard label="Annual Budget" value={fmt(overallBudget)} />
+        <div className="rounded-xl border border-border p-3">
+          <p className="text-xs text-muted-foreground">Annual Budget</p>
+          {editingBudget ? (
+            <CurrencyInput
+              value={budgetInput}
+              onChange={setBudgetInput}
+              onBlur={handleBudgetSave}
+              onKeyDown={(e) => { if (e.key === "Enter") handleBudgetSave(); }}
+              className="h-8 text-lg font-bold mt-1 border-none p-0"
+              autoFocus
+            />
+          ) : (
+            <button
+              onClick={() => { setBudgetInput(annualBudget.toString()); setEditingBudget(true); }}
+              className="text-lg font-bold mt-1 hover:text-primary transition-colors text-left w-full"
+            >
+              {fmt(annualBudget)}
+            </button>
+          )}
+        </div>
         <SummaryCard label="Artist Allocation" value={fmt(totalArtistAllocated)} />
         <SummaryCard label="Staff Payroll" value={fmt(totalPayroll)} />
         <SummaryCard
@@ -172,51 +226,48 @@ export function CompanyBudgetSection() {
 
       {/* Budget Categories */}
       <div>
-        <h3 className="text-xs font-semibold mb-3">Budget Categories</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {categories.map((cat: any) => {
-            const spent = companyExpenses
-              .filter((e: any) => e.category_id === cat.id)
-              .reduce((s: number, e: any) => s + Number(e.amount), 0);
-            const budget = Number(cat.annual_budget || 0);
-            const pct = budget > 0 ? Math.min(Math.round((spent / budget) * 100), 100) : 0;
-
-            return (
-              <CategoryCard
-                key={cat.id}
-                name={cat.name}
-                budget={budget}
-                spent={spent}
-                pct={pct}
-                onBudgetChange={(val) => updateCategoryBudget.mutate({ id: cat.id, annual_budget: val })}
-                onDelete={() => deleteCategory.mutate(cat.id)}
-                fmt={fmt}
-              />
-            );
-          })}
-
-          {/* Add category */}
-          {isAddingCategory ? (
-            <div className="rounded-xl border border-primary/50 bg-card p-4">
-              <ItemEditor
-                value={newCatName}
-                onChange={setNewCatName}
-                onSubmit={handleAddSubmit}
-                onCancel={() => { setIsAddingCategory(false); setNewCatName(""); }}
-                placeholder="Category name — Enter to add"
-                autoFocus
-                className="font-medium"
-              />
-            </div>
-          ) : (
-            <button
-              onClick={() => setIsAddingCategory(true)}
-              className="rounded-xl border border-dashed border-border p-4 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors min-h-[80px]"
-            >
-              <Plus className="h-4 w-4" /> Add Category
-            </button>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xs font-semibold">Budget Categories</h3>
+          {availableCategories.length > 0 && (
+            <Select onValueChange={handleAddCategory}>
+              <SelectTrigger className="w-[180px] h-7 text-xs">
+                <SelectValue placeholder="Add category…" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableCategories.map((name) => (
+                  <SelectItem key={name} value={name}>{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
         </div>
+
+        {categories.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {categories.map((cat: any) => {
+              const spent = companyExpenses
+                .filter((e: any) => e.category_id === cat.id)
+                .reduce((s: number, e: any) => s + Number(e.amount), 0);
+              const budget = Number(cat.annual_budget || 0);
+              const pct = budget > 0 ? Math.min(Math.round((spent / budget) * 100), 100) : 0;
+
+              return (
+                <CategoryCard
+                  key={cat.id}
+                  name={cat.name}
+                  budget={budget}
+                  spent={spent}
+                  pct={pct}
+                  onBudgetChange={(val) => updateCategoryBudget.mutate({ id: cat.id, annual_budget: val })}
+                  onDelete={() => deleteCategory.mutate(cat.id)}
+                  fmt={fmt}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No categories yet — add one from the dropdown above.</p>
+        )}
       </div>
 
       {/* Artist Allocations */}
@@ -225,7 +276,7 @@ export function CompanyBudgetSection() {
           <h3 className="text-xs font-semibold mb-3">Artist Budget Allocations</h3>
           <div className="space-y-1">
             {artistBudgets.map((a: any) => {
-              const pct = overallBudget > 0 ? Math.round((a.totalBudget / overallBudget) * 100) : 0;
+              const pct = annualBudget > 0 ? Math.round((a.totalBudget / annualBudget) * 100) : 0;
               return (
                 <div key={a.id} className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-accent/30 transition-colors">
                   <span className="text-sm font-medium flex-1 truncate">{a.name}</span>
@@ -235,22 +286,6 @@ export function CompanyBudgetSection() {
               );
             })}
           </div>
-        </div>
-      )}
-
-      {/* Seed button when empty */}
-      {isEmpty && (
-        <div className="text-center py-6">
-          <p className="text-sm text-muted-foreground mb-3">Start by adding budget categories for your label</p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              DEFAULT_CATEGORIES.forEach((name) => addCategory.mutate(name));
-            }}
-          >
-            <Plus className="h-4 w-4 mr-1" /> Add Default Categories
-          </Button>
         </div>
       )}
     </div>
@@ -290,12 +325,12 @@ function CategoryCard({
             value={budgetVal}
             onChange={setBudgetVal}
             onBlur={() => {
-              onBudgetChange(parseFloat(budgetVal) || 0);
+              onBudgetChange(parseFloat(budgetVal.replace(/,/g, "")) || 0);
               setEditing(false);
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                onBudgetChange(parseFloat(budgetVal) || 0);
+                onBudgetChange(parseFloat(budgetVal.replace(/,/g, "")) || 0);
                 setEditing(false);
               }
             }}
