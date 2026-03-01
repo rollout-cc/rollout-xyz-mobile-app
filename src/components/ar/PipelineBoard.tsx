@@ -1,9 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Headphones, MapPin, Trash2 } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { Headphones, Trash2, Plus } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +25,14 @@ const STAGES = ["contacted", "offer_sent", "negotiating", "signed"] as const;
 const stageLabel = (s: string) =>
   s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
+const stageDot = (s: string) => {
+  if (s === "contacted") return "bg-blue-500";
+  if (s === "offer_sent") return "bg-amber-500";
+  if (s === "negotiating") return "bg-purple-500";
+  if (s === "signed") return "bg-emerald-500";
+  return "bg-muted-foreground";
+};
+
 const priorityDot = (p: string) => {
   if (p === "high") return "bg-destructive";
   if (p === "medium") return "bg-amber-500";
@@ -39,16 +45,25 @@ function formatNum(n: number): string {
   return String(n);
 }
 
+function followUpStatus(dateStr: string | null) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diff = Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (diff < 0) return { label: `${Math.abs(diff)}d overdue`, cls: "text-destructive bg-destructive/10" };
+  if (diff <= 3) return { label: `${diff}d`, cls: "text-amber-600 bg-amber-500/10" };
+  return { label: d.toLocaleDateString(undefined, { month: "short", day: "numeric" }), cls: "text-muted-foreground bg-muted" };
+}
+
 interface PipelineBoardProps {
   prospects: any[];
   onSelect: (id: string) => void;
   onStageChange?: (id: string, newStage: string) => void;
   onDelete?: (id: string) => void;
+  onAddToStage?: (stage: string) => void;
 }
 
-export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete }: PipelineBoardProps) {
-  const activeStages = STAGES;
-
+export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete, onAddToStage }: PipelineBoardProps) {
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
     const newStage = result.destination.droppableId;
@@ -61,34 +76,35 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete }: 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="pb-4 overflow-x-auto">
-        <div className="flex gap-0" style={{ minWidth: "600px" }}>
-          {activeStages.map((stage, idx) => {
+        <div className="flex gap-3" style={{ minWidth: "600px" }}>
+          {STAGES.map((stage) => {
             const items = prospects.filter((p: any) => p.stage === stage);
             return (
-              <div key={stage} className="flex flex-1 min-w-0">
-                {idx > 0 && (
-                  <Separator orientation="vertical" className="mx-2 h-auto self-stretch" />
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-3 px-1">
-                    <span className="text-sm font-bold text-foreground tracking-wide">
-                      {stageLabel(stage)}
-                    </span>
-                    <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
-                      {items.length}
-                    </Badge>
-                  </div>
-                  <Droppable droppableId={stage}>
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        className={cn(
-                          "space-y-2 min-h-[80px] rounded-lg p-1 transition-colors",
-                          snapshot.isDraggingOver && "bg-accent/40"
-                        )}
-                      >
-                        {items.map((p: any, index: number) => (
+              <div key={stage} className="flex-1 min-w-0">
+                {/* Column header */}
+                <div className="flex items-center gap-2 mb-3 px-1">
+                  <div className={cn("h-2.5 w-2.5 rounded-full shrink-0", stageDot(stage))} />
+                  <span className="text-xs font-semibold text-foreground tracking-wide">
+                    {stageLabel(stage)}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground font-medium">
+                    {items.length}
+                  </span>
+                </div>
+
+                <Droppable droppableId={stage}>
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className={cn(
+                        "space-y-1.5 min-h-[80px] rounded-lg p-1 transition-colors",
+                        snapshot.isDraggingOver && "bg-accent/40"
+                      )}
+                    >
+                      {items.map((p: any, index: number) => {
+                        const followUp = followUpStatus(p.next_follow_up);
+                        return (
                           <Draggable key={p.id} draggableId={p.id} index={index}>
                             {(dragProvided, dragSnapshot) => (
                               <div
@@ -100,21 +116,21 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete }: 
                                 onClick={() => onSelect(p.id)}
                                 onKeyDown={(e) => { if (e.key === 'Enter') onSelect(p.id); }}
                                 className={cn(
-                                  "w-full text-left rounded-xl border border-border bg-card p-3 hover:shadow-md transition-shadow group cursor-pointer select-none",
+                                  "w-full text-left rounded-lg border border-border bg-card p-2.5 hover:shadow-sm transition-shadow group cursor-pointer select-none",
                                   dragSnapshot.isDragging && "shadow-lg ring-2 ring-primary/30"
                                 )}
                               >
-                                <div className="flex items-start gap-3">
-                                  <Avatar className="h-10 w-10 shrink-0 border border-border">
+                                <div className="flex items-center gap-2.5">
+                                  <Avatar className="h-8 w-8 shrink-0 border border-border">
                                     {p.avatar_url && <AvatarImage src={p.avatar_url} alt={p.artist_name} />}
-                                    <AvatarFallback className="text-sm font-bold">
+                                    <AvatarFallback className="text-xs font-bold">
                                       {p.artist_name?.[0]}
                                     </AvatarFallback>
                                   </Avatar>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-1.5">
-                                      <div className={cn("h-2 w-2 rounded-full shrink-0", priorityDot(p.priority))} />
-                                      <span className="font-semibold text-sm truncate">{p.artist_name}</span>
+                                      <div className={cn("h-1.5 w-1.5 rounded-full shrink-0", priorityDot(p.priority))} />
+                                      <span className="font-semibold text-xs truncate">{p.artist_name}</span>
                                       {onDelete && (
                                         <AlertDialog>
                                           <AlertDialogTrigger asChild>
@@ -123,7 +139,7 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete }: 
                                               onPointerDown={(e) => e.stopPropagation()}
                                               className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0"
                                             >
-                                              <Trash2 className="h-3.5 w-3.5" />
+                                              <Trash2 className="h-3 w-3" />
                                             </button>
                                           </AlertDialogTrigger>
                                           <AlertDialogContent>
@@ -143,44 +159,51 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete }: 
                                         </AlertDialog>
                                       )}
                                     </div>
-                                    <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
+                                    <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-muted-foreground">
                                       {p.primary_genre && (
                                         <span className="truncate">{p.primary_genre}</span>
                                       )}
-                                      {p.city && (
-                                        <span className="flex items-center gap-0.5">
-                                          <MapPin className="h-3 w-3" />
-                                          {p.city}
+                                      {p.primary_genre && p.monthly_listeners > 0 && (
+                                        <span className="text-border">·</span>
+                                      )}
+                                      {p.monthly_listeners > 0 && (
+                                        <span className="flex items-center gap-0.5 shrink-0">
+                                          <Headphones className="h-2.5 w-2.5" />
+                                          {formatNum(p.monthly_listeners)}
                                         </span>
                                       )}
                                     </div>
-                                    {p.monthly_listeners && p.monthly_listeners > 0 && (
-                                      <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                                        <Headphones className="h-3 w-3" />
-                                        {formatNum(p.monthly_listeners)}
-                                      </div>
-                                    )}
                                   </div>
                                 </div>
-                                {p.next_follow_up && (
-                                  <div className="text-[10px] text-muted-foreground mt-2 pl-[52px]">
-                                    Follow up: {new Date(p.next_follow_up).toLocaleDateString()}
+                                {followUp && (
+                                  <div className={cn("text-[10px] font-medium mt-1.5 ml-[42px] inline-flex px-1.5 py-0.5 rounded-full", followUp.cls)}>
+                                    Follow up {followUp.label}
                                   </div>
                                 )}
                               </div>
                             )}
                           </Draggable>
-                        ))}
-                        {provided.placeholder}
-                        {items.length === 0 && !snapshot.isDraggingOver && (
-                          <div className="text-xs text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg">
-                            No prospects
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </Droppable>
-                </div>
+                        );
+                      })}
+                      {provided.placeholder}
+                      {items.length === 0 && !snapshot.isDraggingOver && (
+                        <div className="text-[10px] text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg">
+                          No prospects
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </Droppable>
+
+                {/* Add button at bottom */}
+                {onAddToStage && (
+                  <button
+                    onClick={() => onAddToStage(stage)}
+                    className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors mt-2 px-1 w-full"
+                  >
+                    <Plus className="h-3 w-3" /> New
+                  </button>
+                )}
               </div>
             );
           })}
