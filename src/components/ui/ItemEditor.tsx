@@ -71,6 +71,8 @@ export function ItemEditor({
   const filteredItems = useMemo(() => {
     if (!activeTrigger) return [];
     if (!triggerQuery) return activeTrigger.items;
+    // If the query is purely numeric (e.g. "$500"), don't filter — it's a value, not a search
+    if (/^[\d,.]*$/.test(triggerQuery)) return activeTrigger.items;
     return activeTrigger.items.filter((item) =>
       item.label.toLowerCase().includes(triggerQuery)
     );
