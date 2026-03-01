@@ -455,78 +455,23 @@ export default function Overview() {
         </div>
       </div>
 
-      {/* Hero widget — full width */}
-      {heroId && sectionRegistry[heroId] && (
-        <div className="mb-4">
-          <CollapsibleSection
-            title={sectionRegistry[heroId].label}
-            open={!collapsed.has(heroId)}
-            onToggle={() => toggleCollapse(heroId)}
-            actions={
-              <button
-                onClick={() => setHeroSection(null)}
-                className="p-1 text-amber-500 hover:text-amber-400 transition-colors"
-                aria-label="Remove from hero"
-                title="Remove hero"
-              >
-                <StarOff className="h-4 w-4" />
-              </button>
-            }
-          >
-            {sectionRegistry[heroId].content}
-          </CollapsibleSection>
-        </div>
-      )}
-
-      {/* Sections grid */}
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="overview-sections">
-          {(provided) => (
-            <div
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-              className={cn(
-                "gap-4",
-                layout === "two-column"
-                  ? "grid grid-cols-1 lg:grid-cols-2"
-                  : "flex flex-col"
-              )}
-            >
-              {gridSections.map((id, index) => {
-                const section = sectionRegistry[id];
-                if (!section) return null;
-                return (
-                  <DraggableSection
-                    key={id}
-                    id={id}
-                    index={index}
-                    title={section.label}
-                    isOpen={!collapsed.has(id)}
-                    onToggle={() => toggleCollapse(id)}
-                    onHide={() => toggleVisibility(id)}
-                    onSetHero={heroId !== id ? () => setHeroSection(id) : undefined}
-                  >
-                    {section.content}
-                  </DraggableSection>
-                );
-              })}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
-
-      {/* Add hidden sections back */}
-      {hiddenSections.length > 0 && (
-        <div className="mt-6 flex justify-center">
+      {/* Empty state — no widgets visible */}
+      {visibleSections.length === 0 ? (
+        <div className="flex flex-col items-center justify-center min-h-[50vh] gap-5">
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-foreground mb-2">Build Your Company</h2>
+            <p className="text-sm text-muted-foreground max-w-md">
+              Add dashboard sections to monitor your label's finances, team performance, A&R pipeline, and more.
+            </p>
+          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button size="lg" className="gap-2">
                 <Plus className="h-4 w-4" /> Add Section
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="center">
-              {hiddenSections.map((s) => (
+              {ALL_SECTIONS.map((s) => (
                 <DropdownMenuItem key={s.id} onClick={() => showSection(s.id)}>
                   {s.label}
                 </DropdownMenuItem>
@@ -534,6 +479,89 @@ export default function Overview() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+      ) : (
+        <>
+          {/* Hero widget — full width */}
+          {heroId && sectionRegistry[heroId] && (
+            <div className="mb-4">
+              <CollapsibleSection
+                title={sectionRegistry[heroId].label}
+                open={!collapsed.has(heroId)}
+                onToggle={() => toggleCollapse(heroId)}
+                actions={
+                  <button
+                    onClick={() => setHeroSection(null)}
+                    className="p-1 text-amber-500 hover:text-amber-400 transition-colors"
+                    aria-label="Remove from hero"
+                    title="Remove hero"
+                  >
+                    <StarOff className="h-4 w-4" />
+                  </button>
+                }
+              >
+                {sectionRegistry[heroId].content}
+              </CollapsibleSection>
+            </div>
+          )}
+
+          {/* Sections grid */}
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <Droppable droppableId="overview-sections">
+              {(provided) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className={cn(
+                    "gap-4",
+                    layout === "two-column"
+                      ? "grid grid-cols-1 lg:grid-cols-2"
+                      : "flex flex-col"
+                  )}
+                >
+                  {gridSections.map((id, index) => {
+                    const section = sectionRegistry[id];
+                    if (!section) return null;
+                    return (
+                      <DraggableSection
+                        key={id}
+                        id={id}
+                        index={index}
+                        title={section.label}
+                        isOpen={!collapsed.has(id)}
+                        onToggle={() => toggleCollapse(id)}
+                        onHide={() => toggleVisibility(id)}
+                        onSetHero={heroId !== id ? () => setHeroSection(id) : undefined}
+                      >
+                        {section.content}
+                      </DraggableSection>
+                    );
+                  })}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
+
+          {/* Add hidden sections back */}
+          {hiddenSections.length > 0 && (
+            <div className="mt-6 flex justify-center">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Plus className="h-4 w-4" /> Add Section
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center">
+                  {hiddenSections.map((s) => (
+                    <DropdownMenuItem key={s.id} onClick={() => showSection(s.id)}>
+                      {s.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
+        </>
       )}
     </AppLayout>
   );

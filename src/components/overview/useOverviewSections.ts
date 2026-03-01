@@ -42,9 +42,12 @@ export function useOverviewSections() {
     return merged;
   });
 
-  const [hidden, setHiddenState] = useState<Set<string>>(
-    () => new Set(readJson<string[]>(STORAGE_HIDDEN_KEY, []))
-  );
+  const [hidden, setHiddenState] = useState<Set<string>>(() => {
+    const stored = localStorage.getItem(STORAGE_HIDDEN_KEY);
+    if (stored) return new Set(readJson<string[]>(STORAGE_HIDDEN_KEY, []));
+    // First visit: hide all sections by default
+    return new Set(DEFAULT_ORDER);
+  });
 
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
