@@ -24,7 +24,6 @@ import {
   Plus,
   ExternalLink,
   User,
-  Music,
   RefreshCw,
   Headphones,
   X,
@@ -270,9 +269,7 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
                 <TabsContent value="details" className="px-6 py-5 space-y-7 mt-0">
                   {/* Artist Info */}
                   <section>
-                    <h4 className="overline mb-3 flex items-center gap-1.5">
-                      <Music className="h-3.5 w-3.5" /> Artist Info
-                    </h4>
+                    <h4 className="text-xs font-semibold text-muted-foreground mb-3">Artist Info</h4>
                     <div className="grid grid-cols-2 gap-x-5 gap-y-4">
                       <Field label="Genre" value={prospect.primary_genre ?? ""} placeholder="Auto-filled from Spotify" onSave={(v) => handleFieldUpdate("primary_genre", v || null)} />
                       <Field label="City" value={prospect.city ?? ""} placeholder="e.g. Atlanta" onSave={(v) => handleFieldUpdate("city", v || null)} />
@@ -302,9 +299,7 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
 
                   {/* Socials */}
                   <section>
-                    <h4 className="overline mb-3 flex items-center gap-1.5">
-                      <ExternalLink className="h-3.5 w-3.5" /> Socials & Links
-                    </h4>
+                    <h4 className="text-xs font-semibold text-muted-foreground mb-3">Socials & Links</h4>
                     <div className="grid grid-cols-2 gap-x-5 gap-y-4">
                       <div>
                         <span className="text-muted-foreground text-xs font-medium">Spotify URI</span>
@@ -359,9 +354,7 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
 
                   {/* Team Contacts */}
                   <section>
-                    <h4 className="overline mb-3 flex items-center gap-1.5">
-                      <User className="h-3.5 w-3.5" /> Team Contacts
-                    </h4>
+                    <h4 className="text-xs font-semibold text-muted-foreground mb-3">Team Contacts</h4>
                     <div className="space-y-2">
                       {contacts.map((c: any) => (
                         <div key={c.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
