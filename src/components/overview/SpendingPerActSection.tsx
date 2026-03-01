@@ -36,11 +36,11 @@ export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSi
         <span className="caption-bold">{artistCount} artists</span>
       </div>
 
-      <div className="space-y-0">
+      <div className="space-y-4">
         {artistBreakdown.map((artist) => (
           <div
             key={artist.id}
-            className="border-b border-border last:border-b-0 py-5 px-2 hover:bg-accent/30 cursor-pointer transition-colors -mx-2"
+            className="rounded-xl border border-border bg-card p-5 cursor-pointer"
             onClick={() => navigate(`/roster/${artist.id}`)}
           >
             {/* Header row */}
@@ -78,9 +78,9 @@ export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSi
               </div>
             </div>
 
-            {/* Category radial progress in a card */}
+            {/* Category radial progress */}
             {artist.categories.length > 0 && (
-              <div className="rounded-xl border border-border bg-card/50 p-4 mb-5">
+              <div className="rounded-lg border border-border bg-muted/30 p-4 mb-4">
                 <div className="flex flex-wrap justify-center gap-6 sm:gap-8">
                   {artist.categories.map((cat, i) => (
                     <RadialProgress
@@ -94,8 +94,8 @@ export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSi
               </div>
             )}
 
-            {/* Overall utilization — elevated */}
-            <div className="rounded-xl border border-border bg-card/50 p-4">
+            {/* Overall utilization */}
+            <div className="rounded-lg border border-border bg-muted/30 p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-semibold text-foreground">Overall Utilization</span>
                 <span className="text-lg font-bold text-foreground">{artist.utilization.toFixed(0)}%</span>
