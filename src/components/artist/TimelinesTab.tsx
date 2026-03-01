@@ -257,7 +257,6 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <NewTimelineInline artistId={artistId} onCreated={setNewTimelineId} />
           <ShareTimelineButton artist={artist} />
         </div>
       </div>
@@ -312,6 +311,9 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
           {unsortedMilestones.length === 0 && displayedTimelines.length === 0 && (
             <InlineMilestoneInput onAdd={(title, date) => addMilestone.mutate({ title, date })} />
           )}
+
+          {/* Inline new timeline creation */}
+          <NewTimelineInline artistId={artistId} onCreated={setNewTimelineId} />
         </>
       )}
     </div>
@@ -479,6 +481,45 @@ function CalendarView({ milestones }: { milestones: any[] }) {
   );
 }
 
+/* ── Parse natural date from text ── */
+function parseDateFromText(text: string): { title: string; date: Date | null } {
+  const months: Record<string, number> = {
+    january: 0, jan: 0, february: 1, feb: 1, march: 2, mar: 2,
+    april: 3, apr: 3, may: 4, june: 5, jun: 5, july: 6, jul: 6,
+    august: 7, aug: 7, september: 8, sep: 8, sept: 8, october: 9, oct: 9,
+    november: 10, nov: 10, december: 11, dec: 11,
+  };
+
+  // Match patterns like "august 15", "jan 3", "December 25", "oct 1st"
+  const regex = /\b(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sep|sept|october|oct|november|nov|december|dec)\s+(\d{1,2})(?:st|nd|rd|th)?\b/i;
+  const match = text.match(regex);
+  if (match) {
+    const monthIdx = months[match[1].toLowerCase()];
+    const day = parseInt(match[2], 10);
+    if (monthIdx !== undefined && day >= 1 && day <= 31) {
+      const now = new Date();
+      let year = now.getFullYear();
+      const candidate = new Date(year, monthIdx, day);
+      // If the date is more than 2 months in the past, assume next year
+      if (candidate.getTime() < now.getTime() - 60 * 24 * 60 * 60 * 1000) {
+        year += 1;
+      }
+      return { title: text, date: new Date(year, monthIdx, day) };
+    }
+  }
+
+  // Match "due today" / "due tomorrow"
+  const dueMatch = text.match(/\bdue\s+(today|tomorrow)\b/i);
+  if (dueMatch) {
+    const d = new Date();
+    if (dueMatch[1].toLowerCase() === "tomorrow") d.setDate(d.getDate() + 1);
+    const cleaned = text.replace(dueMatch[0], "").trim();
+    return { title: cleaned || text, date: d };
+  }
+
+  return { title: text, date: null };
+}
+
 /* ── Inline Milestone Input ── */
 function InlineMilestoneInput({ onAdd }: { onAdd: (title: string, date: string) => void }) {
   const [isActive, setIsActive] = useState(false);
@@ -486,9 +527,13 @@ function InlineMilestoneInput({ onAdd }: { onAdd: (title: string, date: string) 
   const [description, setDescription] = useState("");
   const [date, setDate] = useState<Date | undefined>(undefined);
 
+  // Auto-detect date from title
+  const parsedDate = useMemo(() => parseDateFromText(title), [title]);
+  const effectiveDate = date || parsedDate.date || undefined;
+
   const submit = () => {
-    if (!title.trim() || !date) return;
-    onAdd(title.trim(), format(date, "yyyy-MM-dd"));
+    if (!title.trim() || !effectiveDate) return;
+    onAdd(title.trim(), format(effectiveDate, "yyyy-MM-dd"));
     setTitle("");
     setDescription("");
     setDate(undefined);
@@ -510,9 +555,16 @@ function InlineMilestoneInput({ onAdd }: { onAdd: (title: string, date: string) 
     <ItemCardEdit
       onCancel={handleCancel}
       onSave={submit}
-      saveDisabled={!title.trim() || !date}
+      saveDisabled={!title.trim() || !effectiveDate}
       bottomLeft={
-        <DatePicker value={date} onChange={setDate} placeholder="Select Date" />
+        <div className="flex items-center gap-2">
+          <DatePicker value={effectiveDate} onChange={setDate} placeholder="Select Date" />
+          {parsedDate.date && !date && (
+            <span className="text-xs text-muted-foreground">
+              Auto: {format(parsedDate.date, "MMM d, yyyy")}
+            </span>
+          )}
+        </div>
       }
     >
       <div className="flex items-center gap-3">
@@ -523,7 +575,7 @@ function InlineMilestoneInput({ onAdd }: { onAdd: (title: string, date: string) 
             onChange={setTitle}
             onSubmit={submit}
             onCancel={handleCancel}
-            placeholder="What's happening on this date?"
+            placeholder="What's happening? (e.g. Album release August 15)"
             autoFocus
             className="font-semibold"
           />
@@ -600,7 +652,12 @@ function MilestoneRow({
             </MetaBadge>
           ))}
           {attachedLinks.map((al: any) => (
-            <MetaBadge key={al.id} variant="blue" icon={<Link2 className="h-3 w-3" />} onClick={() => onDetachLink(al.id)}>
+            <MetaBadge
+              key={al.id}
+              variant="blue"
+              icon={<Link2 className="h-3 w-3" />}
+              onClick={() => window.open(al.link?.url, "_blank", "noopener,noreferrer")}
+            >
               {al.link?.title}
             </MetaBadge>
           ))}
@@ -769,19 +826,24 @@ function NewTimelineInline({ artistId, onCreated }: { artistId: string; onCreate
   });
 
   if (!show) {
-    return <Button variant="ghost" size="sm" onClick={() => { setShow(true); setTimeout(() => inputRef.current?.focus(), 50); }}><Plus className="h-4 w-4 mr-1" /> New Timeline</Button>;
+    return <InlineAddTrigger label="New Timeline" onClick={() => { setShow(true); setTimeout(() => inputRef.current?.focus(), 50); }} />;
   }
 
   return (
-    <input
-      ref={inputRef} autoFocus placeholder="Timeline name, press Enter"
-      className="bg-transparent border-b border-primary/40 outline-none text-sm py-1 w-48"
-      onKeyDown={(e) => {
-        if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) create.mutate((e.target as HTMLInputElement).value);
-        if (e.key === "Escape") setShow(false);
-      }}
-      onBlur={() => setShow(false)}
-    />
+    <div className="rounded-lg border border-border bg-card px-4 py-3">
+      <input
+        ref={inputRef}
+        autoFocus
+        placeholder="Timeline name, press Enter"
+        className="w-full bg-transparent text-base font-bold outline-none placeholder:text-muted-foreground/50"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) create.mutate((e.target as HTMLInputElement).value);
+          if (e.key === "Escape") setShow(false);
+        }}
+        onBlur={(e) => { if (!e.target.value.trim()) setShow(false); }}
+      />
+      <p className="text-xs text-muted-foreground mt-1">Press Enter to create · Esc to cancel</p>
+    </div>
   );
 }
 
