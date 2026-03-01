@@ -18,6 +18,7 @@ export const ALL_SECTIONS: SectionConfig[] = [
 const DEFAULT_ORDER = ALL_SECTIONS.map((s) => s.id);
 const STORAGE_ORDER_KEY = "overview-section-order";
 const STORAGE_HIDDEN_KEY = "overview-section-hidden";
+const STORAGE_HERO_KEY = "overview-hero-section";
 
 function readJson<T>(key: string, fallback: T): T {
   try {
@@ -44,8 +45,15 @@ export function useOverviewSections() {
 
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
-  // When Reorder.Group reorders, it only has visible IDs.
-  // Preserve hidden IDs in their original positions.
+  const [heroSection, setHeroSectionState] = useState<string | null>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_HERO_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const setOrder = useCallback((newVisibleOrder: string[]) => {
     setOrderState((prev) => {
       const hiddenInOrder = prev.filter((id) => !newVisibleOrder.includes(id));
@@ -66,7 +74,6 @@ export function useOverviewSections() {
   }, []);
 
   const showSection = useCallback((id: string) => {
-    // Ensure the section is in the order array
     setOrderState((prev) => {
       if (!prev.includes(id)) {
         const updated = [...prev, id];
@@ -92,6 +99,11 @@ export function useOverviewSections() {
     });
   }, []);
 
+  const setHeroSection = useCallback((id: string | null) => {
+    setHeroSectionState(id);
+    localStorage.setItem(STORAGE_HERO_KEY, JSON.stringify(id));
+  }, []);
+
   const visibleSections = order.filter((id) => !hidden.has(id));
   const hiddenSections = ALL_SECTIONS.filter((s) => hidden.has(s.id));
 
@@ -100,9 +112,11 @@ export function useOverviewSections() {
     hiddenSections,
     collapsed,
     order,
+    heroSection,
     setOrder,
     toggleVisibility,
     showSection,
     toggleCollapse,
+    setHeroSection,
   };
 }
