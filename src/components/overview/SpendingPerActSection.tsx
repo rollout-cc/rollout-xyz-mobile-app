@@ -2,6 +2,7 @@ import { CheckCircle2, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { RadialProgress } from "@/components/overview/RadialProgress";
 import { cn } from "@/lib/utils";
 
 interface ArtistBreakdownItem {
@@ -58,7 +59,7 @@ export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSi
             </div>
 
             {/* Financial metrics */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-5">
               <div>
                 <div className="caption text-muted-foreground mb-0.5">Budget</div>
                 <div className="text-base font-bold text-foreground">{fmt(artist.budget)}</div>
@@ -77,35 +78,31 @@ export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSi
               </div>
             </div>
 
-            {/* Category progress bars */}
+            {/* Category radial progress in a card */}
             {artist.categories.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 mb-4">
-                {artist.categories.map((cat, i) => (
-                  <div key={i}>
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-muted-foreground truncate">{cat.label}</span>
-                      <span className="font-medium ml-2 whitespace-nowrap">{fmt(cat.spent)} / {fmt(cat.budget)}</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className={cn("h-full rounded-full transition-all", cat.pct > 90 ? "bg-destructive" : cat.pct > 70 ? "bg-amber-500" : "bg-emerald-500")}
-                        style={{ width: `${Math.min(cat.pct, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+              <div className="rounded-xl border border-border bg-card/50 p-4 mb-5">
+                <div className="flex flex-wrap justify-center gap-6 sm:gap-8">
+                  {artist.categories.map((cat, i) => (
+                    <RadialProgress
+                      key={i}
+                      value={cat.pct}
+                      label={cat.label}
+                      detail={`${fmt(cat.spent)} / ${fmt(cat.budget)}`}
+                    />
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* Overall utilization */}
-            <div>
-              <div className="flex items-center justify-between text-xs mb-1">
-                <span className="text-muted-foreground">Overall Utilization</span>
-                <span className="font-bold text-sm text-foreground">{artist.utilization.toFixed(0)}%</span>
+            {/* Overall utilization — elevated */}
+            <div className="rounded-xl border border-border bg-card/50 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-semibold text-foreground">Overall Utilization</span>
+                <span className="text-lg font-bold text-foreground">{artist.utilization.toFixed(0)}%</span>
               </div>
               <Progress
                 value={artist.utilization}
-                className={cn("h-2 [&>div]:transition-all", artist.utilization > 90 ? "[&>div]:bg-destructive" : artist.utilization > 70 ? "[&>div]:bg-amber-500" : "[&>div]:bg-emerald-500")}
+                className={cn("h-3 [&>div]:transition-all", artist.utilization > 90 ? "[&>div]:bg-destructive" : artist.utilization > 70 ? "[&>div]:bg-amber-500" : "[&>div]:bg-emerald-500")}
               />
             </div>
           </div>
