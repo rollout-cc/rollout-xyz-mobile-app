@@ -1,10 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { useSelectedTeam } from "@/contexts/TeamContext";
-import { Reorder } from "framer-motion";
+import { DragDropContext, Droppable, type DropResult } from "@hello-pangea/dnd";
 import { Plus, Star, StarOff, Rows3, Columns2 } from "lucide-react";
 import { format, startOfQuarter, endOfQuarter, subQuarters, addQuarters } from "date-fns";
 import {
@@ -375,6 +375,17 @@ export default function Overview() {
   const heroId = heroSection && visibleSections.includes(heroSection) ? heroSection : null;
   const gridSections = visibleSections.filter((id) => id !== heroId);
 
+  const handleDragEnd = useCallback((result: DropResult) => {
+    if (!result.destination) return;
+    const from = result.source.index;
+    const to = result.destination.index;
+    if (from === to) return;
+    const reordered = [...gridSections];
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(to, 0, moved);
+    setOrder(reordered);
+  }, [gridSections, setOrder]);
+
   return (
     <AppLayout title="Label">
       {/* Welcome */}
@@ -434,28 +445,39 @@ export default function Overview() {
         </div>
       )}
 
-      {/* Masonry grid */}
-      <div className={cn("gap-4", layout === "two-column" ? "columns-1 lg:columns-2" : "columns-1")} style={{ columnFill: "balance" }}>
-        <Reorder.Group axis="y" values={gridSections} onReorder={setOrder} className="contents">
-          {gridSections.map((id) => {
-            const section = sectionRegistry[id];
-            if (!section) return null;
-            return (
-              <DraggableSection
-                key={id}
-                id={id}
-                title={section.label}
-                isOpen={!collapsed.has(id)}
-                onToggle={() => toggleCollapse(id)}
-                onHide={() => toggleVisibility(id)}
-                onSetHero={heroId !== id ? () => setHeroSection(id) : undefined}
-              >
-                {section.content}
-              </DraggableSection>
-            );
-          })}
-        </Reorder.Group>
-      </div>
+      {/* Sections grid */}
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable droppableId="overview-sections">
+          {(provided) => (
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              className={cn("gap-4", layout === "two-column" ? "columns-1 lg:columns-2" : "columns-1")}
+              style={{ columnFill: "balance" }}
+            >
+              {gridSections.map((id, index) => {
+                const section = sectionRegistry[id];
+                if (!section) return null;
+                return (
+                  <DraggableSection
+                    key={id}
+                    id={id}
+                    index={index}
+                    title={section.label}
+                    isOpen={!collapsed.has(id)}
+                    onToggle={() => toggleCollapse(id)}
+                    onHide={() => toggleVisibility(id)}
+                    onSetHero={heroId !== id ? () => setHeroSection(id) : undefined}
+                  >
+                    {section.content}
+                  </DraggableSection>
+                );
+              })}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
 
       {/* Add hidden sections back */}
       {hiddenSections.length > 0 && (
