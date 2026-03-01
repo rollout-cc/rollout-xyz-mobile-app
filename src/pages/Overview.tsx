@@ -399,7 +399,7 @@ export default function Overview() {
   }, [gridSections, setOrder]);
 
   return (
-    <AppLayout title="Label">
+    <AppLayout title="Company">
       {/* Welcome */}
       <div className="mb-8 flex items-start justify-between">
         <div>
@@ -407,7 +407,7 @@ export default function Overview() {
             Welcome back, {profile?.full_name?.split(" ")[0] || "there"}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Here's a snapshot of your label's overall health
+            Here's a snapshot of your company's overall health
           </p>
         </div>
         <div className="flex items-center gap-2">
