@@ -208,19 +208,19 @@ export default function ProspectProfile() {
           {/* Profile Info - inline editing like artist info tab */}
           <CollapsibleSection title="Profile" defaultOpen>
             <div>
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                <Music className="h-3.5 w-3.5" /> Artist Info
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-semibold text-muted-foreground">Artist Info</h4>
                 {spotifyId && (
                   <button
                     onClick={syncSpotifyData}
                     disabled={syncingSpotify}
-                    className="ml-auto text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                    className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                     title="Refresh from Spotify"
                   >
                     <RefreshCw className={cn("h-3.5 w-3.5", syncingSpotify && "animate-spin")} />
                   </button>
                 )}
-              </h4>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field label="Genre" value={prospect.primary_genre ?? ""} placeholder="Auto-filled from Spotify" onSave={(v) => handleFieldUpdate("primary_genre", v || null)} />
                 <Field label="City" value={prospect.city ?? ""} placeholder="e.g. Atlanta" onSave={(v) => handleFieldUpdate("city", v || null)} />
@@ -249,9 +249,7 @@ export default function ProspectProfile() {
             </div>
 
             <div className="mt-4">
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                <ExternalLink className="h-3.5 w-3.5" /> Socials & Links
-              </h4>
+              <h4 className="text-xs font-semibold text-muted-foreground mb-2">Socials & Links</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <span className="text-muted-foreground text-xs">Spotify URI</span>
