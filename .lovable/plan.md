@@ -1,43 +1,34 @@
 
+## Update Assignee Filter to Multi-Select with "Select All"
 
-## Fix A&R Pipeline: Drag-and-Drop + Spotify Avatars
+### What Changes
+The "All Members" dropdown on the Agenda page will be converted from a single-select to a multi-select dropdown. "Select All" will toggle all members on/off, and individual members can be selected or deselected independently. The member list will be scoped to those who have permissions for the currently selected artist.
 
-### Problem 1: Drag-and-Drop Not Working
-The pipeline board columns use `min-w-0` without explicit width, making the droppable areas too narrow for `@hello-pangea/dnd` to register drops. The inner `<div className="min-w-0">` needs `flex-1` to fill the available column space.
-
-### Problem 2: No Profile Pictures
-The `prospects` table has no `avatar_url` column. The PipelineBoard only renders `AvatarFallback` (the first letter), never an actual image.
-
----
-
-### Plan
-
-#### 1. Add `avatar_url` column to prospects table
-Run a database migration to add `avatar_url text` to the `prospects` table.
-
-#### 2. Store avatar when creating prospect from Spotify
-In `ARList.tsx`, the `handleAddFromSpotify` function already receives `artist.images` from Spotify search results. Pass the first image URL as `avatar_url` when calling `createProspect.mutateAsync`.
-
-Update the `useCreateProspect` mutation type to accept `avatar_url`.
-
-#### 3. Fix PipelineBoard layout for drag-and-drop
-- Add `flex-1` to the inner column `<div>` so droppable zones have proper width
-- Import `AvatarImage` and render it with `p.avatar_url` so Spotify profile pictures display
-
-#### 4. Update ProspectProfile to sync avatar from Spotify
-In the `syncSpotifyData` function, also save the Spotify image as `avatar_url` on the prospect (similar to how ArtistDetail does it).
-
----
+### How It Works
+- Default state: all members selected (equivalent to current "All Members" behavior)
+- Clicking "Select All" toggles between all selected and none selected
+- Clicking an individual member toggles them on/off
+- When all members are selected, the trigger shows "All Members"
+- When a subset is selected, it shows the count (e.g., "2 Members") or a single name
+- The task list filters to show tasks assigned to any of the selected members
 
 ### Technical Details
 
-**Migration SQL:**
-```sql
-ALTER TABLE prospects ADD COLUMN avatar_url text;
-```
+**File: `src/pages/Agenda.tsx`**
 
-**Files to modify:**
-- `src/hooks/useProspects.ts` -- add `avatar_url` to create mutation type
-- `src/pages/ARList.tsx` -- pass `avatar_url: artist.images?.[0]?.url` when creating
-- `src/components/ar/PipelineBoard.tsx` -- fix column width (`flex-1`), add `AvatarImage`
-- `src/pages/ProspectProfile.tsx` -- save avatar_url during Spotify sync
+1. Replace `selectedAssignee: string` state with `selectedAssignees: string[]` (array of user IDs)
+
+2. Add a query to fetch artist-specific team members using the `artist_permissions` table, filtered by the selected `artistId`. Fall back to all team members if no permissions are configured.
+
+3. Replace the Radix `Select` component with a `Popover` + checkbox list pattern (since Radix Select doesn't support multi-select):
+   - A trigger button styled like the current select
+   - A popover with:
+     - "Select All" checkbox at the top
+     - Individual member checkboxes below
+   - Checkmark indicators matching the screenshot style
+
+4. Update task filtering logic:
+   - When `selectedAssignees` includes all members (or is empty = all), show all tasks
+   - Otherwise, filter tasks to only those where `assigned_to` is in the `selectedAssignees` array
+
+5. Reset `selectedAssignees` to all when the artist changes (so switching artists doesn't carry over stale member selections)
