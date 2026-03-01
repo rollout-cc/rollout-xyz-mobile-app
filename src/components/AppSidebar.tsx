@@ -138,7 +138,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
             style={{ padding: collapsed ? "0 8px" : "0 12px" }}
           >
             {navItems.map((item) => (
-              <SidebarMenuItem key={item.to}>
+              <SidebarMenuItem key={item.to} className={collapsed ? "flex justify-center" : ""}>
                 <SidebarMenuButton asChild tooltip={collapsed ? item.label : undefined}>
                   <NavLink to={item.to} className={`hover:bg-accent ${collapsed ? "justify-center" : ""}`} activeClassName="bg-accent font-medium">
                     <item.icon className="h-4 w-4 shrink-0" />
@@ -151,8 +151,11 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
 
           {/* Bottom: collapse toggle + add button */}
           <div
-            className="mt-auto space-y-1.5 transition-[padding] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-            style={{ padding: collapsed ? "12px 8px" : "12px" }}
+            className="mt-auto space-y-1.5 transition-[padding] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col"
+            style={{
+              padding: collapsed ? "12px 8px" : "12px",
+              alignItems: collapsed ? "center" : "stretch",
+            }}
           >
             <Tooltip>
               <TooltipTrigger asChild>
