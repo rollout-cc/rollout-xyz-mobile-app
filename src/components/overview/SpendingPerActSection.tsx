@@ -40,7 +40,7 @@ export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSi
         {artistBreakdown.map((artist) => (
           <div
             key={artist.id}
-            className="rounded-xl border border-border bg-card p-5 cursor-pointer"
+            className="rounded-xl border border-border bg-card p-4 cursor-pointer overflow-hidden"
             onClick={() => navigate(`/roster/${artist.id}`)}
           >
             {/* Header row */}
@@ -59,29 +59,29 @@ export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSi
             </div>
 
             {/* Financial metrics */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-5">
+            <div className="grid grid-cols-2 gap-3 mb-5">
               <div>
                 <div className="caption text-muted-foreground mb-0.5">Budget</div>
-                <div className="text-base font-bold text-foreground">{fmt(artist.budget)}</div>
+                <div className="text-sm font-bold text-foreground truncate">{fmt(artist.budget)}</div>
               </div>
               <div>
                 <div className="caption text-muted-foreground mb-0.5">Spent</div>
-                <div className="text-base font-bold text-destructive">{fmt(artist.expenses)}</div>
+                <div className="text-sm font-bold text-destructive truncate">{fmt(artist.expenses)}</div>
               </div>
               <div>
                 <div className="caption text-muted-foreground mb-0.5">Revenue</div>
-                <div className="text-base font-bold text-emerald-500">{fmt(artist.revenue)}</div>
+                <div className="text-sm font-bold text-emerald-500 truncate">{fmt(artist.revenue)}</div>
               </div>
               <div>
                 <div className="caption text-muted-foreground mb-0.5">P&L</div>
-                <div className={cn("text-base font-bold", artist.gp >= 0 ? "text-emerald-500" : "text-destructive")}>{fmtSigned(artist.gp)}</div>
+                <div className={cn("text-sm font-bold truncate", artist.gp >= 0 ? "text-emerald-500" : "text-destructive")}>{fmtSigned(artist.gp)}</div>
               </div>
             </div>
 
             {/* Category radial progress */}
             {artist.categories.length > 0 && (
               <div className="rounded-lg border border-border bg-muted/30 p-4 mb-4">
-                <div className="flex flex-wrap justify-center gap-6 sm:gap-8">
+                <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
                   {artist.categories.map((cat, i) => (
                     <RadialProgress
                       key={i}
