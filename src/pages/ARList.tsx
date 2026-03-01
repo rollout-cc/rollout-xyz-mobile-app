@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { useProspects, useCreateProspect, useUpdateProspect, useDeleteProspect } from "@/hooks/useProspects";
 import { useSelectedTeam } from "@/contexts/TeamContext";
@@ -11,10 +10,9 @@ import { cn } from "@/lib/utils";
 import { NewProspectDialog } from "@/components/ar/NewProspectDialog";
 import { PipelineBoard } from "@/components/ar/PipelineBoard";
 import { ProspectTable } from "@/components/ar/ProspectTable";
+import { ProspectDrawer } from "@/components/ar/ProspectDrawer";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-const STAGES = ["contacted", "offer_sent", "negotiating", "signed"] as const;
 
 interface SpotifyArtist {
   id: string;
@@ -27,13 +25,13 @@ interface SpotifyArtist {
 export default function ARList() {
   const { data: prospects = [], isLoading } = useProspects();
   const { selectedTeamId: teamId } = useSelectedTeam();
-  const navigate = useNavigate();
   const createProspect = useCreateProspect();
   const updateProspect = useUpdateProspect();
   const deleteProspect = useDeleteProspect();
   const [view, setView] = useState<"board" | "table">("board");
   const [search, setSearch] = useState("");
   const [showNew, setShowNew] = useState(false);
+  const [selectedProspectId, setSelectedProspectId] = useState<string | null>(null);
 
   // Spotify search state
   const [spotifyResults, setSpotifyResults] = useState<SpotifyArtist[]>([]);
@@ -92,7 +90,7 @@ export default function ARList() {
         stage: "contacted",
       });
       toast.success(`${artist.name} added as prospect`);
-      navigate(`/ar/${result.id}`);
+      setSelectedProspectId(result.id);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -111,22 +109,21 @@ export default function ARList() {
 
   const byStage = useMemo(() => {
     const counts: Record<string, number> = {};
-    STAGES.forEach((s) => (counts[s] = 0));
+    (["contacted", "offer_sent", "negotiating", "signed"] as const).forEach((s) => (counts[s] = 0));
     prospects.forEach((p: any) => {
       counts[p.stage] = (counts[p.stage] || 0) + 1;
     });
     return counts;
   }, [prospects]);
 
-  const offersSent = byStage["offer_sent"] + byStage["negotiating"];
-  const signedCount = byStage["signed"];
+  const offersSent = (byStage["offer_sent"] || 0) + (byStage["negotiating"] || 0);
+  const signedCount = byStage["signed"] || 0;
   const followUpsDue = prospects.filter(
     (p: any) => p.next_follow_up && new Date(p.next_follow_up) <= endOfWeek && !["signed", "passed"].includes(p.stage)
   ).length;
 
   const showSpotifySection = search.trim().length >= 2 && (spotifyResults.length > 0 || spotifySearching);
 
-  // Existing prospect spotify URIs to mark duplicates
   const existingSpotifyIds = useMemo(() => {
     const ids = new Set<string>();
     prospects.forEach((p: any) => {
@@ -140,19 +137,19 @@ export default function ARList() {
 
   return (
     <AppLayout title="A&R">
-      <div className="mb-6">
+      <div className="mb-5">
         <h1 className="text-foreground">A&R Research</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-xs text-muted-foreground mt-0.5">
           Track and manage artist prospects
         </p>
       </div>
 
-      {/* Quick metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <MetricCard label="Pipeline" value={prospects.length} />
-        <MetricCard label="Offers Sent" value={offersSent} />
-        <MetricCard label="Signed" value={signedCount} accent="text-emerald-600" />
-        <MetricCard label="Follow-ups This Week" value={followUpsDue} accent={followUpsDue > 0 ? "text-amber-600" : undefined} />
+      {/* Compact metrics strip */}
+      <div className="flex items-center gap-3 mb-5 flex-wrap">
+        <MetricPill label="Pipeline" value={prospects.length} />
+        <MetricPill label="Offers" value={offersSent} />
+        <MetricPill label="Signed" value={signedCount} accent="text-emerald-500" />
+        <MetricPill label="Follow-ups" value={followUpsDue} accent={followUpsDue > 0 ? "text-amber-500" : undefined} />
       </div>
 
       {/* Toolbar */}
@@ -215,19 +212,19 @@ export default function ARList() {
                       if (!alreadyAdded && !adding) handleAddFromSpotify(artist);
                     }}
                   >
-                    <Avatar className="h-12 w-12">
+                    <Avatar className="h-10 w-10">
                       <AvatarImage src={artist.images?.[0]?.url} />
                       <AvatarFallback>{artist.name[0]}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{artist.name}</p>
-                      <p className="text-sm text-muted-foreground truncate">
+                      <p className="font-medium text-sm truncate">{artist.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
                         {artist.genres.slice(0, 3).join(", ") || "No genres"}
                       </p>
                     </div>
                     {alreadyAdded ? (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Check className="h-4 w-4" /> Added
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Check className="h-3.5 w-3.5" /> Added
                       </div>
                     ) : adding ? (
                       <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -248,7 +245,7 @@ export default function ARList() {
       {view === "board" ? (
         <PipelineBoard
           prospects={filtered}
-          onSelect={(id) => navigate(`/ar/${id}`)}
+          onSelect={(id) => setSelectedProspectId(id)}
           onStageChange={(id, stage) => {
             updateProspect.mutate({ id, stage } as any);
             toast.success("Stage updated");
@@ -260,7 +257,7 @@ export default function ARList() {
       ) : (
         <ProspectTable
           prospects={filtered}
-          onSelect={(id) => navigate(`/ar/${id}`)}
+          onSelect={(id) => setSelectedProspectId(id)}
           onDelete={(id) => {
             deleteProspect.mutate(id, { onSuccess: () => toast.success("Prospect deleted") });
           }}
@@ -268,15 +265,16 @@ export default function ARList() {
       )}
 
       <NewProspectDialog open={showNew} onOpenChange={setShowNew} teamId={teamId} />
+      <ProspectDrawer prospectId={selectedProspectId} onClose={() => setSelectedProspectId(null)} />
     </AppLayout>
   );
 }
 
-function MetricCard({ label, value, accent }: { label: string; value: number; accent?: string }) {
+function MetricPill({ label, value, accent }: { label: string; value: number; accent?: string }) {
   return (
-    <div className="rounded-xl border border-border p-3">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className={cn("text-2xl font-bold", accent)}>{value}</div>
+    <div className="flex items-center gap-1.5 text-xs">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={cn("font-bold text-sm", accent || "text-foreground")}>{value}</span>
     </div>
   );
 }
