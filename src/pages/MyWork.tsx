@@ -2,20 +2,26 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSelectedTeam } from "@/contexts/TeamContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format, isToday, isTomorrow, isPast } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import { Calendar, DollarSign, AlertCircle, Clock } from "lucide-react";
+import { Calendar, DollarSign, AlertCircle, Clock, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PullToRefresh } from "@/components/PullToRefresh";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { ItemCardRead, MetaBadge } from "@/components/ui/ItemCard";
 import { Badge } from "@/components/ui/badge";
+import { ItemEditor } from "@/components/ui/ItemEditor";
+import { toast } from "sonner";
 
 export default function MyWork() {
   const { user } = useAuth();
+  const { selectedTeamId: teamId } = useSelectedTeam();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [isAdding, setIsAdding] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["my-work", user?.id],
@@ -43,6 +49,31 @@ export default function MyWork() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["my-work"] }),
   });
 
+  const createTask = useMutation({
+    mutationFn: async (title: string) => {
+      if (!teamId || !user?.id) throw new Error("Missing team or user");
+      const { error } = await supabase.from("tasks").insert({
+        title,
+        team_id: teamId,
+        assigned_to: user.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-work"] });
+      setNewTitle("");
+      setIsAdding(false);
+      toast.success("Task added");
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const handleAddSubmit = () => {
+    const trimmed = newTitle.trim();
+    if (!trimmed) return;
+    createTask.mutate(trimmed);
+  };
+
   const overdue = tasks.filter((t) => t.due_date && isPast(new Date(t.due_date)) && !isToday(new Date(t.due_date)));
   const today = tasks.filter((t) => t.due_date && isToday(new Date(t.due_date)));
   const tomorrow = tasks.filter((t) => t.due_date && isTomorrow(new Date(t.due_date)));
@@ -67,6 +98,17 @@ export default function MyWork() {
 
   return (
     <AppLayout title="My Work">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-foreground">My Work</h1>
+        {!isAdding && (
+          <button
+            onClick={() => setIsAdding(true)}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Plus className="h-4 w-4" /> Add Task
+          </button>
+        )}
+      </div>
       <PullToRefresh onRefresh={handleRefresh}>
       {isLoading ? (
         <div className="flex items-center justify-center min-h-[40vh] text-muted-foreground">Loading...</div>
@@ -77,6 +119,20 @@ export default function MyWork() {
         </div>
       ) : (
         <div className="flex flex-col gap-6 pb-20">
+          {isAdding && (
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-primary/50 bg-card">
+              <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
+              <ItemEditor
+                value={newTitle}
+                onChange={setNewTitle}
+                onSubmit={handleAddSubmit}
+                onCancel={() => { setIsAdding(false); setNewTitle(""); }}
+                placeholder="Task title — press Enter to add"
+                autoFocus
+              />
+            </div>
+          )}
+
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <SummaryCard label="Overdue" count={overdue.length} variant="destructive" />
             <SummaryCard label="Today" count={today.length} variant="primary" />
