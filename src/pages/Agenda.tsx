@@ -150,7 +150,8 @@ export default function Agenda() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { setSelectedAssignees([]); }, [artistId]);
 
-  const allSelected = selectedAssignees.length === 0 || selectedAssignees.length === scopedMemberIds.length;
+  // Empty array = all members selected
+  const allSelected = selectedAssignees.length === 0;
 
   const toggleAssignee = useCallback((uid: string) => {
     setSelectedAssignees((prev) => {
@@ -160,15 +161,18 @@ export default function Agenda() {
       }
       if (prev.includes(uid)) {
         const next = prev.filter((id) => id !== uid);
-        return next.length === 0 ? [] : next; // empty = all
+        // Don't allow empty (that means "all"); keep at least the last one or go to all
+        if (next.length === 0) return [];
+        return next;
       }
       const next = [...prev, uid];
+      // If all members now selected, reset to "all" mode
       return next.length === scopedMemberIds.length ? [] : next;
     });
   }, [scopedMemberIds]);
 
-  const toggleAll = useCallback(() => {
-    setSelectedAssignees((prev) => (prev.length === 0 ? ["__none__"] : []));
+  const selectAll = useCallback(() => {
+    setSelectedAssignees([]);
   }, []);
 
   // Calculations
@@ -179,9 +183,7 @@ export default function Agenda() {
   // Filter tasks by assignees
   const filteredTasks = allSelected
     ? tasks
-    : selectedAssignees[0] === "__none__"
-      ? []
-      : tasks.filter((t) => t.assigned_to && selectedAssignees.includes(t.assigned_to));
+    : tasks.filter((t) => t.assigned_to && selectedAssignees.includes(t.assigned_to));
 
   const openTaskCount = filteredTasks.length;
   const campaignCount = initiatives.length;
@@ -303,10 +305,10 @@ export default function Agenda() {
           </PopoverTrigger>
           <PopoverContent align="start" className="w-[200px] p-1">
             <button
-              onClick={toggleAll}
+              onClick={selectAll}
               className="flex items-center gap-2 w-full rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
             >
-              <Checkbox checked={allSelected} onCheckedChange={toggleAll} />
+              <Checkbox checked={allSelected} onCheckedChange={selectAll} />
               <span>Select All</span>
             </button>
             <div className="h-px bg-border my-1" />
