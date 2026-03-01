@@ -85,7 +85,7 @@ export function BuildYourCompany({ teamId, onComplete }: BuildYourCompanyProps) 
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-8 px-4">
+    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-8 px-4 w-full">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
