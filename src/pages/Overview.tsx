@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { Reorder } from "framer-motion";
-import { Plus } from "lucide-react";
+import { Plus, Star, StarOff } from "lucide-react";
 import { format, startOfQuarter, endOfQuarter, subQuarters, addQuarters } from "date-fns";
 import {
   DropdownMenu,
@@ -22,6 +22,7 @@ import { SpendingPerActSection } from "@/components/overview/SpendingPerActSecti
 import { StaffProductivityWidget } from "@/components/overview/StaffProductivityWidget";
 import { ARPipelineWidget } from "@/components/overview/ARPipelineWidget";
 import { StreamingTrendsWidget } from "@/components/overview/StreamingTrendsWidget";
+import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import type { StaffMember } from "@/components/overview/StaffMetricsSection";
 
 
@@ -328,10 +329,12 @@ export default function Overview() {
     visibleSections,
     hiddenSections,
     collapsed,
+    heroSection,
     setOrder,
     toggleVisibility,
     showSection,
     toggleCollapse,
+    setHeroSection,
   } = useOverviewSections();
 
   const sectionRegistry: Record<string, { label: string; content: React.ReactNode }> = {
@@ -365,6 +368,10 @@ export default function Overview() {
     },
   };
 
+  // Separate hero from grid sections
+  const heroId = heroSection && visibleSections.includes(heroSection) ? heroSection : null;
+  const gridSections = visibleSections.filter((id) => id !== heroId);
+
   return (
     <AppLayout title="Label">
       {/* Welcome */}
@@ -377,9 +384,32 @@ export default function Overview() {
         </p>
       </div>
 
-      {/* Draggable sections */}
-      <Reorder.Group axis="y" values={visibleSections} onReorder={setOrder} className="space-y-6">
-        {visibleSections.map((id) => {
+      {/* Hero widget — full width */}
+      {heroId && sectionRegistry[heroId] && (
+        <div className="mb-6">
+          <CollapsibleSection
+            title={sectionRegistry[heroId].label}
+            open={!collapsed.has(heroId)}
+            onToggle={() => toggleCollapse(heroId)}
+            actions={
+              <button
+                onClick={() => setHeroSection(null)}
+                className="p-1 text-amber-500 hover:text-amber-400 transition-colors"
+                aria-label="Remove from hero"
+                title="Remove hero"
+              >
+                <StarOff className="h-4 w-4" />
+              </button>
+            }
+          >
+            {sectionRegistry[heroId].content}
+          </CollapsibleSection>
+        </div>
+      )}
+
+      {/* Two-column grid */}
+      <Reorder.Group axis="y" values={gridSections} onReorder={setOrder} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {gridSections.map((id) => {
           const section = sectionRegistry[id];
           if (!section) return null;
           return (
@@ -390,6 +420,7 @@ export default function Overview() {
               isOpen={!collapsed.has(id)}
               onToggle={() => toggleCollapse(id)}
               onHide={() => toggleVisibility(id)}
+              onSetHero={heroId !== id ? () => setHeroSection(id) : undefined}
             >
               {section.content}
             </DraggableSection>
