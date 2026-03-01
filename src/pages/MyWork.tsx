@@ -289,7 +289,7 @@ export default function MyWork() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Artists</SelectItem>
-                <SelectItem value="none">No Artist</SelectItem>
+                <SelectItem value="none">Me</SelectItem>
                 {taskArtists.map((a) => (
                   <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                 ))}
