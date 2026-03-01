@@ -30,7 +30,7 @@ export function DraggableSection({
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
-          className={`mb-4 break-inside-avoid ${snapshot.isDragging ? "z-50 opacity-90" : ""}`}
+          className={`mb-4 min-w-0 ${snapshot.isDragging ? "z-50 opacity-90" : ""}`}
         >
           <CollapsibleSection
             title={title}
