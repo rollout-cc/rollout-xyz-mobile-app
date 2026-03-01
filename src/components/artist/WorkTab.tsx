@@ -683,6 +683,10 @@ function CampaignActions({ campaign, artistId, taskCount }: { campaign: any; art
 /* ── Campaign Name ── */
 function CampaignName({ campaign, artistId }: { campaign: any; artistId: string }) {
   const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(campaign.name);
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const update = useMutation({
     mutationFn: async (name: string) => {
       const { error } = await supabase.from("initiatives").update({ name }).eq("id", campaign.id);
@@ -690,7 +694,46 @@ function CampaignName({ campaign, artistId }: { campaign: any; artistId: string 
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["initiatives", artistId] }),
   });
-  return <InlineField value={campaign.name} onSave={(v) => update.mutate(v)} className="text-base font-bold tracking-tight" inputClassName="bg-transparent border-none focus:ring-0 px-0 py-0" />;
+
+  const commit = () => {
+    if (draft.trim() && draft.trim() !== campaign.name) {
+      update.mutate(draft.trim());
+    } else {
+      setDraft(campaign.name);
+    }
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.preventDefault(); commit(); }
+          if (e.key === "Escape") { setDraft(campaign.name); setEditing(false); }
+        }}
+        onClick={(e) => e.stopPropagation()}
+        className="text-base font-bold tracking-tight bg-transparent outline-none border-b border-primary/40 w-full"
+      />
+    );
+  }
+
+  return (
+    <span
+      className="text-base font-bold tracking-tight truncate text-foreground"
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        setDraft(campaign.name);
+        setEditing(true);
+      }}
+    >
+      {campaign.name}
+    </span>
+  );
 }
 
 /* ── New Campaign Inline ── */
