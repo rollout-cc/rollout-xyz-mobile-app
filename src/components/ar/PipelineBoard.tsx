@@ -91,13 +91,16 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete }: 
                         {items.map((p: any, index: number) => (
                           <Draggable key={p.id} draggableId={p.id} index={index}>
                             {(dragProvided, dragSnapshot) => (
-                              <button
+                              <div
                                 ref={dragProvided.innerRef}
                                 {...dragProvided.draggableProps}
                                 {...dragProvided.dragHandleProps}
+                                role="button"
+                                tabIndex={0}
                                 onClick={() => onSelect(p.id)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') onSelect(p.id); }}
                                 className={cn(
-                                  "w-full text-left rounded-xl border border-border bg-card p-3 hover:shadow-md transition-shadow group",
+                                  "w-full text-left rounded-xl border border-border bg-card p-3 hover:shadow-md transition-shadow group cursor-pointer select-none",
                                   dragSnapshot.isDragging && "shadow-lg ring-2 ring-primary/30"
                                 )}
                               >
@@ -117,6 +120,7 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete }: 
                                           <AlertDialogTrigger asChild>
                                             <button
                                               onClick={(e) => e.stopPropagation()}
+                                              onPointerDown={(e) => e.stopPropagation()}
                                               className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0"
                                             >
                                               <Trash2 className="h-3.5 w-3.5" />
@@ -163,7 +167,7 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete }: 
                                     Follow up: {new Date(p.next_follow_up).toLocaleDateString()}
                                   </div>
                                 )}
-                              </button>
+                              </div>
                             )}
                           </Draggable>
                         ))}
