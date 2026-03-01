@@ -138,7 +138,7 @@ export default function MyWork() {
           ) : (
             <button
               onClick={() => setIsAdding(true)}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+              className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
               <Plus className="h-4 w-4" /> Add Task
             </button>
