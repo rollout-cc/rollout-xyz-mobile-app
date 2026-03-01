@@ -295,6 +295,8 @@ function NoteEditor({ note, isOwner, onTitleBlur, onTitleChange, onContentChange
     ],
     content: note.content || "",
     editable: isOwner,
+    immediatelyRender: true,
+    shouldRerenderOnTransaction: false,
     editorProps: {
       attributes: {
         class: cn(

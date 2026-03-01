@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,6 +16,7 @@ import { ItemEditor } from "@/components/ui/ItemEditor";
 import { useArtists } from "@/hooks/useArtists";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotesPanel } from "@/components/notes/NotesPanel";
+import { useNotes } from "@/hooks/useNotes";
 import {
   Select,
   SelectContent,
@@ -38,6 +40,9 @@ export default function MyWork() {
   const [filterArtistId, setFilterArtistId] = useState<string>("all");
 
   const { data: artists = [] } = useArtists(teamId);
+
+  // Prefetch notes so they're instant when switching to Notes tab
+  useNotes();
 
   const { data: budgets = [] } = useQuery({
     queryKey: ["budgets", selectedArtistId],
