@@ -593,6 +593,7 @@ export type Database = {
           description: string | null
           end_date: string | null
           id: string
+          is_archived: boolean
           name: string
           start_date: string | null
         }
@@ -602,6 +603,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          is_archived?: boolean
           name: string
           start_date?: string | null
         }
@@ -611,6 +613,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          is_archived?: boolean
           name?: string
           start_date?: string | null
         }

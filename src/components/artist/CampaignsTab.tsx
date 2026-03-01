@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Plus, Trash2, Archive, ArchiveRestore } from "lucide-react";
 import { toast } from "sonner";
 
 interface CampaignsTabProps {
@@ -15,6 +16,8 @@ interface CampaignsTabProps {
 
 export function CampaignsTab({ artistId, teamId }: CampaignsTabProps) {
   const queryClient = useQueryClient();
+  const [showArchived, setShowArchived] = useState(false);
+
   const { data: campaigns = [] } = useQuery({
     queryKey: ["initiatives", artistId],
     queryFn: async () => {
@@ -27,6 +30,10 @@ export function CampaignsTab({ artistId, teamId }: CampaignsTabProps) {
       return data;
     },
   });
+
+  const activeCampaigns = campaigns.filter((c: any) => !c.is_archived);
+  const archivedCampaigns = campaigns.filter((c: any) => c.is_archived);
+  const displayedCampaigns = showArchived ? archivedCampaigns : activeCampaigns;
 
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", start_date: "", end_date: "" });
@@ -51,6 +58,21 @@ export function CampaignsTab({ artistId, teamId }: CampaignsTabProps) {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const toggleArchive = useMutation({
+    mutationFn: async ({ id, archived }: { id: string; archived: boolean }) => {
+      const { error } = await supabase
+        .from("initiatives")
+        .update({ is_archived: archived } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, { archived }) => {
+      queryClient.invalidateQueries({ queryKey: ["initiatives", artistId] });
+      toast.success(archived ? "Campaign archived" : "Campaign restored");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const deleteCampaign = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("initiatives").delete().eq("id", id);
@@ -63,9 +85,23 @@ export function CampaignsTab({ artistId, teamId }: CampaignsTabProps) {
     <div className="mt-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold">Campaigns</h3>
-        <Button variant="ghost" size="sm" onClick={() => setShowAdd(!showAdd)}>
-          <Plus className="h-4 w-4 mr-1" /> New Campaign
-        </Button>
+        <div className="flex items-center gap-3">
+          {archivedCampaigns.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={showArchived}
+                onCheckedChange={setShowArchived}
+                className="scale-90"
+              />
+              <span className="text-xs text-muted-foreground">
+                Archived ({archivedCampaigns.length})
+              </span>
+            </div>
+          )}
+          <Button variant="ghost" size="sm" onClick={() => setShowAdd(!showAdd)}>
+            <Plus className="h-4 w-4 mr-1" /> New Campaign
+          </Button>
+        </div>
       </div>
 
       {showAdd && (
@@ -83,11 +119,13 @@ export function CampaignsTab({ artistId, teamId }: CampaignsTabProps) {
         </div>
       )}
 
-      {campaigns.length === 0 && !showAdd ? (
-        <p className="text-sm text-muted-foreground">No campaigns yet.</p>
+      {displayedCampaigns.length === 0 && !showAdd ? (
+        <p className="text-sm text-muted-foreground">
+          {showArchived ? "No archived campaigns." : "No campaigns yet."}
+        </p>
       ) : (
         <div className="space-y-2">
-          {campaigns.map((c: any) => (
+          {displayedCampaigns.map((c: any) => (
             <div key={c.id} className="flex items-start justify-between p-4 rounded-lg border border-border">
               <div>
                 <p className="font-medium">{c.name}</p>
@@ -96,9 +134,19 @@ export function CampaignsTab({ artistId, teamId }: CampaignsTabProps) {
                   {c.start_date ?? "—"} → {c.end_date ?? "—"}
                 </p>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => deleteCampaign.mutate(c.id)}>
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => toggleArchive.mutate({ id: c.id, archived: !c.is_archived })}
+                  title={c.is_archived ? "Restore" : "Archive"}
+                >
+                  {c.is_archived ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => deleteCampaign.mutate(c.id)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>
