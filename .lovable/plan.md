@@ -1,48 +1,92 @@
 
 
-## Redesign: Spending Per Act Section
+# Refactor Timelines to Mirror Work Section
 
-### Problem
-The current layout is visually cluttered -- each artist row shows a header, 4 financial metrics, a variable grid of category progress bars, AND an overall utilization bar. This creates a dense wall of information that's hard to scan.
+## Overview
+Introduce the concept of **Timelines** as grouping containers for milestones, analogous to how **Campaigns** group **Tasks** in the Work section. Users will be able to create multiple timelines (e.g., "Album Rollout", "Tour Dates"), each containing its own milestones. The UI will reuse the same `CollapsibleSection`, `InlineAddTrigger`, `ItemEditor`, `ItemCardRead`, and `MetaBadge` components already used in Work.
 
-### Design Direction (inspired by references)
-Shift to a **table-like card layout** per artist that is scannable, with clear visual hierarchy:
+## Database Changes
 
-1. **Artist header row**: Avatar, name, campaign count, task completion pill -- all on one line with an arrow to navigate
-2. **Financial summary row**: Budget, Spent, Revenue, P&L in a clean 4-column grid with proper spacing and color coding
-3. **Category bars**: Show as a compact 3-column grid of mini progress bars (label + spent/budget + bar) -- same as now but tighter
-4. **Overall utilization**: A single full-width bar at the bottom with percentage -- simplified styling
-5. **Dividers**: Clean bottom borders between artists, more generous vertical spacing
+### New table: `artist_timelines`
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | uuid | PK, default `gen_random_uuid()` |
+| `artist_id` | uuid | NOT NULL |
+| `name` | text | NOT NULL |
+| `is_archived` | boolean | NOT NULL, default `false` |
+| `created_at` | timestamptz | NOT NULL, default `now()` |
 
-### Specific Changes
+RLS policies mirroring the `initiatives` table pattern:
+- SELECT: `is_team_member(get_artist_team_id(artist_id))`
+- INSERT/UPDATE/DELETE: `is_team_owner_or_manager(get_artist_team_id(artist_id))`
 
-**File: `src/components/overview/SpendingPerActSection.tsx`**
+### Alter `artist_milestones`
+- Add column `timeline_id uuid REFERENCES artist_timelines(id) ON DELETE SET NULL` (nullable, so existing milestones land in "Unsorted")
 
-- Increase avatar from 40px to 44px with a border for definition
-- Make artist name `text-base font-bold` (currently `text-sm font-semibold`) for better hierarchy
-- Move campaign count and task count into a single subtle caption line beneath the name
-- Financial metrics row: use `text-base font-bold` for values (currently `text-sm`) with `caption` labels above -- bigger numbers are easier to scan
-- Category progress bars: keep the 3-column grid but use slightly thicker bars (`h-2` instead of `h-1.5`) and add a small gap between rows
-- Overall utilization bar: thicker (`h-2`), with the percentage displayed more prominently
-- Add `px-2` padding to each artist row for better breathing room on hover
-- Remove the "View Full Roster" button at the bottom (the arrow on each row already navigates)
-- Tighten vertical spacing between sections within each artist card
+## Frontend Changes
 
-### Visual Hierarchy (top to bottom per artist)
-```text
-[Avatar 44px]  Artist Name (bold, base)
-               4 campaigns  ·  2/12 tasks         [->]
+### `src/components/artist/TimelinesTab.tsx` -- Full Refactor
 
-Budget         Spent          Revenue        P&L
-$75,000        $26,050        $10,100        -$15,950
+The component will be restructured to closely follow `WorkTab.tsx`:
 
-Recording   $8,500/$25,000  | Travel    $750/$10,000  | Content  $11,500/$8,000
-[===-----]                  | [=-------]              | [========] (red)
+1. **Top bar**: "Show Completed" equivalent is not needed (milestones don't complete), but we keep the List/Calendar toggle and Share button. Add a **"+ New Timeline"** button on the right (same pattern as `NewCampaignInline`).
 
-Overall Utilization                                              35%
-[===============--------------------------------]
-───────────────────────────────────────────────────
+2. **Unsorted section**: Milestones without a `timeline_id` appear in a collapsible "Unsorted" section using `CollapsibleSection`.
+
+3. **Timeline sections**: Each `artist_timelines` record renders as a `CollapsibleSection` with:
+   - Inline-editable title via `InlineField` (same as `CampaignName`)
+   - A count badge of milestones
+   - A dropdown menu with Archive/Delete actions (same as `CampaignActions`)
+   - A `+ New Milestone` trigger inside each section that defaults `timeline_id` to that timeline
+
+4. **Milestone items**: Keep the existing `MilestoneRow` component (using `ItemCardRead`, `InlineField`, `MetaBadge` for date/folders/links) but add the ability to assign a milestone to a timeline via the `#` shortcut or dropdown.
+
+5. **Calendar view**: Remains unchanged -- shows all milestones across all timelines.
+
+6. **Empty state**: When no timelines and no milestones exist, show a centered empty state with "New Timeline" and "New Milestone" buttons (mirroring `EmptyWorkState`).
+
+### Component Reuse
+- `CollapsibleSection` + `InlineAddTrigger` for section headers
+- `InlineField` for inline-editable timeline names
+- `ItemCardRead` / `MetaBadge` for milestone rows (already in use)
+- `ItemEditor` / `DescriptionEditor` for milestone creation (already in use)
+- `DropdownMenu` + `AlertDialog` for timeline actions (Archive/Delete)
+
+## Technical Details
+
+### Migration SQL
+```sql
+CREATE TABLE public.artist_timelines (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  artist_id uuid NOT NULL,
+  name text NOT NULL,
+  is_archived boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.artist_timelines ENABLE ROW LEVEL SECURITY;
+
+-- RLS policies
+CREATE POLICY "Team members can view timelines" ON public.artist_timelines
+  FOR SELECT USING (is_team_member(get_artist_team_id(artist_id)));
+CREATE POLICY "Owners/managers can insert timelines" ON public.artist_timelines
+  FOR INSERT WITH CHECK (is_team_owner_or_manager(get_artist_team_id(artist_id)));
+CREATE POLICY "Owners/managers can update timelines" ON public.artist_timelines
+  FOR UPDATE USING (is_team_owner_or_manager(get_artist_team_id(artist_id)));
+CREATE POLICY "Owners/managers can delete timelines" ON public.artist_timelines
+  FOR DELETE USING (is_team_owner_or_manager(get_artist_team_id(artist_id)));
+
+-- Add timeline_id to milestones
+ALTER TABLE public.artist_milestones
+  ADD COLUMN timeline_id uuid REFERENCES public.artist_timelines(id) ON DELETE SET NULL;
 ```
 
-This is a purely front-end styling change to `SpendingPerActSection.tsx`. No data model or query changes needed.
+### Query structure
+- Fetch `artist_timelines` for the artist, ordered by `created_at DESC`
+- Existing milestones query remains, now also used to group by `timeline_id`
+- Unsorted milestones: `milestone.timeline_id === null`
+- Timeline milestones: `milestone.timeline_id === timeline.id`
+
+### Public timeline handling
+The shared/public timeline page will continue showing all milestones regardless of timeline grouping. The new `artist_timelines` table needs a SELECT policy for public access when the artist's `timeline_is_public` is true (similar to milestones).
 
