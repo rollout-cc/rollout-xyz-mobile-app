@@ -76,10 +76,10 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
         <SidebarContent className="flex flex-col h-full p-0">
           {/* Logo — crossfade between flag and full logo */}
           <div
-            className="flex items-center justify-center cursor-pointer transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] relative overflow-hidden"
+            className="flex items-center justify-center cursor-pointer transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] relative"
             style={{
               padding: collapsed ? "16px 0 8px" : "16px 16px 8px",
-              height: collapsed ? "56px" : "52px",
+              minHeight: collapsed ? "56px" : undefined,
             }}
             onClick={() => navigate("/roster")}
           >
