@@ -76,18 +76,18 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete, on
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="pb-4 overflow-x-auto">
-        <div className="flex gap-3" style={{ minWidth: "600px" }}>
+        <div className="grid grid-cols-4 gap-4" style={{ minWidth: "700px" }}>
           {STAGES.map((stage) => {
             const items = prospects.filter((p: any) => p.stage === stage);
             return (
-              <div key={stage} className="flex-1 min-w-0">
+              <div key={stage} className="min-w-0">
                 {/* Column header */}
                 <div className="flex items-center gap-2 mb-3 px-1">
                   <div className={cn("h-2.5 w-2.5 rounded-full shrink-0", stageDot(stage))} />
-                  <span className="text-xs font-semibold text-foreground tracking-wide">
+                  <span className="text-sm font-semibold text-foreground">
                     {stageLabel(stage)}
                   </span>
-                  <span className="text-[10px] text-muted-foreground font-medium">
+                  <span className="text-xs text-muted-foreground font-medium">
                     {items.length}
                   </span>
                 </div>
@@ -98,7 +98,7 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete, on
                       ref={provided.innerRef}
                       {...provided.droppableProps}
                       className={cn(
-                        "space-y-1.5 min-h-[80px] rounded-lg p-1 transition-colors",
+                        "space-y-2 min-h-[120px] rounded-xl p-1.5 transition-colors",
                         snapshot.isDraggingOver && "bg-accent/40"
                       )}
                     >
@@ -116,7 +116,7 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete, on
                                 onClick={() => onSelect(p.id)}
                                 onKeyDown={(e) => { if (e.key === 'Enter') onSelect(p.id); }}
                                 className={cn(
-                                  "w-full text-left rounded-lg border border-border bg-card p-2.5 hover:shadow-sm transition-shadow group cursor-pointer select-none",
+                                  "w-full text-left rounded-xl border border-border bg-card p-3 hover:shadow-sm transition-shadow group cursor-pointer select-none",
                                   dragSnapshot.isDragging && "shadow-lg ring-2 ring-primary/30"
                                 )}
                               >
@@ -130,7 +130,7 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete, on
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-1.5">
                                       <div className={cn("h-1.5 w-1.5 rounded-full shrink-0", priorityDot(p.priority))} />
-                                      <span className="font-semibold text-xs truncate">{p.artist_name}</span>
+                                      <span className="font-semibold text-sm truncate">{p.artist_name}</span>
                                       {onDelete && (
                                         <AlertDialog>
                                           <AlertDialogTrigger asChild>
@@ -187,7 +187,7 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete, on
                       })}
                       {provided.placeholder}
                       {items.length === 0 && !snapshot.isDraggingOver && (
-                        <div className="text-[10px] text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg">
+                        <div className="text-xs text-muted-foreground text-center py-8 border border-dashed border-border rounded-xl">
                           No prospects
                         </div>
                       )}
