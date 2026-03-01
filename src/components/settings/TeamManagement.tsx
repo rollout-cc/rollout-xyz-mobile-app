@@ -79,7 +79,7 @@ const permissionLabelMap: Record<string, string> = {
   full_access: "Full Access",
 };
 
-export function TeamManagement() {
+export function TeamManagement({ showSection = "members" }: { showSection?: "members" | "profile" }) {
   const { user } = useAuth();
   const { selectedTeamId: teamId } = useSelectedTeam();
   const { data: teams = [] } = useTeams();
@@ -348,65 +348,72 @@ export function TeamManagement() {
     );
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Team Photo */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">Team Photo</Label>
-        <div className="flex items-center gap-4 p-4 rounded-lg border border-border bg-card max-w-lg">
-          <div className="relative group/avatar">
-            <Avatar className="h-14 w-14">
-              <AvatarImage src={currentTeam?.avatar_url ?? undefined} />
-              <AvatarFallback className="text-lg bg-muted text-muted-foreground">
-                {currentTeam?.name?.[0]?.toUpperCase() ?? "T"}
-              </AvatarFallback>
-            </Avatar>
+  if (showSection === "profile") {
+    return (
+      <div className="space-y-6">
+        {/* Team Photo */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-foreground">Team Photo</Label>
+          <div className="flex items-center gap-4 p-4 rounded-lg border border-border bg-card max-w-lg">
+            <div className="relative group/avatar">
+              <Avatar className="h-14 w-14">
+                <AvatarImage src={currentTeam?.avatar_url ?? undefined} />
+                <AvatarFallback className="text-lg bg-muted text-muted-foreground">
+                  {currentTeam?.name?.[0]?.toUpperCase() ?? "T"}
+                </AvatarFallback>
+              </Avatar>
+              {canManage && (
+                <button
+                  onClick={() => teamPhotoInputRef.current?.click()}
+                  className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover/avatar:opacity-100 transition-opacity"
+                >
+                  <Camera className="h-4 w-4 text-white" />
+                </button>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{currentTeam?.name ?? "Team"}</p>
+              <p className="text-xs text-muted-foreground">{members.length} member{members.length !== 1 ? "s" : ""}</p>
+            </div>
             {canManage && (
-              <button
-                onClick={() => teamPhotoInputRef.current?.click()}
-                className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover/avatar:opacity-100 transition-opacity"
-              >
-                <Camera className="h-4 w-4 text-white" />
-              </button>
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">{currentTeam?.name ?? "Team"}</p>
-            <p className="text-xs text-muted-foreground">{members.length} member{members.length !== 1 ? "s" : ""}</p>
-          </div>
-          {canManage && (
-            <div className="flex gap-2 shrink-0">
-              <input
-                ref={teamPhotoInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleTeamPhotoUpload}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => teamPhotoInputRef.current?.click()}
-                disabled={uploadingTeamPhoto}
-              >
-                <Upload className="h-4 w-4 mr-1.5" />
-                {uploadingTeamPhoto ? "Uploading..." : "Upload"}
-              </Button>
-              {currentTeam?.avatar_url && (
+              <div className="flex gap-2 shrink-0">
+                <input
+                  ref={teamPhotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleTeamPhotoUpload}
+                />
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleTeamPhotoDelete}
+                  onClick={() => teamPhotoInputRef.current?.click()}
                   disabled={uploadingTeamPhoto}
                 >
-                  <Trash2 className="h-4 w-4 mr-1.5" />
-                  Remove
+                  <Upload className="h-4 w-4 mr-1.5" />
+                  {uploadingTeamPhoto ? "Uploading..." : "Upload"}
                 </Button>
-              )}
-            </div>
-          )}
+                {currentTeam?.avatar_url && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleTeamPhotoDelete}
+                    disabled={uploadingTeamPhoto}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1.5" />
+                    Remove
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
 
       {/* Header */}
       <div className="flex items-center justify-between">

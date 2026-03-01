@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-type SettingsSection = "profile" | "notifications" | "team";
+type SettingsSection = "profile" | "notifications" | "team-members" | "team-profile";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -148,7 +148,7 @@ export default function Settings() {
     );
   }
 
-  const title = activeSection === "profile" ? "Profile Settings" : "Team Settings";
+  const title = activeSection === "profile" ? "Profile Settings" : activeSection === "notifications" ? "Notifications" : "Team Settings";
 
   return (
     <AppLayout title={title}>
@@ -164,17 +164,22 @@ export default function Settings() {
 
         {/* Top-level section tabs */}
         <div className="flex gap-1 mb-6">
-          {(["profile", "notifications", "team"] as const).map((section) => (
+          {([
+            { key: "profile" as const, label: "Profile" },
+            { key: "notifications" as const, label: "Notifications" },
+            { key: "team-members" as const, label: "Team Members" },
+            { key: "team-profile" as const, label: "Team Profile" },
+          ]).map(({ key, label }) => (
             <button
-              key={section}
-              onClick={() => setActiveSection(section)}
+              key={key}
+              onClick={() => setActiveSection(key)}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                activeSection === section
+                activeSection === key
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-accent"
               }`}
             >
-              {section === "profile" ? "Profile" : section === "notifications" ? "Notifications" : "Team"}
+              {label}
             </button>
           ))}
         </div>
@@ -275,9 +280,13 @@ export default function Settings() {
               Notification preferences coming soon.
             </p>
           </div>
+        ) : activeSection === "team-members" ? (
+          <div className="mt-6">
+            <TeamManagement showSection="members" />
+          </div>
         ) : (
           <div className="mt-6">
-            <TeamManagement />
+            <TeamManagement showSection="profile" />
           </div>
         )}
       </div>
