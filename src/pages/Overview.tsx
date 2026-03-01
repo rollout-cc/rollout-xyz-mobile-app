@@ -263,6 +263,12 @@ export default function Overview() {
       const memberTasks = tasks.filter((t: any) => t.assigned_to === m.user_id);
       const assigned = memberTasks.length;
       const completed = memberTasks.filter((t: any) => t.is_completed).length;
+      const tasksOpen = memberTasks.filter((t: any) => !t.is_completed).length;
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const tasksCompletedLast7d = memberTasks.filter(
+        (t: any) => t.is_completed && t.completed_at && new Date(t.completed_at) >= sevenDaysAgo
+      ).length;
       const onTime = memberTasks.filter(
         (t: any) => t.is_completed && t.due_date && t.completed_at && new Date(t.completed_at) <= new Date(t.due_date)
       ).length;
@@ -297,6 +303,9 @@ export default function Overview() {
         tasksOnTime: onTime,
         revenueLogged: revenue,
         productivityScore: Math.min(score, 100),
+        tasksOpen,
+        tasksCompletedLast7d,
+        tasksCompletedAllTime: completed,
       };
     }).sort((a, b) => b.productivityScore - a.productivityScore);
   }, [memberships, memberProfiles, tasks, transactions]);

@@ -13,6 +13,9 @@ export interface StaffMember {
   tasksOnTime: number;
   revenueLogged: number;
   productivityScore: number;
+  tasksOpen: number;
+  tasksCompletedLast7d: number;
+  tasksCompletedAllTime: number;
 }
 
 interface StaffMetricsSectionProps {
@@ -90,16 +93,14 @@ export function StaffMetricsSection({ members, fmt }: StaffMetricsSectionProps) 
                   </div>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mt-0.5">
                     <span className="flex items-center gap-1">
-                      <ListTodo className="h-3 w-3" /> {m.tasksAssigned} assigned
+                      <ListTodo className="h-3 w-3" /> {m.tasksOpen} open
                     </span>
                     <span className="flex items-center gap-1">
-                      <CheckCircle2 className="h-3 w-3 text-emerald-500" /> {m.tasksCompleted} done
+                      <CheckCircle2 className="h-3 w-3 text-emerald-500" /> {m.tasksCompletedLast7d} last 7d
                     </span>
-                    {m.revenueLogged > 0 && (
-                      <span className="flex items-center gap-1">
-                        <DollarSign className="h-3 w-3 text-emerald-500" /> {fmt(m.revenueLogged)}
-                      </span>
-                    )}
+                    <span className="flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" /> {m.tasksCompletedAllTime} all time
+                    </span>
                   </div>
                 </div>
 

@@ -57,9 +57,9 @@ export function StaffProductivityWidget({ members, fmt }: StaffProductivityWidge
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1 text-xs text-muted-foreground" title="Open / Last 7d / All time">
               <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-              {m.tasksCompleted}/{m.tasksAssigned}
+              {m.tasksOpen} / {m.tasksCompletedLast7d} / {m.tasksCompletedAllTime}
             </span>
             <ScoreBadge score={m.productivityScore} />
           </div>
