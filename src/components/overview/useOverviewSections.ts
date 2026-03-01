@@ -19,6 +19,9 @@ const DEFAULT_ORDER = ALL_SECTIONS.map((s) => s.id);
 const STORAGE_ORDER_KEY = "overview-section-order";
 const STORAGE_HIDDEN_KEY = "overview-section-hidden";
 const STORAGE_HERO_KEY = "overview-hero-section";
+const STORAGE_LAYOUT_KEY = "overview-layout-mode";
+
+export type LayoutMode = "single" | "two-column";
 
 function readJson<T>(key: string, fallback: T): T {
   try {
@@ -53,6 +56,20 @@ export function useOverviewSections() {
       return null;
     }
   });
+
+  const [layout, setLayoutState] = useState<LayoutMode>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_LAYOUT_KEY);
+      return raw === "two-column" ? "two-column" : "single";
+    } catch {
+      return "single";
+    }
+  });
+
+  const setLayout = useCallback((mode: LayoutMode) => {
+    setLayoutState(mode);
+    localStorage.setItem(STORAGE_LAYOUT_KEY, mode);
+  }, []);
 
   const setOrder = useCallback((newVisibleOrder: string[]) => {
     setOrderState((prev) => {
@@ -113,10 +130,12 @@ export function useOverviewSections() {
     collapsed,
     order,
     heroSection,
+    layout,
     setOrder,
     toggleVisibility,
     showSection,
     toggleCollapse,
     setHeroSection,
+    setLayout,
   };
 }
