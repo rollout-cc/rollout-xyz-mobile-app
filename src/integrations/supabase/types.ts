@@ -184,6 +184,7 @@ export type Database = {
           description: string | null
           id: string
           is_public: boolean
+          timeline_id: string | null
           title: string
         }
         Insert: {
@@ -193,6 +194,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_public?: boolean
+          timeline_id?: string | null
           title: string
         }
         Update: {
@@ -202,6 +204,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_public?: boolean
+          timeline_id?: string | null
           title?: string
         }
         Relationships: [
@@ -210,6 +213,13 @@ export type Database = {
             columns: ["artist_id"]
             isOneToOne: false
             referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "artist_milestones_timeline_id_fkey"
+            columns: ["timeline_id"]
+            isOneToOne: false
+            referencedRelation: "artist_timelines"
             referencedColumns: ["id"]
           },
         ]
@@ -289,6 +299,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "artist_permissions_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      artist_timelines: {
+        Row: {
+          artist_id: string
+          created_at: string
+          id: string
+          is_archived: boolean
+          name: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          name: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_timelines_artist_id_fkey"
             columns: ["artist_id"]
             isOneToOne: false
             referencedRelation: "artists"

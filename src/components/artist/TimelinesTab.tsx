@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,10 +7,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import {
   Trash2, CalendarIcon, Share2, Check, Copy, List, CalendarDays,
   ChevronLeft, ChevronRight, FolderOpen, Link2, MoreVertical,
+  Plus, Archive, Trash, MoreHorizontal, FolderPlus, ListPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
-import { InlineAddTrigger } from "@/components/ui/CollapsibleSection";
+import { CollapsibleSection, InlineAddTrigger } from "@/components/ui/CollapsibleSection";
 import { ItemCardRead, ItemCardEdit, MetaBadge } from "@/components/ui/ItemCard";
 import { ItemEditor, DescriptionEditor } from "@/components/ui/ItemEditor";
 import { DatePicker } from "@/components/ui/ItemPickers";
@@ -23,6 +24,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface TimelinesTabProps {
@@ -33,11 +39,25 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [view, setView] = useState<"list" | "chart">("list");
+  const [showArchived, setShowArchived] = useState(false);
+  const [expandedTimelines, setExpandedTimelines] = useState<Record<string, boolean>>({});
+  const [unsortedExpanded, setUnsortedExpanded] = useState(true);
+  const [newTimelineId, setNewTimelineId] = useState<string | null>(null);
 
   const { data: artist } = useQuery({
     queryKey: ["artist", artistId],
     queryFn: async () => {
       const { data, error } = await supabase.from("artists").select("*").eq("id", artistId).single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: timelines = [] } = useQuery({
+    queryKey: ["artist_timelines", artistId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("artist_timelines").select("*").eq("artist_id", artistId).order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -87,34 +107,25 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
     enabled: milestones.length > 0,
   });
 
-  const { data: profile } = useQuery({
-    queryKey: ["my-profile-initials"],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
-      return data;
-    },
-  });
-
-  const userInitials = profile?.full_name
-    ? profile.full_name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
-    : "?";
-
+  /* ── Mutations ── */
   const addMilestone = useMutation({
-    mutationFn: async ({ title, date }: { title: string; date: string }) => {
-      const { error } = await supabase.from("artist_milestones").insert({ artist_id: artistId, title, date });
+    mutationFn: async ({ title, date, timelineId }: { title: string; date: string; timelineId?: string }) => {
+      const { error } = await supabase.from("artist_milestones").insert({
+        artist_id: artistId, title, date,
+        ...(timelineId ? { timeline_id: timelineId } : {}),
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["artist_milestones", artistId] });
-      toast.success("Date added");
+      toast.success("Milestone added");
     },
     onError: (e: any) => toast.error(e.message),
   });
 
   const updateMilestone = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Record<string, any> }) => {
-      const { error } = await supabase.from("artist_milestones").update(patch).eq("id", id);
+      const { error } = await supabase.from("artist_milestones").update(patch as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["artist_milestones", artistId] }),
@@ -163,69 +174,218 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["milestone_attachments", artistId] }),
   });
 
-  const isEmpty = milestones.length === 0;
+  /* ── Grouping ── */
+  const activeTimelines = timelines.filter((t: any) => !t.is_archived);
+  const archivedTimelines = timelines.filter((t: any) => t.is_archived);
+  const displayedTimelines = showArchived ? archivedTimelines : activeTimelines;
+  const unsortedMilestones = milestones.filter((m: any) => !(m as any).timeline_id);
+  const timelineMilestones = (timelineId: string) => milestones.filter((m: any) => (m as any).timeline_id === timelineId);
+
+  const toggleTimeline = (id: string) => {
+    setExpandedTimelines(prev => ({ ...prev, [id]: !(prev[id] ?? true) }));
+  };
+
+  const isEmpty = timelines.length === 0 && milestones.length === 0;
+
+  const milestoneRowProps = (m: any) => {
+    const mFolders = milestoneAttachments.folders
+      .filter((mf: any) => mf.milestone_id === m.id)
+      .map((mf: any) => ({ ...mf, folder: folders.find((f) => f.id === mf.folder_id) }))
+      .filter((mf: any) => mf.folder);
+    const mLinks = milestoneAttachments.links
+      .filter((ml: any) => ml.milestone_id === m.id)
+      .map((ml: any) => ({ ...ml, link: links.find((l) => l.id === ml.link_id) }))
+      .filter((ml: any) => ml.link);
+    return {
+      milestone: m,
+      attachedFolders: mFolders,
+      attachedLinks: mLinks,
+      allFolders: folders,
+      allLinks: links,
+      allTimelines: activeTimelines,
+      onUpdate: (patch: Record<string, any>) => updateMilestone.mutate({ id: m.id, patch }),
+      onDelete: () => deleteMilestone.mutate(m.id),
+      onAttachFolder: (folderId: string) => attachFolder.mutate({ milestoneId: m.id, folderId }),
+      onDetachFolder: (id: string) => detachFolder.mutate(id),
+      onAttachLink: (linkId: string) => attachLink.mutate({ milestoneId: m.id, linkId }),
+      onDetachLink: (id: string) => detachLink.mutate(id),
+    };
+  };
+
+  if (isEmpty) {
+    return (
+      <EmptyTimelinesState
+        artistId={artistId}
+        artist={artist}
+        onTimelineCreated={setNewTimelineId}
+        onMilestoneAdd={(title, date) => addMilestone.mutate({ title, date })}
+      />
+    );
+  }
 
   return (
-    <div className="mt-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5">
-          <button
-            onClick={() => setView("list")}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
-              view === "list" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <List className="h-3.5 w-3.5" /> List
-          </button>
-          <button
-            onClick={() => setView("chart")}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
-              view === "chart" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <CalendarDays className="h-3.5 w-3.5" /> Calendar
-          </button>
+    <div className="mt-4 space-y-2">
+      {/* Top bar */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5">
+            <button
+              onClick={() => setView("list")}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
+                view === "list" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <List className="h-3.5 w-3.5" /> List
+            </button>
+            <button
+              onClick={() => setView("chart")}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
+                view === "chart" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <CalendarDays className="h-3.5 w-3.5" /> Calendar
+            </button>
+          </div>
+          {archivedTimelines.length > 0 && (
+            <label className="flex items-center gap-2 cursor-pointer caption text-muted-foreground hover:text-foreground transition-colors">
+              <Switch checked={showArchived} onCheckedChange={setShowArchived} className="scale-90" />
+              Archived ({archivedTimelines.length})
+            </label>
+          )}
         </div>
-        <ShareTimelineButton artist={artist} />
+        <div className="flex items-center gap-2">
+          <NewTimelineInline artistId={artistId} onCreated={setNewTimelineId} />
+          <ShareTimelineButton artist={artist} />
+        </div>
       </div>
 
-      <InlineMilestoneInput onAdd={(title, date) => addMilestone.mutate({ title, date })} />
+      {view === "chart" ? (
+        <CalendarView milestones={milestones} />
+      ) : (
+        <>
+          {/* Unsorted milestones */}
+          {unsortedMilestones.length > 0 && (
+            <CollapsibleSection
+              title="Unsorted"
+              count={unsortedMilestones.length}
+              open={unsortedExpanded}
+              onToggle={() => setUnsortedExpanded(!unsortedExpanded)}
+            >
+              <InlineMilestoneInput onAdd={(title, date) => addMilestone.mutate({ title, date })} />
+              <div className="divide-y divide-border/30">
+                {unsortedMilestones.map((m: any) => (
+                  <MilestoneRow key={m.id} {...milestoneRowProps(m)} />
+                ))}
+              </div>
+            </CollapsibleSection>
+          )}
 
-      {isEmpty ? (
-        <p className="text-sm text-muted-foreground mt-4">No key dates yet. Add your first one above.</p>
-      ) : view === "list" ? (
-        <div className="mt-2 divide-y divide-border/30">
-          {milestones.map((m: any) => {
-            const mFolders = milestoneAttachments.folders
-              .filter((mf: any) => mf.milestone_id === m.id)
-              .map((mf: any) => ({ ...mf, folder: folders.find((f) => f.id === mf.folder_id) }))
-              .filter((mf: any) => mf.folder);
-            const mLinks = milestoneAttachments.links
-              .filter((ml: any) => ml.milestone_id === m.id)
-              .map((ml: any) => ({ ...ml, link: links.find((l) => l.id === ml.link_id) }))
-              .filter((ml: any) => ml.link);
-
+          {/* Timeline sections */}
+          {displayedTimelines.map((t: any) => {
+            const tMilestones = timelineMilestones(t.id);
+            const isExpanded = expandedTimelines[t.id] ?? true;
             return (
-              <MilestoneRow
-                key={m.id} milestone={m}
-                attachedFolders={mFolders} attachedLinks={mLinks}
-                allFolders={folders} allLinks={links}
-                userInitials={userInitials}
-                onUpdate={(patch) => updateMilestone.mutate({ id: m.id, patch })}
-                onDelete={() => deleteMilestone.mutate(m.id)}
-                onAttachFolder={(folderId) => attachFolder.mutate({ milestoneId: m.id, folderId })}
-                onDetachFolder={(id) => detachFolder.mutate(id)}
-                onAttachLink={(linkId) => attachLink.mutate({ milestoneId: m.id, linkId })}
-                onDetachLink={(id) => detachLink.mutate(id)}
-              />
+              <CollapsibleSection
+                key={t.id}
+                title={t.name}
+                count={tMilestones.length}
+                open={isExpanded}
+                onToggle={() => toggleTimeline(t.id)}
+                titleSlot={<TimelineName timeline={t} artistId={artistId} />}
+                actions={<TimelineActions timeline={t} artistId={artistId} milestoneCount={tMilestones.length} />}
+              >
+                <InlineMilestoneInput onAdd={(title, date) => addMilestone.mutate({ title, date, timelineId: t.id })} />
+                <div className="divide-y divide-border/30">
+                  {tMilestones.map((m: any) => (
+                    <MilestoneRow key={m.id} {...milestoneRowProps(m)} />
+                  ))}
+                </div>
+                {tMilestones.length === 0 && <p className="caption text-muted-foreground py-3 pl-2">No milestones yet.</p>}
+              </CollapsibleSection>
             );
           })}
-        </div>
-      ) : (
-        <CalendarView milestones={milestones} />
+
+          {/* If no unsorted and no timelines, still show add trigger */}
+          {unsortedMilestones.length === 0 && displayedTimelines.length === 0 && (
+            <InlineMilestoneInput onAdd={(title, date) => addMilestone.mutate({ title, date })} />
+          )}
+        </>
       )}
+    </div>
+  );
+}
+
+/* ── Empty State ── */
+function EmptyTimelinesState({
+  artistId, artist, onTimelineCreated, onMilestoneAdd,
+}: {
+  artistId: string; artist: any;
+  onTimelineCreated: (id: string) => void;
+  onMilestoneAdd: (title: string, date: string) => void;
+}) {
+  const queryClient = useQueryClient();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [mode, setMode] = useState<"idle" | "timeline" | "milestone">("idle");
+
+  const createTimeline = useMutation({
+    mutationFn: async (name: string) => {
+      const { data, error } = await (supabase as any)
+        .from("artist_timelines").insert({ artist_id: artistId, name: name.trim() }).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["artist_timelines", artistId] });
+      onTimelineCreated(data.id);
+      setMode("idle");
+      toast.success("Timeline created");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  if (mode === "timeline") {
+    return (
+      <div className="mt-4">
+        <div className="bg-muted/30 rounded-lg px-4 py-3">
+          <input
+            ref={inputRef} autoFocus placeholder="Timeline name"
+            className="flex-1 bg-transparent text-base font-bold outline-none placeholder:text-muted-foreground/60 w-full"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) createTimeline.mutate((e.target as HTMLInputElement).value);
+              if (e.key === "Escape") setMode("idle");
+            }}
+            onBlur={(e) => { if (!e.target.value.trim()) setMode("idle"); }}
+          />
+          <p className="text-xs text-muted-foreground mt-2">Press Enter to create timeline</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === "milestone") {
+    return (
+      <div className="mt-4">
+        <InlineMilestoneInput onAdd={(title, date) => { onMilestoneAdd(title, date); setMode("idle"); }} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center py-20 gap-6 text-center">
+      <p className="text-muted-foreground text-lg">No timelines or milestones yet</p>
+      <div className="flex items-center gap-3">
+        <Button variant="default" size="lg" className="gap-2 text-base" onClick={() => { setMode("timeline"); setTimeout(() => inputRef.current?.focus(), 50); }}>
+          <FolderPlus className="h-5 w-5" /> New Timeline
+        </Button>
+        <Button variant="outline" size="lg" className="gap-2 text-base" onClick={() => setMode("milestone")}>
+          <ListPlus className="h-5 w-5" /> New Milestone
+        </Button>
+      </div>
+      <div className="mt-2">
+        <ShareTimelineButton artist={artist} />
+      </div>
     </div>
   );
 }
@@ -318,7 +478,7 @@ function CalendarView({ milestones }: { milestones: any[] }) {
   );
 }
 
-/* ── Inline Milestone Input (using ItemCardEdit + DatePicker) ── */
+/* ── Inline Milestone Input ── */
 function InlineMilestoneInput({ onAdd }: { onAdd: (title: string, date: string) => void }) {
   const [isActive, setIsActive] = useState(false);
   const [title, setTitle] = useState("");
@@ -331,6 +491,7 @@ function InlineMilestoneInput({ onAdd }: { onAdd: (title: string, date: string) 
     setTitle("");
     setDescription("");
     setDate(undefined);
+    setIsActive(false);
   };
 
   const handleCancel = () => {
@@ -350,11 +511,7 @@ function InlineMilestoneInput({ onAdd }: { onAdd: (title: string, date: string) 
       onSave={submit}
       saveDisabled={!title.trim() || !date}
       bottomLeft={
-        <DatePicker
-          value={date}
-          onChange={setDate}
-          placeholder="Select Date or Range"
-        />
+        <DatePicker value={date} onChange={setDate} placeholder="Select Date" />
       }
     >
       <div className="flex items-center gap-3">
@@ -383,14 +540,14 @@ function InlineMilestoneInput({ onAdd }: { onAdd: (title: string, date: string) 
   );
 }
 
-/* ── Milestone Row (using ItemCardRead + MetaBadge) ── */
+/* ── Milestone Row ── */
 function MilestoneRow({
-  milestone, attachedFolders, attachedLinks, allFolders, allLinks,
-  userInitials, onUpdate, onDelete,
+  milestone, attachedFolders, attachedLinks, allFolders, allLinks, allTimelines,
+  onUpdate, onDelete,
   onAttachFolder, onDetachFolder, onAttachLink, onDetachLink,
 }: {
   milestone: any; attachedFolders: any[]; attachedLinks: any[];
-  allFolders: any[]; allLinks: any[]; userInitials: string;
+  allFolders: any[]; allLinks: any[]; allTimelines: any[];
   onUpdate: (patch: Record<string, any>) => void; onDelete: () => void;
   onAttachFolder: (folderId: string) => void; onDetachFolder: (id: string) => void;
   onAttachLink: (linkId: string) => void; onDetachLink: (id: string) => void;
@@ -400,6 +557,8 @@ function MilestoneRow({
   const attachedLinkIds = new Set(attachedLinks.map((l: any) => l.link_id));
   const availableFolders = allFolders.filter((f) => !attachedFolderIds.has(f.id));
   const availableLinks = allLinks.filter((l) => !attachedLinkIds.has(l.id));
+  const currentTimeline = allTimelines.find((t: any) => t.id === (milestone as any).timeline_id);
+  const availableTimelines = allTimelines.filter((t: any) => t.id !== (milestone as any).timeline_id);
 
   return (
     <ItemCardRead
@@ -428,23 +587,19 @@ function MilestoneRow({
             </PopoverContent>
           </Popover>
 
+          {currentTimeline && (
+            <MetaBadge icon={<FolderPlus className="h-3 w-3" />}>
+              {currentTimeline.name}
+            </MetaBadge>
+          )}
+
           {attachedFolders.map((af: any) => (
-            <MetaBadge
-              key={af.id}
-              variant="blue"
-              icon={<FolderOpen className="h-3 w-3" />}
-              onClick={() => onDetachFolder(af.id)}
-            >
+            <MetaBadge key={af.id} variant="blue" icon={<FolderOpen className="h-3 w-3" />} onClick={() => onDetachFolder(af.id)}>
               {af.folder?.name}
             </MetaBadge>
           ))}
           {attachedLinks.map((al: any) => (
-            <MetaBadge
-              key={al.id}
-              variant="blue"
-              icon={<Link2 className="h-3 w-3" />}
-              onClick={() => onDetachLink(al.id)}
-            >
+            <MetaBadge key={al.id} variant="blue" icon={<Link2 className="h-3 w-3" />} onClick={() => onDetachLink(al.id)}>
               {al.link?.title}
             </MetaBadge>
           ))}
@@ -458,6 +613,24 @@ function MilestoneRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
+            {/* Move to timeline */}
+            {availableTimelines.length > 0 && (
+              <>
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Move to Timeline</div>
+                {availableTimelines.map((t: any) => (
+                  <DropdownMenuItem key={t.id} onClick={() => onUpdate({ timeline_id: t.id })}>
+                    <FolderPlus className="mr-2 h-3.5 w-3.5" /> {t.name}
+                  </DropdownMenuItem>
+                ))}
+                {(milestone as any).timeline_id && (
+                  <DropdownMenuItem onClick={() => onUpdate({ timeline_id: null })}>
+                    <FolderPlus className="mr-2 h-3.5 w-3.5" /> Unsorted
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+              </>
+            )}
+
             {availableFolders.length > 0 && (
               <>
                 <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Attach Folder</div>
@@ -486,6 +659,127 @@ function MilestoneRow({
           </DropdownMenuContent>
         </DropdownMenu>
       }
+    />
+  );
+}
+
+/* ── Timeline Name (inline editable) ── */
+function TimelineName({ timeline, artistId }: { timeline: any; artistId: string }) {
+  const queryClient = useQueryClient();
+  const update = useMutation({
+    mutationFn: async (name: string) => {
+      const { error } = await (supabase as any).from("artist_timelines").update({ name }).eq("id", timeline.id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["artist_timelines", artistId] }),
+  });
+  return <InlineField value={timeline.name} onSave={(v) => update.mutate(v)} className="text-base font-bold tracking-tight" inputClassName="bg-transparent border-none focus:ring-0 px-0 py-0" />;
+}
+
+/* ── Timeline Actions (archive/delete) ── */
+function TimelineActions({ timeline, artistId, milestoneCount }: { timeline: any; artistId: string; milestoneCount: number }) {
+  const queryClient = useQueryClient();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const deleteTimeline = useMutation({
+    mutationFn: async () => {
+      const { error } = await (supabase as any).from("artist_timelines").delete().eq("id", timeline.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["artist_timelines", artistId] });
+      queryClient.invalidateQueries({ queryKey: ["artist_milestones", artistId] });
+      toast.success("Timeline deleted");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const toggleArchive = useMutation({
+    mutationFn: async () => {
+      const { error } = await (supabase as any)
+        .from("artist_timelines").update({ is_archived: !timeline.is_archived }).eq("id", timeline.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["artist_timelines", artistId] });
+      toast.success(timeline.is_archived ? "Timeline restored" : "Timeline archived");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="h-7 w-7 flex items-center justify-center rounded hover:bg-accent transition-colors">
+            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="bg-background z-50">
+          <DropdownMenuItem onClick={() => toggleArchive.mutate()}>
+            <Archive className="h-4 w-4 mr-2" /> {timeline.is_archived ? "Restore" : "Archive"} Timeline
+          </DropdownMenuItem>
+          <DropdownMenuItem className="text-destructive" onClick={() => setShowDeleteConfirm(true)}>
+            <Trash className="h-4 w-4 mr-2" /> Delete Timeline
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{timeline.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will delete the timeline. {milestoneCount} milestone{milestoneCount !== 1 ? "s" : ""} will be moved to Unsorted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteTimeline.mutate()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
+/* ── New Timeline Inline ── */
+function NewTimelineInline({ artistId, onCreated }: { artistId: string; onCreated: (id: string) => void }) {
+  const queryClient = useQueryClient();
+  const [show, setShow] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const create = useMutation({
+    mutationFn: async (name: string) => {
+      const { data, error } = await (supabase as any)
+        .from("artist_timelines").insert({ artist_id: artistId, name: name.trim() }).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["artist_timelines", artistId] });
+      onCreated(data.id);
+      setShow(false);
+      toast.success("Timeline created");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  if (!show) {
+    return <Button variant="ghost" size="sm" onClick={() => { setShow(true); setTimeout(() => inputRef.current?.focus(), 50); }}><Plus className="h-4 w-4 mr-1" /> New Timeline</Button>;
+  }
+
+  return (
+    <input
+      ref={inputRef} autoFocus placeholder="Timeline name, press Enter"
+      className="bg-transparent border-b border-primary/40 outline-none text-sm py-1 w-48"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) create.mutate((e.target as HTMLInputElement).value);
+        if (e.key === "Escape") setShow(false);
+      }}
+      onBlur={() => setShow(false)}
     />
   );
 }
