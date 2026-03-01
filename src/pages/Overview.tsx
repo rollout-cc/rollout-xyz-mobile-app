@@ -1,10 +1,11 @@
 import { useMemo } from "react";
+import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { Reorder } from "framer-motion";
-import { Plus, Star, StarOff } from "lucide-react";
+import { Plus, Star, StarOff, Rows3, Columns2 } from "lucide-react";
 import { format, startOfQuarter, endOfQuarter, subQuarters, addQuarters } from "date-fns";
 import {
   DropdownMenu,
@@ -330,11 +331,13 @@ export default function Overview() {
     hiddenSections,
     collapsed,
     heroSection,
+    layout,
     setOrder,
     toggleVisibility,
     showSection,
     toggleCollapse,
     setHeroSection,
+    setLayout,
   } = useOverviewSections();
 
   const sectionRegistry: Record<string, { label: string; content: React.ReactNode }> = {
@@ -375,13 +378,37 @@ export default function Overview() {
   return (
     <AppLayout title="Label">
       {/* Welcome */}
-      <div className="mb-8">
-        <h1 className="text-foreground">
-          Welcome back, {profile?.full_name?.split(" ")[0] || "there"}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Here's a snapshot of your label's overall health
-        </p>
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="text-foreground">
+            Welcome back, {profile?.full_name?.split(" ")[0] || "there"}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Here's a snapshot of your label's overall health
+          </p>
+        </div>
+        <div className="flex items-center gap-1 text-xs font-medium">
+          <button
+            onClick={() => setLayout("single")}
+            className={cn(
+              "p-1.5 rounded-md transition-colors",
+              layout === "single" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+            aria-label="Single column"
+          >
+            <Rows3 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setLayout("two-column")}
+            className={cn(
+              "p-1.5 rounded-md transition-colors",
+              layout === "two-column" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+            aria-label="Two columns"
+          >
+            <Columns2 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {/* Hero widget — full width */}
@@ -408,7 +435,7 @@ export default function Overview() {
       )}
 
       {/* Masonry grid */}
-      <div className="columns-1 xl:columns-2 gap-4" style={{ columnFill: "balance" }}>
+      <div className={cn("gap-4", layout === "two-column" ? "columns-1 lg:columns-2" : "columns-1")} style={{ columnFill: "balance" }}>
         <Reorder.Group axis="y" values={gridSections} onReorder={setOrder} className="contents">
           {gridSections.map((id) => {
             const section = sectionRegistry[id];
