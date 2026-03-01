@@ -37,6 +37,7 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
   const [expandedCampaigns, setExpandedCampaigns] = useState<Record<string, boolean>>({});
   const [activeExpanded, setActiveExpanded] = useState(true);
   const [newCampaignId, setNewCampaignId] = useState<string | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   const { data: campaigns = [] } = useQuery({
     queryKey: ["initiatives", artistId],
@@ -101,7 +102,7 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
     return <EmptyWorkState artistId={artistId} teamId={teamId} onCampaignCreated={setNewCampaignId} />;
   }
 
-  const sharedContext = { artistId, teamId, campaigns, teamMembers, budgets };
+  const sharedContext = { artistId, teamId, campaigns, teamMembers, budgets, editingTaskId, setEditingTaskId };
 
   return (
     <div className="mt-4 space-y-2">
@@ -156,6 +157,7 @@ export function WorkTab({ artistId, teamId }: WorkTabProps) {
 function TaskList({ tasks, droppableId, ...ctx }: {
   tasks: any[]; droppableId: string;
   artistId: string; teamId: string; campaigns: any[]; teamMembers: any[]; budgets: any[];
+  editingTaskId: string | null; setEditingTaskId: (id: string | null) => void;
 }) {
   const queryClient = useQueryClient();
 
@@ -206,14 +208,21 @@ interface TaskItemProps {
   defaultCampaignId?: string;
   autoFocus?: boolean;
   dragHandleProps?: any;
+  editingTaskId?: string | null;
+  setEditingTaskId?: (id: string | null) => void;
 }
 
 function TaskItem({
   task, isNew, artistId, teamId, campaigns, teamMembers, budgets,
-  defaultCampaignId, autoFocus, dragHandleProps,
+  defaultCampaignId, autoFocus, dragHandleProps, editingTaskId, setEditingTaskId,
 }: TaskItemProps) {
   const queryClient = useQueryClient();
-  const [editing, setEditing] = useState(!!isNew && !!autoFocus);
+  const isEditing = isNew ? false : (editingTaskId === task?.id);
+  const setEditing = (val: boolean) => {
+    if (setEditingTaskId) {
+      setEditingTaskId(val ? (task?.id ?? null) : null);
+    }
+  };
   const [title, setTitle] = useState(task?.title || "");
   const [description, setDescription] = useState(task?.description || "");
   const [activeField, setActiveField] = useState<string | null>(null);
@@ -385,7 +394,7 @@ function TaskItem({
   }
 
   /* ── Editing mode (shared for new and existing) ── */
-  if (editing || (isNew && (showNew || autoFocus))) {
+  if (isEditing || (isNew && (showNew || autoFocus))) {
     return (
       <div className="mb-2 rounded-lg border border-border bg-card px-4 py-3 space-y-2">
         <div className="flex items-start gap-3">
@@ -397,7 +406,7 @@ function TaskItem({
               onSubmit={parseAndSubmit}
               onCancel={handleCancel}
               placeholder={`Task name (use @ to assign, # to pick initiative, $ to select budget and just type the date like "tomorrow" to set due date easily)`}
-              autoFocus={autoFocus || showNew || editing}
+              autoFocus={autoFocus || showNew || isEditing}
               triggers={triggers}
               className="font-medium"
             />
