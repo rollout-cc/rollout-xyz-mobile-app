@@ -76,8 +76,6 @@ export function StaffMetricsSection({ members, fmt }: StaffMetricsSectionProps) 
               className="rounded-xl border border-border p-4 hover:bg-accent/30 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <ScoreCircle score={m.productivityScore} />
-
                 <Avatar className="h-10 w-10 shrink-0">
                   <AvatarImage src={m.avatarUrl ?? undefined} />
                   <AvatarFallback className="text-sm font-bold">
@@ -104,10 +102,12 @@ export function StaffMetricsSection({ members, fmt }: StaffMetricsSectionProps) 
                     )}
                   </div>
                 </div>
+
+                <ScoreCircle score={m.productivityScore} />
               </div>
 
               {/* Completion bar */}
-              <div className="ml-[88px] mt-2">
+              <div className="mt-2">
                 <div className="flex items-center justify-between text-xs mb-0.5">
                   <span className="text-muted-foreground">Task Completion</span>
                   <span className="font-semibold">{completionRate}%</span>
