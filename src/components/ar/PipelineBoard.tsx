@@ -157,7 +157,7 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete, on
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="pb-4 overflow-x-auto">
+      <div className="pb-4 overflow-x-auto scrollbar-hide">
         <div className="grid grid-cols-5 gap-4" style={{ minWidth: "850px" }}>
           {STAGES.map((stage) => {
             const items = activeProspects.filter((p: any) => p.stage === stage);

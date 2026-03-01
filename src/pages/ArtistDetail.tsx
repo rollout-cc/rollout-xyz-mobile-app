@@ -145,39 +145,24 @@ export default function ArtistDetail() {
     <AppLayout
       title="Artist"
       actions={
-        <div className="flex items-center gap-1">
-          <Button
-            variant={activeView === "finance" ? "default" : "outline"}
-            size="sm"
-            onClick={() => toggleTopView("finance")}
-            className="gap-1"
-          >
-            <Receipt className="h-3.5 w-3.5" /> Finance
-          </Button>
-          <Button
-            variant={activeView === "budgets" ? "default" : "outline"}
-            size="sm"
-            onClick={() => toggleTopView("budgets")}
-            className="gap-1"
-          >
-            <DollarSign className="h-3.5 w-3.5" /> Budgets
-          </Button>
-          <Button
-            variant={activeView === "objectives" ? "default" : "outline"}
-            size="sm"
-            onClick={() => toggleTopView("objectives")}
-            className="gap-1"
-          >
-            <Target className="h-3.5 w-3.5" /> Objectives
-          </Button>
-          <Button
-            variant={activeView === "information" ? "default" : "outline"}
-            size="sm"
-            onClick={() => toggleTopView("information")}
-            className="gap-1"
-          >
-            <Star className="h-3.5 w-3.5" /> Information
-          </Button>
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+          {([
+            { key: "finance" as ActiveView, icon: Receipt, label: "Finance" },
+            { key: "budgets" as ActiveView, icon: DollarSign, label: "Budgets" },
+            { key: "objectives" as ActiveView, icon: Target, label: "Objectives" },
+            { key: "information" as ActiveView, icon: Star, label: "Info" },
+          ]).map(({ key, icon: Icon, label }) => (
+            <Button
+              key={key}
+              variant={activeView === key ? "default" : "outline"}
+              size="sm"
+              onClick={() => toggleTopView(key)}
+              className="gap-1 shrink-0 text-xs h-7 px-2 sm:px-3 sm:h-8 sm:text-sm"
+            >
+              <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+              <span className="hidden sm:inline">{label}</span>
+            </Button>
+          ))}
         </div>
       }
     >
@@ -259,14 +244,14 @@ export default function ArtistDetail() {
         {/* Left: main content area */}
         <div className="flex-1 min-w-0">
           {/* Tab row with controls */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
             {/* Capsule tabs */}
-            <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden">
+            <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0">
               {(["work", "links", "timelines"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveView(tab)}
-                  className={`px-4 py-1.5 text-sm font-medium capitalize transition-colors ${
+                  className={`px-3 py-1.5 text-xs sm:text-sm font-medium capitalize transition-colors ${
                     activeView === tab
                       ? "bg-foreground text-background"
                       : "bg-background text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -278,9 +263,9 @@ export default function ArtistDetail() {
             </div>
 
             {/* Right-side controls */}
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Show Completed
+            <div className="flex items-center gap-2 sm:gap-3">
+              <label className="flex items-center gap-1.5 cursor-pointer text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <span className="hidden sm:inline">Show</span> Completed
                 <Switch checked={showCompleted} onCheckedChange={setShowCompleted} />
               </label>
               {activeView === "work" && (
@@ -308,9 +293,9 @@ import { Plus } from "lucide-react";
 
 function WorkTabControls({ artistId, showArchived, setShowArchived }: { artistId: string; showArchived: boolean; setShowArchived: (v: boolean) => void }) {
   return (
-    <div className="flex items-center gap-3">
-      <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors">
-        Show Archived
+    <div className="flex items-center gap-2 sm:gap-3">
+      <label className="flex items-center gap-1.5 cursor-pointer text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors">
+        Archived
         <Switch checked={showArchived} onCheckedChange={setShowArchived} />
       </label>
     </div>

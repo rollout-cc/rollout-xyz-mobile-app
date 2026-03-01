@@ -140,14 +140,14 @@ export default function ARList() {
   return (
     <AppLayout title="A&R">
       {/* Header row: title + metrics inline */}
-      <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-4 sm:mb-6 gap-2">
         <div>
-          <h1 className="text-foreground">A&R Research</h1>
+          <h1 className="text-foreground text-lg sm:text-2xl">A&R Research</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             Track and manage artist prospects
           </p>
         </div>
-        <div className="flex items-center gap-4 pt-1">
+        <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto scrollbar-hide pt-1">
           <MetricPill label="Pipeline" value={pipelineCount} />
           <MetricPill label="Offers" value={offersSent} />
           <MetricPill label="Signed" value={signedCount} accent="text-emerald-500" />
@@ -157,21 +157,21 @@ export default function ARList() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-2 mb-5 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
+      <div className="flex items-center gap-2 mb-4 sm:mb-5">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search prospects or find on Spotify..."
+            placeholder="Search or find on Spotify..."
             className="pl-9"
           />
         </div>
-        <div className="flex items-center border border-border rounded-md">
+        <div className="flex items-center border border-border rounded-md shrink-0">
           <button
             onClick={() => setView("board")}
             className={cn(
-              "px-3 py-1.5 text-sm transition-colors rounded-l-md",
+              "px-2.5 py-1.5 text-sm transition-colors rounded-l-md",
               view === "board" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"
             )}
           >
@@ -180,15 +180,15 @@ export default function ARList() {
           <button
             onClick={() => setView("table")}
             className={cn(
-              "px-3 py-1.5 text-sm transition-colors rounded-r-md",
+              "px-2.5 py-1.5 text-sm transition-colors rounded-r-md",
               view === "table" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"
             )}
           >
             <List className="h-4 w-4" />
           </button>
         </div>
-        <Button size="sm" onClick={() => setShowNew(true)} className="gap-1">
-          <Plus className="h-4 w-4" /> New Prospect
+        <Button size="sm" onClick={() => setShowNew(true)} className="gap-1 shrink-0">
+          <Plus className="h-4 w-4" /> <span className="hidden sm:inline">New Prospect</span>
         </Button>
       </div>
 
