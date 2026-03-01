@@ -36,6 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserPlus, Copy, Check, Trash2, Upload, Camera } from "lucide-react";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 
 interface TeamMember {
   user_id: string;
@@ -89,6 +90,8 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
 
   const [showInvite, setShowInvite] = useState(false);
   const [inviteRole, setInviteRole] = useState<string>("manager");
+  const [addToStaff, setAddToStaff] = useState(false);
+  const [staffEmploymentType, setStaffEmploymentType] = useState("w2");
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
@@ -239,17 +242,18 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
 
   const createInvite = useMutation({
     mutationFn: async (role: string) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("invite_links")
         .insert({
           team_id: teamId!,
           invited_by: user!.id,
           role: role as any,
+          add_to_staff: addToStaff,
+          staff_employment_type: addToStaff ? staffEmploymentType : null,
         })
         .select("token")
         .single();
       if (error) throw error;
-      return data.token;
     },
     onSuccess: (token) => {
       const link = `${window.location.origin}/join/${token}`;
@@ -330,6 +334,8 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
     setGeneratedLink(null);
     setCopied(false);
     setInviteRole("manager");
+    setAddToStaff(false);
+    setStaffEmploymentType("w2");
   };
 
   if (isLoading) {
@@ -622,6 +628,33 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
                     : "Artists have limited access to assigned artists only."}
                 </p>
               </div>
+
+              {/* Add to Staff toggle */}
+              <div className="space-y-3 rounded-lg border border-border p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm font-medium">Add to Staff</Label>
+                    <p className="text-xs text-muted-foreground">Track employment &amp; payroll info</p>
+                  </div>
+                  <Switch checked={addToStaff} onCheckedChange={setAddToStaff} />
+                </div>
+
+                {addToStaff && (
+                  <div className="space-y-2 pt-1">
+                    <Label className="text-xs">Employment Type</Label>
+                    <Select value={staffEmploymentType} onValueChange={setStaffEmploymentType}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="w2">W-2 Employee</SelectItem>
+                        <SelectItem value="1099">1099 Contractor</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
               <DialogFooter>
                 <Button
                   onClick={handleCreateInvite}

@@ -115,6 +115,18 @@ Deno.serve(async (req: Request) => {
       if (permError) console.error("Permission insert error:", permError);
     }
 
+    // Create staff_employment record if flagged
+    if (invite.add_to_staff) {
+      const { error: staffError } = await supabaseAdmin
+        .from("staff_employment")
+        .insert({
+          user_id: user.id,
+          team_id: invite.team_id,
+          employment_type: invite.staff_employment_type || "w2",
+        });
+      if (staffError) console.error("Staff employment insert error:", staffError);
+    }
+
     // Mark invite as used
     await supabaseAdmin
       .from("invite_links")

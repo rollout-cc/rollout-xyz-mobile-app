@@ -760,34 +760,40 @@ export type Database = {
       }
       invite_links: {
         Row: {
+          add_to_staff: boolean
           artist_permissions: Json | null
           created_at: string
           expires_at: string
           id: string
           invited_by: string
           role: Database["public"]["Enums"]["app_role"]
+          staff_employment_type: string | null
           team_id: string
           token: string
           used_at: string | null
         }
         Insert: {
+          add_to_staff?: boolean
           artist_permissions?: Json | null
           created_at?: string
           expires_at?: string
           id?: string
           invited_by: string
           role?: Database["public"]["Enums"]["app_role"]
+          staff_employment_type?: string | null
           team_id: string
           token?: string
           used_at?: string | null
         }
         Update: {
+          add_to_staff?: boolean
           artist_permissions?: Json | null
           created_at?: string
           expires_at?: string
           id?: string
           invited_by?: string
           role?: Database["public"]["Enums"]["app_role"]
+          staff_employment_type?: string | null
           team_id?: string
           token?: string
           used_at?: string | null
