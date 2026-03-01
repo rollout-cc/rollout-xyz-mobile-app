@@ -9,11 +9,12 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Music2, Wallet } from "lucide-react";
 import { cn, parseDateFromText } from "@/lib/utils";
 import { PullToRefresh } from "@/components/PullToRefresh";
-import { useCallback, useState, useMemo, useRef, useEffect } from "react";
+import { useCallback, useState, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { ItemEditor } from "@/components/ui/ItemEditor";
 import { useArtists } from "@/hooks/useArtists";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { NotesPanel } from "@/components/notes/NotesPanel";
 import {
   Select,
   SelectContent,
@@ -65,56 +66,6 @@ export default function MyWork() {
     },
     enabled: !!user?.id,
   });
-
-  // ── Notes ──
-  const { data: noteRecord } = useQuery({
-    queryKey: ["user-note", user?.id, teamId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_notes")
-        .select("*")
-        .eq("user_id", user!.id)
-        .eq("team_id", teamId!)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.id && !!teamId,
-  });
-
-  const [noteContent, setNoteContent] = useState("");
-  const noteInitialized = useRef(false);
-  useEffect(() => {
-    if (noteRecord && !noteInitialized.current) {
-      setNoteContent(noteRecord.content || "");
-      noteInitialized.current = true;
-    }
-  }, [noteRecord]);
-
-  // Reset when team changes
-  useEffect(() => {
-    noteInitialized.current = false;
-  }, [teamId]);
-
-  const saveNote = useMutation({
-    mutationFn: async (content: string) => {
-      if (!user?.id || !teamId) return;
-      const { error } = await supabase
-        .from("user_notes")
-        .upsert(
-          { user_id: user.id, team_id: teamId, content, updated_at: new Date().toISOString() },
-          { onConflict: "user_id,team_id" }
-        );
-      if (error) throw error;
-    },
-  });
-
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  const handleNoteChange = (val: string) => {
-    setNoteContent(val);
-    clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => saveNote.mutate(val), 800);
-  };
 
   // ── Tasks ──
   const toggleComplete = useMutation({
@@ -256,7 +207,7 @@ export default function MyWork() {
 
   return (
     <AppLayout title="My Work">
-      <div className="max-w-2xl mx-auto pb-20">
+      <div className={cn("mx-auto pb-20", tab === "notes" ? "max-w-4xl" : "max-w-2xl")}>
         {/* Header row: title + tab toggle + filter */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
@@ -394,17 +345,7 @@ export default function MyWork() {
             </>
           ) : (
             /* ── Notes tab ── */
-            <div className="mt-1">
-              <textarea
-                value={noteContent}
-                onChange={(e) => handleNoteChange(e.target.value)}
-                placeholder="Write anything… ideas, reminders, thoughts…"
-                className="w-full min-h-[60vh] bg-transparent text-sm text-foreground leading-relaxed outline-none resize-none placeholder:text-muted-foreground/40"
-              />
-              {saveNote.isPending && (
-                <p className="text-[10px] text-muted-foreground/50 mt-1">Saving…</p>
-              )}
-            </div>
+            <NotesPanel />
           )}
         </PullToRefresh>
       </div>

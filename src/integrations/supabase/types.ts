@@ -912,6 +912,35 @@ export type Database = {
           },
         ]
       }
+      note_shares: {
+        Row: {
+          created_at: string
+          id: string
+          note_id: string
+          shared_with: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note_id: string
+          shared_with: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note_id?: string
+          shared_with?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_shares_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "user_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           created_at: string
@@ -1464,7 +1493,9 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          is_pinned: boolean
           team_id: string
+          title: string
           updated_at: string
           user_id: string
         }
@@ -1472,7 +1503,9 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          is_pinned?: boolean
           team_id: string
+          title?: string
           updated_at?: string
           user_id: string
         }
@@ -1480,7 +1513,9 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          is_pinned?: boolean
           team_id?: string
+          title?: string
           updated_at?: string
           user_id?: string
         }
