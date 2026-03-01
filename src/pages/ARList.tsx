@@ -137,23 +137,24 @@ export default function ARList() {
 
   return (
     <AppLayout title="A&R">
-      <div className="mb-5">
-        <h1 className="text-foreground">A&R Research</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Track and manage artist prospects
-        </p>
-      </div>
-
-      {/* Compact metrics strip */}
-      <div className="flex items-center gap-3 mb-5 flex-wrap">
-        <MetricPill label="Pipeline" value={prospects.length} />
-        <MetricPill label="Offers" value={offersSent} />
-        <MetricPill label="Signed" value={signedCount} accent="text-emerald-500" />
-        <MetricPill label="Follow-ups" value={followUpsDue} accent={followUpsDue > 0 ? "text-amber-500" : undefined} />
+      {/* Header row: title + metrics inline */}
+      <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
+        <div>
+          <h1 className="text-foreground">A&R Research</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Track and manage artist prospects
+          </p>
+        </div>
+        <div className="flex items-center gap-4 pt-1">
+          <MetricPill label="Pipeline" value={prospects.length} />
+          <MetricPill label="Offers" value={offersSent} />
+          <MetricPill label="Signed" value={signedCount} accent="text-emerald-500" />
+          <MetricPill label="Follow-ups" value={followUpsDue} accent={followUpsDue > 0 ? "text-amber-500" : undefined} />
+        </div>
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
+      <div className="flex items-center gap-2 mb-5 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -190,7 +191,7 @@ export default function ARList() {
 
       {/* Spotify search results */}
       {showSpotifySection && (
-        <div className="mb-4 rounded-xl border border-border p-3">
+        <div className="mb-5 rounded-xl border border-border p-3">
           <p className="text-xs font-medium text-muted-foreground mb-2">Spotify Results</p>
           {spotifySearching ? (
             <div className="flex items-center justify-center py-4">
@@ -241,28 +242,30 @@ export default function ARList() {
         </div>
       )}
 
-      {/* Content */}
-      {view === "board" ? (
-        <PipelineBoard
-          prospects={filtered}
-          onSelect={(id) => setSelectedProspectId(id)}
-          onStageChange={(id, stage) => {
-            updateProspect.mutate({ id, stage } as any);
-            toast.success("Stage updated");
-          }}
-          onDelete={(id) => {
-            deleteProspect.mutate(id, { onSuccess: () => toast.success("Prospect deleted") });
-          }}
-        />
-      ) : (
-        <ProspectTable
-          prospects={filtered}
-          onSelect={(id) => setSelectedProspectId(id)}
-          onDelete={(id) => {
-            deleteProspect.mutate(id, { onSuccess: () => toast.success("Prospect deleted") });
-          }}
-        />
-      )}
+      {/* Pipeline / Table — full remaining space */}
+      <div className="flex-1">
+        {view === "board" ? (
+          <PipelineBoard
+            prospects={filtered}
+            onSelect={(id) => setSelectedProspectId(id)}
+            onStageChange={(id, stage) => {
+              updateProspect.mutate({ id, stage } as any);
+              toast.success("Stage updated");
+            }}
+            onDelete={(id) => {
+              deleteProspect.mutate(id, { onSuccess: () => toast.success("Prospect deleted") });
+            }}
+          />
+        ) : (
+          <ProspectTable
+            prospects={filtered}
+            onSelect={(id) => setSelectedProspectId(id)}
+            onDelete={(id) => {
+              deleteProspect.mutate(id, { onSuccess: () => toast.success("Prospect deleted") });
+            }}
+          />
+        )}
+      </div>
 
       <NewProspectDialog open={showNew} onOpenChange={setShowNew} teamId={teamId} />
       <ProspectDrawer prospectId={selectedProspectId} onClose={() => setSelectedProspectId(null)} />
