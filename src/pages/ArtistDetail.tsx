@@ -147,15 +147,6 @@ export default function ArtistDetail() {
       actions={
         <div className="flex items-center gap-1">
           <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/roster")}
-            className="gap-1"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Roster
-          </Button>
-          <span className="text-border mx-1">|</span>
-          <Button
             variant={activeView === "finance" ? "default" : "outline"}
             size="sm"
             onClick={() => toggleTopView("finance")}
@@ -190,6 +181,13 @@ export default function ArtistDetail() {
         </div>
       }
     >
+      {/* Back arrow */}
+      <button
+        onClick={() => navigate("/roster")}
+        className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors mb-2 -mt-1"
+      >
+        <ArrowLeft className="h-4 w-4" />
+      </button>
       {/* Banner */}
       <div className="relative rounded-lg bg-muted overflow-hidden mb-4 shadow-xl group">
         {/* Banner image area */}
