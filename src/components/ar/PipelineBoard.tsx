@@ -60,12 +60,12 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete }: 
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="pb-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-0">
+      <div className="pb-4 overflow-x-auto">
+        <div className="flex gap-0" style={{ minWidth: "600px" }}>
           {activeStages.map((stage, idx) => {
             const items = prospects.filter((p: any) => p.stage === stage);
             return (
-              <div key={stage} className="flex">
+              <div key={stage} className="flex flex-1 min-w-0">
                 {idx > 0 && (
                   <Separator orientation="vertical" className="mx-2 h-auto self-stretch" />
                 )}
