@@ -103,7 +103,8 @@ export default function Agenda() {
     enabled: !!artistId,
   });
 
-  // Artist permissions — members with access to selected artist
+  // Team members with access to selected artist
+  // 1. Explicit artist_permissions (non-no_access)
   const { data: artistPermissions = [] } = useQuery({
     queryKey: ["agenda-artist-permissions", artistId],
     queryFn: async () => {
@@ -118,7 +119,27 @@ export default function Agenda() {
     enabled: !!artistId,
   });
 
-  const artistMemberIds = useMemo(() => artistPermissions.map((p) => p.user_id), [artistPermissions]);
+  // 2. Team owners/managers get implicit access
+  const { data: teamOwnersManagers = [] } = useQuery({
+    queryKey: ["agenda-team-owners-managers", teamId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("team_memberships")
+        .select("user_id")
+        .eq("team_id", teamId!)
+        .in("role", ["team_owner", "manager"]);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!teamId,
+  });
+
+  const artistMemberIds = useMemo(() => {
+    const ids = new Set<string>();
+    artistPermissions.forEach((p) => ids.add(p.user_id));
+    teamOwnersManagers.forEach((m) => ids.add(m.user_id));
+    return Array.from(ids);
+  }, [artistPermissions, teamOwnersManagers]);
 
   // Profiles for those members
   const { data: profiles = [] } = useQuery({
