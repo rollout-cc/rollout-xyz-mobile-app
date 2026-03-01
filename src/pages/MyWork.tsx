@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Music2, Wallet } from "lucide-react";
 import { cn, parseDateFromText } from "@/lib/utils";
 import { PullToRefresh } from "@/components/PullToRefresh";
-import { useCallback, useState, useMemo } from "react";
+import { useCallback, useState, useMemo, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { ItemEditor } from "@/components/ui/ItemEditor";
 import { useArtists } from "@/hooks/useArtists";
@@ -22,11 +22,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+type Tab = "tasks" | "notes";
+
 export default function MyWork() {
   const { user } = useAuth();
   const { selectedTeamId: teamId } = useSelectedTeam();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [tab, setTab] = useState<Tab>("tasks");
   const [newTitle, setNewTitle] = useState("");
   const [selectedArtistId, setSelectedArtistId] = useState<string | null>(null);
   const [expenseAmount, setExpenseAmount] = useState<number | null>(null);
@@ -35,7 +38,6 @@ export default function MyWork() {
 
   const { data: artists = [] } = useArtists(teamId);
 
-  // Fetch budgets for the selected artist
   const { data: budgets = [] } = useQuery({
     queryKey: ["budgets", selectedArtistId],
     queryFn: async () => {
@@ -64,6 +66,57 @@ export default function MyWork() {
     enabled: !!user?.id,
   });
 
+  // ── Notes ──
+  const { data: noteRecord } = useQuery({
+    queryKey: ["user-note", user?.id, teamId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_notes")
+        .select("*")
+        .eq("user_id", user!.id)
+        .eq("team_id", teamId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id && !!teamId,
+  });
+
+  const [noteContent, setNoteContent] = useState("");
+  const noteInitialized = useRef(false);
+  useEffect(() => {
+    if (noteRecord && !noteInitialized.current) {
+      setNoteContent(noteRecord.content || "");
+      noteInitialized.current = true;
+    }
+  }, [noteRecord]);
+
+  // Reset when team changes
+  useEffect(() => {
+    noteInitialized.current = false;
+  }, [teamId]);
+
+  const saveNote = useMutation({
+    mutationFn: async (content: string) => {
+      if (!user?.id || !teamId) return;
+      const { error } = await supabase
+        .from("user_notes")
+        .upsert(
+          { user_id: user.id, team_id: teamId, content, updated_at: new Date().toISOString() },
+          { onConflict: "user_id,team_id" }
+        );
+      if (error) throw error;
+    },
+  });
+
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const handleNoteChange = (val: string) => {
+    setNoteContent(val);
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => saveNote.mutate(val), 800);
+  };
+
+  // ── Tasks ──
   const toggleComplete = useMutation({
     mutationFn: async (taskId: string) => {
       const { error } = await supabase
@@ -94,7 +147,6 @@ export default function MyWork() {
       });
       if (error) throw error;
 
-      // If there's an expense and a budget, also create a transaction
       if (params.expense_amount && params.artist_id && params.budget_id) {
         await supabase.from("transactions").insert({
           artist_id: params.artist_id,
@@ -131,7 +183,6 @@ export default function MyWork() {
     });
   };
 
-  // Build triggers for ItemEditor
   const triggers = useMemo(() => {
     const artistTrigger = {
       char: "@",
@@ -142,11 +193,9 @@ export default function MyWork() {
       })),
       onSelect: (item: { id: string; label: string }, currentValue: string) => {
         setSelectedArtistId(item.id);
-        // Remove the @query from the text
         return currentValue.replace(/@\S*$/, "").trim();
       },
     };
-
     const budgetTrigger = {
       char: "$",
       items: selectedArtistId
@@ -157,7 +206,6 @@ export default function MyWork() {
           }))
         : [],
       onSelect: (item: { id: string; label: string }, currentValue: string) => {
-        // Extract a dollar amount if the user typed $500 etc., otherwise use budget
         const dollarMatch = currentValue.match(/\$(\d[\d,]*\.?\d*)$/);
         if (dollarMatch) {
           const amount = parseFloat(dollarMatch[1].replace(/,/g, ""));
@@ -165,12 +213,10 @@ export default function MyWork() {
           setBudgetId(item.id);
           return currentValue.replace(/\$[\d,]*\.?\d*$/, "").trim();
         }
-        // Selected a budget from the list — no amount yet, but link the budget
         setBudgetId(item.id);
         return currentValue.replace(/\$\S*$/, "").trim();
       },
     };
-
     return [artistTrigger, budgetTrigger];
   }, [artists, budgets, selectedArtistId]);
 
@@ -191,18 +237,15 @@ export default function MyWork() {
     return isPast(d) && !isToday(d);
   };
 
-  // Find the selected artist name for the pill
   const selectedArtist = artists.find((a: any) => a.id === selectedArtistId);
   const selectedBudget = budgets.find((b: any) => b.id === budgetId);
 
-  // Filter tasks by artist
   const tasks = filterArtistId === "all"
     ? allTasks
     : filterArtistId === "none"
       ? allTasks.filter((t) => !t.artist_id)
       : allTasks.filter((t) => t.artist_id === filterArtistId);
 
-  // Unique artists in tasks for filter dropdown
   const taskArtists = useMemo(() => {
     const map = new Map<string, { id: string; name: string; avatar_url: string | null }>();
     allTasks.forEach((t: any) => {
@@ -214,22 +257,41 @@ export default function MyWork() {
   return (
     <AppLayout title="My Work">
       <div className="max-w-2xl mx-auto pb-20">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-foreground">My Work</h1>
-          {taskArtists.length > 0 && (
+        {/* Header row: title + tab toggle + filter */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <h1 className="text-foreground text-lg font-bold">My Work</h1>
+            <div className="flex items-center rounded-lg bg-muted p-0.5">
+              <button
+                onClick={() => setTab("tasks")}
+                className={cn(
+                  "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                  tab === "tasks" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Tasks
+              </button>
+              <button
+                onClick={() => setTab("notes")}
+                className={cn(
+                  "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                  tab === "notes" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Notes
+              </button>
+            </div>
+          </div>
+          {tab === "tasks" && taskArtists.length > 0 && (
             <Select value={filterArtistId} onValueChange={setFilterArtistId}>
-              <SelectTrigger className="w-[160px] h-8 text-xs">
+              <SelectTrigger className="w-[140px] h-7 text-xs">
                 <SelectValue placeholder="All Artists" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Artists</SelectItem>
                 <SelectItem value="none">No Artist</SelectItem>
                 {taskArtists.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>
-                    <span className="flex items-center gap-2">
-                      {a.name}
-                    </span>
-                  </SelectItem>
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -237,124 +299,112 @@ export default function MyWork() {
         </div>
 
         <PullToRefresh onRefresh={handleRefresh}>
-          {/* Smart task input */}
-          <div className="mb-1">
-            <div className="flex items-center gap-3">
-              <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
-              <ItemEditor
-                value={newTitle}
-                onChange={setNewTitle}
-                onSubmit={handleAddSubmit}
-                onCancel={() => { setNewTitle(""); setSelectedArtistId(null); setExpenseAmount(null); setBudgetId(null); }}
-                placeholder="Add a task… use @ for artist, $ for expense"
-                autoFocus={false}
-                triggers={triggers}
-                singleLine
-              />
-            </div>
-
-            {/* Metadata pills showing parsed context */}
-            {(selectedArtist || expenseAmount || budgetId) && (
-              <div className="flex items-center gap-2 ml-7 mt-1.5 flex-wrap">
-                {selectedArtist && (
-                  <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                    <Music2 className="h-3 w-3" />
-                    {selectedArtist.name}
-                    <button
-                      onClick={() => { setSelectedArtistId(null); setBudgetId(null); setExpenseAmount(null); }}
-                      className="ml-0.5 hover:text-foreground"
-                    >×</button>
-                  </span>
-                )}
-                {expenseAmount != null && (
-                  <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                    ${expenseAmount.toLocaleString()}
-                    {selectedBudget && <span className="text-muted-foreground/60">· {selectedBudget.label}</span>}
-                    <button
-                      onClick={() => { setExpenseAmount(null); setBudgetId(null); }}
-                      className="ml-0.5 hover:text-foreground"
-                    >×</button>
-                  </span>
-                )}
+          {tab === "tasks" ? (
+            <>
+              {/* Add task input */}
+              <div className="flex items-center gap-2 py-2">
+                <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
+                <ItemEditor
+                  value={newTitle}
+                  onChange={setNewTitle}
+                  onSubmit={handleAddSubmit}
+                  onCancel={() => { setNewTitle(""); setSelectedArtistId(null); setExpenseAmount(null); setBudgetId(null); }}
+                  placeholder="Add a task… @ artist, $ expense"
+                  autoFocus={false}
+                  triggers={triggers}
+                  singleLine
+                />
               </div>
-            )}
-          </div>
 
-          {/* Hint text */}
-          {!selectedArtistId && newTitle.includes("$") && (
-            <p className="text-[11px] text-muted-foreground/50 ml-7 mt-1">
-              Tip: Type @ first to select an artist, then $ to pick from their budgets
-            </p>
-          )}
-
-          <div className="border-t border-border mt-4" />
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-20 text-muted-foreground text-sm">Loading…</div>
-          ) : tasks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-1">
-              <p className="text-base font-medium">All clear</p>
-              <p className="text-sm">No tasks right now. Type above to add one.</p>
-            </div>
-          ) : (
-            <ul className="divide-y divide-border">
-              {tasks.map((task) => (
-                <li
-                  key={task.id}
-                  className="flex items-center gap-3 py-3 group"
-                >
-                  <Checkbox
-                    checked={false}
-                    onCheckedChange={() => toggleComplete.mutate(task.id)}
-                    className="shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground leading-snug">{task.title}</p>
-                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      {task.artists && (
-                        <button
-                          onClick={() => navigate(`/roster/${task.artists.id}`)}
-                          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          {task.artists.name}
-                        </button>
-                      )}
-                      {task.initiatives && (
-                        <span className="text-xs text-muted-foreground">
-                          {task.artists ? "· " : ""}{task.initiatives.name}
-                        </span>
-                      )}
-                      {task.due_date && (
-                        <span className={cn(
-                          "text-xs",
-                          isDueOverdue(task.due_date) ? "text-destructive" : "text-muted-foreground"
-                        )}>
-                          {task.artists || task.initiatives ? "· " : ""}{formatDue(task.due_date)}
-                        </span>
-                      )}
-                      {task.expense_amount != null && task.expense_amount > 0 && (
-                        <span className="text-xs text-muted-foreground">
-                          · ${task.expense_amount.toLocaleString()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {task.artists && (
-                    <Avatar
-                      className="h-7 w-7 shrink-0 cursor-pointer"
-                      onClick={() => navigate(`/roster/${task.artists.id}`)}
-                    >
-                      {task.artists.avatar_url && (
-                        <AvatarImage src={task.artists.avatar_url} alt={task.artists.name} />
-                      )}
-                      <AvatarFallback className="text-[10px] font-bold bg-muted">
-                        {task.artists.name?.[0]}
-                      </AvatarFallback>
-                    </Avatar>
+              {/* Metadata pills */}
+              {(selectedArtist || expenseAmount != null) && (
+                <div className="flex items-center gap-1.5 ml-6 mb-1 flex-wrap">
+                  {selectedArtist && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                      <Music2 className="h-2.5 w-2.5" />
+                      {selectedArtist.name}
+                      <button onClick={() => { setSelectedArtistId(null); setBudgetId(null); setExpenseAmount(null); }} className="ml-0.5 hover:text-foreground">×</button>
+                    </span>
                   )}
-                </li>
-              ))}
-            </ul>
+                  {expenseAmount != null && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                      ${expenseAmount.toLocaleString()}
+                      {selectedBudget && <span className="opacity-60">· {selectedBudget.label}</span>}
+                      <button onClick={() => { setExpenseAmount(null); setBudgetId(null); }} className="ml-0.5 hover:text-foreground">×</button>
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <div className="border-t border-border" />
+
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">Loading…</div>
+              ) : tasks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-1">
+                  <p className="text-sm font-medium">All clear</p>
+                  <p className="text-xs">No tasks right now.</p>
+                </div>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {tasks.map((task) => (
+                    <li key={task.id} className="flex items-center gap-2.5 py-2.5 group">
+                      <Checkbox
+                        checked={false}
+                        onCheckedChange={() => toggleComplete.mutate(task.id)}
+                        className="shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground leading-snug">{task.title}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap text-xs text-muted-foreground">
+                          {task.artists && (
+                            <button
+                              onClick={() => navigate(`/roster/${task.artists.id}`)}
+                              className="hover:text-foreground transition-colors"
+                            >
+                              {task.artists.name}
+                            </button>
+                          )}
+                          {task.initiatives && (
+                            <span>{task.artists ? "· " : ""}{task.initiatives.name}</span>
+                          )}
+                          {task.due_date && (
+                            <span className={isDueOverdue(task.due_date) ? "text-destructive" : ""}>
+                              {task.artists || task.initiatives ? "· " : ""}{formatDue(task.due_date)}
+                            </span>
+                          )}
+                          {task.expense_amount != null && task.expense_amount > 0 && (
+                            <span>· ${task.expense_amount.toLocaleString()}</span>
+                          )}
+                        </div>
+                      </div>
+                      {task.artists && (
+                        <Avatar
+                          className="h-6 w-6 shrink-0 cursor-pointer"
+                          onClick={() => navigate(`/roster/${task.artists.id}`)}
+                        >
+                          {task.artists.avatar_url && <AvatarImage src={task.artists.avatar_url} alt={task.artists.name} />}
+                          <AvatarFallback className="text-[9px] font-bold bg-muted">{task.artists.name?.[0]}</AvatarFallback>
+                        </Avatar>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          ) : (
+            /* ── Notes tab ── */
+            <div className="mt-1">
+              <textarea
+                value={noteContent}
+                onChange={(e) => handleNoteChange(e.target.value)}
+                placeholder="Write anything… ideas, reminders, thoughts…"
+                className="w-full min-h-[60vh] bg-transparent text-sm text-foreground leading-relaxed outline-none resize-none placeholder:text-muted-foreground/40"
+              />
+              {saveNote.isPending && (
+                <p className="text-[10px] text-muted-foreground/50 mt-1">Saving…</p>
+              )}
+            </div>
           )}
         </PullToRefresh>
       </div>
