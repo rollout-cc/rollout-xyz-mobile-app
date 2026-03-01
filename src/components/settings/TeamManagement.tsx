@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserPlus, Copy, Check, Trash2 } from "lucide-react";
+import { UserPlus, Copy, Check, Trash2, Upload, Camera } from "lucide-react";
 import { toast } from "sonner";
 
 interface TeamMember {
@@ -92,7 +92,10 @@ export function TeamManagement() {
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
-  
+  const [uploadingTeamPhoto, setUploadingTeamPhoto] = useState(false);
+  const teamPhotoInputRef = useRef<HTMLInputElement>(null);
+
+  const currentTeam = teams.find((t) => t.id === teamId);
 
   // Fetch team members
   const { data: members = [], isLoading } = useQuery({
@@ -257,6 +260,57 @@ export function TeamManagement() {
     },
   });
 
+  const handleTeamPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !teamId) return;
+    setUploadingTeamPhoto(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${teamId}/team-avatar.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("profile-photos")
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage
+        .from("profile-photos")
+        .getPublicUrl(path);
+      const url = `${publicUrl}?t=${Date.now()}`;
+      const { error: updateError } = await supabase
+        .from("teams")
+        .update({ avatar_url: url })
+        .eq("id", teamId);
+      if (updateError) throw updateError;
+      queryClient.invalidateQueries({ queryKey: ["teams"] });
+      toast.success("Team photo updated!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload team photo");
+    } finally {
+      setUploadingTeamPhoto(false);
+      if (teamPhotoInputRef.current) teamPhotoInputRef.current.value = "";
+    }
+  };
+
+  const handleTeamPhotoDelete = async () => {
+    if (!teamId) return;
+    setUploadingTeamPhoto(true);
+    try {
+      const { data: files } = await supabase.storage
+        .from("profile-photos")
+        .list(teamId);
+      if (files && files.length > 0) {
+        const paths = files.filter(f => f.name.startsWith("team-avatar")).map(f => `${teamId}/${f.name}`);
+        if (paths.length > 0) await supabase.storage.from("profile-photos").remove(paths);
+      }
+      await supabase.from("teams").update({ avatar_url: null }).eq("id", teamId);
+      queryClient.invalidateQueries({ queryKey: ["teams"] });
+      toast.success("Team photo removed");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete team photo");
+    } finally {
+      setUploadingTeamPhoto(false);
+    }
+  };
+
   const handleCreateInvite = () => {
     setCopied(false);
     setGeneratedLink(null);
@@ -296,6 +350,64 @@ export function TeamManagement() {
 
   return (
     <div className="space-y-6">
+      {/* Team Photo */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-foreground">Team Photo</Label>
+        <div className="flex items-center gap-4 p-4 rounded-lg border border-border bg-card max-w-lg">
+          <div className="relative group/avatar">
+            <Avatar className="h-14 w-14">
+              <AvatarImage src={currentTeam?.avatar_url ?? undefined} />
+              <AvatarFallback className="text-lg bg-muted text-muted-foreground">
+                {currentTeam?.name?.[0]?.toUpperCase() ?? "T"}
+              </AvatarFallback>
+            </Avatar>
+            {canManage && (
+              <button
+                onClick={() => teamPhotoInputRef.current?.click()}
+                className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover/avatar:opacity-100 transition-opacity"
+              >
+                <Camera className="h-4 w-4 text-white" />
+              </button>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground truncate">{currentTeam?.name ?? "Team"}</p>
+            <p className="text-xs text-muted-foreground">{members.length} member{members.length !== 1 ? "s" : ""}</p>
+          </div>
+          {canManage && (
+            <div className="flex gap-2 shrink-0">
+              <input
+                ref={teamPhotoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleTeamPhotoUpload}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => teamPhotoInputRef.current?.click()}
+                disabled={uploadingTeamPhoto}
+              >
+                <Upload className="h-4 w-4 mr-1.5" />
+                {uploadingTeamPhoto ? "Uploading..." : "Upload"}
+              </Button>
+              {currentTeam?.avatar_url && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTeamPhotoDelete}
+                  disabled={uploadingTeamPhoto}
+                >
+                  <Trash2 className="h-4 w-4 mr-1.5" />
+                  Remove
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
