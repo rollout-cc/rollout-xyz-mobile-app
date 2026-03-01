@@ -117,14 +117,34 @@ Deno.serve(async (req: Request) => {
 
     // Create staff_employment record if flagged
     if (invite.add_to_staff) {
+      const staffInsert: Record<string, any> = {
+        user_id: user.id,
+        team_id: invite.team_id,
+        employment_type: invite.staff_employment_type || "w2",
+      };
+      // Apply job title and salary from onboarding invite data
+      if (invite.invitee_job_title) {
+        staffInsert.job_title = invite.invitee_job_title;
+      }
+      if (invite.staff_salary) {
+        if (staffInsert.employment_type === "1099") {
+          staffInsert.monthly_retainer = invite.staff_salary;
+        } else {
+          staffInsert.annual_salary = invite.staff_salary;
+        }
+      }
       const { error: staffError } = await supabaseAdmin
         .from("staff_employment")
-        .insert({
-          user_id: user.id,
-          team_id: invite.team_id,
-          employment_type: invite.staff_employment_type || "w2",
-        });
+        .insert(staffInsert);
       if (staffError) console.error("Staff employment insert error:", staffError);
+    }
+
+    // Update profile with job title if provided by invite
+    if (invite.invitee_job_title) {
+      await supabaseAdmin
+        .from("profiles")
+        .update({ job_role: invite.invitee_job_title })
+        .eq("id", user.id);
     }
 
     // Mark invite as used

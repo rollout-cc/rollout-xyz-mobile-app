@@ -776,8 +776,11 @@ export type Database = {
           expires_at: string
           id: string
           invited_by: string
+          invitee_job_title: string | null
+          invitee_name: string | null
           role: Database["public"]["Enums"]["app_role"]
           staff_employment_type: string | null
+          staff_salary: number | null
           team_id: string
           token: string
           used_at: string | null
@@ -789,8 +792,11 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by: string
+          invitee_job_title?: string | null
+          invitee_name?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           staff_employment_type?: string | null
+          staff_salary?: number | null
           team_id: string
           token?: string
           used_at?: string | null
@@ -802,8 +808,11 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by?: string
+          invitee_job_title?: string | null
+          invitee_name?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           staff_employment_type?: string | null
+          staff_salary?: number | null
           team_id?: string
           token?: string
           used_at?: string | null
@@ -1430,6 +1439,7 @@ export type Database = {
           id: string
           monthly_revenue: string | null
           name: string
+          onboarding_completed: boolean | null
           team_size: string | null
         }
         Insert: {
@@ -1442,6 +1452,7 @@ export type Database = {
           id?: string
           monthly_revenue?: string | null
           name: string
+          onboarding_completed?: boolean | null
           team_size?: string | null
         }
         Update: {
@@ -1454,6 +1465,7 @@ export type Database = {
           id?: string
           monthly_revenue?: string | null
           name?: string
+          onboarding_completed?: boolean | null
           team_size?: string | null
         }
         Relationships: []

@@ -418,8 +418,8 @@ export default function Overview() {
 
   return (
     <AppLayout title="Company">
-      {/* Gate: must set company type first */}
-      {!companyType && teamId ? (
+      {/* Gate: must complete company onboarding */}
+      {!(team as any)?.onboarding_completed && teamId ? (
         <BuildYourCompany teamId={teamId} onComplete={() => refetchTeam()} />
       ) : (
       <>
