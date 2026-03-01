@@ -74,23 +74,37 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
     <>
       <Sidebar collapsible="icon" className="border-r border-border bg-sidebar">
         <SidebarContent className="flex flex-col h-full p-0">
-          {/* Logo — optically centered with consistent vertical rhythm */}
+          {/* Logo — crossfade between flag and full logo */}
           <div
-            className="flex items-center cursor-pointer transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+            className="flex items-center justify-center cursor-pointer transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] relative overflow-hidden"
             style={{
               padding: collapsed ? "16px 0 8px" : "16px 16px 8px",
-              justifyContent: "center",
+              height: collapsed ? "56px" : "52px",
             }}
             onClick={() => navigate("/roster")}
           >
             <img
-              src={collapsed ? rolloutFlag : rolloutLogo}
+              src={rolloutFlag}
+              alt="Rollout"
+              className="absolute transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+              style={{
+                width: "32px",
+                height: "32px",
+                objectFit: "contain",
+                opacity: collapsed ? 1 : 0,
+                transform: collapsed ? "scale(1)" : "scale(0.8)",
+              }}
+            />
+            <img
+              src={rolloutLogo}
               alt="Rollout"
               className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
               style={{
-                width: collapsed ? "32px" : "100%",
-                height: collapsed ? "32px" : "auto",
+                width: "100%",
+                height: "auto",
                 objectFit: "contain",
+                opacity: collapsed ? 0 : 1,
+                transform: collapsed ? "scale(0.8)" : "scale(1)",
               }}
             />
           </div>
