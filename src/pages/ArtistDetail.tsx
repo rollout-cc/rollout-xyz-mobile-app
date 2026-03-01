@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { DollarSign, Target, Star, Upload, RefreshCw, Receipt } from "lucide-react";
+import { DollarSign, Target, Star, Upload, RefreshCw, Receipt, ArrowLeft } from "lucide-react";
 import { PerformancePills } from "@/components/artist/PerformancePills";
 import { useArtistDetail } from "@/hooks/useArtistDetail";
 import { useSpotifyArtist } from "@/hooks/useSpotifyArtist";
@@ -146,6 +146,15 @@ export default function ArtistDetail() {
       title="Artist"
       actions={
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/roster")}
+            className="gap-1"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Roster
+          </Button>
+          <span className="text-border mx-1">|</span>
           <Button
             variant={activeView === "finance" ? "default" : "outline"}
             size="sm"
