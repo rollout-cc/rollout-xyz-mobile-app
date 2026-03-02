@@ -64,9 +64,25 @@ export function useSetArtistFolder() {
     mutationFn: async ({ artistId, folderId }: { artistId: string; folderId: string | null }) => {
       const { error } = await supabase
         .from("artists")
-        .update({ folder_id: folderId })
+        .update({ folder_id: folderId } as any)
         .eq("id", artistId);
       if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["artists"] }),
+  });
+}
+
+export function useReorderArtistsInFolder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (updates: { id: string; folder_sort_order: number }[]) => {
+      for (const u of updates) {
+        const { error } = await supabase
+          .from("artists")
+          .update({ folder_sort_order: u.folder_sort_order } as any)
+          .eq("id", u.id);
+        if (error) throw error;
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["artists"] }),
   });

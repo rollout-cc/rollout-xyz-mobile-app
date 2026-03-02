@@ -13,7 +13,8 @@ export function useArtists(teamId: string | null) {
           tasks(count),
           budgets(label, amount)
         `)
-        .eq("team_id", teamId!);
+        .eq("team_id", teamId!)
+        .order("folder_sort_order", { ascending: true });
       if (error) throw error;
       return data;
     },

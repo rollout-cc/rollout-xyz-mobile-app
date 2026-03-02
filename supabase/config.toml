@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.accept-invite]
 verify_jwt = false
+
+[functions.approve-split]
+verify_jwt = false
+
+[functions.send-split-approval]
+verify_jwt = false

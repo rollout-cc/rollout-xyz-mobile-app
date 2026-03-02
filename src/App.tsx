@@ -22,6 +22,7 @@ import PublicAgenda from "./pages/PublicAgenda";
 import JoinTeam from "./pages/JoinTeam";
 import Staff from "./pages/Staff";
 import ARList from "./pages/ARList";
+import ApproveSplit from "./pages/ApproveSplit";
 // ProspectProfile is now rendered as a drawer inside ARList
 import NotFound from "./pages/NotFound";
 
@@ -63,6 +64,7 @@ function AppRoutes() {
       <Route path="/shared/timeline/:token" element={<PublicTimeline />} />
       <Route path="/shared/agenda/:token" element={<PublicAgenda />} />
       <Route path="/join/:token" element={<JoinTeam />} />
+      <Route path="/splits/approve/:token" element={<ApproveSplit />} />
       <Route path="/" element={<Navigate to="/roster" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -11,6 +11,8 @@ interface ArtistCardProps {
   dragHandleProps?: Record<string, any>;
   innerRef?: (el: HTMLElement | null) => void;
   draggableProps?: Record<string, any>;
+  insideFolder?: boolean;
+  onRemoveFromFolder?: () => void;
 }
 
 function formatNum(n: number): string {
@@ -19,7 +21,7 @@ function formatNum(n: number): string {
   return String(n);
 }
 
-export function ArtistCard({ artist, onClick, dragHandleProps, innerRef, draggableProps }: ArtistCardProps) {
+export function ArtistCard({ artist, onClick, dragHandleProps, innerRef, draggableProps, insideFolder, onRemoveFromFolder }: ArtistCardProps) {
   const initiativeCount = artist.initiatives?.[0]?.count ?? 0;
   const taskCount = artist.tasks?.[0]?.count ?? 0;
   const listeners = artist.monthly_listeners ?? 0;
@@ -53,6 +55,11 @@ export function ArtistCard({ artist, onClick, dragHandleProps, innerRef, draggab
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenuItem>Edit</DropdownMenuItem>
+                {insideFolder && onRemoveFromFolder && (
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRemoveFromFolder(); }}>
+                    Remove from category
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

@@ -15,11 +15,12 @@ import { BudgetSection, useTotalBudget } from "@/components/artist/BudgetSection
 import { BannerUpload } from "@/components/artist/BannerUpload";
 import { FinanceTab } from "@/components/artist/FinanceTab";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { SplitsTab } from "@/components/artist/SplitsTab";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import defaultBanner from "@/assets/default-banner.png";
 
-type TabView = "work" | "links" | "timelines";
+type TabView = "work" | "links" | "timelines" | "splits";
 type ActiveView = TabView | "finance" | "budgets" | "objectives" | "information";
 
 export default function ArtistDetail() {
@@ -247,7 +248,7 @@ export default function ArtistDetail() {
           <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
             {/* Capsule tabs */}
             <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0">
-              {(["work", "links", "timelines"] as const).map((tab) => (
+              {(["work", "links", "timelines", "splits"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveView(tab)}
@@ -257,7 +258,7 @@ export default function ArtistDetail() {
                       : "bg-background text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 >
-                  {tab === "timelines" ? "Release Plans" : tab === "work" ? "Tasks" : tab}
+                  {tab === "timelines" ? "Release Plans" : tab === "work" ? "Tasks" : tab === "splits" ? "Splits" : tab}
                 </button>
               ))}
             </div>
@@ -282,6 +283,7 @@ export default function ArtistDetail() {
           {activeView === "work" && <WorkTab artistId={artist.id} teamId={artist.team_id} showCompleted={showCompleted} showArchived={showArchived} />}
           {activeView === "links" && <LinksTab artistId={artist.id} />}
           {activeView === "timelines" && <TimelinesTab artistId={artist.id} />}
+          {activeView === "splits" && <SplitsTab artistId={artist.id} teamId={artist.team_id} />}
         </div>
       </div>
     </AppLayout>

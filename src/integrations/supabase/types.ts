@@ -1273,6 +1273,171 @@ export type Database = {
           },
         ]
       }
+      split_contributors: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          ipi_number: string | null
+          name: string
+          phone: string | null
+          pro_affiliation: string | null
+          pub_ipi_number: string | null
+          team_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          ipi_number?: string | null
+          name: string
+          phone?: string | null
+          pro_affiliation?: string | null
+          pub_ipi_number?: string | null
+          team_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          ipi_number?: string | null
+          name?: string
+          phone?: string | null
+          pro_affiliation?: string | null
+          pub_ipi_number?: string | null
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "split_contributors_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      split_entries: {
+        Row: {
+          approval_status: string
+          approval_token: string | null
+          approved_at: string | null
+          contributor_id: string
+          created_at: string
+          id: string
+          master_pct: number | null
+          producer_pct: number | null
+          role: string
+          song_id: string
+          writer_pct: number | null
+        }
+        Insert: {
+          approval_status?: string
+          approval_token?: string | null
+          approved_at?: string | null
+          contributor_id: string
+          created_at?: string
+          id?: string
+          master_pct?: number | null
+          producer_pct?: number | null
+          role?: string
+          song_id: string
+          writer_pct?: number | null
+        }
+        Update: {
+          approval_status?: string
+          approval_token?: string | null
+          approved_at?: string | null
+          contributor_id?: string
+          created_at?: string
+          id?: string
+          master_pct?: number | null
+          producer_pct?: number | null
+          role?: string
+          song_id?: string
+          writer_pct?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "split_entries_contributor_id_fkey"
+            columns: ["contributor_id"]
+            isOneToOne: false
+            referencedRelation: "split_contributors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "split_entries_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "split_songs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      split_projects: {
+        Row: {
+          artist_id: string
+          created_at: string
+          id: string
+          name: string
+          project_type: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          id?: string
+          name: string
+          project_type?: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          project_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "split_projects_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      split_songs: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          sort_order?: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          sort_order?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "split_songs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "split_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_employment: {
         Row: {
           annual_salary: number | null
@@ -1607,6 +1772,11 @@ export type Database = {
         Returns: string
       }
       get_prospect_team_id: { Args: { p_prospect_id: string }; Returns: string }
+      get_split_project_team_id: {
+        Args: { p_project_id: string }
+        Returns: string
+      }
+      get_split_song_team_id: { Args: { p_song_id: string }; Returns: string }
       has_artist_access: {
         Args: {
           p_artist_id: string
