@@ -11,7 +11,8 @@ export function useArtists(teamId: string | null) {
           *,
           initiatives(count),
           tasks(count),
-          budgets(label, amount)
+          budgets(label, amount),
+          transactions(amount, type)
         `)
         .eq("team_id", teamId!)
         .order("created_at", { ascending: true });

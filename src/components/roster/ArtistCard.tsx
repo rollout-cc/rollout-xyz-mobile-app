@@ -28,6 +28,9 @@ export function ArtistCard({ artist, onClick, dragHandleProps, innerRef, draggab
 
   const budgets: { label: string; amount: number }[] = (artist.budgets || []).slice(0, 3);
   const totalBudget = budgets.reduce((s: number, b: any) => s + Number(b.amount || 0), 0);
+  const totalSpending = (artist.transactions || [])
+    .filter((t: any) => t.type === "expense")
+    .reduce((s: number, t: any) => s + Math.abs(Number(t.amount || 0)), 0);
 
   return (
     <div
@@ -67,7 +70,7 @@ export function ArtistCard({ artist, onClick, dragHandleProps, innerRef, draggab
           <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground flex-wrap">
             <span className="flex items-center gap-1">
               <DollarSign className="h-3 w-3" />
-              {formatNum(totalBudget)}
+              {formatNum(totalSpending)}
             </span>
             <span className="flex items-center gap-1" title="Monthly Listeners">
               <Headphones className="h-3 w-3" />

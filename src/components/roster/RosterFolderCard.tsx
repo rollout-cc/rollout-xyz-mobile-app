@@ -21,8 +21,10 @@ interface RosterFolderCardProps {
 export function RosterFolderCard({ folder, artists, onOpenAddDialog, onDelete, onClick, isDraggingOver }: RosterFolderCardProps) {
   const displayArtists = artists.slice(0, 4);
   const totalSpent = artists.reduce((sum, a) => {
-    const budgets = a.budgets || [];
-    return sum + budgets.reduce((s: number, b: any) => s + Number(b.amount || 0), 0);
+    const txns = a.transactions || [];
+    return sum + txns
+      .filter((t: any) => t.type === "expense")
+      .reduce((s: number, t: any) => s + Math.abs(Number(t.amount || 0)), 0);
   }, 0);
 
   return (
