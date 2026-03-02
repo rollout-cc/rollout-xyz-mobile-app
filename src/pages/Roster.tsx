@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { AppLayout } from "@/components/AppLayout";
 import { useArtists, useCreateArtist } from "@/hooks/useArtists";
 import { useCreateTeam } from "@/hooks/useTeams";
@@ -7,7 +8,7 @@ import { useSelectedTeam } from "@/contexts/TeamContext";
 import { useRosterFolders, useCreateRosterFolder, useDeleteRosterFolder, useSetArtistFolder } from "@/hooks/useRosterFolders";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { FolderPlus } from "lucide-react";
+import { FolderPlus, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { ArtistCard } from "@/components/roster/ArtistCard";
 import { RosterFolderCard } from "@/components/roster/RosterFolderCard";
@@ -30,6 +31,7 @@ export default function Roster() {
   const [showAddArtist, setShowAddArtist] = useState(false);
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
@@ -95,6 +97,7 @@ export default function Roster() {
   const handleDeleteFolder = async (id: string) => {
     try {
       await deleteFolder.mutateAsync(id);
+      if (selectedFolderId === id) setSelectedFolderId(null);
       toast.success("Folder deleted");
     } catch (err: any) {
       toast.error(err.message);
@@ -109,9 +112,65 @@ export default function Roster() {
     setArtistFolder.mutate({ artistId, folderId: null });
   };
 
-  // Artists not in any folder
-  const uncategorizedArtists = artists.filter((a: any) => !a.folder_id);
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    const artistId = result.draggableId;
+    const destId = result.destination.droppableId;
+    if (destId.startsWith("folder-")) {
+      const folderId = destId.replace("folder-", "");
+      setArtistFolder.mutate({ artistId, folderId });
+    }
+  };
 
+  const uncategorizedArtists = artists.filter((a: any) => !a.folder_id);
+  const selectedFolder = selectedFolderId ? folders.find((f: any) => f.id === selectedFolderId) : null;
+  const folderArtists = selectedFolderId ? artists.filter((a: any) => a.folder_id === selectedFolderId) : [];
+
+  // Folder detail view
+  if (selectedFolderId && selectedFolder) {
+    return (
+      <AppLayout
+        title="Roster"
+        actions={
+          <Button onClick={() => setShowAddArtist(true)} size="sm" className="gap-1 hidden sm:inline-flex">
+            Add Artist
+          </Button>
+        }
+      >
+        <div className="mb-4 flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedFolderId(null)}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h2 className="text-lg font-semibold">{selectedFolder.name}</h2>
+        </div>
+
+        {folderArtists.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No artists in this category yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {folderArtists.map((artist: any) => (
+              <ArtistCard
+                key={artist.id}
+                artist={artist}
+                onClick={() => navigate(`/roster/${artist.id}`)}
+              />
+            ))}
+          </div>
+        )}
+
+        <MobileFAB onAction={handleFABAction} />
+        <AddArtistDialog
+          open={showAddArtist}
+          onOpenChange={setShowAddArtist}
+          existingSpotifyIds={existingSpotifyIds}
+          onAdd={handleAddToRoster}
+          onCreateManual={handleCreateManual}
+        />
+      </AppLayout>
+    );
+  }
+
+  // Main roster view with DnD
   return (
     <AppLayout
       title="Roster"
@@ -135,7 +194,6 @@ export default function Roster() {
       }
     >
       <PullToRefresh onRefresh={handleRefresh}>
-        {/* Inline folder creation */}
         {creatingFolder && (
           <div className="mb-4">
             <Input
@@ -162,48 +220,66 @@ export default function Roster() {
             <Button onClick={() => setShowAddArtist(true)}>Add Artist</Button>
           </div>
         ) : (
-          <>
-            {/* Folder cards */}
+          <DragDropContext onDragEnd={handleDragEnd}>
+            {/* Folder cards as droppable targets */}
             {folders.length > 0 && (
               <div className="mb-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {folders.map((folder: any) => {
-                    const folderArtists = artists.filter((a: any) => a.folder_id === folder.id);
+                    const fArtists = artists.filter((a: any) => a.folder_id === folder.id);
                     return (
-                      <RosterFolderCard
-                        key={folder.id}
-                        folder={folder}
-                        artists={folderArtists}
-                        allArtists={artists}
-                        onAddArtist={(artistId) => handleAddArtistToFolder(artistId, folder.id)}
-                        onRemoveArtist={handleRemoveArtistFromFolder}
-                        onDelete={() => handleDeleteFolder(folder.id)}
-                        onClick={() => {/* Could navigate to folder detail */}}
-                      />
+                      <Droppable key={folder.id} droppableId={`folder-${folder.id}`}>
+                        {(provided, snapshot) => (
+                          <div ref={provided.innerRef} {...provided.droppableProps}>
+                            <RosterFolderCard
+                              folder={folder}
+                              artists={fArtists}
+                              allArtists={artists}
+                              onAddArtist={(artistId) => handleAddArtistToFolder(artistId, folder.id)}
+                              onRemoveArtist={handleRemoveArtistFromFolder}
+                              onDelete={() => handleDeleteFolder(folder.id)}
+                              onClick={() => setSelectedFolderId(folder.id)}
+                              isDraggingOver={snapshot.isDraggingOver}
+                            />
+                            <div className="hidden">{provided.placeholder}</div>
+                          </div>
+                        )}
+                      </Droppable>
                     );
                   })}
                 </div>
               </div>
             )}
 
-            {/* Uncategorized artists */}
+            {/* Uncategorized artists as draggables */}
             {uncategorizedArtists.length > 0 && (
-              <div>
-                {folders.length > 0 && (
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">All Artists</h3>
+              <Droppable droppableId="uncategorized" isDropDisabled>
+                {(provided) => (
+                  <div ref={provided.innerRef} {...provided.droppableProps}>
+                    {folders.length > 0 && (
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">All Artists</h3>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {uncategorizedArtists.map((artist: any, index: number) => (
+                        <Draggable key={artist.id} draggableId={artist.id} index={index}>
+                          {(dragProvided) => (
+                            <ArtistCard
+                              artist={artist}
+                              onClick={() => navigate(`/roster/${artist.id}`)}
+                              innerRef={dragProvided.innerRef}
+                              draggableProps={dragProvided.draggableProps}
+                              dragHandleProps={dragProvided.dragHandleProps ?? undefined}
+                            />
+                          )}
+                        </Draggable>
+                      ))}
+                    </div>
+                    {provided.placeholder}
+                  </div>
                 )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {uncategorizedArtists.map((artist: any) => (
-                    <ArtistCard
-                      key={artist.id}
-                      artist={artist}
-                      onClick={() => navigate(`/roster/${artist.id}`)}
-                    />
-                  ))}
-                </div>
-              </div>
+              </Droppable>
             )}
-          </>
+          </DragDropContext>
         )}
       </PullToRefresh>
 

@@ -20,22 +20,27 @@ interface RosterFolderCardProps {
   onRemoveArtist: (artistId: string) => void;
   onDelete: () => void;
   onClick: () => void;
+  isDraggingOver?: boolean;
 }
 
-export function RosterFolderCard({ folder, artists, allArtists, onAddArtist, onRemoveArtist, onDelete, onClick }: RosterFolderCardProps) {
+export function RosterFolderCard({ folder, artists, allArtists, onAddArtist, onRemoveArtist, onDelete, onClick, isDraggingOver }: RosterFolderCardProps) {
   const displayArtists = artists.slice(0, 4);
   const totalSpent = artists.reduce((sum, a) => {
     const budgets = a.budgets || [];
     return sum + budgets.reduce((s: number, b: any) => s + Number(b.amount || 0), 0);
   }, 0);
 
-  // Artists not in this folder (for "Add artist" submenu)
   const availableArtists = allArtists.filter((a) => a.folder_id !== folder.id);
 
   return (
     <div
       onClick={onClick}
-      className="relative flex flex-col rounded-xl overflow-hidden cursor-pointer group border border-border bg-card hover:shadow-md transition-shadow"
+      className={cn(
+        "relative flex flex-col rounded-xl overflow-hidden cursor-pointer group border bg-card hover:shadow-md transition-all",
+        isDraggingOver
+          ? "border-primary border-2 shadow-lg ring-2 ring-primary/20"
+          : "border-border"
+      )}
     >
       <div className="p-4 pb-3">
         <div className="flex items-start justify-between gap-1 mb-3">
@@ -91,7 +96,6 @@ export function RosterFolderCard({ folder, artists, allArtists, onAddArtist, onR
           </DropdownMenu>
         </div>
 
-        {/* Artist avatars grid (2x2) */}
         <div className="grid grid-cols-2 gap-1.5 mb-3">
           {[0, 1, 2, 3].map((i) => {
             const a = displayArtists[i];
@@ -108,7 +112,6 @@ export function RosterFolderCard({ folder, artists, allArtists, onAddArtist, onR
           })}
         </div>
 
-        {/* Footer stats */}
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{artists.length} artist{artists.length !== 1 ? "s" : ""}</span>
           <span className="flex items-center gap-0.5">

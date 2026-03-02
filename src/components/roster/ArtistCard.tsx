@@ -1,6 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { BarChart3, Headphones, FolderOpen, CheckCircle2, MoreVertical, DollarSign } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Headphones, FolderOpen, CheckCircle2, MoreVertical, DollarSign } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -9,6 +8,9 @@ import { Button } from "@/components/ui/button";
 interface ArtistCardProps {
   artist: any;
   onClick: () => void;
+  dragHandleProps?: Record<string, any>;
+  innerRef?: (el: HTMLElement | null) => void;
+  draggableProps?: Record<string, any>;
 }
 
 function formatNum(n: number): string {
@@ -17,17 +19,19 @@ function formatNum(n: number): string {
   return String(n);
 }
 
-export function ArtistCard({ artist, onClick }: ArtistCardProps) {
+export function ArtistCard({ artist, onClick, dragHandleProps, innerRef, draggableProps }: ArtistCardProps) {
   const initiativeCount = artist.initiatives?.[0]?.count ?? 0;
   const taskCount = artist.tasks?.[0]?.count ?? 0;
   const listeners = artist.monthly_listeners ?? 0;
 
-  // Budget progress bars
   const budgets: { label: string; amount: number }[] = (artist.budgets || []).slice(0, 3);
   const totalBudget = budgets.reduce((s: number, b: any) => s + Number(b.amount || 0), 0);
 
   return (
     <div
+      ref={innerRef}
+      {...(draggableProps || {})}
+      {...(dragHandleProps || {})}
       onClick={onClick}
       className="relative flex flex-col rounded-xl overflow-hidden cursor-pointer group border border-border bg-card hover:shadow-md transition-shadow"
     >
@@ -53,7 +57,6 @@ export function ArtistCard({ artist, onClick }: ArtistCardProps) {
             </DropdownMenu>
           </div>
 
-          {/* Stats row */}
           <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground flex-wrap">
             <span className="flex items-center gap-1">
               <DollarSign className="h-3 w-3" />
@@ -75,11 +78,9 @@ export function ArtistCard({ artist, onClick }: ArtistCardProps) {
         </div>
       </div>
 
-      {/* Budget progress bars */}
       {budgets.length > 0 && (
         <div className="px-4 pb-4 space-y-2">
           {budgets.map((b: any, i: number) => {
-            // Use a simple visual bar (no spent data here, just show allocation)
             const pct = totalBudget > 0 ? (Number(b.amount) / totalBudget) * 100 : 0;
             return (
               <div key={i}>
