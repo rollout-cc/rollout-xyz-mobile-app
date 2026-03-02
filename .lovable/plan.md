@@ -1,44 +1,109 @@
 
+# Plan: Platform Consolidation and Finance UX Improvements
 
-## Notes Editor Improvements + Social Image Fix
+This is a significant restructuring that consolidates navigation, improves finance workflows, and adds staff task management. Here's the breakdown:
 
-### 1. Enter in title moves focus to body
-When the user presses Enter in the title `<input>`, prevent the default behavior and focus the Tiptap editor body instead.
+---
 
-### 2. Reorganize toolbar into 3 dropdown groups
-Replace the current flat toolbar with 3 distinct icon-triggered dropdowns:
+## 1. Finance Tab UX Improvements (FinanceTab.tsx)
 
-- **Block type dropdown** (existing "Body v" dropdown) -- options: Body, Title, Heading, Subheading
-- **List dropdown** (new, using `List` icon) -- options: Bullet List, Numbered List, Checklist (requires adding `@tiptap/extension-task-list` and `@tiptap/extension-task-item`)
-- **Text effects dropdown** (new, using `Type` icon) -- options: Bold, Italic, Underline, Strikethrough
+### Hover trash icon (replaces 3-dot menu)
+- Remove the `DropdownMenu` on each transaction row
+- Add a `Trash2` icon button with `opacity-0 group-hover:opacity-100` that triggers soft-delete
 
-### 3. Keyboard shortcuts
-Tiptap's StarterKit already handles Cmd+B (bold), Cmd+I (italic). The Underline extension handles Cmd+U. For Cmd+S (strikethrough), add a custom keyboard shortcut via `addKeyboardShortcuts` on the StarterKit or a custom extension, since the default strikethrough shortcut is Cmd+Shift+S.
+### 10-second undo snackbar
+- Track `pendingDelete` state with the deleted item's data and a timeout ref
+- Optimistically hide the item from the list
+- Render a fixed bottom-right snackbar with "Undo" button and a 10s fade-out progress bar
+- On undo: cancel timeout, restore item; on timeout expiry: execute actual Supabase delete
 
-### 4. Checklist support
-Install `@tiptap/extension-task-list` and `@tiptap/extension-task-item` and add them to the editor extensions. Add CSS styles for task list checkboxes.
+### Budget categories in category dropdown
+- Query `budgets` table for the current artist
+- Merge budget labels into the category `Select` dropdown alongside `finance_categories`
+- When a budget label is selected that doesn't have a matching finance_category, auto-create one
 
-### 5. Social sharing image (og:image)
-The current `og:image` points to a cropped flag image. You need to upload a properly formatted social preview image (recommended 1200x630px) and update the `og:image` and `twitter:image` meta tags in `index.html`. Since this is controlled by the image URL in the meta tags, you can either:
-- Upload a new social image to the project's `public/` folder and reference it with the full `https://rollout.cc/social-preview.png` URL
-- Or upload a new image to the same storage bucket
+### Enter-to-save and continue (both Expenses and Revenue)
+- Add `onKeyDown` (Enter) handler on the new item form inputs
+- On successful save, reset form fields but keep `showNewItem = true` and refocus the amount input
+- This "save and continue" behavior applies to both expense and revenue item forms
 
-I'd recommend creating a proper 1200x630 social card image. **Do you have a social preview image you'd like to use, or should I create a simple branded one using the Rollout logo on a dark background?**
+---
 
-### Technical Details
+## 2. Consolidate Roster + A&R into "Artists" Section
 
-**Files to modify:**
-- `src/components/notes/NotesPanel.tsx` -- Add Enter handler on title input, restructure toolbar into 3 dropdowns, add TaskList/TaskItem extensions, add Cmd+S shortcut for strikethrough
-- `src/index.css` -- Add task list checkbox styling
-- `index.html` -- Update og:image once new image is provided
-- Install: `@tiptap/extension-task-list`, `@tiptap/extension-task-item`
+### Rename Roster to Artists
+- Update sidebar nav label from "Roster" to "Artists"
+- Update mobile bottom nav label
+- Update `AppLayout` title from "Roster" to "Artists"
+- Route stays `/roster` (no DB changes needed -- this is purely a UI label change)
 
-**Title Enter handler (line ~436-444):**
-Add `onKeyDown` to the title input that calls `editor.commands.focus("start")` on Enter.
+### Add tabs: "Current Roster" and "A&R Signings"
+- Add pill-style tabs at the top of the Artists page
+- "Current Roster" tab shows the existing roster view (folders, artist cards, drag-drop)
+- "A&R Signings" tab embeds the full ARList content (board/table view toggle, prospect drawer)
+- Extract ARList's core content into a reusable component so it can render inside the tab without its own `AppLayout` wrapper
 
-**Toolbar restructure:**
-Replace the current inline B/I/U/S buttons with a `Type` icon dropdown containing those 4 options. Add a `List` icon dropdown with Bullet, Numbered, and Checklist. Keep the existing block-type dropdown as-is.
+---
 
-**Strikethrough shortcut:**
-Create a small custom extension or configure StarterKit's strike to map `Mod-s` in addition to the default `Mod-Shift-s`.
+## 3. Consolidate Company + Agenda + Staff into Company Section
 
+### Add local tabs to Overview page
+- Add three pill-style tabs: "Dashboard", "Agenda", "Staff"
+- "Dashboard" shows the current Overview content (widgets, budget, KPIs)
+- "Agenda" embeds the Agenda page content (artist picker, budget summary, tasks, milestones)
+- "Staff" embeds the Staff page content (member metrics, employment drawers)
+- All tabs render within the same `/overview` route -- no URL changes
+
+### Update sidebar
+- Remove "Agenda", "Staff", and "A&R" from sidebar nav items
+- Keep: Company, Artists, My Work
+- Update mobile bottom nav similarly (remove Agenda, Staff, A&R from "More" menu)
+
+---
+
+## 4. Staff Task Management
+
+### Staff detail page
+- Create a new route `/staff/:memberId` with a detail page for each staff member
+- Include tabs: "Tasks" (assigned work items), "Info" (profile, employment details)
+- Tasks tab allows managers to create, assign, and manage tasks for the staff member
+- These tasks may or may not be linked to an artist but are assigned to the staff member's user ID
+- Assigned tasks appear in the staff member's "My Work" section
+
+### Inline quick-assign on Staff tab
+- Add a quick "Assign Task" action on staff member cards/rows
+- Opens a dialog to create a task and assign it to that member
+
+---
+
+## 5. Financial Audit (Code Verification)
+
+- Review salary/retainer calculations in StaffMetricsSection and StaffEmploymentDrawer
+- Verify that W-2 employer tax calculations feed into company-level staff expenses
+- Confirm artist transaction totals (expenses, revenue, net) are computed correctly
+- Ensure budget utilization calculations match actual transaction sums
+- Check that company budget remaining balance properly subtracts artist allocations, staff payroll, and business expenses
+- Report any discrepancies found
+
+---
+
+## Technical Details
+
+### Files to create:
+- `src/components/ar/ARContent.tsx` -- extracted AR content (no AppLayout wrapper) for embedding in Artists tab
+- `src/components/overview/AgendaContent.tsx` -- extracted Agenda content for embedding in Company tab  
+- `src/components/overview/StaffContent.tsx` -- extracted Staff content for embedding in Company tab
+- `src/pages/StaffDetail.tsx` -- new staff member detail page
+
+### Files to modify:
+- `src/components/artist/FinanceTab.tsx` -- all finance UX changes
+- `src/pages/Roster.tsx` -- add tabs, embed AR content, rename to Artists
+- `src/pages/Overview.tsx` -- add tabs, embed Agenda and Staff content
+- `src/components/AppSidebar.tsx` -- remove Agenda, Staff, A&R nav items; rename Roster to Artists
+- `src/components/MobileBottomNav.tsx` -- update nav items
+- `src/App.tsx` -- add StaffDetail route, keep old routes as redirects for bookmarks
+
+### Database changes:
+- No schema changes needed for navigation consolidation (purely UI)
+- Tasks table already supports `assigned_to` user IDs, so staff task assignment works with existing schema
+- Budget label to finance_category auto-creation uses existing tables
