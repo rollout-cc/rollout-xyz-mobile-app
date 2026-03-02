@@ -111,12 +111,27 @@ export default function JoinTeam() {
   };
 
   const handleGoogleLogin = async () => {
-    // Store token in localStorage so we can pick it up after redirect
     localStorage.setItem("pending_invite_token", token || "");
-    const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/join/${token}`,
-    });
-    if (error) toast.error(error.message);
+    const isCustomDomain =
+      !window.location.hostname.includes("lovable.app") &&
+      !window.location.hostname.includes("lovableproject.com");
+
+    if (isCustomDomain) {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/join/${token}`,
+          skipBrowserRedirect: true,
+        },
+      });
+      if (error) { toast.error(error.message); return; }
+      if (data?.url) window.location.href = data.url;
+    } else {
+      const { error } = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: `${window.location.origin}/join/${token}`,
+      });
+      if (error) toast.error(error.message);
+    }
   };
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
