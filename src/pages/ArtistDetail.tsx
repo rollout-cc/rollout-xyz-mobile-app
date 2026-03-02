@@ -169,7 +169,7 @@ export default function ArtistDetail() {
     >
       {/* Back arrow */}
       <button
-        onClick={() => navigate("/roster")}
+        onClick={() => navigate(artist?.folder_id ? `/roster?folder=${artist.folder_id}` : "/roster")}
         className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors mb-2 -mt-1"
       >
         <ArrowLeft className="h-4 w-4" />

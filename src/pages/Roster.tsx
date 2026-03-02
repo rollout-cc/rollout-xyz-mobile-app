@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { AppLayout } from "@/components/AppLayout";
 import { useArtists, useCreateArtist } from "@/hooks/useArtists";
@@ -19,6 +19,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 export default function Roster() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { selectedTeamId } = useSelectedTeam();
   const { data: artists = [], isLoading } = useArtists(selectedTeamId);
   const { data: folders = [] } = useRosterFolders(selectedTeamId);
@@ -32,7 +33,7 @@ export default function Roster() {
   const [showAddArtist, setShowAddArtist] = useState(false);
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(searchParams.get("folder"));
   const folderInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
