@@ -5,7 +5,8 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { User } from "lucide-react";
+import { useTeams } from "@/hooks/useTeams";
+import { User, ChevronsUpDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +26,8 @@ export function AppLayout({ children, title, actions }: AppLayoutProps) {
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { data: teams = [] } = useTeams();
+  const selectedTeam = teams.find((t) => t.id === selectedTeamId);
 
   return (
     <SidebarProvider>
@@ -37,7 +40,32 @@ export function AppLayout({ children, title, actions }: AppLayoutProps) {
           {/* Top bar */}
           <header className="flex h-14 items-center justify-between border-b border-border px-4 sm:px-6">
             <div className="flex items-center gap-2">
-              <span className="text-base font-semibold">{title}</span>
+              {isMobile && teams.length > 0 ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-1.5 rounded-md px-1 py-1 hover:bg-accent transition-colors">
+                      <div className="flex items-center justify-center rounded-md bg-muted text-xs font-semibold h-7 w-7 overflow-hidden shrink-0">
+                        {selectedTeam?.avatar_url ? (
+                          <img src={selectedTeam.avatar_url} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          selectedTeam?.name?.[0] ?? "?"
+                        )}
+                      </div>
+                      <span className="text-base font-semibold truncate max-w-[140px]">{title}</span>
+                      <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {teams.map((team) => (
+                      <DropdownMenuItem key={team.id} onClick={() => setSelectedTeamId(team.id)}>
+                        {team.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <span className="text-base font-semibold">{title}</span>
+              )}
             </div>
             <div className="flex items-center gap-3">
               {actions}

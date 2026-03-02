@@ -61,7 +61,7 @@ export function MobileFAB({ onAction }: { onAction?: (key: string) => void }) {
     return (
       <button
         onClick={() => handleAction(routeActions[0].key)}
-        className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-foreground text-background shadow-lg active:scale-95 transition-transform safe-area-bottom"
+        className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom)+8px)] left-1/2 -translate-x-1/2 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-foreground text-background shadow-lg active:scale-95 transition-transform"
       >
         <Plus className="h-6 w-6" />
       </button>
@@ -94,7 +94,7 @@ export function MobileFAB({ onAction }: { onAction?: (key: string) => void }) {
             transition={{ delay: index * 0.05 }}
             onClick={() => handleAction(action.key)}
             className="fixed left-1/2 -translate-x-1/2 z-50 flex items-center gap-3"
-            style={{ bottom: `${100 + index * 56}px` }}
+            style={{ bottom: `calc(3.5rem + env(safe-area-inset-bottom) + ${76 + index * 56}px)` }}
           >
             <span className="rounded-lg bg-card px-3 py-1.5 text-sm font-medium shadow-md border border-border">
               {action.label}
@@ -110,7 +110,7 @@ export function MobileFAB({ onAction }: { onAction?: (key: string) => void }) {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg active:scale-95 transition-all safe-area-bottom",
+          "fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom)+8px)] left-1/2 -translate-x-1/2 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg active:scale-95 transition-all",
           isOpen
             ? "bg-muted text-foreground rotate-45"
             : "bg-foreground text-background"
