@@ -296,17 +296,31 @@ function TaskItem({
   /* ── Mutations ── */
   const addTask = useMutation({
     mutationFn: async (parsed: any) => {
-      const { error } = await supabase.from("tasks").insert({
+      const { data, error } = await supabase.from("tasks").insert({
         artist_id: artistId, team_id: teamId, title: parsed.title,
         description: parsed.description || null,
         due_date: parsed.due_date || null, expense_amount: parsed.expense_amount || null,
         initiative_id: parsed.initiative_id || defaultCampaignId || null,
         assigned_to: parsed.assigned_to || null,
-      });
+      }).select("id").single();
       if (error) throw error;
+
+      // Also log as a finance transaction if expense exists
+      if (parsed.expense_amount && artistId) {
+        await supabase.from("transactions").insert({
+          artist_id: artistId,
+          amount: parsed.expense_amount,
+          description: parsed.title,
+          type: "expense",
+          task_id: data.id,
+          ...(parsed.budget_id ? { budget_id: parsed.budget_id } : {}),
+          ...(parsed.initiative_id ? { initiative_id: parsed.initiative_id } : {}),
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
+      queryClient.invalidateQueries({ queryKey: ["transactions", artistId] });
       setTitle(""); setDescription(""); setShowNew(false);
     },
     onError: (e: any) => toast.error(e.message),
@@ -359,7 +373,11 @@ function TaskItem({
     }
 
     const dollarMatch = parsed_title.match(/\$(\d+(?:,\d{3})*(?:\.\d{2})?)/);
-    if (dollarMatch) { expense_amount = parseFloat(dollarMatch[1].replace(/,/g, "")); parsed_title = parsed_title.replace(dollarMatch[0], "").trim(); }
+    let budget_id: string | undefined;
+    if (dollarMatch) { expense_amount = parseFloat(dollarMatch[1].replace(/,/g, "")); parsed_title = parsed_title.replace(dollarMatch[0], "").trim();
+      const matchedBudget = budgets.find((b: any) => Number(b.amount) === expense_amount);
+      if (matchedBudget) budget_id = matchedBudget.id;
+    }
 
     const hashMatch = parsed_title.match(/#(\S+)/);
     if (hashMatch) {
@@ -379,7 +397,7 @@ function TaskItem({
     }
 
     if (isNew) {
-      addTask.mutate({ title: parsed_title, description: description.trim() || undefined, due_date, expense_amount, initiative_id, assigned_to });
+      addTask.mutate({ title: parsed_title, description: description.trim() || undefined, due_date, expense_amount, initiative_id, assigned_to, budget_id });
     } else {
       updateTask.mutate({
         title: parsed_title,
