@@ -207,7 +207,7 @@ export default function JoinTeam() {
         transition={{ duration: 0.4 }}
         key={step}
       >
-        <img src={rolloutLogoWhite} alt="Rollout" className="w-48 opacity-90" />
+        <img src={rolloutLogoWhite} alt="Rollout" className="h-12 w-auto object-contain opacity-90" />
 
         <AnimatePresence mode="wait">
           {step === "auth" && !user && (
