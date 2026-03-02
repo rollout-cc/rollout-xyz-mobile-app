@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotes, useCreateNote, useUpdateNote, useDeleteNote, useShareNote, useUnshareNote, useTeamMembers } from "@/hooks/useNotes";
-import { Pin, PinOff, Trash2, Share2, ArrowLeft, Check, SquarePen, ChevronDown, Bold, Italic, Underline as UnderlineIcon, Strikethrough, List, ListOrdered, Quote } from "lucide-react";
+import { Pin, PinOff, Trash2, Share2, ArrowLeft, Check, SquarePen, ChevronDown, Bold, Italic, Underline as UnderlineIcon, Strikethrough, List, ListOrdered, Type, Pilcrow, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -20,10 +20,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, Extension } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TiptapUnderline from "@tiptap/extension-underline";
 import Placeholder from "@tiptap/extension-placeholder";
+import TaskList from "@tiptap/extension-task-list";
+import TaskItem from "@tiptap/extension-task-item";
+
+// Custom extension to remap Cmd+S to strikethrough
+const StrikethroughShortcut = Extension.create({
+  name: "strikethroughShortcut",
+  addKeyboardShortcuts() {
+    return {
+      "Mod-s": () => {
+        this.editor.commands.toggleStrike();
+        return true;
+      },
+    };
+  },
+});
 
 export function NotesPanel() {
   const { user } = useAuth();
@@ -291,7 +306,10 @@ function NoteEditor({ note, isOwner, onTitleBlur, onTitleChange, onContentChange
         blockquote: {},
       }),
       TiptapUnderline,
+      TaskList,
+      TaskItem.configure({ nested: true }),
       Placeholder.configure({ placeholder: "Start writing..." }),
+      StrikethroughShortcut,
     ],
     content: note.content || "",
     editable: isOwner,
@@ -348,9 +366,6 @@ function NoteEditor({ note, isOwner, onTitleBlur, onTitleChange, onContentChange
     if (editor.isActive("heading", { level: 1 })) return "Title";
     if (editor.isActive("heading", { level: 2 })) return "Heading";
     if (editor.isActive("heading", { level: 3 })) return "Subheading";
-    if (editor.isActive("blockquote")) return "Quote";
-    if (editor.isActive("bulletList")) return "Bullet List";
-    if (editor.isActive("orderedList")) return "Numbered List";
     return "Body";
   }, [editor?.state.selection, editor]);
 
@@ -359,15 +374,19 @@ function NoteEditor({ note, isOwner, onTitleBlur, onTitleChange, onContentChange
       {/* Formatting toolbar */}
       {isOwner && editor && (
         <div className="flex items-center gap-0.5 px-4 sm:px-6 py-1.5 border-b border-border/50">
-          {/* Block style dropdown */}
+          {/* Block type dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs font-medium text-muted-foreground px-2">
+                <Pilcrow className="h-3.5 w-3.5" />
                 {activeBlockLabel}
                 <ChevronDown className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuItem onClick={() => editor.chain().focus().setParagraph().run()}>
+                <span className="text-sm">Body</span>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}>
                 <span className="text-2xl font-bold">Title</span>
               </DropdownMenuItem>
@@ -377,52 +396,66 @@ function NoteEditor({ note, isOwner, onTitleBlur, onTitleChange, onContentChange
               <DropdownMenuItem onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
                 <span className="text-base font-semibold">Subheading</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => editor.chain().focus().setParagraph().run()}>
-                <span className="text-sm">Body</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <div className="w-px h-4 bg-border mx-1" />
+
+          {/* List dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className={cn("h-7 w-7", (editor.isActive("bulletList") || editor.isActive("orderedList") || editor.isActive("taskList")) && "bg-accent")}>
+                <List className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
               <DropdownMenuItem onClick={() => editor.chain().focus().toggleBulletList().run()}>
                 <List className="h-3.5 w-3.5 mr-2" />
-                <span className="text-sm">Bulleted List</span>
+                Bullet List
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => editor.chain().focus().toggleOrderedList().run()}>
                 <ListOrdered className="h-3.5 w-3.5 mr-2" />
-                <span className="text-sm">Numbered List</span>
+                Numbered List
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => editor.chain().focus().toggleBlockquote().run()}>
-                <Quote className="h-3.5 w-3.5 mr-2" />
-                <span className="text-sm">Block Quote</span>
+              <DropdownMenuItem onClick={() => editor.chain().focus().toggleTaskList().run()}>
+                <ListChecks className="h-3.5 w-3.5 mr-2" />
+                Checklist
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
           <div className="w-px h-4 bg-border mx-1" />
 
-          {/* Inline formatting buttons */}
-          <Button
-            variant="ghost" size="icon" className={cn("h-7 w-7", editor.isActive("bold") && "bg-accent")}
-            onClick={() => editor.chain().focus().toggleBold().run()}
-          >
-            <Bold className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost" size="icon" className={cn("h-7 w-7", editor.isActive("italic") && "bg-accent")}
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-          >
-            <Italic className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost" size="icon" className={cn("h-7 w-7", editor.isActive("underline") && "bg-accent")}
-            onClick={() => editor.chain().focus().toggleUnderline().run()}
-          >
-            <UnderlineIcon className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost" size="icon" className={cn("h-7 w-7", editor.isActive("strike") && "bg-accent")}
-            onClick={() => editor.chain().focus().toggleStrike().run()}
-          >
-            <Strikethrough className="h-3.5 w-3.5" />
-          </Button>
+          {/* Text effects dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className={cn("h-7 w-7", (editor.isActive("bold") || editor.isActive("italic") || editor.isActive("underline") || editor.isActive("strike")) && "bg-accent")}>
+                <Type className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuItem onClick={() => editor.chain().focus().toggleBold().run()}>
+                <Bold className="h-3.5 w-3.5 mr-2" />
+                Bold
+                <span className="ml-auto text-[10px] text-muted-foreground">⌘B</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => editor.chain().focus().toggleItalic().run()}>
+                <Italic className="h-3.5 w-3.5 mr-2" />
+                Italic
+                <span className="ml-auto text-[10px] text-muted-foreground">⌘I</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => editor.chain().focus().toggleUnderline().run()}>
+                <UnderlineIcon className="h-3.5 w-3.5 mr-2" />
+                Underline
+                <span className="ml-auto text-[10px] text-muted-foreground">⌘U</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => editor.chain().focus().toggleStrike().run()}>
+                <Strikethrough className="h-3.5 w-3.5 mr-2" />
+                Strikethrough
+                <span className="ml-auto text-[10px] text-muted-foreground">⌘S</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       )}
 
@@ -438,6 +471,12 @@ function NoteEditor({ note, isOwner, onTitleBlur, onTitleChange, onContentChange
           defaultValue={note.title || ""}
           key={note.id + "-title"}
           onBlur={(e) => onTitleBlur(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              editor?.commands.focus("start");
+            }
+          }}
           placeholder="Title"
           readOnly={!isOwner}
           className="w-full text-xl sm:text-2xl font-bold text-foreground bg-transparent outline-none border-none mb-3 placeholder:text-muted-foreground/40"
