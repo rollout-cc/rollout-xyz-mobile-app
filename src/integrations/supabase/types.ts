@@ -1787,8 +1787,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_note_share: { Args: { p_note_id: string }; Returns: boolean }
       is_link_folder_public: { Args: { p_folder_id: string }; Returns: boolean }
       is_member_info_public: { Args: { p_member_id: string }; Returns: boolean }
+      is_note_owner: { Args: { p_note_id: string }; Returns: boolean }
       is_team_member: { Args: { p_team_id: string }; Returns: boolean }
       is_team_owner_or_manager: {
         Args: { p_team_id: string }
