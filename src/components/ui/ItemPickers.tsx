@@ -14,8 +14,9 @@ interface DatePickerProps {
 }
 
 export function DatePicker({ value, onChange, placeholder = "Select Date" }: DatePickerProps) {
+  const [open, setOpen] = useState(false);
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
@@ -32,7 +33,10 @@ export function DatePicker({ value, onChange, placeholder = "Select Date" }: Dat
         <Calendar
           mode="single"
           selected={value}
-          onSelect={onChange}
+          onSelect={(date) => {
+            onChange(date);
+            setOpen(false);
+          }}
           initialFocus
           className="p-3 pointer-events-auto"
         />
