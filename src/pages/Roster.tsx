@@ -1,11 +1,11 @@
 import { useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { AppLayout } from "@/components/AppLayout";
 import { useArtists, useCreateArtist } from "@/hooks/useArtists";
 import { useCreateTeam } from "@/hooks/useTeams";
 import { useSelectedTeam } from "@/contexts/TeamContext";
-import { useRosterFolders, useCreateRosterFolder, useDeleteRosterFolder, useSetArtistFolder, useReorderArtistsInFolder } from "@/hooks/useRosterFolders";
+import { useRosterFolders, useCreateRosterFolder, useDeleteRosterFolder, useSetArtistFolder } from "@/hooks/useRosterFolders";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FolderPlus, ArrowLeft } from "lucide-react";
@@ -27,7 +27,7 @@ export default function Roster() {
   const createFolder = useCreateRosterFolder();
   const deleteFolder = useDeleteRosterFolder();
   const setArtistFolder = useSetArtistFolder();
-  const reorderArtists = useReorderArtistsInFolder();
+  
 
   const [showAddArtist, setShowAddArtist] = useState(false);
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -126,17 +126,8 @@ export default function Roster() {
   const uncategorizedArtists = artists.filter((a: any) => !a.folder_id);
   const selectedFolder = selectedFolderId ? folders.find((f: any) => f.id === selectedFolderId) : null;
   const folderArtists = selectedFolderId
-    ? artists.filter((a: any) => a.folder_id === selectedFolderId).sort((a: any, b: any) => (a.folder_sort_order ?? 0) - (b.folder_sort_order ?? 0))
+    ? artists.filter((a: any) => a.folder_id === selectedFolderId)
     : [];
-
-  const handleFolderDragEnd = (result: DropResult) => {
-    if (!result.destination || result.source.index === result.destination.index) return;
-    const reordered = [...folderArtists];
-    const [moved] = reordered.splice(result.source.index, 1);
-    reordered.splice(result.destination.index, 0, moved);
-    const updates = reordered.map((a: any, i: number) => ({ id: a.id, folder_sort_order: i }));
-    reorderArtists.mutate(updates);
-  };
 
   // Folder detail view
   if (selectedFolderId && selectedFolder) {
@@ -159,30 +150,17 @@ export default function Roster() {
         {folderArtists.length === 0 ? (
           <p className="text-muted-foreground text-sm">No artists in this category yet.</p>
         ) : (
-          <DragDropContext onDragEnd={handleFolderDragEnd}>
-            <Droppable droppableId="folder-detail">
-              {(provided) => (
-                <div ref={provided.innerRef} {...provided.droppableProps} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {folderArtists.map((artist: any, index: number) => (
-                    <Draggable key={artist.id} draggableId={artist.id} index={index}>
-                      {(dragProvided) => (
-                        <ArtistCard
-                          artist={artist}
-                          onClick={() => navigate(`/roster/${artist.id}`)}
-                          innerRef={dragProvided.innerRef}
-                          draggableProps={dragProvided.draggableProps}
-                          dragHandleProps={dragProvided.dragHandleProps ?? undefined}
-                          insideFolder
-                          onRemoveFromFolder={() => handleRemoveArtistFromFolder(artist.id)}
-                        />
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </DragDropContext>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {folderArtists.map((artist: any) => (
+              <ArtistCard
+                key={artist.id}
+                artist={artist}
+                onClick={() => navigate(`/roster/${artist.id}`)}
+                insideFolder
+                onRemoveFromFolder={() => handleRemoveArtistFromFolder(artist.id)}
+              />
+            ))}
+          </div>
         )}
 
         <MobileFAB onAction={handleFABAction} />
