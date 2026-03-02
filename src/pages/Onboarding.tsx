@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCreateTeam } from "@/hooks/useTeams";
+import { useCreateTeam, useTeams } from "@/hooks/useTeams";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Bell, Star, User, Hash, DollarSign, Link2, Bookmark, CalendarDays, CheckSquare } from "lucide-react";
@@ -19,6 +19,7 @@ export default function Onboarding() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const createTeam = useCreateTeam();
+  const { data: teams, isLoading: teamsLoading } = useTeams();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -31,6 +32,12 @@ export default function Onboarding() {
   const [revenue, setRevenue] = useState("less than $10,000");
   const [artistCount, setArtistCount] = useState("2-5");
   const [companyType, setCompanyType] = useState("");
+
+
+  // If the user already belongs to a team (e.g. via invite), skip onboarding
+  if (!teamsLoading && teams && teams.length > 0) {
+    return <Navigate to="/roster" replace />;
+  }
 
   const canGoNext = () => {
     if (step === 1) return true;

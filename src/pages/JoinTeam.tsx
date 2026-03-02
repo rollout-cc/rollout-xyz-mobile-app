@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +23,7 @@ export default function JoinTeam() {
   const { token } = useParams<{ token: string }>();
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [step, setStep] = useState<"auth" | "profile" | "preview" | "done">("auth");
   const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
@@ -65,6 +67,7 @@ export default function JoinTeam() {
       if (data?.error) {
         if (data.already_member) {
           toast.info("You're already a member of this team!");
+          await queryClient.invalidateQueries({ queryKey: ["teams"] });
           navigate("/roster", { replace: true });
           return;
         }
@@ -134,7 +137,8 @@ export default function JoinTeam() {
     }
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["teams"] });
     toast.success(`Welcome to ${joinResult?.team_name}!`);
     navigate("/roster", { replace: true });
   };
