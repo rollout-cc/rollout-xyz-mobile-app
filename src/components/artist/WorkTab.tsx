@@ -318,10 +318,20 @@ function TaskItem({
         });
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
       queryClient.invalidateQueries({ queryKey: ["transactions", artistId] });
       setTitle(""); setDescription(""); setShowNew(false);
+      // Fire-and-forget: notify assignee + check budget threshold
+      import("@/lib/notifications").then(({ notifyTaskAssigned, checkBudgetThreshold }) => {
+        if (variables.assigned_to) {
+          const artistObj = undefined; // We don't have artist name here easily
+          notifyTaskAssigned({ id: "", title: variables.title, assigned_to: variables.assigned_to, due_date: variables.due_date, artist_id: artistId });
+        }
+        if (variables.expense_amount && variables.budget_id) {
+          checkBudgetThreshold(artistId, variables.budget_id);
+        }
+      });
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -343,8 +353,16 @@ function TaskItem({
       const completed = !task.is_completed;
       const { error } = await supabase.from("tasks").update({ is_completed: completed, completed_at: completed ? new Date().toISOString() : null }).eq("id", task.id);
       if (error) throw error;
+      return completed;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks", artistId] }),
+    onSuccess: (completed) => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
+      if (completed && task) {
+        import("@/lib/notifications").then(({ notifyTaskCompleted }) => {
+          notifyTaskCompleted(task);
+        });
+      }
+    },
   });
 
   const deleteTask = useMutation({

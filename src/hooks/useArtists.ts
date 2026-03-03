@@ -42,8 +42,12 @@ export function useCreateArtist() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["artists", variables.team_id] });
+      // Fire-and-forget notification
+      import("@/lib/notifications").then(({ notifyNewArtist }) => {
+        notifyNewArtist(variables.team_id, variables.name);
+      });
     },
   });
 }

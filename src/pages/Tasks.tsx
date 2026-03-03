@@ -36,8 +36,17 @@ export default function Tasks() {
         .update({ is_completed: true, completed_at: new Date().toISOString() })
         .eq("id", taskId);
       if (error) throw error;
+      return taskId;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["my-tasks"] }),
+    onSuccess: (taskId) => {
+      queryClient.invalidateQueries({ queryKey: ["my-tasks"] });
+      const task = tasks.find((t) => t.id === taskId);
+      if (task) {
+        import("@/lib/notifications").then(({ notifyTaskCompleted }) => {
+          notifyTaskCompleted(task);
+        });
+      }
+    },
   });
 
   return (

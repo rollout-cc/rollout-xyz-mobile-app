@@ -68,6 +68,12 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
       queryClient.invalidateQueries({ queryKey: ["transactions", artistId] });
       resetForm();
       toast.success("Transaction added");
+      // Check budget threshold
+      if (newBudgetId !== "none") {
+        import("@/lib/notifications").then(({ checkBudgetThreshold }) => {
+          checkBudgetThreshold(artistId, newBudgetId);
+        });
+      }
     },
     onError: (e: any) => toast.error(e.message),
   });

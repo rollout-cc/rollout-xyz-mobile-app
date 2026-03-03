@@ -231,7 +231,25 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const payload: NotificationPayload = await req.json();
+    const payload: NotificationPayload & { user_id?: string } = await req.json();
+
+    // If user_id provided but no email, resolve it via service role
+    if (payload.user_id && !payload.to_email) {
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+      const adminClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data: userData } = await adminClient.auth.admin.getUserById(payload.user_id);
+      if (!userData?.user?.email) {
+        return new Response(JSON.stringify({ skipped: true, reason: "no email found" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      payload.to_email = userData.user.email;
+      delete payload.user_id;
+    }
 
     if (!payload.type || !payload.to_email) {
       return new Response(JSON.stringify({ error: "type and to_email are required" }), {
