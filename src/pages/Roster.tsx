@@ -9,6 +9,7 @@ import { useSelectedTeam } from "@/contexts/TeamContext";
 import { useRosterFolders, useCreateRosterFolder, useDeleteRosterFolder, useSetArtistFolder } from "@/hooks/useRosterFolders";
 import { useTeamPlan } from "@/hooks/useTeamPlan";
 import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
+import { TrialWelcomeDialog } from "@/components/billing/TrialWelcomeDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -67,8 +68,21 @@ export default function Roster() {
   const createFolder = useCreateRosterFolder();
   const deleteFolder = useDeleteRosterFolder();
   const setArtistFolder = useSetArtistFolder();
-  const { limits } = useTeamPlan();
+  const { limits, isTrialing, trialDaysLeft } = useTeamPlan();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  // Show trial welcome dialog on first visit after signup
+  const [trialWelcomeOpen, setTrialWelcomeOpen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const key = "rollout_trial_welcome_shown";
+    return !localStorage.getItem(key);
+  });
+
+  useEffect(() => {
+    if (!trialWelcomeOpen) {
+      localStorage.setItem("rollout_trial_welcome_shown", "1");
+    }
+  }, [trialWelcomeOpen]);
 
   const [activeTab, setActiveTab] = useState<"roster" | "ar">(searchParams.get("tab") === "ar" ? "ar" : "roster");
   const [showAddArtist, setShowAddArtist] = useState(false);
@@ -398,6 +412,7 @@ export default function Roster() {
         onCreateManual={handleCreateManual}
       />
       <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} feature="More than 3 roster artists" />
+      <TrialWelcomeDialog open={trialWelcomeOpen} onOpenChange={setTrialWelcomeOpen} />
       </>
       )}
     </AppLayout>

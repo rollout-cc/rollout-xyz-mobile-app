@@ -50,8 +50,8 @@ export function UpgradeDialog({ open, onOpenChange, feature }: UpgradeDialogProp
           </DialogTitle>
           <DialogDescription>
             {feature
-              ? `${feature} is available on the Icon plan. Upgrade to unlock all features.`
-              : "Unlock unlimited artists, tasks, splits, and more with Icon."}
+              ? `${feature} is available on the Icon plan. Upgrade to unlock all features including team collaboration.`
+              : "Unlock unlimited artists, tasks, team members, splits, and more with Icon."}
           </DialogDescription>
         </DialogHeader>
 

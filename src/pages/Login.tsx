@@ -162,7 +162,8 @@ export default function Login() {
             </div>
           ) : (
             <div className="max-w-md">
-              <h2 className="text-2xl font-semibold text-foreground mb-8">Apply</h2>
+              <h2 className="text-2xl font-semibold text-foreground mb-2">Try for free</h2>
+              <p className="text-sm text-muted-foreground mb-6">Start your 30-day free trial. No credit card required.</p>
 
               <form onSubmit={handleEmailSignup} className="flex flex-col gap-4">
                 <Input
@@ -195,7 +196,7 @@ export default function Login() {
                   disabled={loading}
                   className="h-12 rounded-full bg-foreground text-background hover:bg-foreground/90 font-medium mt-2"
                 >
-                  {loading ? "Creating account..." : "Create Account"}
+                  {loading ? "Creating account..." : "Start Free Trial"}
                 </Button>
 
                 <button
@@ -218,7 +219,7 @@ export default function Login() {
           >
             <span className="text-sm font-medium text-foreground">Don't have an account?</span>
             <span className="flex items-center gap-1 text-sm text-muted-foreground">
-              Apply Here <ChevronRight className="h-4 w-4" />
+              Try for free <ChevronRight className="h-4 w-4" />
             </span>
           </button>
         )}
