@@ -12,6 +12,8 @@ import { InlineField } from "@/components/ui/InlineField";
 import { cn } from "@/lib/utils";
 import { BrandTagInput } from "@/components/ui/BrandTagInput";
 import { IndustryEntitySelect } from "@/components/ui/IndustryEntitySelect";
+import { useTeamRegion } from "@/hooks/useTeamRegion";
+import { getPROsForRegion } from "@/lib/regionConfig";
 
 interface ArtistInfoTabProps {
   artist: any;
@@ -226,11 +228,11 @@ function MemberCard({
               <Music className="h-3.5 w-3.5" /> Admin Info
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="PRO (Performing Rights Org)" value={(member as any).pro_name ?? ""} placeholder="e.g. ASCAP, BMI, SESAC" onSave={(v) => onUpdate({ pro_name: v })} />
+              <PROSelectField label="PRO (Performing Rights Org)" value={(member as any).pro_name ?? ""} onSave={(v) => onUpdate({ pro_name: v })} />
               <Field label="IPI/CAE #" value={(member as any).ipi_number ?? ""} placeholder="Enter IPI/CAE number" onSave={(v) => onUpdate({ ipi_number: v })} />
               <EntityField label="Publisher" entityType="publisher" value={(member as any).publisher_name ?? ""} onSave={(v) => onUpdate({ publisher_name: v })} />
               <EntityField label="Publishing Admin" entityType="publishing_admin" value={(member as any).publishing_admin ?? ""} onSave={(v) => onUpdate({ publishing_admin: v })} />
-              <Field label="Publisher PRO" value={(member as any).publisher_pro ?? ""} placeholder="e.g. ASCAP, BMI" onSave={(v) => onUpdate({ publisher_pro: v })} />
+              <PROSelectField label="Publisher PRO" value={(member as any).publisher_pro ?? ""} onSave={(v) => onUpdate({ publisher_pro: v })} />
               <Field label="ISNI" value={(member as any).isni ?? ""} placeholder="Enter ISNI" onSave={(v) => onUpdate({ isni: v })} />
               <Field label="Spotify URI" value={(member as any).spotify_uri ?? ""} placeholder="e.g. spotify:artist:..." onSave={(v) => onUpdate({ spotify_uri: v })} />
               <EntityField label="Record Label" entityType="record_label" value={(member as any).record_label ?? ""} onSave={(v) => onUpdate({ record_label: v })} />
@@ -446,6 +448,45 @@ function DateField({
           />
         </PopoverContent>
       </Popover>
+    </div>
+  );
+}
+
+/* ── PRO Select Field (region-filtered) ── */
+function PROSelectField({
+  label, value, onSave,
+}: {
+  label: string; value: string; onSave: (v: string) => void;
+}) {
+  const { regionCode } = useTeamRegion();
+  const { primary, other } = getPROsForRegion(regionCode);
+
+  return (
+    <div>
+      <span className="text-muted-foreground text-xs">{label}</span>
+      <Select value={value || undefined} onValueChange={onSave}>
+        <SelectTrigger className="h-9 mt-0.5 bg-transparent border-border text-sm">
+          <SelectValue placeholder="Select PRO" />
+        </SelectTrigger>
+        <SelectContent className="max-h-60">
+          {primary.length > 0 && (
+            <>
+              <SelectItem value="" disabled className="text-[10px] font-semibold text-muted-foreground uppercase">Your Region</SelectItem>
+              {primary.map((p) => (
+                <SelectItem key={p} value={p}>{p}</SelectItem>
+              ))}
+            </>
+          )}
+          {other.length > 0 && (
+            <>
+              <SelectItem value="" disabled className="text-[10px] font-semibold text-muted-foreground uppercase mt-2">Other</SelectItem>
+              {other.map((p) => (
+                <SelectItem key={p} value={p}>{p}</SelectItem>
+              ))}
+            </>
+          )}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

@@ -6,12 +6,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { DatePicker } from "@/components/ui/ItemPickers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { JobTitleSelect } from "@/components/ui/JobTitleSelect";
-import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
+import { useTeamRegion } from "@/hooks/useTeamRegion";
+import { calculateEmployerCost, getCurrencySymbol, type RegionCode, REGIONS } from "@/lib/regionConfig";
 import { US_STATES, getStateSUTA } from "@/lib/employerTaxes";
 
 interface StaffEmploymentDrawerProps {
@@ -24,6 +25,8 @@ interface StaffEmploymentDrawerProps {
 
 export function StaffEmploymentDrawer({ open, onOpenChange, userId, teamId, staffName }: StaffEmploymentDrawerProps) {
   const queryClient = useQueryClient();
+  const { region, currencyCode } = useTeamRegion();
+  const sym = getCurrencySymbol(currencyCode);
 
   const { data: employment, isLoading } = useQuery({
     queryKey: ["staff-employment", userId, teamId],
@@ -41,7 +44,7 @@ export function StaffEmploymentDrawer({ open, onOpenChange, userId, teamId, staf
   });
 
   const [form, setForm] = useState({
-    employment_type: "w2",
+    employment_type: "employee",
     job_title: "",
     annual_salary: "",
     monthly_retainer: "",
@@ -53,7 +56,7 @@ export function StaffEmploymentDrawer({ open, onOpenChange, userId, teamId, staf
   useEffect(() => {
     if (employment) {
       setForm({
-        employment_type: employment.employment_type || "w2",
+        employment_type: employment.employment_type || "employee",
         job_title: employment.job_title || "",
         annual_salary: employment.annual_salary?.toString() || "",
         monthly_retainer: employment.monthly_retainer?.toString() || "",
@@ -63,7 +66,7 @@ export function StaffEmploymentDrawer({ open, onOpenChange, userId, teamId, staf
       });
     } else {
       setForm({
-        employment_type: "w2",
+        employment_type: "employee",
         job_title: "",
         annual_salary: "",
         monthly_retainer: "",
@@ -110,25 +113,38 @@ export function StaffEmploymentDrawer({ open, onOpenChange, userId, teamId, staf
     onError: (err: any) => toast.error(err.message),
   });
 
-  const baseSalary = form.employment_type === "w2"
+  const isEmployee = form.employment_type === "employee" || form.employment_type === "w2";
+  const baseSalary = isEmployee
     ? (parseFloat(form.annual_salary) || 0)
     : (parseFloat(form.monthly_retainer) || 0) * 12;
 
-  const isW2 = form.employment_type === "w2";
+  // Use region-aware calculation
+  const isUS = region.code === "us";
+  let costResult: ReturnType<typeof calculateEmployerCost>;
 
-  // Employer tax calculations (W-2 only)
-  const ssTax = isW2 ? Math.min(baseSalary, 168600) * 0.062 : 0; // 2024 SS wage base
-  const medicareTax = isW2 ? baseSalary * 0.0145 : 0;
-  const ficaTotal = ssTax + medicareTax;
-  const futaTax = isW2 ? Math.min(baseSalary, 7000) * 0.006 : 0;
-  const sutaRate = getStateSUTA(form.employee_state);
-  const sutaTax = isW2 ? Math.min(baseSalary, 7000) * sutaRate : 0;
-  // Fringe benefits estimate (~20-30% of salary for health, 401k, etc.)
-  const fringePct = 0.25;
-  const fringeEstimate = isW2 ? baseSalary * fringePct : 0;
+  if (isUS && isEmployee) {
+    // US-specific: use detailed FICA/FUTA/SUTA
+    const ssTax = Math.min(baseSalary, 168600) * 0.062;
+    const medicareTax = baseSalary * 0.0145;
+    const futaTax = Math.min(baseSalary, 7000) * 0.006;
+    const sutaRate = getStateSUTA(form.employee_state);
+    const sutaTax = Math.min(baseSalary, 7000) * sutaRate;
+    const fringeAmount = baseSalary * 0.25;
+    const breakdown = [
+      { label: "FICA (SS + Medicare)", amount: ssTax + medicareTax, pct: (ssTax + medicareTax) / (baseSalary || 1) },
+      { label: "FUTA", amount: futaTax, pct: 0.006 },
+      { label: `SUTA${form.employee_state ? ` (${form.employee_state})` : ""}`, amount: sutaTax, pct: sutaRate },
+    ];
+    costResult = {
+      breakdown,
+      fringeAmount,
+      total: baseSalary + ssTax + medicareTax + futaTax + sutaTax + fringeAmount,
+    };
+  } else {
+    costResult = calculateEmployerCost(baseSalary, region.code, isEmployee);
+  }
 
-  const totalEmployerCost = baseSalary + ficaTotal + futaTax + sutaTax + fringeEstimate;
-  const fmt = (n: number) => `$${Math.round(n).toLocaleString()}`;
+  const fmt = (n: number) => `${sym}${Math.round(n).toLocaleString()}`;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -142,14 +158,14 @@ export function StaffEmploymentDrawer({ open, onOpenChange, userId, teamId, staf
           <div className="text-sm text-muted-foreground">Loading...</div>
         ) : (
           <div className="space-y-5">
-            {/* Employment Type */}
+            {/* Employment Type - region-aware labels */}
             <div className="space-y-2">
               <Label className="text-xs font-semibold">Employment Type</Label>
               <Select value={form.employment_type} onValueChange={(v) => setForm({ ...form, employment_type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="w2">W-2 Employee</SelectItem>
-                  <SelectItem value="1099">1099 Contractor</SelectItem>
+                  <SelectItem value="employee">{region.employeeLabel}</SelectItem>
+                  <SelectItem value="contractor">{region.contractorLabel}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -163,27 +179,30 @@ export function StaffEmploymentDrawer({ open, onOpenChange, userId, teamId, staf
               />
             </div>
 
-            {/* State */}
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold">State</Label>
-              <Select value={form.employee_state} onValueChange={(v) => setForm({ ...form, employee_state: v })}>
-                <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
-                <SelectContent className="max-h-60">
-                  {US_STATES.map((s) => (
-                    <SelectItem key={s.abbr} value={s.abbr}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* State - only show for US */}
+            {isUS && (
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">State</Label>
+                <Select value={form.employee_state} onValueChange={(v) => setForm({ ...form, employee_state: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {US_STATES.map((s) => (
+                      <SelectItem key={s.abbr} value={s.abbr}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Pay Rate */}
-            {isW2 ? (
+            {isEmployee ? (
               <div className="space-y-2">
                 <Label className="text-xs font-semibold">Annual Salary</Label>
                 <CurrencyInput
                   value={form.annual_salary}
                   onChange={(v) => setForm({ ...form, annual_salary: v })}
                   placeholder="75,000"
+                  currencySymbol={sym}
                 />
               </div>
             ) : (
@@ -193,10 +212,11 @@ export function StaffEmploymentDrawer({ open, onOpenChange, userId, teamId, staf
                   value={form.monthly_retainer}
                   onChange={(v) => setForm({ ...form, monthly_retainer: v })}
                   placeholder="5,000"
+                  currencySymbol={sym}
                 />
                 {baseSalary > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Annual cost: ${baseSalary.toLocaleString()}
+                    Annual cost: {fmt(baseSalary)}
                   </p>
                 )}
               </div>
@@ -228,44 +248,15 @@ export function StaffEmploymentDrawer({ open, onOpenChange, userId, teamId, staf
 
             {/* Cost Summary */}
             {baseSalary > 0 && (
-              <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
-                <p className="text-xs font-semibold text-muted-foreground">Annual Cost Summary</p>
-
-                <div className="space-y-1.5">
-                  <CostLine label="Base Salary" value={fmt(baseSalary)} />
-
-                  {isW2 && (
-                    <>
-                      <Separator className="my-2" />
-                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Employer Taxes</p>
-                      <CostLine label="FICA (SS + Medicare)" value={fmt(ficaTotal)} sub={`${((ficaTotal / baseSalary) * 100).toFixed(1)}%`} />
-                      <CostLine label="FUTA" value={fmt(futaTax)} />
-                      <CostLine
-                        label={`SUTA${form.employee_state ? ` (${form.employee_state})` : ""}`}
-                        value={fmt(sutaTax)}
-                        sub={form.employee_state ? `${(sutaRate * 100).toFixed(1)}% rate` : "Select state"}
-                      />
-
-                      <Separator className="my-2" />
-                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Fringe Benefits (est.)</p>
-                      <CostLine
-                        label="Health, 401k, PTO, etc."
-                        value={fmt(fringeEstimate)}
-                        sub={`~${(fringePct * 100).toFixed(0)}% of salary`}
-                      />
-                    </>
-                  )}
-                </div>
-
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-bold">Total Employer Cost</p>
-                  <p className="text-lg font-bold">{fmt(totalEmployerCost)}/yr</p>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  ~{fmt(Math.round(totalEmployerCost / 12))}/mo
-                </p>
-              </div>
+              <CostSummary
+                baseSalary={baseSalary}
+                isEmployee={isEmployee}
+                costResult={costResult}
+                regionLabel={region.label}
+                fringePct={region.fringePct}
+                hasFringe={region.hasFringeBenefits}
+                fmt={fmt}
+              />
             )}
 
             <Button onClick={() => upsert.mutate()} className="w-full" disabled={upsert.isPending}>
@@ -275,6 +266,76 @@ export function StaffEmploymentDrawer({ open, onOpenChange, userId, teamId, staf
         )}
       </SheetContent>
     </Sheet>
+  );
+}
+
+// ─── Cost Summary sub-component ───
+
+function CostSummary({
+  baseSalary,
+  isEmployee,
+  costResult,
+  regionLabel,
+  fringePct,
+  hasFringe,
+  fmt,
+}: {
+  baseSalary: number;
+  isEmployee: boolean;
+  costResult: { breakdown: { label: string; amount: number; pct: number }[]; fringeAmount: number; total: number };
+  regionLabel: string;
+  fringePct: number;
+  hasFringe: boolean;
+  fmt: (n: number) => string;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+      <p className="text-xs font-semibold text-muted-foreground">
+        Annual Cost Summary {regionLabel !== "United States" && <span className="ml-1">({regionLabel})</span>}
+      </p>
+
+      <div className="space-y-1.5">
+        <CostLine label="Base Salary" value={fmt(baseSalary)} />
+
+        {isEmployee && costResult.breakdown.length > 0 && (
+          <>
+            <Separator className="my-2" />
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Employer Taxes & Contributions</p>
+            {costResult.breakdown.map((item) => (
+              <CostLine
+                key={item.label}
+                label={item.label}
+                value={fmt(item.amount)}
+                sub={`${(item.pct * 100).toFixed(1)}%`}
+              />
+            ))}
+
+            {(hasFringe || fringePct > 0) && (
+              <>
+                <Separator className="my-2" />
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  {hasFringe ? "Fringe Benefits (est.)" : "Additional Costs (est.)"}
+                </p>
+                <CostLine
+                  label={hasFringe ? "Health, retirement, PTO, etc." : "Supplementary costs"}
+                  value={fmt(costResult.fringeAmount)}
+                  sub={`~${(fringePct * 100).toFixed(0)}% of salary`}
+                />
+              </>
+            )}
+          </>
+        )}
+      </div>
+
+      <Separator />
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-bold">Total Employer Cost</p>
+        <p className="text-lg font-bold">{fmt(costResult.total)}/yr</p>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        ~{fmt(Math.round(costResult.total / 12))}/mo
+      </p>
+    </div>
   );
 }
 

@@ -9,6 +9,7 @@ interface CurrencyInputProps {
   placeholder?: string;
   className?: string;
   autoFocus?: boolean;
+  currencySymbol?: string;
 }
 
 /** Strips non-digit/decimal chars */
@@ -33,6 +34,7 @@ export function CurrencyInput({
   placeholder = "0",
   className,
   autoFocus,
+  currencySymbol = "$",
 }: CurrencyInputProps) {
   const display = formatWithCommas(value);
 
@@ -43,7 +45,7 @@ export function CurrencyInput({
 
   return (
     <div className="relative">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{currencySymbol}</span>
       <input
         type="text"
         inputMode="decimal"

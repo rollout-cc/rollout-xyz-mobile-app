@@ -1,0 +1,4 @@
+
+ALTER TABLE public.teams
+  ADD COLUMN IF NOT EXISTS region text NOT NULL DEFAULT 'us',
+  ADD COLUMN IF NOT EXISTS base_currency text NOT NULL DEFAULT 'USD';

@@ -1631,6 +1631,7 @@ export type Database = {
           annual_budget: number | null
           artist_count: string | null
           avatar_url: string | null
+          base_currency: string
           company_type: string | null
           created_at: string
           created_by: string | null
@@ -1638,12 +1639,14 @@ export type Database = {
           monthly_revenue: string | null
           name: string
           onboarding_completed: boolean | null
+          region: string
           team_size: string | null
         }
         Insert: {
           annual_budget?: number | null
           artist_count?: string | null
           avatar_url?: string | null
+          base_currency?: string
           company_type?: string | null
           created_at?: string
           created_by?: string | null
@@ -1651,12 +1654,14 @@ export type Database = {
           monthly_revenue?: string | null
           name: string
           onboarding_completed?: boolean | null
+          region?: string
           team_size?: string | null
         }
         Update: {
           annual_budget?: number | null
           artist_count?: string | null
           avatar_url?: string | null
+          base_currency?: string
           company_type?: string | null
           created_at?: string
           created_by?: string | null
@@ -1664,6 +1669,7 @@ export type Database = {
           monthly_revenue?: string | null
           name?: string
           onboarding_completed?: boolean | null
+          region?: string
           team_size?: string | null
         }
         Relationships: []

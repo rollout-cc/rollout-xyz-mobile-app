@@ -4,7 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCreateTeam, useTeams } from "@/hooks/useTeams";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Bell, Star, User, Hash, DollarSign, Link2, Bookmark, CalendarDays } from "lucide-react";
+import { ArrowLeft, Bell, Star, User, Hash, DollarSign, Link2, Bookmark, CalendarDays, Globe } from "lucide-react";
+import { REGION_LIST, CURRENCY_LIST } from "@/lib/regionConfig";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -35,6 +36,8 @@ export default function Onboarding() {
   const [revenue, setRevenue] = useState("less than $10,000");
   const [artistCount, setArtistCount] = useState("2-5");
   const [companyType, setCompanyType] = useState("");
+  const [region, setRegion] = useState("us");
+  const [currency, setCurrency] = useState("USD");
 
   // Step 4: Artists
   const [addedArtists, setAddedArtists] = useState<OnboardingArtist[]>([]);
@@ -76,6 +79,13 @@ export default function Onboarding() {
       try {
         const team = await createTeam.mutateAsync({ name: teamName.trim(), companyType });
         setCreatedTeamId(team.id);
+        // Save region & currency
+        if (region || currency) {
+          const updates: any = {};
+          if (region) updates.region = region;
+          if (currency) updates.base_currency = currency;
+          await supabase.from("teams").update(updates as any).eq("id", team.id);
+        }
       } catch (err: any) {
         toast.error(err.message);
         setLoading(false);
@@ -165,6 +175,14 @@ export default function Onboarding() {
                 setRevenue={setRevenue}
                 artistCount={artistCount}
                 setArtistCount={setArtistCount}
+                region={region}
+                setRegion={(v) => {
+                  setRegion(v);
+                  const r = REGION_LIST.find(r => r.code === v);
+                  if (r) setCurrency(r.currency);
+                }}
+                currency={currency}
+                setCurrency={setCurrency}
               />
             )}
             {step === 4 && createdTeamId && (
@@ -287,12 +305,15 @@ function StepTailored({
 /* ── Step 3: Team details ── */
 function StepTeam({
   teamName, setTeamName, companyType, setCompanyType, teamSize, setTeamSize, revenue, setRevenue, artistCount, setArtistCount,
+  region, setRegion, currency, setCurrency,
 }: {
   teamName: string; setTeamName: (v: string) => void;
   companyType: string; setCompanyType: (v: string) => void;
   teamSize: string; setTeamSize: (v: string) => void;
   revenue: string; setRevenue: (v: string) => void;
   artistCount: string; setArtistCount: (v: string) => void;
+  region: string; setRegion: (v: string) => void;
+  currency: string; setCurrency: (v: string) => void;
 }) {
   return (
     <>
@@ -318,6 +339,33 @@ function StepTeam({
             </SelectContent>
           </Select>
         </div>
+
+        {/* Region */}
+        <div>
+          <Label className="font-semibold text-sm mb-2 block">Where is your company based?</Label>
+          <Select value={region} onValueChange={setRegion}>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {REGION_LIST.map((r) => (
+                <SelectItem key={r.code} value={r.code}>{r.flag} {r.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Currency */}
+        <div>
+          <Label className="font-semibold text-sm mb-2 block">Base currency</Label>
+          <Select value={currency} onValueChange={setCurrency}>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {CURRENCY_LIST.map((c) => (
+                <SelectItem key={c.code} value={c.code}>{c.symbol} {c.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <div>
           <Label className="font-semibold text-sm mb-2 block">What is your team size?</Label>
           <Select value={teamSize} onValueChange={setTeamSize}>
