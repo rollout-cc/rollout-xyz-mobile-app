@@ -28,6 +28,7 @@ import { StreamingTrendsWidget } from "@/components/overview/StreamingTrendsWidg
 import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import { CompanyBudgetSection } from "@/components/overview/CompanyBudgetSection";
 import { BuildYourCompany } from "@/components/overview/BuildYourCompany";
+import { WeeklyDigestCard } from "@/components/overview/WeeklyDigestCard";
 import { AgendaContent } from "@/components/overview/AgendaContent";
 import { StaffContent } from "@/components/overview/StaffContent";
 import type { StaffMember } from "@/components/overview/StaffMetricsSection";
@@ -447,6 +448,23 @@ export default function Overview() {
         <StaffContent />
       ) : (
       <>
+      {/* Weekly Digest */}
+      {(() => {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const tasksCompleted7d = tasks.filter((t: any) => t.is_completed && t.completed_at && new Date(t.completed_at) >= sevenDaysAgo).length;
+        const revenue7d = transactions.filter((t: any) => t.type === "revenue" && new Date(t.transaction_date) >= sevenDaysAgo).reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
+        const expenses7d = transactions.filter((t: any) => t.type === "expense" && new Date(t.transaction_date) >= sevenDaysAgo).reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
+        return (
+          <WeeklyDigestCard
+            tasksCompleted7d={tasksCompleted7d}
+            totalTasks={tasks.length}
+            milestonesHit7d={0}
+            totalExpenses={expenses7d}
+            totalRevenue={revenue7d}
+          />
+        );
+      })()}
       {/* Welcome */}
       <div className="mb-8 flex items-start justify-between">
         <div>

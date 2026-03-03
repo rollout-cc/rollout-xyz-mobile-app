@@ -8,24 +8,41 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Upload, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { TeamManagement } from "@/components/settings/TeamManagement";
+import { NotificationSettings } from "@/components/settings/NotificationSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTeams } from "@/hooks/useTeams";
+import { useSelectedTeam } from "@/contexts/TeamContext";
 
-type SettingsSection = "profile" | "notifications" | "team-members" | "team-profile";
+type SettingsSection = "profile" | "notifications" | "team";
+type TeamSubSection = "members" | "profile";
 
 export default function Settings() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { data: teams = [] } = useTeams();
+  const { selectedTeamId } = useSelectedTeam();
+
+  const myRole = teams.find((t) => t.id === selectedTeamId)?.role;
+  const isOwnerOrManager = myRole === "team_owner" || myRole === "manager";
 
   const [activeSection, setActiveSection] = useState<SettingsSection>("profile");
+  const [teamSubSection, setTeamSubSection] = useState<TeamSubSection>("members");
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // Reset to profile if non-owner lands on team tab
+  useEffect(() => {
+    if (activeSection === "team" && !isOwnerOrManager) {
+      setActiveSection("profile");
+    }
+  }, [isOwnerOrManager, activeSection]);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", user?.id],
@@ -52,31 +69,18 @@ export default function Settings() {
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-
     setUploading(true);
     try {
       const ext = file.name.split(".").pop();
       const path = `${user.id}/avatar.${ext}`;
-
       const { error: uploadError } = await supabase.storage
         .from("profile-photos")
         .upload(path, file, { upsert: true });
-
       if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("profile-photos")
-        .getPublicUrl(path);
-
+      const { data: { publicUrl } } = supabase.storage.from("profile-photos").getPublicUrl(path);
       const url = `${publicUrl}?t=${Date.now()}`;
-
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ avatar_url: url })
-        .eq("id", user.id);
-
+      const { error: updateError } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
       if (updateError) throw updateError;
-
       setAvatarUrl(url);
       queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
       toast.success("Image uploaded!");
@@ -92,20 +96,12 @@ export default function Settings() {
     if (!user || !avatarUrl) return;
     setUploading(true);
     try {
-      const { data: files } = await supabase.storage
-        .from("profile-photos")
-        .list(user.id);
-
+      const { data: files } = await supabase.storage.from("profile-photos").list(user.id);
       if (files && files.length > 0) {
         const paths = files.map((f) => `${user.id}/${f.name}`);
         await supabase.storage.from("profile-photos").remove(paths);
       }
-
-      await supabase
-        .from("profiles")
-        .update({ avatar_url: null })
-        .eq("id", user.id);
-
+      await supabase.from("profiles").update({ avatar_url: null }).eq("id", user.id);
       setAvatarUrl(null);
       queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
       toast.success("Photo removed");
@@ -122,12 +118,8 @@ export default function Settings() {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({
-          full_name: fullName.trim() || null,
-          phone_number: phoneNumber.trim() || null,
-        })
+        .update({ full_name: fullName.trim() || null, phone_number: phoneNumber.trim() || null })
         .eq("id", user.id);
-
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
       toast.success("Profile updated successfully!");
@@ -141,19 +133,26 @@ export default function Settings() {
   if (isLoading) {
     return (
       <AppLayout title="Settings">
-        <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground">
-          Loading...
-        </div>
+        <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground">Loading...</div>
       </AppLayout>
     );
   }
 
-  const title = activeSection === "profile" ? "Profile Settings" : activeSection === "notifications" ? "Notifications" : "Team Settings";
+  const tabs: { key: SettingsSection; label: string }[] = [
+    { key: "profile", label: "Profile" },
+    { key: "notifications", label: "Notifications" },
+    ...(isOwnerOrManager ? [{ key: "team" as const, label: "Team Settings" }] : []),
+  ];
+
+  const titleMap: Record<SettingsSection, string> = {
+    profile: "Profile Settings",
+    notifications: "Notifications",
+    team: "Team Settings",
+  };
 
   return (
-    <AppLayout title={title}>
+    <AppLayout title={titleMap[activeSection]}>
       <div className="max-w-3xl">
-        {/* Back button */}
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
@@ -162,14 +161,9 @@ export default function Settings() {
           Back
         </button>
 
-        {/* Top-level section tabs */}
+        {/* Top-level tabs */}
         <div className="flex gap-1 mb-6">
-          {([
-            { key: "profile" as const, label: "Profile" },
-            { key: "notifications" as const, label: "Notifications" },
-            { key: "team-members" as const, label: "Team Members" },
-            { key: "team-profile" as const, label: "Team Profile" },
-          ]).map(({ key, label }) => (
+          {tabs.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => setActiveSection(key)}
@@ -186,22 +180,15 @@ export default function Settings() {
 
         <div className="border-t border-border" />
 
-        {activeSection === "profile" ? (
+        {activeSection === "profile" && (
           <div className="mt-6 space-y-8">
             <h2 className="text-foreground">Profile</h2>
 
-            {/* Full Name */}
             <div className="space-y-2">
               <Label className="text-sm font-medium text-foreground">Full Name</Label>
-              <Input
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Your name"
-                className="max-w-lg"
-              />
+              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your name" className="max-w-lg" />
             </div>
 
-            {/* Profile Photo */}
             <div className="space-y-2">
               <Label className="text-sm font-medium text-foreground">Profile Photo</Label>
               <div className="flex items-center gap-4 p-4 rounded-lg border border-border bg-card max-w-lg">
@@ -211,30 +198,13 @@ export default function Settings() {
                     {fullName?.[0]?.toUpperCase() ?? "?"}
                   </AvatarFallback>
                 </Avatar>
-
                 <div className="flex gap-2 ml-auto">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handlePhotoUpload}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                  >
+                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                  <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
                     <Upload className="h-4 w-4 mr-1.5" />
                     {uploading ? "Uploading..." : "Upload"}
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handlePhotoDelete}
-                    disabled={uploading || !avatarUrl}
-                  >
+                  <Button variant="outline" size="sm" onClick={handlePhotoDelete} disabled={uploading || !avatarUrl}>
                     <Trash2 className="h-4 w-4 mr-1.5" />
                     Delete
                   </Button>
@@ -242,51 +212,52 @@ export default function Settings() {
               </div>
             </div>
 
-            {/* Email */}
             <div className="space-y-2">
               <Label className="text-sm font-medium text-foreground">Email</Label>
               <p className="text-xs text-muted-foreground">You are logged in as</p>
-              <Input
-                value={user?.email ?? ""}
-                disabled
-                className="max-w-lg bg-muted/50"
-              />
+              <Input value={user?.email ?? ""} disabled className="max-w-lg bg-muted/50" />
             </div>
 
-            {/* Phone Number */}
             <div className="space-y-2">
               <Label className="text-sm font-medium text-foreground">Phone Number</Label>
-              <Input
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="(555) 123-4567"
-                type="tel"
-                className="max-w-xs"
-              />
+              <Input value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="(555) 123-4567" type="tel" className="max-w-xs" />
             </div>
 
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="rounded-md"
-            >
+            <Button onClick={handleSave} disabled={saving} className="rounded-md">
               {saving ? "Saving..." : "Save Settings"}
             </Button>
           </div>
-        ) : activeSection === "notifications" ? (
-          <div className="mt-6 space-y-6">
-            <h2 className="text-foreground">Notifications</h2>
-            <p className="text-sm text-muted-foreground">
-              Notification preferences coming soon.
-            </p>
-          </div>
-        ) : activeSection === "team-members" ? (
+        )}
+
+        {activeSection === "notifications" && (
           <div className="mt-6">
-            <TeamManagement showSection="members" />
+            <h2 className="text-foreground mb-6">Notifications</h2>
+            <NotificationSettings />
           </div>
-        ) : (
+        )}
+
+        {activeSection === "team" && isOwnerOrManager && (
           <div className="mt-6">
-            <TeamManagement showSection="profile" />
+            {/* Sub-pills */}
+            <div className="flex gap-1 mb-6">
+              {([
+                { key: "members" as const, label: "Members" },
+                { key: "profile" as const, label: "Team Profile" },
+              ]).map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setTeamSubSection(key)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                    teamSubSection === key
+                      ? "bg-secondary text-secondary-foreground"
+                      : "text-muted-foreground hover:bg-accent"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <TeamManagement showSection={teamSubSection === "members" ? "members" : "profile"} />
           </div>
         )}
       </div>
