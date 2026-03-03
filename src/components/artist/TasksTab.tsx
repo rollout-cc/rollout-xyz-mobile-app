@@ -4,10 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTeamPlan } from "@/hooks/useTeamPlan";
 import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { ItemEditor } from "@/components/ui/ItemEditor";
+import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/utils";
 
 interface TasksTabProps {
   artistId: string;
@@ -50,7 +52,8 @@ export function TasksTab({ artistId, teamId }: TasksTabProps) {
   });
 
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ title: "", due_date: "" });
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskDate, setTaskDate] = useState<Date | null>(null);
 
   const handleShowAdd = () => {
     if (limits.maxTasksPerMonth !== null && monthlyTaskCount >= limits.maxTasksPerMonth) {
@@ -65,15 +68,16 @@ export function TasksTab({ artistId, teamId }: TasksTabProps) {
       const { error } = await supabase.from("tasks").insert({
         artist_id: artistId,
         team_id: teamId,
-        title: form.title,
-        due_date: form.due_date || null,
+        title: taskTitle.trim(),
+        due_date: taskDate ? formatLocalDate(taskDate) : null,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
       queryClient.invalidateQueries({ queryKey: ["tasks-monthly-count", teamId] });
-      setForm({ title: "", due_date: "" });
+      setTaskTitle("");
+      setTaskDate(null);
       setShowAdd(false);
       toast.success("Work item created");
     },
@@ -112,10 +116,21 @@ export function TasksTab({ artistId, teamId }: TasksTabProps) {
       </div>
 
       {showAdd && (
-        <div className="flex gap-3 mb-4 p-3 rounded-lg border border-border">
-          <Input placeholder="Task title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="flex-1" />
-          <Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} className="w-40" />
-          <Button size="sm" onClick={() => addTask.mutate()} disabled={!form.title.trim()}>Add</Button>
+        <div className="flex items-center gap-3 mb-4 p-3 rounded-lg border border-border">
+          <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
+          <ItemEditor
+            value={taskTitle}
+            onChange={setTaskTitle}
+            onSubmit={() => addTask.mutate()}
+            onCancel={() => { setTaskTitle(""); setTaskDate(null); setShowAdd(false); }}
+            placeholder="What needs to be done? (e.g. Submit mix tomorrow)"
+            autoFocus
+            singleLine
+            enableDateDetection
+            onDateParsed={setTaskDate}
+            parsedDate={taskDate}
+          />
+          <Button size="sm" onClick={() => addTask.mutate()} disabled={!taskTitle.trim()}>Add</Button>
         </div>
       )}
 

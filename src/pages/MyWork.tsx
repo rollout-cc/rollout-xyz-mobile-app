@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { format, isToday, isTomorrow, isPast, isYesterday } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { Plus, Music2, Wallet } from "lucide-react";
-import { cn, parseDateFromText, formatLocalDate } from "@/lib/utils";
+import { cn, formatLocalDate } from "@/lib/utils";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { useCallback, useState, useMemo, useRef } from "react";
 import { toast } from "sonner";
@@ -38,6 +38,7 @@ export default function MyWork() {
   const [expenseAmount, setExpenseAmount] = useState<number | null>(null);
   const [budgetId, setBudgetId] = useState<string | null>(null);
   const [filterArtistId, setFilterArtistId] = useState<string>("all");
+  const [parsedDate, setParsedDate] = useState<Date | null>(null);
 
   const { data: artists = [] } = useArtists(teamId);
 
@@ -121,6 +122,7 @@ export default function MyWork() {
       setSelectedArtistId(null);
       setExpenseAmount(null);
       setBudgetId(null);
+      setParsedDate(null);
       toast.success("Work item added");
     },
     onError: (err: any) => toast.error(err.message),
@@ -129,10 +131,9 @@ export default function MyWork() {
   const handleAddSubmit = () => {
     const trimmed = newTitle.trim();
     if (!trimmed) return;
-    const parsed = parseDateFromText(trimmed);
     createTask.mutate({
-      title: parsed.title,
-      due_date: parsed.date ? format(parsed.date, "yyyy-MM-dd") : undefined,
+      title: trimmed,
+      due_date: parsedDate ? format(parsedDate, "yyyy-MM-dd") : undefined,
       artist_id: selectedArtistId || undefined,
       expense_amount: expenseAmount || undefined,
       budget_id: budgetId || undefined,
@@ -264,11 +265,14 @@ export default function MyWork() {
                   value={newTitle}
                   onChange={setNewTitle}
                   onSubmit={handleAddSubmit}
-                  onCancel={() => { setNewTitle(""); setSelectedArtistId(null); setExpenseAmount(null); setBudgetId(null); }}
-                  placeholder="Add work… @ artist, $ expense"
+                  onCancel={() => { setNewTitle(""); setSelectedArtistId(null); setExpenseAmount(null); setBudgetId(null); setParsedDate(null); }}
+                  placeholder="Add work… @ artist, $ expense, type a date"
                   autoFocus={false}
                   triggers={triggers}
                   singleLine
+                  enableDateDetection
+                  onDateParsed={setParsedDate}
+                  parsedDate={parsedDate}
                 />
               </div>
 

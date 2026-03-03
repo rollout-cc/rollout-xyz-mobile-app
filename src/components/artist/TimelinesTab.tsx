@@ -20,7 +20,7 @@ import {
   format, parse, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   addDays, addMonths, subMonths, isSameMonth, isToday,
 } from "date-fns";
-import { cn, parseDateFromText } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -489,26 +489,26 @@ function InlineMilestoneInput({ onAdd }: { onAdd: (title: string, date: string) 
   const [isActive, setIsActive] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [date, setDate] = useState<Date | undefined>(undefined);
+  const [manualDate, setManualDate] = useState<Date | undefined>(undefined);
+  const [parsedDate, setParsedDate] = useState<Date | null>(null);
 
-  // Auto-detect date from title
-  const parsedDate = useMemo(() => parseDateFromText(title), [title]);
-  const effectiveDate = date || parsedDate.date || undefined;
+  const effectiveDate = manualDate || parsedDate || undefined;
 
   const submit = () => {
     if (!title.trim() || !effectiveDate) return;
-    const cleanTitle = parsedDate.date && !date ? parsedDate.title : title.trim();
-    onAdd(cleanTitle, format(effectiveDate, "yyyy-MM-dd"));
+    onAdd(title.trim(), format(effectiveDate, "yyyy-MM-dd"));
     setTitle("");
     setDescription("");
-    setDate(undefined);
+    setManualDate(undefined);
+    setParsedDate(null);
     setIsActive(false);
   };
 
   const handleCancel = () => {
     setTitle("");
     setDescription("");
-    setDate(undefined);
+    setManualDate(undefined);
+    setParsedDate(null);
     setIsActive(false);
   };
 
@@ -523,12 +523,7 @@ function InlineMilestoneInput({ onAdd }: { onAdd: (title: string, date: string) 
       saveDisabled={!title.trim() || !effectiveDate}
       bottomLeft={
         <div className="flex items-center gap-2">
-          <DatePicker value={effectiveDate} onChange={setDate} placeholder="Select Date" />
-          {parsedDate.date && !date && (
-            <span className="text-xs text-muted-foreground">
-              Auto: {format(parsedDate.date, "MMM d, yyyy")}
-            </span>
-          )}
+          <DatePicker value={effectiveDate} onChange={setManualDate} placeholder="Select Date" />
         </div>
       }
     >
@@ -543,6 +538,9 @@ function InlineMilestoneInput({ onAdd }: { onAdd: (title: string, date: string) 
             placeholder="What's happening? (e.g. Album release August 15)"
             autoFocus
             className="font-semibold"
+            enableDateDetection
+            onDateParsed={setParsedDate}
+            parsedDate={parsedDate}
           />
           <DescriptionEditor
             value={description}

@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { cn } from "@/lib/utils";
+import { cn, parseDateFromText } from "@/lib/utils";
+import { format } from "date-fns";
+import { CalendarIcon, X } from "lucide-react";
 
 interface SuggestionItem {
   id: string;
@@ -24,6 +26,12 @@ interface ItemEditorProps {
   triggers?: TriggerConfig[];
   /** Make the input behave as single-line (Enter submits) */
   singleLine?: boolean;
+  /** Enable live natural-language date detection */
+  enableDateDetection?: boolean;
+  /** Called when a date is detected or cleared */
+  onDateParsed?: (date: Date | null) => void;
+  /** Externally controlled parsed date (for display) */
+  parsedDate?: Date | null;
 }
 
 export function ItemEditor({
@@ -36,11 +44,15 @@ export function ItemEditor({
   autoFocus,
   triggers = [],
   singleLine = true,
+  enableDateDetection = false,
+  onDateParsed,
+  parsedDate,
 }: ItemEditorProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [activeTrigger, setActiveTrigger] = useState<TriggerConfig | null>(null);
   const [triggerQuery, setTriggerQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const lastDetectedRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (autoFocus) {
@@ -68,10 +80,27 @@ export function ItemEditor({
     }
   }, [value, triggers]);
 
+  // Live date detection — triggers on space after a date-like word
+  useEffect(() => {
+    if (!enableDateDetection || !onDateParsed) return;
+    // Only detect when the value ends with a space (user finished typing a word)
+    if (!value.endsWith(" ") && value.length > 0) return;
+
+    const parsed = parseDateFromText(value.trim());
+    if (parsed.date) {
+      const dateKey = parsed.date.toISOString();
+      if (lastDetectedRef.current !== dateKey) {
+        lastDetectedRef.current = dateKey;
+        onDateParsed(parsed.date);
+        // Strip the date text from the value
+        onChange(parsed.title);
+      }
+    }
+  }, [value, enableDateDetection, onDateParsed, onChange]);
+
   const filteredItems = useMemo(() => {
     if (!activeTrigger) return [];
     if (!triggerQuery) return activeTrigger.items;
-    // If the query is purely numeric (e.g. "$500"), don't filter — it's a value, not a search
     if (/^[\d,.]*$/.test(triggerQuery)) return activeTrigger.items;
     return activeTrigger.items.filter((item) =>
       item.label.toLowerCase().includes(triggerQuery)
@@ -123,19 +152,29 @@ export function ItemEditor({
     }
   };
 
+  const clearDate = useCallback(() => {
+    lastDetectedRef.current = null;
+    onDateParsed?.(null);
+  }, [onDateParsed]);
+
   return (
     <div className="relative flex-1 min-w-0">
-      <input
-        ref={inputRef}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        className={cn(
-          "w-full bg-transparent outline-none text-sm placeholder:text-muted-foreground/50",
-          className
+      <div className="flex items-center gap-2">
+        <input
+          ref={inputRef}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          className={cn(
+            "w-full bg-transparent outline-none text-sm placeholder:text-muted-foreground/50",
+            className
+          )}
+        />
+        {enableDateDetection && parsedDate && (
+          <DateChip date={parsedDate} onClear={clearDate} />
         )}
-      />
+      </div>
       {activeTrigger && filteredItems.length > 0 && (
         <div className="absolute left-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-xl z-50 min-w-[200px] py-1 max-h-[200px] overflow-y-auto">
           {filteredItems.map((item, idx) => (
@@ -160,6 +199,23 @@ export function ItemEditor({
         </div>
       )}
     </div>
+  );
+}
+
+/** Date chip pill shown inline when a date is detected */
+function DateChip({ date, onClear }: { date: Date; onClear: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary shrink-0 whitespace-nowrap">
+      <CalendarIcon className="h-2.5 w-2.5" />
+      {format(date, "EEE, MMM d")}
+      <button
+        onClick={onClear}
+        className="ml-0.5 hover:text-primary/70 transition-colors"
+        type="button"
+      >
+        <X className="h-2.5 w-2.5" />
+      </button>
+    </span>
   );
 }
 
