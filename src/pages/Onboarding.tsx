@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCreateTeam, useTeams } from "@/hooks/useTeams";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Bell, Star, User, Hash, DollarSign, Link2, Bookmark, CalendarDays, CheckSquare } from "lucide-react";
+import { ArrowLeft, Bell, Star, User, Hash, DollarSign, Link2, Bookmark, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -12,8 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import rolloutLogo from "@/assets/rollout-logo.png";
+import { StepAddArtists } from "@/components/onboarding/StepAddArtists";
+import { StepInviteMembers } from "@/components/onboarding/StepInviteMembers";
+import type { OnboardingArtist } from "@/components/onboarding/CompanyOnboardingWizard";
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 7;
 
 export default function Onboarding() {
   const { user } = useAuth();
@@ -33,6 +36,11 @@ export default function Onboarding() {
   const [artistCount, setArtistCount] = useState("2-5");
   const [companyType, setCompanyType] = useState("");
 
+  // Step 4: Artists
+  const [addedArtists, setAddedArtists] = useState<OnboardingArtist[]>([]);
+
+  // Created team ID (from step 3)
+  const [createdTeamId, setCreatedTeamId] = useState<string | null>(null);
 
   // If the user already belongs to a team (e.g. via invite), skip onboarding
   if (!teamsLoading && teams && teams.length > 0) {
@@ -48,7 +56,6 @@ export default function Onboarding() {
 
   const handleNext = async () => {
     if (step === 2) {
-      // Save profile name + role
       setLoading(true);
       try {
         const name = fullName.trim() || user?.user_metadata?.full_name || "User";
@@ -65,10 +72,10 @@ export default function Onboarding() {
     }
 
     if (step === 3) {
-      // Create team
       setLoading(true);
       try {
-        await createTeam.mutateAsync({ name: teamName.trim(), companyType });
+        const team = await createTeam.mutateAsync({ name: teamName.trim(), companyType });
+        setCreatedTeamId(team.id);
       } catch (err: any) {
         toast.error(err.message);
         setLoading(false);
@@ -82,7 +89,14 @@ export default function Onboarding() {
     }
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
+    // Set onboarding_completed on the team
+    if (createdTeamId) {
+      await supabase
+        .from("teams")
+        .update({ onboarding_completed: true } as any)
+        .eq("id", createdTeamId);
+    }
     toast.success("You're all set!");
     navigate("/roster", { replace: true });
   };
@@ -153,20 +167,41 @@ export default function Onboarding() {
                 setArtistCount={setArtistCount}
               />
             )}
-            {step === 4 && <StepOrganized />}
-            {step === 5 && <StepTask />}
+            {step === 4 && createdTeamId && (
+              <StepAddArtists
+                teamId={createdTeamId}
+                addedArtists={addedArtists}
+                onArtistAdded={(a) => setAddedArtists((prev) => [...prev, a])}
+              />
+            )}
+            {step === 5 && createdTeamId && user && (
+              <StepInviteMembers
+                teamId={createdTeamId}
+                userId={user.id}
+                addedArtists={addedArtists}
+              />
+            )}
+            {step === 6 && <StepOrganized />}
+            {step === 7 && <StepTask />}
 
             {/* Footer */}
             <div className="flex items-center justify-between mt-8">
               <span className="text-sm text-muted-foreground">{step} of {TOTAL_STEPS}</span>
               {step < TOTAL_STEPS ? (
-                <Button
-                  onClick={handleNext}
-                  disabled={loading || !canGoNext()}
-                  className="bg-foreground text-background hover:bg-foreground/90 rounded-lg px-6"
-                >
-                  {loading ? "Saving..." : "Next"}
-                </Button>
+                <div className="flex gap-2">
+                  {(step === 4 || step === 5) && (
+                    <Button variant="ghost" onClick={() => setStep(step + 1)}>
+                      Skip
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleNext}
+                    disabled={loading || !canGoNext()}
+                    className="bg-foreground text-background hover:bg-foreground/90 rounded-lg px-6"
+                  >
+                    {loading ? "Saving..." : "Next"}
+                  </Button>
+                </div>
               ) : (
                 <Button
                   onClick={handleFinish}
@@ -213,24 +248,15 @@ function StepTailored({
       <p className="text-muted-foreground leading-relaxed mb-6">
         First, tell us more about you, so we can adjust your experience to match your needs.
       </p>
-
       <div className="space-y-5">
         <div>
           <Label className="font-semibold text-sm mb-2 block">What's your name?</Label>
-          <Input
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="Your name"
-            autoFocus
-          />
+          <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your name" autoFocus />
         </div>
-
         <div>
           <Label className="font-semibold text-sm mb-2 block">What role do you play on your team?</Label>
           <Select value={role} onValueChange={setRole}>
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="Owner">Owner</SelectItem>
               <SelectItem value="Manager">Manager</SelectItem>
@@ -240,13 +266,10 @@ function StepTailored({
             </SelectContent>
           </Select>
         </div>
-
         <div>
           <Label className="font-semibold text-sm mb-2 block">How many years of experience do you have in your position?</Label>
           <Select value={experience} onValueChange={setExperience}>
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="Less than 1 year">Less than 1 year</SelectItem>
               <SelectItem value="1-2 years">1-2 years</SelectItem>
@@ -277,24 +300,15 @@ function StepTeam({
       <p className="text-muted-foreground leading-relaxed mb-6">
         Just a few more questions about your company so we can tailor your experience.
       </p>
-
       <div className="space-y-5">
         <div>
           <Label className="font-semibold text-sm mb-2 block">What's your company name?</Label>
-          <Input
-            value={teamName}
-            onChange={(e) => setTeamName(e.target.value)}
-            placeholder="e.g. My Company"
-            autoFocus
-          />
+          <Input value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="e.g. My Company" autoFocus />
         </div>
-
         <div>
           <Label className="font-semibold text-sm mb-2 block">What type of company are you?</Label>
           <Select value={companyType} onValueChange={setCompanyType}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select company type" />
-            </SelectTrigger>
+            <SelectTrigger className="w-full"><SelectValue placeholder="Select company type" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="label">Record Label</SelectItem>
               <SelectItem value="distribution">Distribution Company</SelectItem>
@@ -304,13 +318,10 @@ function StepTeam({
             </SelectContent>
           </Select>
         </div>
-
         <div>
           <Label className="font-semibold text-sm mb-2 block">What is your team size?</Label>
           <Select value={teamSize} onValueChange={setTeamSize}>
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="1-5">1-5</SelectItem>
               <SelectItem value="6-10">6-10</SelectItem>
@@ -319,13 +330,10 @@ function StepTeam({
             </SelectContent>
           </Select>
         </div>
-
         <div>
           <Label className="font-semibold text-sm mb-2 block">What is your company's monthly revenue?</Label>
           <Select value={revenue} onValueChange={setRevenue}>
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="less than $10,000">less than $10,000</SelectItem>
               <SelectItem value="$10,000 - $50,000">$10,000 - $50,000</SelectItem>
@@ -334,13 +342,10 @@ function StepTeam({
             </SelectContent>
           </Select>
         </div>
-
         <div>
           <Label className="font-semibold text-sm mb-2 block">How many artists does your company manage?</Label>
           <Select value={artistCount} onValueChange={setArtistCount}>
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="1">1</SelectItem>
               <SelectItem value="2-5">2-5</SelectItem>
@@ -354,7 +359,7 @@ function StepTeam({
   );
 }
 
-/* ── Step 4: Get Organized ── */
+/* ── Step 6: Get Organized ── */
 function StepOrganized() {
   return (
     <>
@@ -370,7 +375,7 @@ function StepOrganized() {
   );
 }
 
-/* ── Step 5: Start with a Task ── */
+/* ── Step 7: Start with a Task ── */
 function StepTask() {
   return (
     <>
@@ -379,7 +384,6 @@ function StepTask() {
         Create tasks, assign people, campaigns, and expenses instantly. All from a single screen.
       </p>
       <div className="mt-6 rounded-xl overflow-hidden bg-muted/50 aspect-[16/10] p-6 flex flex-col justify-center">
-        {/* Mock task input */}
         <div className="bg-card border border-border rounded-lg p-4 shadow-sm">
           <div className="flex items-start gap-3">
             <div className="h-5 w-5 rounded border-2 border-muted-foreground/30 mt-0.5 shrink-0" />

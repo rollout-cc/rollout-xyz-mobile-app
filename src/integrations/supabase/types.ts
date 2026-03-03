@@ -779,8 +779,10 @@ export type Database = {
           expires_at: string
           id: string
           invited_by: string
+          invitee_email: string | null
           invitee_job_title: string | null
           invitee_name: string | null
+          invitee_phone: string | null
           role: Database["public"]["Enums"]["app_role"]
           staff_employment_type: string | null
           staff_salary: number | null
@@ -795,8 +797,10 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by: string
+          invitee_email?: string | null
           invitee_job_title?: string | null
           invitee_name?: string | null
+          invitee_phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           staff_employment_type?: string | null
           staff_salary?: number | null
@@ -811,8 +815,10 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by?: string
+          invitee_email?: string | null
           invitee_job_title?: string | null
           invitee_name?: string | null
+          invitee_phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           staff_employment_type?: string | null
           staff_salary?: number | null
@@ -1012,28 +1018,52 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          dietary_restrictions: string | null
           full_name: string | null
           id: string
           job_role: string | null
+          ktn_number: string | null
+          pant_size: string | null
           phone_number: string | null
+          preferred_airline: string | null
+          preferred_seat: string | null
+          shirt_size: string | null
+          shoe_size: string | null
+          tsa_precheck_number: string | null
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          dietary_restrictions?: string | null
           full_name?: string | null
           id: string
           job_role?: string | null
+          ktn_number?: string | null
+          pant_size?: string | null
           phone_number?: string | null
+          preferred_airline?: string | null
+          preferred_seat?: string | null
+          shirt_size?: string | null
+          shoe_size?: string | null
+          tsa_precheck_number?: string | null
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          dietary_restrictions?: string | null
           full_name?: string | null
           id?: string
           job_role?: string | null
+          ktn_number?: string | null
+          pant_size?: string | null
           phone_number?: string | null
+          preferred_airline?: string | null
+          preferred_seat?: string | null
+          shirt_size?: string | null
+          shoe_size?: string | null
+          tsa_precheck_number?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1641,6 +1671,9 @@ export type Database = {
       transactions: {
         Row: {
           amount: number
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           artist_id: string
           budget_id: string | null
           category_id: string | null
@@ -1655,6 +1688,9 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           artist_id: string
           budget_id?: string | null
           category_id?: string | null
@@ -1669,6 +1705,9 @@ export type Database = {
         }
         Update: {
           amount?: number
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           artist_id?: string
           budget_id?: string | null
           category_id?: string | null

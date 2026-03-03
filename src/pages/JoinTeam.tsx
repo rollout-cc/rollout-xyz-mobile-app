@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Check, Loader2, Users, Shield } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Check, Loader2, Users, Shield, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import rolloutLogoWhite from "@/assets/rollout-logo-white.png";
@@ -16,6 +17,7 @@ import rolloutLogoWhite from "@/assets/rollout-logo-white.png";
 interface JoinResult {
   team_name: string;
   role: string;
+  job_title?: string;
   artists: { id: string; name: string; avatar_url: string | null }[];
 }
 
@@ -25,6 +27,14 @@ interface InvitePreview {
   inviter_name: string | null;
   invitee_name: string | null;
   role: string;
+  job_title?: string;
+}
+
+function getDepartmentRoute(jobTitle: string | undefined): string {
+  if (!jobTitle) return "/roster";
+  const title = jobTitle.toLowerCase();
+  if (title.includes("finance") || title.includes("operations")) return "/overview?tab=finance";
+  return "/roster";
 }
 
 export default function JoinTeam() {
@@ -33,7 +43,7 @@ export default function JoinTeam() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [step, setStep] = useState<"auth" | "profile" | "preview" | "done">("auth");
+  const [step, setStep] = useState<"auth" | "profile" | "personal" | "artists" | "welcome">("auth");
   const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,11 +54,24 @@ export default function JoinTeam() {
   const [invitePreview, setInvitePreview] = useState<InvitePreview | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch invite preview (team name, inviter) on mount
+  // Personal details
+  const [preferredAirline, setPreferredAirline] = useState("");
+  const [ktnNumber, setKtnNumber] = useState("");
+  const [preferredSeat, setPreferredSeat] = useState("");
+  const [shirtSize, setShirtSize] = useState("");
+  const [pantSize, setPantSize] = useState("");
+  const [shoeSize, setShoeSize] = useState("");
+  const [dietaryRestrictions, setDietaryRestrictions] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  // Fetch invite preview
   useEffect(() => {
     if (!token) return;
     supabase.functions.invoke("invite-preview", { body: { token } }).then(({ data }) => {
-      if (data && !data.error) setInvitePreview(data);
+      if (data && !data.error) {
+        setInvitePreview(data);
+        if (data.invitee_name) setFullName(data.invitee_name);
+      }
     });
   }, [token]);
 
@@ -56,15 +79,15 @@ export default function JoinTeam() {
   useEffect(() => {
     if (authLoading) return;
     if (user && step === "auth") {
-      // Check if profile has a name already
       supabase
         .from("profiles")
         .select("full_name")
         .eq("id", user.id)
         .single()
         .then(({ data }) => {
-          if (data?.full_name) {
-            // Already has a name, go straight to accepting
+          if (data?.full_name && invitePreview?.invitee_name) {
+            // Has name from invite, go to accepting
+            setFullName(data.full_name);
             acceptInvite();
           } else {
             setStep("profile");
@@ -91,7 +114,7 @@ export default function JoinTeam() {
         throw new Error(data.error);
       }
       setJoinResult(data);
-      setStep("preview");
+      setStep("profile");
     } catch (err: any) {
       setError(err.message || "Failed to accept invite");
       toast.error(err.message || "Failed to accept invite");
@@ -114,14 +137,11 @@ export default function JoinTeam() {
     const { data: signUpData, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: { full_name: fullName },
-      },
+      options: { data: { full_name: fullName } },
     });
     if (error) {
       toast.error(error.message);
     } else if (signUpData.user) {
-      // Auto-confirmed, user is now authenticated — the useEffect will handle the next step
       toast.success("Account created!");
     }
     setLoading(false);
@@ -161,7 +181,45 @@ export default function JoinTeam() {
         .update({ full_name: fullName.trim() })
         .eq("id", user!.id);
       if (error) throw error;
-      await acceptInvite();
+
+      if (!joinResult) {
+        await acceptInvite();
+      }
+      setStep("personal");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePhotoUpload = async (file: File) => {
+    if (!user) return;
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/avatar.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("profile-photos")
+      .upload(path, file, { upsert: true });
+    if (uploadError) { toast.error(uploadError.message); return; }
+    const { data: urlData } = supabase.storage.from("profile-photos").getPublicUrl(path);
+    const url = `${urlData.publicUrl}?t=${Date.now()}`;
+    setAvatarUrl(url);
+    await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
+  };
+
+  const handlePersonalSave = async () => {
+    setLoading(true);
+    try {
+      await supabase.from("profiles").update({
+        preferred_airline: preferredAirline || null,
+        ktn_number: ktnNumber || null,
+        preferred_seat: preferredSeat || null,
+        shirt_size: shirtSize || null,
+        pant_size: pantSize || null,
+        shoe_size: shoeSize || null,
+        dietary_restrictions: dietaryRestrictions || null,
+      } as any).eq("id", user!.id);
+      setStep("artists");
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -171,8 +229,10 @@ export default function JoinTeam() {
 
   const handleFinish = async () => {
     await queryClient.invalidateQueries({ queryKey: ["teams"] });
-    toast.success(`Welcome to ${joinResult?.team_name}!`);
-    navigate("/roster", { replace: true });
+    const teamName = joinResult?.team_name || invitePreview?.team_name;
+    toast.success(`Welcome to ${teamName}!`);
+    const route = getDepartmentRoute(joinResult?.job_title || invitePreview?.role);
+    navigate(route, { replace: true });
   };
 
   const roleLabel = (role: string) => {
@@ -210,14 +270,9 @@ export default function JoinTeam() {
         <img src={rolloutLogoWhite} alt="Rollout" className="h-12 w-auto object-contain opacity-90" />
 
         <AnimatePresence mode="wait">
+          {/* Auth step */}
           {step === "auth" && !user && (
-            <motion.div
-              key="auth"
-              className="mt-8 flex flex-col gap-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
+            <motion.div key="auth" className="mt-8 flex flex-col gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div>
                 <p className="text-lg font-semibold text-[hsl(40,30%,95%)]">
                   {invitePreview?.inviter_name
@@ -235,38 +290,21 @@ export default function JoinTeam() {
                 <form onSubmit={handleLogin} className="flex flex-col gap-4">
                   <div className="space-y-2">
                     <Label className="text-[hsl(40,30%,85%)]">Email</Label>
-                    <Input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
+                    <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
                       className="h-12 rounded-lg border-[hsl(0,0%,25%)] bg-[hsl(0,0%,12%)] text-[hsl(40,30%,95%)] placeholder:text-[hsl(0,0%,40%)]"
-                      placeholder="you@example.com"
-                    />
+                      placeholder="you@example.com" />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[hsl(40,30%,85%)]">Password</Label>
-                    <Input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
+                    <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
                       className="h-12 rounded-lg border-[hsl(0,0%,25%)] bg-[hsl(0,0%,12%)] text-[hsl(40,30%,95%)] placeholder:text-[hsl(0,0%,40%)]"
-                      placeholder="••••••••"
-                    />
+                      placeholder="••••••••" />
                   </div>
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="h-12 rounded-full bg-[hsl(40,30%,95%)] text-[hsl(0,0%,5%)] hover:bg-[hsl(40,30%,90%)] font-medium"
-                  >
+                  <Button type="submit" disabled={loading}
+                    className="h-12 rounded-full bg-[hsl(40,30%,95%)] text-[hsl(0,0%,5%)] hover:bg-[hsl(40,30%,90%)] font-medium">
                     {loading ? "Signing in..." : "Sign in & Join"}
                   </Button>
-                  <button
-                    type="button"
-                    onClick={() => setAuthMode("signup")}
-                    className="text-sm text-[hsl(0,0%,55%)] hover:text-[hsl(40,30%,90%)]"
-                  >
+                  <button type="button" onClick={() => setAuthMode("signup")} className="text-sm text-[hsl(0,0%,55%)] hover:text-[hsl(40,30%,90%)]">
                     Don't have an account? Sign up
                   </button>
                 </form>
@@ -274,52 +312,28 @@ export default function JoinTeam() {
                 <form onSubmit={handleSignup} className="flex flex-col gap-4">
                   <div className="space-y-2">
                     <Label className="text-[hsl(40,30%,85%)]">Full Name</Label>
-                    <Input
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      required
+                    <Input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required
                       className="h-12 rounded-lg border-[hsl(0,0%,25%)] bg-[hsl(0,0%,12%)] text-[hsl(40,30%,95%)] placeholder:text-[hsl(0,0%,40%)]"
-                      placeholder="Your name"
-                      autoFocus
-                    />
+                      placeholder="Your name" autoFocus />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[hsl(40,30%,85%)]">Email</Label>
-                    <Input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
+                    <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
                       className="h-12 rounded-lg border-[hsl(0,0%,25%)] bg-[hsl(0,0%,12%)] text-[hsl(40,30%,95%)] placeholder:text-[hsl(0,0%,40%)]"
-                      placeholder="you@example.com"
-                    />
+                      placeholder="you@example.com" />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[hsl(40,30%,85%)]">Password</Label>
-                    <Input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={6}
+                    <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6}
                       className="h-12 rounded-lg border-[hsl(0,0%,25%)] bg-[hsl(0,0%,12%)] text-[hsl(40,30%,95%)] placeholder:text-[hsl(0,0%,40%)]"
-                      placeholder="Min. 6 characters"
-                    />
+                      placeholder="Min. 6 characters" />
                   </div>
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="h-12 rounded-full bg-[hsl(40,30%,95%)] text-[hsl(0,0%,5%)] hover:bg-[hsl(40,30%,90%)] font-medium"
-                  >
+                  <Button type="submit" disabled={loading}
+                    className="h-12 rounded-full bg-[hsl(40,30%,95%)] text-[hsl(0,0%,5%)] hover:bg-[hsl(40,30%,90%)] font-medium">
                     {loading ? "Creating account..." : "Create account"}
                   </Button>
-                  <Button
-                    type="button"
-                    onClick={handleGoogleLogin}
-                    variant="outline"
-                    className="h-12 rounded-full border-[hsl(0,0%,25%)] bg-transparent text-[hsl(40,30%,95%)] hover:bg-[hsl(0,0%,15%)] font-medium"
-                  >
+                  <Button type="button" onClick={handleGoogleLogin} variant="outline"
+                    className="h-12 rounded-full border-[hsl(0,0%,25%)] bg-transparent text-[hsl(40,30%,95%)] hover:bg-[hsl(0,0%,15%)] font-medium">
                     <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
                       <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -328,11 +342,7 @@ export default function JoinTeam() {
                     </svg>
                     Continue with Google
                   </Button>
-                  <button
-                    type="button"
-                    onClick={() => setAuthMode("login")}
-                    className="text-sm text-[hsl(0,0%,55%)] hover:text-[hsl(40,30%,90%)]"
-                  >
+                  <button type="button" onClick={() => setAuthMode("login")} className="text-sm text-[hsl(0,0%,55%)] hover:text-[hsl(40,30%,90%)]">
                     Already have an account? Sign in
                   </button>
                 </form>
@@ -340,97 +350,171 @@ export default function JoinTeam() {
             </motion.div>
           )}
 
+          {/* Profile step - confirm name + photo */}
           {step === "profile" && (
-            <motion.form
-              key="profile"
-              onSubmit={handleProfileSubmit}
-              className="mt-8 flex flex-col gap-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
+            <motion.form key="profile" onSubmit={handleProfileSubmit} className="mt-8 flex flex-col gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div>
-                <p className="text-lg font-semibold text-foreground">What's your name?</p>
-                <p className="text-sm text-muted-foreground mt-1">We'll use this across the app.</p>
+                <p className="text-lg font-semibold text-[hsl(40,30%,95%)]">Confirm your profile</p>
+                <p className="text-sm text-[hsl(0,0%,55%)] mt-1">Confirm your name and optionally add a profile photo.</p>
               </div>
+
+              {/* Photo upload */}
+              <div className="flex justify-center">
+                <label className="relative cursor-pointer group">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={avatarUrl ?? undefined} />
+                    <AvatarFallback className="text-xl">{(fullName || "?")[0]?.toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera className="h-5 w-5 text-white" />
+                  </div>
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handlePhotoUpload(file);
+                  }} />
+                </label>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="fullName">Name</Label>
-                <Input
-                  id="fullName"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Your name"
-                  required
-                  autoFocus
-                />
+                <Label className="text-[hsl(40,30%,85%)]">Name</Label>
+                <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your name" required autoFocus
+                  className="h-12 rounded-lg border-[hsl(0,0%,25%)] bg-[hsl(0,0%,12%)] text-[hsl(40,30%,95%)] placeholder:text-[hsl(0,0%,40%)]" />
               </div>
-              <Button type="submit" disabled={loading || !fullName.trim()}>
+              <Button type="submit" disabled={loading || !fullName.trim()}
+                className="h-12 rounded-full bg-[hsl(40,30%,95%)] text-[hsl(0,0%,5%)] hover:bg-[hsl(40,30%,90%)] font-medium">
                 {loading ? "Saving..." : "Continue"}
               </Button>
             </motion.form>
           )}
 
-          {step === "preview" && joinResult && (
-            <motion.div
-              key="preview"
-              className="mt-8 flex flex-col gap-6"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
+          {/* Personal details step */}
+          {step === "personal" && (
+            <motion.div key="personal" className="mt-8 flex flex-col gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <div>
+                <p className="text-lg font-semibold text-[hsl(40,30%,95%)]">Personal details</p>
+                <p className="text-sm text-[hsl(0,0%,55%)] mt-1">Optional — you can fill these in later too.</p>
+              </div>
+
+              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-[hsl(40,30%,85%)]">Preferred Airline</Label>
+                    <Input value={preferredAirline} onChange={(e) => setPreferredAirline(e.target.value)} placeholder="e.g. Delta"
+                      className="h-10 rounded-lg border-[hsl(0,0%,25%)] bg-[hsl(0,0%,12%)] text-[hsl(40,30%,95%)] placeholder:text-[hsl(0,0%,40%)]" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-[hsl(40,30%,85%)]">Preferred Seat</Label>
+                    <Select value={preferredSeat} onValueChange={setPreferredSeat}>
+                      <SelectTrigger className="h-10 rounded-lg border-[hsl(0,0%,25%)] bg-[hsl(0,0%,12%)] text-[hsl(40,30%,95%)]">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="window">Window</SelectItem>
+                        <SelectItem value="aisle">Aisle</SelectItem>
+                        <SelectItem value="middle">Middle</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-[hsl(40,30%,85%)]">KTN / TSA PreCheck</Label>
+                  <Input value={ktnNumber} onChange={(e) => setKtnNumber(e.target.value)} placeholder="Known Traveler Number"
+                    className="h-10 rounded-lg border-[hsl(0,0%,25%)] bg-[hsl(0,0%,12%)] text-[hsl(40,30%,95%)] placeholder:text-[hsl(0,0%,40%)]" />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-[hsl(40,30%,85%)]">Shirt</Label>
+                    <Input value={shirtSize} onChange={(e) => setShirtSize(e.target.value)} placeholder="M"
+                      className="h-10 rounded-lg border-[hsl(0,0%,25%)] bg-[hsl(0,0%,12%)] text-[hsl(40,30%,95%)] placeholder:text-[hsl(0,0%,40%)]" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-[hsl(40,30%,85%)]">Pants</Label>
+                    <Input value={pantSize} onChange={(e) => setPantSize(e.target.value)} placeholder="32"
+                      className="h-10 rounded-lg border-[hsl(0,0%,25%)] bg-[hsl(0,0%,12%)] text-[hsl(40,30%,95%)] placeholder:text-[hsl(0,0%,40%)]" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-[hsl(40,30%,85%)]">Shoes</Label>
+                    <Input value={shoeSize} onChange={(e) => setShoeSize(e.target.value)} placeholder="10"
+                      className="h-10 rounded-lg border-[hsl(0,0%,25%)] bg-[hsl(0,0%,12%)] text-[hsl(40,30%,95%)] placeholder:text-[hsl(0,0%,40%)]" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-[hsl(40,30%,85%)]">Dietary Restrictions</Label>
+                  <Input value={dietaryRestrictions} onChange={(e) => setDietaryRestrictions(e.target.value)} placeholder="e.g. Vegetarian, Nut allergy"
+                    className="h-10 rounded-lg border-[hsl(0,0%,25%)] bg-[hsl(0,0%,12%)] text-[hsl(40,30%,95%)] placeholder:text-[hsl(0,0%,40%)]" />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button variant="ghost" onClick={() => setStep("artists")}
+                  className="flex-1 h-12 rounded-full text-[hsl(0,0%,55%)] hover:text-[hsl(40,30%,90%)] hover:bg-[hsl(0,0%,15%)]">
+                  Skip
+                </Button>
+                <Button onClick={handlePersonalSave} disabled={loading}
+                  className="flex-1 h-12 rounded-full bg-[hsl(40,30%,95%)] text-[hsl(0,0%,5%)] hover:bg-[hsl(40,30%,90%)] font-medium">
+                  {loading ? "Saving..." : "Continue"}
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Artist confirmation step */}
+          {step === "artists" && (
+            <motion.div key="artists" className="mt-8 flex flex-col gap-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <div>
+                <p className="text-lg font-semibold text-[hsl(40,30%,95%)]">Your artist assignments</p>
+                <p className="text-sm text-[hsl(0,0%,55%)] mt-1">You have access to these artists.</p>
+              </div>
+
+              {joinResult && joinResult.artists.length > 0 ? (
+                <div className="flex flex-col gap-2 max-h-[250px] overflow-y-auto">
+                  {joinResult.artists.map((artist) => (
+                    <div key={artist.id} className="flex items-center gap-3 p-3 rounded-lg border border-[hsl(0,0%,20%)] bg-[hsl(0,0%,12%)]">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={artist.avatar_url ?? undefined} />
+                        <AvatarFallback className="text-sm">{artist.name[0]}</AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium text-[hsl(40,30%,95%)]">{artist.name}</span>
+                      <Check className="h-4 w-4 text-emerald-400 ml-auto" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-[hsl(0,0%,55%)] text-center py-4">No specific artist assignments yet.</p>
+              )}
+
+              <Button onClick={() => setStep("welcome")}
+                className="h-12 rounded-full bg-[hsl(40,30%,95%)] text-[hsl(0,0%,5%)] hover:bg-[hsl(40,30%,90%)] font-medium">
+                Continue
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Welcome step */}
+          {step === "welcome" && (
+            <motion.div key="welcome" className="mt-8 flex flex-col gap-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div>
                 <p className="text-lg font-semibold text-[hsl(40,30%,95%)]">
-                  Welcome to {joinResult.team_name}!
+                  Welcome to {joinResult?.team_name || invitePreview?.team_name}!
                 </p>
                 <div className="flex items-center gap-2 mt-2">
                   <Shield className="h-4 w-4 text-[hsl(0,0%,55%)]" />
                   <p className="text-sm text-[hsl(0,0%,55%)]">
-                    You've joined as <span className="font-medium text-[hsl(40,30%,85%)]">{roleLabel(joinResult.role)}</span>
+                    You've joined as <span className="font-medium text-[hsl(40,30%,85%)]">{roleLabel(joinResult?.role || invitePreview?.role || "")}</span>
                   </p>
                 </div>
               </div>
-
-              {joinResult.artists.length > 0 && (
-                <div>
-                  <p className="text-sm font-medium text-[hsl(40,30%,85%)] mb-3 flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Artists you have access to
-                  </p>
-                  <div className="flex flex-col gap-2 max-h-[250px] overflow-y-auto">
-                    {joinResult.artists.map((artist) => (
-                      <div key={artist.id} className="flex items-center gap-3 p-3 rounded-lg border border-[hsl(0,0%,20%)] bg-[hsl(0,0%,12%)]">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={artist.avatar_url ?? undefined} />
-                          <AvatarFallback className="text-sm">{artist.name[0]}</AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm font-medium text-[hsl(40,30%,95%)]">{artist.name}</span>
-                        <Check className="h-4 w-4 text-emerald-400 ml-auto" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <Button
-                onClick={handleFinish}
-                className="h-12 rounded-full bg-[hsl(40,30%,95%)] text-[hsl(0,0%,5%)] hover:bg-[hsl(40,30%,90%)] font-medium"
-              >
+              <Button onClick={handleFinish}
+                className="h-12 rounded-full bg-[hsl(40,30%,95%)] text-[hsl(0,0%,5%)] hover:bg-[hsl(40,30%,90%)] font-medium">
                 Get Started
               </Button>
             </motion.div>
           )}
 
           {error && !accepting && (
-            <motion.div
-              key="error"
-              className="mt-8 flex flex-col gap-4 items-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
+            <motion.div key="error" className="mt-8 flex flex-col gap-4 items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <p className="text-sm text-destructive text-center">{error}</p>
-              <Button variant="outline" onClick={() => navigate("/roster", { replace: true })}>
-                Go to Dashboard
-              </Button>
+              <Button variant="outline" onClick={() => navigate("/roster", { replace: true })}>Go to Dashboard</Button>
             </motion.div>
           )}
         </AnimatePresence>

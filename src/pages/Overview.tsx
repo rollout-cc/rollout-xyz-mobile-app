@@ -27,8 +27,9 @@ import { ARPipelineWidget } from "@/components/overview/ARPipelineWidget";
 import { StreamingTrendsWidget } from "@/components/overview/StreamingTrendsWidget";
 import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import { CompanyBudgetSection } from "@/components/overview/CompanyBudgetSection";
-import { BuildYourCompany } from "@/components/overview/BuildYourCompany";
+import { BuildYourCompany, useShouldShowBudgetWizard } from "@/components/overview/BuildYourCompany";
 import { WeeklyDigestCard } from "@/components/overview/WeeklyDigestCard";
+import { FinanceContent } from "@/components/overview/FinanceContent";
 import { AgendaContent } from "@/components/overview/AgendaContent";
 import { StaffContent } from "@/components/overview/StaffContent";
 import type { StaffMember } from "@/components/overview/StaffMetricsSection";
@@ -36,7 +37,8 @@ import type { StaffMember } from "@/components/overview/StaffMetricsSection";
 
 export default function Overview() {
   const { selectedTeamId: teamId } = useSelectedTeam();
-  const [companyTab, setCompanyTab] = useState<"dashboard" | "agenda" | "staff">("dashboard");
+  const [companyTab, setCompanyTab] = useState<"dashboard" | "agenda" | "staff" | "finance">("dashboard");
+  const showBudgetWizard = useShouldShowBudgetWizard(teamId ?? null);
 
   // Fetch team to check company_type
   const { data: team, refetch: refetchTeam } = useQuery({
@@ -422,14 +424,14 @@ export default function Overview() {
 
   return (
     <AppLayout title="Company">
-      {/* Gate: must complete company onboarding */}
-      {!(team as any)?.onboarding_completed && teamId ? (
+      {/* Gate: budget wizard for owners without budget */}
+      {showBudgetWizard && teamId ? (
         <BuildYourCompany teamId={teamId} onComplete={() => refetchTeam()} />
       ) : (
       <>
       {/* Company tabs */}
       <div className="flex items-center gap-1 mb-5">
-        {(["dashboard", "agenda", "staff"] as const).map((tab) => (
+        {(["dashboard", "agenda", "staff", "finance"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setCompanyTab(tab)}
@@ -446,6 +448,8 @@ export default function Overview() {
         <AgendaContent />
       ) : companyTab === "staff" ? (
         <StaffContent />
+      ) : companyTab === "finance" ? (
+        <FinanceContent />
       ) : (
       <>
       {/* Weekly Digest */}
