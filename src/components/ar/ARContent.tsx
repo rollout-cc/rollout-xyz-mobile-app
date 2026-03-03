@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useProspects, useCreateProspect, useUpdateProspect, useDeleteProspect } from "@/hooks/useProspects";
 import { useSelectedTeam } from "@/contexts/TeamContext";
+import { useTeamPlan } from "@/hooks/useTeamPlan";
+import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -27,6 +29,8 @@ export function ARContent() {
   const createProspect = useCreateProspect();
   const updateProspect = useUpdateProspect();
   const deleteProspect = useDeleteProspect();
+  const { limits } = useTeamPlan();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [view, setView] = useState<"board" | "table">("board");
   const [search, setSearch] = useState("");
   const [showNew, setShowNew] = useState(false);
@@ -37,6 +41,14 @@ export function ARContent() {
   const [addingIds, setAddingIds] = useState<Set<string>>(new Set());
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleOpenNewProspect = () => {
+    if (limits.maxProspects !== null && prospects.length >= limits.maxProspects) {
+      setUpgradeOpen(true);
+      return;
+    }
+    setShowNew(true);
+  };
 
   const filtered = useMemo(() => {
     if (!search.trim()) return prospects;
@@ -75,6 +87,10 @@ export function ARContent() {
 
   const handleAddFromSpotify = async (artist: SpotifyArtist) => {
     if (!teamId) return;
+    if (limits.maxProspects !== null && prospects.length >= limits.maxProspects) {
+      setUpgradeOpen(true);
+      return;
+    }
     setAddingIds((prev) => new Set(prev).add(artist.id));
     try {
       const result = await createProspect.mutateAsync({
@@ -164,7 +180,7 @@ export function ARContent() {
             <List className="h-4 w-4" />
           </button>
         </div>
-        <Button size="sm" onClick={() => setShowNew(true)} className="gap-1 shrink-0">
+        <Button size="sm" onClick={handleOpenNewProspect} className="gap-1 shrink-0">
           <Plus className="h-4 w-4" /> <span className="hidden sm:inline">New Prospect</span>
         </Button>
       </div>
@@ -218,6 +234,7 @@ export function ARContent() {
 
       <NewProspectDialog open={showNew} onOpenChange={setShowNew} teamId={teamId} />
       <ProspectDrawer prospectId={selectedProspectId} onClose={() => setSelectedProspectId(null)} />
+      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} feature="More than 2 A&R prospects" />
     </div>
   );
 }

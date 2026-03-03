@@ -7,7 +7,7 @@ import { LegendContactDialog } from "@/components/billing/LegendContactDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { toast } from "sonner";
-import { Check, Crown, Sparkles, Rocket } from "lucide-react";
+import { Check, Crown, Sparkles, Rocket, Clock } from "lucide-react";
 
 export function PlanTab() {
   const { plan, seatLimit, isTrialing, trialDaysLeft, isPaid, tierKey, refetch } = useTeamPlan();
@@ -50,24 +50,42 @@ export function PlanTab() {
         <h2 className="text-foreground mb-1">Plan</h2>
         <p className="text-sm text-muted-foreground">
           {isTrialing
-            ? `You're on a ${trialDaysLeft}-day free trial of Icon.`
+            ? `You're on a free trial of Icon with ${trialDaysLeft} days remaining.`
             : isPaid
             ? `You're on the ${PLAN_TIERS[tierKey as keyof typeof PLAN_TIERS]?.name ?? "Icon"} plan with ${seatLimit} seats.`
             : "You're on the free Rising plan."}
         </p>
       </div>
 
+      {/* Trial banner */}
+      {isTrialing && (
+        <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
+          <Clock className="h-5 w-5 text-primary shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">
+              {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""} left in your free trial
+            </p>
+            <p className="text-xs text-muted-foreground">
+              All Icon features are unlocked. Subscribe before your trial ends to keep access.
+            </p>
+          </div>
+          <Button size="sm" onClick={() => setUpgradeOpen(true)}>
+            Upgrade Now
+          </Button>
+        </div>
+      )}
+
       {/* Plan cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         {/* Rising */}
         <div
           className={`relative rounded-lg border p-5 ${
-            plan === "rising" && !isPaid
+            plan === "rising" && !isPaid && !isTrialing
               ? "border-foreground bg-secondary/50"
               : "border-border"
           }`}
         >
-          {plan === "rising" && !isPaid && (
+          {plan === "rising" && !isPaid && !isTrialing && (
             <span className="absolute -top-2.5 left-4 bg-foreground text-background text-xs font-medium px-2 py-0.5 rounded-full">
               Current
             </span>
@@ -88,14 +106,14 @@ export function PlanTab() {
         {/* Icon */}
         <div
           className={`relative rounded-lg border p-5 ${
-            isPaid && plan === "icon"
+            (isPaid && plan === "icon") || isTrialing
               ? "border-foreground bg-secondary/50"
               : "border-border"
           }`}
         >
-          {isPaid && plan === "icon" && (
+          {((isPaid && plan === "icon") || isTrialing) && (
             <span className="absolute -top-2.5 left-4 bg-foreground text-background text-xs font-medium px-2 py-0.5 rounded-full">
-              Current
+              {isTrialing ? "Trial" : "Current"}
             </span>
           )}
           <div className="flex items-center gap-2 mb-3">
@@ -113,8 +131,7 @@ export function PlanTab() {
             <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 mt-0.5 text-foreground shrink-0" /> 30-day free trial</li>
           </ul>
 
-          {/* Seat tier buttons */}
-          {!isPaid && (
+          {(!isPaid || isTrialing) && (
             <div className="space-y-2">
               {ICON_TIERS.map((t) => {
                 const info = PLAN_TIERS[t];
@@ -135,7 +152,7 @@ export function PlanTab() {
             </div>
           )}
 
-          {isPaid && plan === "icon" && (
+          {isPaid && plan === "icon" && !isTrialing && (
             <Button variant="outline" size="sm" onClick={handleManageBilling} disabled={loading !== null}>
               Manage Subscription
             </Button>

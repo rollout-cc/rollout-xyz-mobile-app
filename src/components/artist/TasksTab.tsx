@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useTeamPlan } from "@/hooks/useTeamPlan";
+import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -15,6 +16,9 @@ interface TasksTabProps {
 
 export function TasksTab({ artistId, teamId }: TasksTabProps) {
   const queryClient = useQueryClient();
+  const { limits } = useTeamPlan();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+
   const { data: tasks = [] } = useQuery({
     queryKey: ["tasks", artistId],
     queryFn: async () => {
@@ -28,8 +32,33 @@ export function TasksTab({ artistId, teamId }: TasksTabProps) {
     },
   });
 
+  // Count tasks created this month across the team for gating
+  const { data: monthlyTaskCount = 0 } = useQuery({
+    queryKey: ["tasks-monthly-count", teamId],
+    queryFn: async () => {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const { count, error } = await supabase
+        .from("tasks")
+        .select("*", { count: "exact", head: true })
+        .eq("team_id", teamId)
+        .gte("created_at", startOfMonth);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: !!teamId,
+  });
+
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: "", due_date: "" });
+
+  const handleShowAdd = () => {
+    if (limits.maxTasksPerMonth !== null && monthlyTaskCount >= limits.maxTasksPerMonth) {
+      setUpgradeOpen(true);
+      return;
+    }
+    setShowAdd(true);
+  };
 
   const addTask = useMutation({
     mutationFn: async () => {
@@ -43,6 +72,7 @@ export function TasksTab({ artistId, teamId }: TasksTabProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
+      queryClient.invalidateQueries({ queryKey: ["tasks-monthly-count", teamId] });
       setForm({ title: "", due_date: "" });
       setShowAdd(false);
       toast.success("Work item created");
@@ -66,14 +96,17 @@ export function TasksTab({ artistId, teamId }: TasksTabProps) {
       const { error } = await supabase.from("tasks").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks", artistId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
+      queryClient.invalidateQueries({ queryKey: ["tasks-monthly-count", teamId] });
+    },
   });
 
   return (
     <div className="mt-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold">Work</h3>
-        <Button variant="ghost" size="sm" onClick={() => setShowAdd(!showAdd)}>
+        <Button variant="ghost" size="sm" onClick={handleShowAdd}>
           <Plus className="h-4 w-4 mr-1" /> New Work
         </Button>
       </div>
@@ -107,6 +140,7 @@ export function TasksTab({ artistId, teamId }: TasksTabProps) {
           ))}
         </div>
       )}
+      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} feature="More than 10 tasks per month" />
     </div>
   );
 }
