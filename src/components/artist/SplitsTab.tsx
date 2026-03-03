@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus } from "lucide-react";
-import { useSplitProjects, useCreateSplitProject, useDeleteSplitProject } from "@/hooks/useSplits";
+import { useSplitProjects, useDeleteSplitProject, useCreateSplitBatch } from "@/hooks/useSplits";
 import { SplitProjectCard } from "./SplitProjectCard";
+import { SplitWizard } from "./SplitWizard";
 import { toast } from "sonner";
 
 interface Props {
@@ -14,21 +13,26 @@ interface Props {
 
 export function SplitsTab({ artistId, teamId }: Props) {
   const { data: projects = [], isLoading } = useSplitProjects(artistId);
-  const createProject = useCreateSplitProject();
   const deleteProject = useDeleteSplitProject();
+  const createBatch = useCreateSplitBatch();
 
-  const [showNew, setShowNew] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newType, setNewType] = useState("single");
+  const [showWizard, setShowWizard] = useState(false);
 
-  const handleCreate = async () => {
-    const name = newName.trim();
-    if (!name) return;
+  const handleWizardComplete = async (data: {
+    releaseType: string;
+    releaseName: string;
+    songs: { title: string; contributors: any[] }[];
+  }) => {
     try {
-      await createProject.mutateAsync({ artist_id: artistId, name, project_type: newType });
-      setNewName("");
-      setShowNew(false);
-      toast.success("Project created");
+      await createBatch.mutateAsync({
+        artistId,
+        teamId,
+        releaseType: data.releaseType,
+        releaseName: data.releaseName,
+        songs: data.songs,
+      });
+      setShowWizard(false);
+      toast.success("Split sheet created");
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -47,45 +51,30 @@ export function SplitsTab({ artistId, teamId }: Props) {
 
   return (
     <div className="space-y-4">
-      {projects.length > 0 && (
+      {projects.length > 0 && !showWizard && (
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Split Sheets</h3>
-          <Button size="sm" variant="outline" className="gap-1" onClick={() => setShowNew(!showNew)}>
+          <Button size="sm" variant="outline" className="gap-1" onClick={() => setShowWizard(true)}>
             <Plus className="h-3.5 w-3.5" /> Add Release
           </Button>
         </div>
       )}
 
-      {showNew && (
-        <div className="flex items-center gap-2 p-3 border border-border rounded-lg bg-muted/30">
-          <Input
-            placeholder="Project name (e.g. Love Gun II)"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
-            className="h-8 text-sm"
-            autoFocus
-          />
-          <Select value={newType} onValueChange={setNewType}>
-            <SelectTrigger className="w-28 h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="single">Single</SelectItem>
-              <SelectItem value="ep">EP</SelectItem>
-              <SelectItem value="album">Album</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button size="sm" className="h-8" onClick={handleCreate}>Create</Button>
-        </div>
+      {showWizard && (
+        <SplitWizard
+          artistId={artistId}
+          teamId={teamId}
+          onComplete={handleWizardComplete}
+          onCancel={() => setShowWizard(false)}
+        />
       )}
 
-      {projects.length === 0 && !showNew && (
+      {projects.length === 0 && !showWizard && (
         <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
           <p className="text-muted-foreground text-sm max-w-md">
             Track master and publishing ownership for every song. Add a release to start building split sheets and send them to contributors for approval.
           </p>
-          <Button size="sm" variant="outline" className="gap-1" onClick={() => setShowNew(true)}>
+          <Button size="sm" variant="outline" className="gap-1" onClick={() => setShowWizard(true)}>
             <Plus className="h-3.5 w-3.5" /> Add Release
           </Button>
         </div>

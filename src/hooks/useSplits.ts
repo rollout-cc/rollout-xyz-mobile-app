@@ -178,3 +178,123 @@ export function useDeleteSplitEntry() {
     onSuccess: (songId) => qc.invalidateQueries({ queryKey: ["split-entries", songId] }),
   });
 }
+
+// ── Batch create (wizard) ──
+interface WizardContributor {
+  name: string;
+  contributorId?: string;
+  role: string;
+  pct?: string;
+  songIndices: number[];
+}
+
+interface WizardSong {
+  title: string;
+  contributors: WizardContributor[];
+}
+
+export function useCreateSplitBatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      artistId,
+      teamId,
+      releaseType,
+      releaseName,
+      songs,
+    }: {
+      artistId: string;
+      teamId: string;
+      releaseType: string;
+      releaseName: string;
+      songs: WizardSong[];
+    }) => {
+      // 1. Create project
+      const { data: project, error: pErr } = await supabase
+        .from("split_projects")
+        .insert({ artist_id: artistId, name: releaseName, project_type: releaseType })
+        .select()
+        .single();
+      if (pErr) throw pErr;
+
+      // 2. Create songs
+      const songInserts = songs.map((s, i) => ({
+        project_id: project.id,
+        title: s.title,
+        sort_order: i,
+      }));
+      const { data: dbSongs, error: sErr } = await supabase
+        .from("split_songs")
+        .insert(songInserts)
+        .select()
+        .order("sort_order", { ascending: true });
+      if (sErr) throw sErr;
+
+      // 3. Resolve contributors (create new ones, reuse existing ids)
+      const nameToId = new Map<string, string>();
+      const allContribs = songs.flatMap((s) => s.contributors);
+      const uniqueNames = [...new Set(allContribs.map((c) => c.name.toLowerCase()))];
+
+      for (const c of allContribs) {
+        if (c.contributorId) {
+          nameToId.set(c.name.toLowerCase(), c.contributorId);
+        }
+      }
+
+      // Insert new contributors
+      for (const name of uniqueNames) {
+        if (!nameToId.has(name)) {
+          const original = allContribs.find((c) => c.name.toLowerCase() === name)!;
+          const { data: newC, error: cErr } = await supabase
+            .from("split_contributors")
+            .insert({ team_id: teamId, name: original.name })
+            .select()
+            .single();
+          if (cErr) throw cErr;
+          nameToId.set(name, newC.id);
+        }
+      }
+
+      // 4. Create entries
+      const entries: {
+        song_id: string;
+        contributor_id: string;
+        role: string;
+        producer_pct?: number;
+        writer_pct?: number;
+      }[] = [];
+
+      songs.forEach((song, songIdx) => {
+        const dbSongId = dbSongs[songIdx].id;
+        song.contributors.forEach((c) => {
+          // This contributor should be on this song if songIdx is in songIndices
+          if (!c.songIndices.includes(songIdx)) return;
+          const contribId = nameToId.get(c.name.toLowerCase());
+          if (!contribId) return;
+
+          const entry: any = {
+            song_id: dbSongId,
+            contributor_id: contribId,
+            role: c.role === "producer" ? "producer" : c.role === "writer" ? "songwriter" : "performer",
+          };
+          if (c.pct) {
+            if (c.role === "producer") entry.producer_pct = parseFloat(c.pct);
+            else if (c.role === "writer") entry.writer_pct = parseFloat(c.pct);
+          }
+          entries.push(entry);
+        });
+      });
+
+      if (entries.length > 0) {
+        const { error: eErr } = await supabase.from("split_entries").insert(entries);
+        if (eErr) throw eErr;
+      }
+
+      return project;
+    },
+    onSuccess: (project) => {
+      qc.invalidateQueries({ queryKey: ["split-projects", project.artist_id] });
+      qc.invalidateQueries({ queryKey: ["split-contributors"] });
+    },
+  });
+}
