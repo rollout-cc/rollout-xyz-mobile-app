@@ -29,7 +29,8 @@ export default function Settings() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: teams = [] } = useTeams();
   const { selectedTeamId } = useSelectedTeam();
-  const { isPaid, refetch: refetchPlan } = useTeamPlan();
+  const { isPaid, isTrialing, refetch: refetchPlan } = useTeamPlan();
+  const hasPaidAccess = isPaid || isTrialing;
 
   const myRole = teams.find((t) => t.id === selectedTeamId)?.role;
   const isOwnerOrManager = myRole === "team_owner" || myRole === "manager";
@@ -155,9 +156,9 @@ export default function Settings() {
   const tabs: { key: SettingsSection; label: string }[] = [
     { key: "profile", label: "Profile" },
     { key: "notifications", label: "Notifications" },
-    ...(isOwnerOrManager && isPaid ? [{ key: "team" as const, label: "Team" }] : []),
+    ...(isOwnerOrManager && hasPaidAccess ? [{ key: "team" as const, label: "Team" }] : []),
     { key: "plan", label: "Plan" },
-    ...(isOwnerOrManager && isPaid ? [{ key: "billing" as const, label: "Billing" }] : []),
+    ...(isOwnerOrManager && hasPaidAccess ? [{ key: "billing" as const, label: "Billing" }] : []),
   ];
 
   const titleMap: Record<SettingsSection, string> = {
@@ -254,7 +255,7 @@ export default function Settings() {
           </div>
         )}
 
-        {activeSection === "team" && isOwnerOrManager && isPaid && (
+        {activeSection === "team" && isOwnerOrManager && hasPaidAccess && (
           <div className="mt-6">
             <div className="flex gap-1 mb-6">
               {([
@@ -284,7 +285,7 @@ export default function Settings() {
           </div>
         )}
 
-        {activeSection === "billing" && isOwnerOrManager && isPaid && (
+        {activeSection === "billing" && isOwnerOrManager && hasPaidAccess && (
           <div className="mt-6">
             <BillingTab />
           </div>

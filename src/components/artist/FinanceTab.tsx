@@ -1,13 +1,15 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useTeamPlan } from "@/hooks/useTeamPlan";
+import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DollarSign, Plus, ChevronDown, ChevronRight, MoreVertical, Check, Trash2 } from "lucide-react";
+import { DollarSign, Plus, ChevronDown, ChevronRight, MoreVertical, Check, Trash2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn, parseLocalDate } from "@/lib/utils";
@@ -46,6 +48,32 @@ function UndoSnackbar({ message, onUndo, durationMs = 10000 }: { message: string
 }
 
 export function FinanceTab({ artistId, teamId }: FinanceTabProps) {
+  const { limits } = useTeamPlan();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  // Gate: if finance not allowed, show upgrade prompt
+  if (!limits.canUseFinance) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
+        <Sparkles className="h-8 w-8 text-muted-foreground" />
+        <div>
+          <p className="font-medium text-foreground mb-1">Finance Tools</p>
+          <p className="text-muted-foreground text-sm max-w-md">
+            Track expenses, revenue, and profitability per artist. Upgrade to Icon to unlock finance tools.
+          </p>
+        </div>
+        <Button size="sm" onClick={() => setUpgradeOpen(true)}>
+          Upgrade to Icon
+        </Button>
+        <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} feature="Finance tools" />
+      </div>
+    );
+  }
+
+  return <FinanceTabContent artistId={artistId} teamId={teamId} />;
+}
+
+function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<FinanceType>("expense");
   const [showNewCategory, setShowNewCategory] = useState(false);
@@ -148,11 +176,9 @@ export function FinanceTab({ artistId, teamId }: FinanceTabProps) {
       const amt = parseFloat(itemAmount) || 0;
       const finalAmount = activeTab === "expense" ? -Math.abs(amt) : Math.abs(amt);
 
-      // If a budget label was selected (prefixed with "budget:"), auto-create a matching finance_category
       let resolvedCategoryId = itemCategoryId;
       if (itemCategoryId.startsWith("budget:")) {
         const budgetLabel = itemCategoryId.replace("budget:", "");
-        // Check if category already exists
         const existing = categories.find((c: any) => c.name === budgetLabel);
         if (existing) {
           resolvedCategoryId = existing.id;
@@ -182,13 +208,10 @@ export function FinanceTab({ artistId, teamId }: FinanceTabProps) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["finance-transactions", artistId] });
       qc.invalidateQueries({ queryKey: ["finance-categories", artistId] });
-      // Save and continue: reset fields but keep form open
       setItemAmount("");
       setItemDesc("");
       setItemDate(format(new Date(), "yyyy-MM-dd"));
-      // Keep status, category, initiative same for rapid entry
       toast.success("Item added");
-      // Refocus the amount input
       setTimeout(() => amountInputRef.current?.focus(), 50);
     },
     onError: (e: any) => toast.error(e.message),
@@ -203,7 +226,6 @@ export function FinanceTab({ artistId, teamId }: FinanceTabProps) {
   });
 
   const handleSoftDelete = useCallback((id: string) => {
-    // Cancel any existing pending delete
     if (pendingDelete) clearTimeout(pendingDelete.timer);
     const timer = setTimeout(() => {
       actualDeleteTransaction.mutate(id);
@@ -236,7 +258,7 @@ export function FinanceTab({ artistId, teamId }: FinanceTabProps) {
     }
   };
 
-  // Computed - filter out pending delete
+  // Computed
   const visibleTransactions = pendingDelete
     ? transactions.filter((t: any) => t.id !== pendingDelete.id)
     : transactions;
@@ -262,16 +284,13 @@ export function FinanceTab({ artistId, teamId }: FinanceTabProps) {
     return m;
   }, [categories]);
 
-  // Budget labels not already in finance_categories
   const budgetOnlyLabels = useMemo(() => {
     const catNames = new Set(categories.map((c: any) => c.name));
     return budgets.filter((b: any) => !catNames.has(b.label));
   }, [budgets, categories]);
 
-  // Group filtered transactions by category
   const grouped = useMemo(() => {
     const groups: { id: string; name: string; items: any[]; total: number }[] = [];
-
     const byCat: Record<string, any[]> = {};
     const unsorted: any[] = [];
     filtered.forEach((t: any) => {
@@ -315,7 +334,6 @@ export function FinanceTab({ artistId, teamId }: FinanceTabProps) {
 
   const statuses = activeTab === "expense" ? EXPENSE_STATUSES : REVENUE_STATUSES;
 
-  // Category select with budget labels merged
   const renderCategorySelect = (value: string, onChange: (v: string) => void, className?: string) => (
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger className={cn("h-7 w-auto text-xs gap-1 border-border", className)}>
@@ -453,310 +471,137 @@ export function FinanceTab({ artistId, teamId }: FinanceTabProps) {
                   </SelectContent>
                 </Select>
 
-                <Select value={itemInitiativeId} onValueChange={setItemInitiativeId}>
-                  <SelectTrigger className="h-7 w-auto text-xs gap-1 border-border">
-                    <SelectValue placeholder="Campaign" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No Campaign</SelectItem>
-                    {initiatives.map((i: any) => (
-                      <SelectItem key={i.id} value={i.id}># {i.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
                 {renderCategorySelect(itemCategoryId, setItemCategoryId)}
-              </div>
 
-              {/* Date row */}
-              <div className="flex items-center gap-2">
+                {initiatives.length > 0 && (
+                  <Select value={itemInitiativeId} onValueChange={setItemInitiativeId}>
+                    <SelectTrigger className="h-7 w-auto text-xs gap-1 border-border">
+                      <SelectValue placeholder="Campaign" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Campaign</SelectItem>
+                      {initiatives.map((i: any) => (
+                        <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
                 <Input
                   type="date"
                   value={itemDate}
                   onChange={(e) => setItemDate(e.target.value)}
-                  className="h-8 text-xs w-[140px]"
+                  className="h-7 w-auto text-xs border-border"
                 />
               </div>
             </div>
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex items-center justify-end gap-2">
             <Button variant="ghost" size="sm" onClick={resetItemForm}>Cancel</Button>
-            <Button size="sm" className="gap-1" disabled={!itemDesc.trim() || !itemAmount} onClick={() => addTransaction.mutate()}>
-              <Check className="h-3.5 w-3.5" /> Save
+            <Button size="sm" disabled={!itemDesc.trim() || !itemAmount} onClick={() => addTransaction.mutate()}>
+              Save & Continue
             </Button>
           </div>
         </div>
       )}
 
-      {/* Categories with items */}
-      <div className="border border-border rounded-lg overflow-hidden">
-        {grouped.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-            <DollarSign className="h-8 w-8 mb-2 opacity-30" />
-            <p className="text-sm">No {activeTab === "expense" ? "expenses" : "revenue"} yet</p>
-          </div>
-        ) : (
-          grouped.map((group) => {
-            const isOpen = !collapsed[group.id];
-            return (
-              <div key={group.id} className="border-b border-border last:border-b-0">
-                {/* Category header */}
-                <div className="flex items-center justify-between px-4 py-3 bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer"
-                  onClick={() => setCollapsed((p) => ({ ...p, [group.id]: !p[group.id] }))}
-                >
-                  <div className="flex items-center gap-2">
-                    {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                    <span className="font-bold">{group.name}</span>
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">${group.total.toLocaleString()}</span>
-                  </div>
+      {/* Grouped transactions */}
+      <div className="space-y-4">
+        {grouped.map((group) => {
+          const isCollapsed = collapsed[group.id];
+          const budget = budgets.find((b: any) => b.label === group.name);
+          const budgetAmt = budget ? Number(budget.amount) : 0;
+          const pct = budgetAmt > 0 ? Math.min((group.total / budgetAmt) * 100, 100) : 0;
+
+          return (
+            <div key={group.id} className="border border-border rounded-lg overflow-hidden">
+              {/* Category header */}
+              <button
+                onClick={() => setCollapsed((prev) => ({ ...prev, [group.id]: !prev[group.id] }))}
+                className="flex items-center justify-between w-full px-4 py-3 hover:bg-accent/30 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  {isCollapsed ? <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+                  <span className="text-sm font-medium">{group.name}</span>
+                  <span className="text-xs text-muted-foreground">({group.items.length})</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  {budgetAmt > 0 && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={cn("h-full rounded-full transition-all", pct >= 90 ? "bg-destructive" : pct >= 70 ? "bg-amber-500" : "bg-emerald-500")}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">{Math.round(pct)}%</span>
+                    </div>
+                  )}
+                  <span className="text-sm font-semibold">${group.total.toLocaleString()}</span>
                   {group.id !== "unsorted" && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
+                        <button className="p-1 hover:bg-accent rounded"><MoreVertical className="h-3.5 w-3.5 text-muted-foreground" /></button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="text-destructive" onClick={() => deleteCategory.mutate(group.id)}>
+                        <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); deleteCategory.mutate(group.id); }}>
                           <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Category
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
                 </div>
+              </button>
 
-                {/* Items */}
-                {isOpen && (
-                  <div>
-                    {group.items.length === 0 ? (
-                      <div className="px-6 py-4 text-sm text-muted-foreground">No items in this category.</div>
-                    ) : (
-                      group.items.map((t: any) => (
-                        <TransactionItem
-                          key={t.id}
-                          transaction={t}
-                          categoryMap={categoryMap}
-                          initiativeMap={initiativeMap}
-                          onDelete={() => handleSoftDelete(t.id)}
-                          categories={categories}
-                          budgetOnlyLabels={budgetOnlyLabels}
-                          initiatives={initiatives}
-                          statuses={statuses}
-                          artistId={artistId}
-                        />
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })
+              {/* Items */}
+              {!isCollapsed && group.items.length > 0 && (
+                <div className="border-t border-border divide-y divide-border">
+                  {group.items.map((t: any) => (
+                    <div key={t.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/20 transition-colors group/row">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium truncate">{t.description || "Untitled"}</span>
+                          <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0", statusColor(t.status))}>
+                            {statusLabel(t.status)}
+                          </span>
+                          {t.initiative_id && initiativeMap[t.initiative_id] && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                              {initiativeMap[t.initiative_id]}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-muted-foreground">
+                          {t.transaction_date ? format(parseLocalDate(t.transaction_date), "MMM d, yyyy") : ""}
+                        </span>
+                      </div>
+                      <span className={cn("text-sm font-semibold tabular-nums", t.type === "revenue" ? "text-emerald-600" : "text-foreground")}>
+                        {t.type === "revenue" ? "+" : "-"}${Math.abs(Number(t.amount)).toLocaleString()}
+                      </span>
+                      <button
+                        className="p-1 opacity-0 group-hover/row:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                        onClick={() => handleSoftDelete(t.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {filtered.length === 0 && !showNewItem && (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No {activeTab === "expense" ? "expenses" : "revenue"} yet.
+          </p>
         )}
       </div>
 
       {/* Undo snackbar */}
       {pendingDelete && (
-        <UndoSnackbar message="Transaction deleted." onUndo={handleUndoDelete} />
+        <UndoSnackbar message="Item deleted" onUndo={handleUndoDelete} />
       )}
-    </div>
-  );
-}
-
-function TransactionItem({
-  transaction: t,
-  categoryMap,
-  initiativeMap,
-  onDelete,
-  categories,
-  budgetOnlyLabels,
-  initiatives,
-  statuses,
-  artistId,
-}: {
-  transaction: any;
-  categoryMap: Record<string, string>;
-  initiativeMap: Record<string, string>;
-  onDelete: () => void;
-  categories: any[];
-  budgetOnlyLabels: any[];
-  initiatives: any[];
-  statuses: string[];
-  artistId: string;
-}) {
-  const qc = useQueryClient();
-  const [editing, setEditing] = useState(false);
-  const [editAmount, setEditAmount] = useState(String(Math.abs(Number(t.amount))));
-  const [editDesc, setEditDesc] = useState(t.description || "");
-  const [editStatus, setEditStatus] = useState(t.status || "pending");
-  const [editDate, setEditDate] = useState(t.transaction_date || "");
-  const [editCategoryId, setEditCategoryId] = useState(t.category_id || "none");
-  const [editInitiativeId, setEditInitiativeId] = useState(t.initiative_id || "none");
-
-  const updateTransaction = useMutation({
-    mutationFn: async (fields: Record<string, any>) => {
-      const { error } = await supabase.from("transactions").update(fields).eq("id", t.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["finance-transactions", artistId] });
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const commitField = (field: string, value: any) => {
-    const currentVal = field === "amount" ? Math.abs(Number(t.amount)) : t[field];
-    const newVal = field === "amount" ? parseFloat(value) || 0 : value;
-    if (String(newVal) === String(currentVal)) return;
-
-    if (field === "amount") {
-      const sign = t.type === "expense" ? -1 : 1;
-      updateTransaction.mutate({ amount: sign * Math.abs(newVal) });
-    } else if (field === "category_id" || field === "initiative_id") {
-      updateTransaction.mutate({ [field]: value === "none" ? null : value });
-    } else {
-      updateTransaction.mutate({ [field]: newVal });
-    }
-  };
-
-  const amount = Math.abs(Number(t.amount));
-  const catName = t.category_id ? categoryMap[t.category_id] : null;
-  const campName = t.initiative_id ? initiativeMap[t.initiative_id] : null;
-
-  const statusLabel = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-  const statusColor = (s: string) => {
-    if (s === "received" || s === "paid") return "bg-emerald-50 text-emerald-700";
-    if (s === "outstanding" || s === "pending") return "bg-amber-50 text-amber-700";
-    if (s === "sent") return "bg-blue-50 text-blue-700";
-    return "bg-muted text-muted-foreground";
-  };
-
-  if (editing) {
-    return (
-      <div className="flex items-start gap-3 px-6 py-4 bg-muted/30 border-b border-border last:border-b-0">
-        <span className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-emerald-500/10 text-emerald-600 font-bold text-xs mt-0.5 shrink-0">$</span>
-        <div className="flex-1 min-w-0 space-y-2">
-          <div className="flex items-center gap-1">
-            <span className="text-sm font-semibold text-muted-foreground">$</span>
-            <input
-              className="bg-transparent border-b border-ring outline-none text-sm font-semibold w-28"
-              value={editAmount}
-              onChange={(e) => setEditAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-              onBlur={() => commitField("amount", editAmount)}
-              onKeyDown={(e) => { if (e.key === "Enter") { commitField("amount", editAmount); (e.target as HTMLInputElement).blur(); } }}
-              autoFocus
-            />
-          </div>
-          <input
-            className="bg-transparent border-b border-ring outline-none text-sm w-full text-muted-foreground"
-            value={editDesc}
-            onChange={(e) => setEditDesc(e.target.value)}
-            onBlur={() => commitField("description", editDesc.trim())}
-            onKeyDown={(e) => { if (e.key === "Enter") { commitField("description", editDesc.trim()); (e.target as HTMLInputElement).blur(); } }}
-            placeholder="Description"
-          />
-          <div className="flex flex-wrap items-center gap-2">
-            <Select value={editStatus} onValueChange={(v) => { setEditStatus(v); commitField("status", v); }}>
-              <SelectTrigger className="h-7 w-auto text-xs gap-1 border-border">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {statuses.map((s) => (
-                  <SelectItem key={s} value={s}>{statusLabel(s)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={editInitiativeId} onValueChange={(v) => { setEditInitiativeId(v); commitField("initiative_id", v); }}>
-              <SelectTrigger className="h-7 w-auto text-xs gap-1 border-border">
-                <SelectValue placeholder="Campaign" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No Campaign</SelectItem>
-                {initiatives.map((i: any) => (
-                  <SelectItem key={i.id} value={i.id}># {i.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={editCategoryId} onValueChange={(v) => { setEditCategoryId(v); commitField("category_id", v); }}>
-              <SelectTrigger className="h-7 w-auto text-xs gap-1 border-border">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Uncategorized</SelectItem>
-                {categories.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel className="text-[10px] uppercase tracking-wider">Categories</SelectLabel>
-                    {categories.map((c: any) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
-                {budgetOnlyLabels.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel className="text-[10px] uppercase tracking-wider">Budgets</SelectLabel>
-                    {budgetOnlyLabels.map((b: any) => (
-                      <SelectItem key={`budget:${b.label}`} value={`budget:${b.label}`}>{b.label}</SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
-              </SelectContent>
-            </Select>
-            <input
-              type="date"
-              className="h-7 text-xs border border-border rounded-md px-2 bg-transparent"
-              value={editDate}
-              onChange={(e) => { setEditDate(e.target.value); commitField("transaction_date", e.target.value); }}
-            />
-          </div>
-          <div className="flex justify-end">
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setEditing(false)}>
-              Done
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="flex items-start gap-3 px-6 py-4 group hover:bg-muted/20 transition-colors border-b border-border last:border-b-0 cursor-pointer"
-      onClick={() => setEditing(true)}
-    >
-      <span className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-emerald-500/10 text-emerald-600 font-bold text-xs mt-0.5 shrink-0">$</span>
-      <div className="flex-1 min-w-0">
-        <div className="font-semibold text-sm">${amount.toLocaleString()}</div>
-        <div className="text-sm text-muted-foreground">{t.description}</div>
-        <div className="flex flex-wrap items-center gap-1.5 mt-2">
-          {t.status && (
-            <span className={cn("text-[11px] px-2 py-0.5 rounded", statusColor(t.status))}>
-              {statusLabel(t.status)}
-            </span>
-          )}
-          {campName && (
-            <span className="text-[11px] px-2 py-0.5 rounded bg-muted text-muted-foreground">
-              # {campName}
-            </span>
-          )}
-          {catName && (
-            <span className="text-[11px] px-2 py-0.5 rounded bg-muted text-muted-foreground">
-              {catName}
-            </span>
-          )}
-          {t.transaction_date && (
-            <span className="text-[11px] text-muted-foreground">
-              {format(parseLocalDate(t.transaction_date), "MMM d, yyyy")}
-            </span>
-          )}
-        </div>
-      </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive"
-        onClick={(e) => { e.stopPropagation(); onDelete(); }}
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </Button>
     </div>
   );
 }

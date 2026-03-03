@@ -7,6 +7,8 @@ import { useArtists, useCreateArtist } from "@/hooks/useArtists";
 import { useCreateTeam } from "@/hooks/useTeams";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { useRosterFolders, useCreateRosterFolder, useDeleteRosterFolder, useSetArtistFolder } from "@/hooks/useRosterFolders";
+import { useTeamPlan } from "@/hooks/useTeamPlan";
+import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -65,7 +67,8 @@ export default function Roster() {
   const createFolder = useCreateRosterFolder();
   const deleteFolder = useDeleteRosterFolder();
   const setArtistFolder = useSetArtistFolder();
-  
+  const { limits } = useTeamPlan();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   const [activeTab, setActiveTab] = useState<"roster" | "ar">(searchParams.get("tab") === "ar" ? "ar" : "roster");
   const [showAddArtist, setShowAddArtist] = useState(false);
@@ -82,8 +85,22 @@ export default function Roster() {
   }, [queryClient]);
 
   const handleFABAction = useCallback((key: string) => {
-    if (key === "add-artist") setShowAddArtist(true);
-  }, []);
+    if (key === "add-artist") {
+      if (limits.maxArtists !== null && artists.length >= limits.maxArtists) {
+        setUpgradeOpen(true);
+        return;
+      }
+      setShowAddArtist(true);
+    }
+  }, [limits.maxArtists, artists.length]);
+
+  const handleOpenAddArtist = () => {
+    if (limits.maxArtists !== null && artists.length >= limits.maxArtists) {
+      setUpgradeOpen(true);
+      return;
+    }
+    setShowAddArtist(true);
+  };
 
   const existingSpotifyIds = useMemo(
     () => new Set(artists.map((a: any) => a.spotify_id).filter(Boolean)),
@@ -198,7 +215,7 @@ export default function Roster() {
             </Button>
             <h2 className="text-lg font-semibold">{selectedFolder.name}</h2>
           </div>
-          <Button onClick={() => setShowAddArtist(true)} size="sm" className="gap-1 hidden sm:inline-flex">
+          <Button onClick={handleOpenAddArtist} size="sm" className="gap-1 hidden sm:inline-flex">
             Add Artist
           </Button>
         </div>
@@ -230,6 +247,7 @@ export default function Roster() {
           onAdd={handleAddToRoster}
           onCreateManual={handleCreateManual}
         />
+        <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} feature="More than 3 roster artists" />
       </AppLayout>
     );
   }
@@ -277,7 +295,7 @@ export default function Roster() {
           >
             <FolderPlus className="h-3.5 w-3.5" /> Category
           </Button>
-          <Button onClick={() => setShowAddArtist(true)} size="sm" className="gap-1 hidden sm:inline-flex">
+          <Button onClick={handleOpenAddArtist} size="sm" className="gap-1 hidden sm:inline-flex">
             Add Artist
           </Button>
         </div>
@@ -306,7 +324,7 @@ export default function Roster() {
         {artists.length === 0 && !isLoading && folders.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
             <p className="text-muted-foreground">Add artists to your roster</p>
-            <Button onClick={() => setShowAddArtist(true)}>Add Artist</Button>
+            <Button onClick={handleOpenAddArtist}>Add Artist</Button>
           </div>
         ) : (
           <DragDropContext onDragEnd={handleDragEnd}>
@@ -323,7 +341,7 @@ export default function Roster() {
                             <RosterFolderCard
                               folder={folder}
                               artists={fArtists}
-                              onOpenAddDialog={() => setShowAddArtist(true)}
+                              onOpenAddDialog={handleOpenAddArtist}
                               onDelete={() => handleDeleteFolder(folder.id)}
                               onClick={() => setSelectedFolderId(folder.id)}
                               isDraggingOver={snapshot.isDraggingOver}
@@ -379,6 +397,7 @@ export default function Roster() {
         onAdd={handleAddToRoster}
         onCreateManual={handleCreateManual}
       />
+      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} feature="More than 3 roster artists" />
       </>
       )}
     </AppLayout>

@@ -7,6 +7,7 @@ import { DollarSign, Target, Star, Upload, RefreshCw, Receipt, ArrowLeft } from 
 import { PerformancePills } from "@/components/artist/PerformancePills";
 import { useArtistDetail } from "@/hooks/useArtistDetail";
 import { useSpotifyArtist } from "@/hooks/useSpotifyArtist";
+import { useTeamPlan } from "@/hooks/useTeamPlan";
 import { ArtistInfoTab } from "@/components/artist/ArtistInfoTab";
 import { WorkTab } from "@/components/artist/WorkTab";
 import { LinksTab } from "@/components/artist/LinksTab";
@@ -31,6 +32,7 @@ export default function ArtistDetail() {
   const { data: artist, isLoading } = useArtistDetail(artistId!);
   const { data: spotifyData, refetch: refetchSpotify, isFetching: isRefreshingSpotify } = useSpotifyArtist(artist?.spotify_id);
   const totalBudget = useTotalBudget(artistId!);
+  const { limits } = useTeamPlan();
   const [activeView, setActiveView] = useState<ActiveView>(fromFinance ? "finance" : "work");
   const [showCompleted, setShowCompleted] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
@@ -66,24 +68,20 @@ export default function ArtistDetail() {
     if (!spotifyData || !artist) return;
     const patch: Record<string, any> = {};
 
-    // Sync monthly listeners / followers
     const spotifyListeners = spotifyData.monthly_listeners || spotifyData.followers || 0;
     if (spotifyListeners > 0 && (artist as any).monthly_listeners !== spotifyListeners) {
       patch.monthly_listeners = spotifyListeners;
     }
 
-    // Sync banner
     const spotifyBanner = spotifyData.banner_url;
     if (spotifyBanner && !artist.banner_url) {
       patch.banner_url = spotifyBanner;
     }
 
-    // Sync avatar from Spotify images if artist has no avatar
     if (!artist.avatar_url && spotifyData.images && spotifyData.images.length > 0) {
       patch.avatar_url = spotifyData.images[0].url;
     }
 
-    // Sync genres if empty
     if ((!artist.genres || artist.genres.length === 0) && spotifyData.genres && spotifyData.genres.length > 0) {
       patch.genres = spotifyData.genres;
     }
@@ -144,17 +142,24 @@ export default function ArtistDetail() {
     setActiveView(prev => prev === v ? "work" : v);
   };
 
+  // Build action buttons, conditionally showing Finance based on plan
+  const actionButtons = [
+    ...(limits.canUseFinance ? [{ key: "finance" as ActiveView, icon: Receipt, label: "Finance" }] : []),
+    { key: "budgets" as ActiveView, icon: DollarSign, label: "Budgets" },
+    { key: "objectives" as ActiveView, icon: Target, label: "Objectives" },
+    { key: "information" as ActiveView, icon: Star, label: "Info" },
+  ];
+
+  // Build tab items, conditionally showing Splits based on plan
+  const tabItems: TabView[] = ["work", "links", "timelines"];
+  if (limits.canUseSplits) tabItems.push("splits");
+
   return (
     <AppLayout
       title="Artist"
       actions={
         <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
-          {([
-            { key: "finance" as ActiveView, icon: Receipt, label: "Finance" },
-            { key: "budgets" as ActiveView, icon: DollarSign, label: "Budgets" },
-            { key: "objectives" as ActiveView, icon: Target, label: "Objectives" },
-            { key: "information" as ActiveView, icon: Star, label: "Info" },
-          ]).map(({ key, icon: Icon, label }) => (
+          {actionButtons.map(({ key, icon: Icon, label }) => (
             <Button
               key={key}
               variant={activeView === key ? "default" : "outline"}
@@ -184,7 +189,6 @@ export default function ArtistDetail() {
       </button>
       {/* Banner */}
       <div className="relative rounded-lg bg-muted overflow-hidden mb-4 shadow-xl group">
-        {/* Banner image area */}
         <div className="relative h-48 sm:h-72 lg:h-[360px] overflow-hidden">
           <img
             src={hasBanner ? bannerUrl! : defaultBanner}
@@ -193,7 +197,6 @@ export default function ArtistDetail() {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
 
-          {/* Action buttons */}
           <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center gap-1.5">
             {artist.spotify_id && (
               <Button
@@ -209,7 +212,6 @@ export default function ArtistDetail() {
             <BannerUpload artistId={artist.id} currentBannerUrl={artist.banner_url} />
           </div>
 
-          {/* Bottom overlay content */}
           <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
             <div className="flex items-end gap-3 sm:gap-4">
               <Avatar className="h-16 w-16 sm:h-20 sm:w-20 lg:h-24 lg:w-24 border-[3px] border-background shadow-2xl shrink-0">
@@ -235,7 +237,6 @@ export default function ArtistDetail() {
           </div>
         </div>
 
-        {/* Stats bar below image */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 bg-card border-t border-border">
           <div className="flex items-center gap-1.5 text-sm font-bold">
             <DollarSign className="h-3.5 w-3.5 text-emerald-500" />
@@ -248,15 +249,11 @@ export default function ArtistDetail() {
         </div>
       </div>
 
-      {/* Main content + Finance ledger sidebar */}
       <div className="flex gap-6">
-        {/* Left: main content area */}
         <div className="flex-1 min-w-0">
-          {/* Tab row with controls */}
           <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-            {/* Capsule tabs */}
             <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0">
-              {(["work", "links", "timelines", "splits"] as const).map((tab) => (
+              {tabItems.map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveView(tab)}
@@ -271,7 +268,6 @@ export default function ArtistDetail() {
               ))}
             </div>
 
-            {/* Right-side controls */}
             <div className="flex items-center gap-2 sm:gap-3">
               <label className="flex items-center gap-1.5 cursor-pointer text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors">
                 <span className="hidden sm:inline">Show</span> Completed
@@ -283,7 +279,6 @@ export default function ArtistDetail() {
             </div>
           </div>
 
-          {/* Content area - switches based on activeView */}
           {activeView === "finance" && <FinanceTab artistId={artist.id} teamId={artist.team_id} />}
           {activeView === "budgets" && <BudgetSection artistId={artist.id} />}
           {activeView === "objectives" && <ObjectivesPanel artist={artist} />}
@@ -298,7 +293,7 @@ export default function ArtistDetail() {
   );
 }
 
-// Work tab extra controls (New Campaign + Show Archived)  
+// Work tab extra controls  
 import { Plus } from "lucide-react";
 
 function WorkTabControls({ artistId, showArchived, setShowArchived }: { artistId: string; showArchived: boolean; setShowArchived: (v: boolean) => void }) {
@@ -312,7 +307,7 @@ function WorkTabControls({ artistId, showArchived, setShowArchived }: { artistId
   );
 }
 
-// Objectives panel - shows goals/focuses like the old site
+// Objectives panel
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
 

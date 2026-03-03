@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import { useSplitProjects, useDeleteSplitProject, useCreateSplitBatch } from "@/hooks/useSplits";
 import { SplitProjectCard } from "./SplitProjectCard";
 import { SplitWizard } from "./SplitWizard";
+import { useTeamPlan } from "@/hooks/useTeamPlan";
+import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 import { toast } from "sonner";
 
 interface Props {
@@ -15,8 +17,29 @@ export function SplitsTab({ artistId, teamId }: Props) {
   const { data: projects = [], isLoading } = useSplitProjects(artistId);
   const deleteProject = useDeleteSplitProject();
   const createBatch = useCreateSplitBatch();
+  const { limits } = useTeamPlan();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   const [showWizard, setShowWizard] = useState(false);
+
+  // Gate: if splits not allowed, show upgrade prompt
+  if (!limits.canUseSplits) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
+        <Sparkles className="h-8 w-8 text-muted-foreground" />
+        <div>
+          <p className="font-medium text-foreground mb-1">Split Sheets</p>
+          <p className="text-muted-foreground text-sm max-w-md">
+            Track master and publishing ownership for every song. Upgrade to Icon to unlock split sheets.
+          </p>
+        </div>
+        <Button size="sm" onClick={() => setUpgradeOpen(true)}>
+          Upgrade to Icon
+        </Button>
+        <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} feature="Split sheets" />
+      </div>
+    );
+  }
 
   const handleWizardComplete = async (data: {
     releaseType: string;

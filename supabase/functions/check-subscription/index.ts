@@ -54,7 +54,27 @@ serve(async (req) => {
       .single();
 
     if (!sub || !sub.stripe_subscription_id) {
-      logStep("No stripe subscription found, returning rising plan");
+      // No Stripe subscription — check if trial is still active
+      const trialEndsAt = sub?.trial_ends_at ? new Date(sub.trial_ends_at) : null;
+      const now = new Date();
+
+      if (trialEndsAt && trialEndsAt > now) {
+        const trialDaysLeft = Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+        logStep("Active trial found", { trialDaysLeft });
+        return new Response(JSON.stringify({
+          plan: "icon",
+          seat_limit: 5,
+          status: "trialing",
+          is_trialing: true,
+          trial_days_left: trialDaysLeft,
+          current_period_end: trialEndsAt.toISOString(),
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+
+      logStep("Trial expired or no trial, returning rising plan");
       return new Response(JSON.stringify({
         plan: "rising",
         seat_limit: 1,
