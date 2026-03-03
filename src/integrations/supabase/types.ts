@@ -674,6 +674,47 @@ export type Database = {
           },
         ]
       }
+      contact_requests: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string
+          id: string
+          message: string | null
+          name: string
+          team_id: string | null
+          team_size: string | null
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          message?: string | null
+          name: string
+          team_id?: string | null
+          team_size?: string | null
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string | null
+          name?: string
+          team_id?: string | null
+          team_size?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_requests_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       finance_categories: {
         Row: {
           artist_id: string
@@ -1639,6 +1680,56 @@ export type Database = {
             foreignKeyName: "team_memberships_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          id: string
+          plan: string
+          seat_limit: number
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          team_id: string
+          trial_ends_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          plan?: string
+          seat_limit?: number
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          team_id: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          plan?: string
+          seat_limit?: number
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          team_id?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_subscriptions_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: true
             referencedRelation: "teams"
             referencedColumns: ["id"]
           },

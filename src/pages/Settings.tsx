@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,27 +9,33 @@ import { ArrowLeft, Upload, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { TeamManagement } from "@/components/settings/TeamManagement";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
+import { PlanTab } from "@/components/settings/PlanTab";
+import { BillingTab } from "@/components/settings/BillingTab";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTeams } from "@/hooks/useTeams";
 import { useSelectedTeam } from "@/contexts/TeamContext";
+import { useTeamPlan } from "@/hooks/useTeamPlan";
 
-type SettingsSection = "profile" | "notifications" | "team";
+type SettingsSection = "profile" | "notifications" | "team" | "plan" | "billing";
 type TeamSubSection = "members" | "profile";
 
 export default function Settings() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: teams = [] } = useTeams();
   const { selectedTeamId } = useSelectedTeam();
+  const { isPaid, refetch: refetchPlan } = useTeamPlan();
 
   const myRole = teams.find((t) => t.id === selectedTeamId)?.role;
   const isOwnerOrManager = myRole === "team_owner" || myRole === "manager";
 
-  const [activeSection, setActiveSection] = useState<SettingsSection>("profile");
+  const initialTab = (searchParams.get("tab") as SettingsSection) || "profile";
+  const [activeSection, setActiveSection] = useState<SettingsSection>(initialTab);
   const [teamSubSection, setTeamSubSection] = useState<TeamSubSection>("members");
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -37,9 +43,17 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // Reset to profile if non-owner lands on team tab
+  // Handle checkout success
   useEffect(() => {
-    if (activeSection === "team" && !isOwnerOrManager) {
+    if (searchParams.get("checkout") === "success") {
+      toast.success("Subscription activated! Welcome to Icon.");
+      refetchPlan();
+    }
+  }, [searchParams, refetchPlan]);
+
+  // Reset to profile if non-owner lands on team/plan/billing tab
+  useEffect(() => {
+    if ((activeSection === "team" || activeSection === "billing") && !isOwnerOrManager) {
       setActiveSection("profile");
     }
   }, [isOwnerOrManager, activeSection]);
@@ -141,13 +155,17 @@ export default function Settings() {
   const tabs: { key: SettingsSection; label: string }[] = [
     { key: "profile", label: "Profile" },
     { key: "notifications", label: "Notifications" },
-    ...(isOwnerOrManager ? [{ key: "team" as const, label: "Team Settings" }] : []),
+    ...(isOwnerOrManager && isPaid ? [{ key: "team" as const, label: "Team" }] : []),
+    { key: "plan", label: "Plan" },
+    ...(isOwnerOrManager && isPaid ? [{ key: "billing" as const, label: "Billing" }] : []),
   ];
 
   const titleMap: Record<SettingsSection, string> = {
     profile: "Profile Settings",
     notifications: "Notifications",
     team: "Team Settings",
+    plan: "Plan",
+    billing: "Billing",
   };
 
   return (
@@ -236,9 +254,8 @@ export default function Settings() {
           </div>
         )}
 
-        {activeSection === "team" && isOwnerOrManager && (
+        {activeSection === "team" && isOwnerOrManager && isPaid && (
           <div className="mt-6">
-            {/* Sub-pills */}
             <div className="flex gap-1 mb-6">
               {([
                 { key: "members" as const, label: "Members" },
@@ -258,6 +275,18 @@ export default function Settings() {
               ))}
             </div>
             <TeamManagement showSection={teamSubSection === "members" ? "members" : "profile"} />
+          </div>
+        )}
+
+        {activeSection === "plan" && (
+          <div className="mt-6">
+            <PlanTab />
+          </div>
+        )}
+
+        {activeSection === "billing" && isOwnerOrManager && isPaid && (
+          <div className="mt-6">
+            <BillingTab />
           </div>
         )}
       </div>

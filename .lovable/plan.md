@@ -21,14 +21,19 @@
 - All features unlocked, unlimited artists/prospects/tasks
 - Only difference between tiers is seat count
 
+### Stripe IDs
+- Icon 5: prod_U5CIvGZDhdaGnx / price_1T71uJQqzrroFM17NVp8fmBj ($45/mo)
+- Icon 10: prod_U5CZIYD0Nmn0ty / price_1T72AKQqzrroFM17maKFYrCj ($70/mo)
+- Icon 15: prod_U5CfH5aXZPJHUm / price_1T72GIQqzrroFM17uRdMfC30 ($120/mo)
+
 ### Implementation Steps
 
-1. **Enable Stripe** via Lovable's Stripe tool (collects secret key)
-2. **Create Stripe products/prices**: Icon 5 ($45), Icon 10 ($70), Icon 15 ($120) -- all with 30-day trial
-3. **Database migration**: `team_subscriptions` table (plan, seat_limit, status, trial_ends_at, stripe IDs) + `contact_requests` table for Legend inquiries
-4. **Edge functions**: `stripe-webhook`, `create-checkout-session`, `create-billing-portal`, `create-contact-request`, `send-trial-reminder` (day 20 cron)
-5. **`useTeamPlan()` hook**: Returns plan, seat limit, trial status; enforces feature gates with upgrade prompts
-6. **Settings restructure**: Add Plan tab (pricing cards) and Billing tab (invoices, payment method portal link); hide Team Settings for Rising users
-7. **Wire feature gates**: Artist/prospect creation, task creation, splits tab, team invites, finance tools -- each shows branded upgrade dialog when blocked
-8. **Legend contact form**: Dialog submitting to `contact_requests` + notification email
-
+1. ✅ **Enable Stripe** via Lovable's Stripe tool
+2. ✅ **Create Stripe products/prices**: Icon 5 ($45), Icon 10 ($70), Icon 15 ($120) -- all with 30-day trial
+3. ✅ **Database migration**: `team_subscriptions` + `contact_requests` tables with RLS
+4. ✅ **Edge functions**: `check-subscription`, `create-checkout`, `customer-portal`, `stripe-webhook`, `create-contact-request`
+5. ✅ **`useTeamPlan()` hook**: Returns plan, seat limit, trial status; enforces feature gates
+6. ✅ **Settings restructure**: Plan tab (pricing cards), Billing tab, Team tab hidden for Rising
+7. 🔲 **Wire feature gates**: Artist/prospect creation, task creation, splits tab, team invites, finance tools
+8. ✅ **Legend contact form**: Dialog submitting to `contact_requests` + notification email
+9. 🔲 **Send trial reminder**: Day 20 cron email (future)
