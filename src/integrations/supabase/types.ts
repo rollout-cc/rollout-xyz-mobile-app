@@ -1475,6 +1475,7 @@ export type Database = {
         Row: {
           annual_salary: number | null
           created_at: string
+          display_name: string | null
           employee_state: string | null
           employment_type: string
           id: string
@@ -1489,6 +1490,7 @@ export type Database = {
         Insert: {
           annual_salary?: number | null
           created_at?: string
+          display_name?: string | null
           employee_state?: string | null
           employment_type?: string
           id?: string
@@ -1503,6 +1505,7 @@ export type Database = {
         Update: {
           annual_salary?: number | null
           created_at?: string
+          display_name?: string | null
           employee_state?: string | null
           employment_type?: string
           id?: string

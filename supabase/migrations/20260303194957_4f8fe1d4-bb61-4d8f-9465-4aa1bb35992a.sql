@@ -1,0 +1,1 @@
+ALTER TABLE public.staff_employment ADD COLUMN IF NOT EXISTS display_name text;
