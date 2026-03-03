@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TrendingUp, TrendingDown, Minus, ArrowRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatLocalDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -65,7 +65,7 @@ export function StreamingTrendsWidget({ artists, teamId }: StreamingTrendsWidget
         .map((a) => ({
           artist_id: a.id,
           monthly_listeners: a.monthly_listeners!,
-          recorded_at: new Date().toISOString().split("T")[0],
+          recorded_at: formatLocalDate(new Date()),
         }));
 
       if (rows.length === 0) throw new Error("No listener data to log");

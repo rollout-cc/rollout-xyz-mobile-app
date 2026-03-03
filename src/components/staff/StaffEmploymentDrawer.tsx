@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatLocalDate } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -220,7 +221,7 @@ export function StaffEmploymentDrawer({ open, onOpenChange, userId, teamId, staf
               <Label className="text-xs font-semibold">Start Date</Label>
               <DatePicker
                 value={form.start_date ? new Date(form.start_date + "T00:00:00") : undefined}
-                onChange={(d) => setForm({ ...form, start_date: d ? d.toISOString().split("T")[0] : "" })}
+                onChange={(d) => setForm({ ...form, start_date: d ? formatLocalDate(d) : "" })}
                 placeholder="Select start date"
               />
             </div>

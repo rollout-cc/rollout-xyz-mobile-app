@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
-import { cn } from "@/lib/utils";
+import { cn, formatLocalDate, parseLocalDate } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   DollarSign, TrendingUp, TrendingDown, Flame, Clock,
@@ -216,7 +216,7 @@ export function FinanceContent() {
   const quarterlyData = useMemo(() => {
     return quarters.map((q) => {
       const qTxns = allTransactions.filter((t: any) => {
-        const d = new Date(t.transaction_date);
+        const d = parseLocalDate(t.transaction_date);
         return d >= q.start && d <= q.end;
       });
       const revenue = qTxns.filter((t: any) => t.type === "revenue").reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
@@ -440,7 +440,7 @@ export function FinanceContent() {
                     <tbody>
                       {artist.transactions.map((t: any) => (
                         <tr key={t.id} className="border-b border-border last:border-0 hover:bg-accent/20">
-                          <td className="p-2">{format(new Date(t.transaction_date), "MMM d")}</td>
+                          <td className="p-2">{format(parseLocalDate(t.transaction_date), "MMM d")}</td>
                           <td className="p-2">{t.description}</td>
                           <td className="p-2">
                             <Badge variant={t.type === "revenue" ? "default" : "outline"} className={cn("text-[10px]", t.type === "revenue" ? "bg-emerald-100 text-emerald-800" : "")}>
@@ -551,8 +551,9 @@ function CompanyExpensesTable({ expenses, categories, teamId, canEdit }: { expen
       const { error } = await (supabase as any).from("company_expenses").insert({
         team_id: teamId,
         description: newDesc.trim(),
-        amount: parseFloat(newAmount) || 0,
+        amount: parseFloat(newAmount.replace(/,/g, "")) || 0,
         category_id: newCat || null,
+        expense_date: formatLocalDate(new Date()),
       });
       if (error) throw error;
     },
@@ -596,7 +597,7 @@ function CompanyExpensesTable({ expenses, categories, teamId, canEdit }: { expen
             const cat = categories.find((c: any) => c.id === e.category_id);
             return (
               <tr key={e.id} className="border-b border-border last:border-0 hover:bg-accent/20 group">
-                <td className="p-3 text-xs">{format(new Date(e.expense_date), "MMM d, yyyy")}</td>
+                <td className="p-3 text-xs">{format(parseLocalDate(e.expense_date), "MMM d, yyyy")}</td>
                 <td className="p-3">{e.description}</td>
                 <td className="p-3 text-xs text-muted-foreground">{cat?.name || "—"}</td>
                 <td className="p-3 text-right font-medium text-destructive">{fmt(Number(e.amount))}</td>

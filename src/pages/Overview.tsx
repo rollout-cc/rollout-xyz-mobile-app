@@ -1,6 +1,6 @@
 import { useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import { cn, formatLocalDate } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
@@ -174,7 +174,7 @@ export default function Overview() {
       const artistIds = artists.map((a) => a.id);
       if (artistIds.length === 0) return [];
       // Get the most recent previous record for each artist (not today)
-      const today = new Date().toISOString().split("T")[0];
+      const today = formatLocalDate(new Date());
       const { data, error } = await supabase
         .from("monthly_listener_history" as any)
         .select("artist_id, monthly_listeners, recorded_at")
