@@ -47,12 +47,14 @@ export function SplitsTab({ artistId, teamId }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Split Sheets</h3>
-        <Button size="sm" variant="outline" className="gap-1" onClick={() => setShowNew(!showNew)}>
-          <Plus className="h-3.5 w-3.5" /> New Project
-        </Button>
-      </div>
+      {projects.length > 0 && (
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Split Sheets</h3>
+          <Button size="sm" variant="outline" className="gap-1" onClick={() => setShowNew(!showNew)}>
+            <Plus className="h-3.5 w-3.5" /> Add Release
+          </Button>
+        </div>
+      )}
 
       {showNew && (
         <div className="flex items-center gap-2 p-3 border border-border rounded-lg bg-muted/30">
@@ -79,8 +81,13 @@ export function SplitsTab({ artistId, teamId }: Props) {
       )}
 
       {projects.length === 0 && !showNew && (
-        <div className="text-center py-12 text-muted-foreground text-sm">
-          No split projects yet. Create one to start tracking ownership.
+        <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
+          <p className="text-muted-foreground text-sm max-w-md">
+            Track master and publishing ownership for every song. Add a release to start building split sheets and send them to contributors for approval.
+          </p>
+          <Button size="sm" variant="outline" className="gap-1" onClick={() => setShowNew(true)}>
+            <Plus className="h-3.5 w-3.5" /> Add Release
+          </Button>
         </div>
       )}
 
