@@ -342,6 +342,7 @@ export function FinanceContent() {
             <tbody>
               {staffEmployment.map((emp: any) => {
                 const profile = staffProfiles.find((p) => p.id === emp.user_id);
+                const displayName = profile?.full_name || emp.display_name || "Unknown";
                 const monthly = emp.employment_type === "w2"
                   ? Number(emp.annual_salary || 0) / 12
                   : Number(emp.monthly_retainer || 0);
@@ -350,9 +351,9 @@ export function FinanceContent() {
                     <td className="p-3 flex items-center gap-2">
                       <Avatar className="h-6 w-6">
                         <AvatarImage src={profile?.avatar_url ?? undefined} />
-                        <AvatarFallback className="text-[10px]">{(profile?.full_name || "?")[0]}</AvatarFallback>
+                        <AvatarFallback className="text-[10px]">{displayName[0]}</AvatarFallback>
                       </Avatar>
-                      {profile?.full_name || "Unknown"}
+                      {displayName}
                     </td>
                     <td className="p-3">
                       <Badge variant="outline" className="text-xs">{emp.employment_type === "w2" ? "W-2" : "1099"}</Badge>
