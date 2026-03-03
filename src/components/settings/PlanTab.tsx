@@ -100,6 +100,8 @@ export function PlanTab() {
             <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 mt-0.5 text-foreground shrink-0" /> 3 roster artists</li>
             <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 mt-0.5 text-foreground shrink-0" /> 2 A&R prospects</li>
             <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 mt-0.5 text-foreground shrink-0" /> 10 tasks/month</li>
+            <li className="flex items-start gap-1.5 text-destructive/70"><span className="h-3.5 w-3.5 mt-0.5 shrink-0 text-center">✕</span> No team members</li>
+            <li className="flex items-start gap-1.5 text-destructive/70"><span className="h-3.5 w-3.5 mt-0.5 shrink-0 text-center">✕</span> No splits or finance</li>
           </ul>
         </div>
 
@@ -126,6 +128,7 @@ export function PlanTab() {
           <p className="text-xs text-muted-foreground mb-4">All features, team collaboration</p>
           <ul className="space-y-1.5 text-sm text-muted-foreground mb-4">
             <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 mt-0.5 text-foreground shrink-0" /> Unlimited artists & tasks</li>
+            <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 mt-0.5 text-foreground shrink-0" /> <strong className="text-foreground">Add team members</strong></li>
             <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 mt-0.5 text-foreground shrink-0" /> Splits & finance tools</li>
             <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 mt-0.5 text-foreground shrink-0" /> Team roles & permissions</li>
             <li className="flex items-start gap-1.5"><Check className="h-3.5 w-3.5 mt-0.5 text-foreground shrink-0" /> 30-day free trial</li>
