@@ -25,9 +25,11 @@ interface SpendingPerActSectionProps {
   artistCount: number;
   fmt: (n: number) => string;
   fmtSigned: (n: number) => string;
+  /** When true, clicking an artist navigates to their finance tab with back-to-finance context */
+  fromFinanceTab?: boolean;
 }
 
-export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSigned }: SpendingPerActSectionProps) {
+export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSigned, fromFinanceTab }: SpendingPerActSectionProps) {
   const navigate = useNavigate();
 
   return (
@@ -41,7 +43,7 @@ export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSi
           <div
             key={artist.id}
             className="rounded-xl border border-border bg-card p-4 cursor-pointer overflow-hidden"
-            onClick={() => navigate(`/roster/${artist.id}`)}
+            onClick={() => navigate(fromFinanceTab ? `/roster/${artist.id}?from=finance` : `/roster/${artist.id}`)}
           >
             {/* Header row */}
             <div className="flex items-center gap-3 mb-4">

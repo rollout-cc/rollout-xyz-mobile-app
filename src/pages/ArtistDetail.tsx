@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -26,10 +26,12 @@ type ActiveView = TabView | "finance" | "budgets" | "objectives" | "information"
 export default function ArtistDetail() {
   const { artistId } = useParams<{ artistId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const fromFinance = searchParams.get("from") === "finance";
   const { data: artist, isLoading } = useArtistDetail(artistId!);
   const { data: spotifyData, refetch: refetchSpotify, isFetching: isRefreshingSpotify } = useSpotifyArtist(artist?.spotify_id);
   const totalBudget = useTotalBudget(artistId!);
-  const [activeView, setActiveView] = useState<ActiveView>("work");
+  const [activeView, setActiveView] = useState<ActiveView>(fromFinance ? "finance" : "work");
   const [showCompleted, setShowCompleted] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const queryClient = useQueryClient();
@@ -169,7 +171,13 @@ export default function ArtistDetail() {
     >
       {/* Back arrow */}
       <button
-        onClick={() => navigate(artist?.folder_id ? `/roster?folder=${artist.folder_id}` : "/roster")}
+        onClick={() => {
+          if (fromFinance) {
+            navigate("/overview?tab=finance");
+          } else {
+            navigate(artist?.folder_id ? `/roster?folder=${artist.folder_id}` : "/roster");
+          }
+        }}
         className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors mb-2 -mt-1"
       >
         <ArrowLeft className="h-4 w-4" />

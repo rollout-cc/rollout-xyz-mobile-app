@@ -10,6 +10,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -239,14 +241,14 @@ export function FinanceContent() {
       const expenses = aTxns.filter((t: any) => t.type === "expense").reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
       const utilization = budget > 0 ? Math.min((expenses / budget) * 100, 100) : 0;
       const pendingCount = aTxns.filter((t: any) => (t as any).approval_status === "pending").length;
-      const categories = aBudgets.map((b: any) => {
+      const catBreakdown = aBudgets.map((b: any) => {
         const catTxns = aTxns.filter((t: any) => t.budget_id === b.id);
         const spent = catTxns.reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
         return { label: b.label, budget: Number(b.amount), spent, pct: Number(b.amount) > 0 ? (spent / Number(b.amount)) * 100 : 0 };
       });
       return {
         ...artist, budget, revenue, expenses, gp: revenue - expenses, utilization,
-        pendingCount, categories, transactions: aTxns,
+        pendingCount, categories: catBreakdown, transactions: aTxns,
         completedTasks: 0, totalTasks: 0, campaignCount: 0,
       };
     }).sort((a, b) => b.budget - a.budget);
@@ -273,7 +275,7 @@ export function FinanceContent() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header + Date Filter */}
       <div className="flex items-center justify-between">
         <div>
@@ -302,31 +304,31 @@ export function FinanceContent() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-        <KpiCard label="Total Budget" value={fmt(totalBudget)} icon={<DollarSign className="h-4 w-4" />} />
-        <KpiCard label="Total Revenue" value={fmt(totalRevenue)} icon={<TrendingUp className="h-4 w-4" />} accent="text-emerald-600" />
-        <KpiCard label="Total Spending" value={fmt(totalExpenses)} icon={<TrendingDown className="h-4 w-4" />} accent="text-destructive" />
-        <KpiCard label="Net P&L" value={fmtSigned(netProfit)} icon={<DollarSign className="h-4 w-4" />} accent={netProfit >= 0 ? "text-emerald-600" : "text-destructive"} />
-        <KpiCard label="Monthly Burn" value={fmt(monthlyBurn)} icon={<Flame className="h-4 w-4" />} accent="text-amber-600" />
-        <KpiCard label="Runway" value={runway === Infinity ? "∞" : `${runway} mo`} icon={<Clock className="h-4 w-4" />} accent={runway < 6 ? "text-destructive" : "text-emerald-600"} />
-        <KpiCard label="Monthly Payroll" value={fmt(totalPayroll)} icon={<DollarSign className="h-4 w-4" />} />
-        <KpiCard label="Pending Approvals" value={String(filteredTransactions.filter((t: any) => (t as any).approval_status === "pending").length)} icon={<Clock className="h-4 w-4" />} accent="text-amber-600" />
-      </div>
+      <CollapsibleSection title="Financial Snapshot" defaultOpen>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+          <KpiCard label="Total Budget" value={fmt(totalBudget)} icon={<DollarSign className="h-4 w-4" />} />
+          <KpiCard label="Total Revenue" value={fmt(totalRevenue)} icon={<TrendingUp className="h-4 w-4" />} accent="text-emerald-600" />
+          <KpiCard label="Total Spending" value={fmt(totalExpenses)} icon={<TrendingDown className="h-4 w-4" />} accent="text-destructive" />
+          <KpiCard label="Net P&L" value={fmtSigned(netProfit)} icon={<DollarSign className="h-4 w-4" />} accent={netProfit >= 0 ? "text-emerald-600" : "text-destructive"} />
+          <KpiCard label="Monthly Burn" value={fmt(monthlyBurn)} icon={<Flame className="h-4 w-4" />} accent="text-amber-600" />
+          <KpiCard label="Runway" value={runway === Infinity ? "∞" : `${runway} mo`} icon={<Clock className="h-4 w-4" />} accent={runway < 6 ? "text-destructive" : "text-emerald-600"} />
+          <KpiCard label="Monthly Payroll" value={fmt(totalPayroll)} icon={<DollarSign className="h-4 w-4" />} />
+          <KpiCard label="Pending Approvals" value={String(filteredTransactions.filter((t: any) => (t as any).approval_status === "pending").length)} icon={<Clock className="h-4 w-4" />} accent="text-amber-600" />
+        </div>
+      </CollapsibleSection>
 
       {/* Company Expenses */}
-      <section>
-        <h2 className="text-sm font-semibold mb-3">Company Expenses</h2>
+      <CollapsibleSection title="Company Expenses" defaultOpen>
         <CompanyExpensesTable
           expenses={filteredCompanyExpenses}
           categories={categories}
           teamId={teamId!}
           canEdit={canEdit}
         />
-      </section>
+      </CollapsibleSection>
 
       {/* Staff Payroll */}
-      <section>
-        <h2 className="text-sm font-semibold mb-3">Staff Payroll</h2>
+      <CollapsibleSection title="Staff Payroll" defaultOpen>
         <div className="rounded-xl border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>
@@ -374,11 +376,10 @@ export function FinanceContent() {
             </tfoot>
           </table>
         </div>
-      </section>
+      </CollapsibleSection>
 
       {/* Artist Financial Drill-Down */}
-      <section>
-        <h2 className="text-sm font-semibold mb-3">Artist Financials</h2>
+      <CollapsibleSection title="Artist Financials" defaultOpen>
         <Accordion type="multiple" className="space-y-2">
           {artistBreakdown.map((artist) => (
             <AccordionItem key={artist.id} value={artist.id} className="rounded-xl border border-border overflow-hidden">
@@ -493,11 +494,10 @@ export function FinanceContent() {
             <p className="text-sm text-muted-foreground text-center py-8">No artists in roster</p>
           )}
         </Accordion>
-      </section>
+      </CollapsibleSection>
 
       {/* Quarterly P&L */}
-      <section>
-        <h2 className="text-sm font-semibold mb-3">Quarterly P&L</h2>
+      <CollapsibleSection title="Quarterly P&L" defaultOpen>
         <QuarterlyPnlSection
           quarterlyData={quarterlyData}
           departments={departments}
@@ -507,24 +507,23 @@ export function FinanceContent() {
           fmt={fmt}
           fmtSigned={fmtSigned}
         />
-      </section>
+      </CollapsibleSection>
 
       {/* Spending Per Act */}
-      <section>
-        <h2 className="text-sm font-semibold mb-3">Spending Per Act</h2>
+      <CollapsibleSection title="Spending Per Act" defaultOpen>
         <SpendingPerActSection
           artistBreakdown={artistBreakdown}
           artistCount={artists.length}
           fmt={fmt}
           fmtSigned={fmtSigned}
+          fromFinanceTab
         />
-      </section>
+      </CollapsibleSection>
 
       {/* Company Budget */}
-      <section>
-        <h2 className="text-sm font-semibold mb-3">Company Budget</h2>
+      <CollapsibleSection title="Company Budget" defaultOpen>
         <CompanyBudgetSection />
-      </section>
+      </CollapsibleSection>
     </div>
   );
 }
@@ -624,12 +623,11 @@ function CompanyExpensesTable({ expenses, categories, teamId, canEdit }: { expen
             placeholder="Description"
             className="h-8 text-sm flex-1"
           />
-          <Input
-            type="number"
+          <CurrencyInput
             value={newAmount}
-            onChange={(e) => setNewAmount(e.target.value)}
-            placeholder="Amount"
-            className="h-8 text-sm w-28"
+            onChange={setNewAmount}
+            placeholder="0"
+            className="h-8 text-sm w-32"
           />
           <Select value={newCat} onValueChange={setNewCat}>
             <SelectTrigger className="h-8 text-xs w-36">

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { Plus, Trash2, Receipt, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { toast } from "sonner";
 import { format, parse } from "date-fns";
@@ -171,10 +172,10 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
           />
 
           <div className="flex gap-2">
-            <Input
-              placeholder="$0.00"
+            <CurrencyInput
               value={newAmount}
-              onChange={(e) => setNewAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              onChange={setNewAmount}
+              placeholder="0"
               className="h-8 text-sm flex-1"
             />
             <Input

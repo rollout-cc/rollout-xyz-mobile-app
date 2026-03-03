@@ -11,6 +11,7 @@ import { DollarSign, Plus, ChevronDown, ChevronRight, MoreVertical, Check, Trash
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 
 interface FinanceTabProps {
   artistId: string;
@@ -425,11 +426,9 @@ export function FinanceTab({ artistId, teamId }: FinanceTabProps) {
           <div className="flex items-start gap-3">
             <span className="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-600 font-bold text-sm mt-0.5 shrink-0">$</span>
             <div className="flex-1 space-y-2">
-              <Input
-                ref={amountInputRef}
-                placeholder="Enter Amount"
+              <CurrencyInput
                 value={itemAmount}
-                onChange={(e) => setItemAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+                onChange={setItemAmount}
                 onKeyDown={handleFormKeyDown}
                 className="h-8 text-lg font-semibold"
                 autoFocus

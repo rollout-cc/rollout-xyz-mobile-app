@@ -1,4 +1,5 @@
 import { useMemo, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +38,9 @@ import type { StaffMember } from "@/components/overview/StaffMetricsSection";
 
 export default function Overview() {
   const { selectedTeamId: teamId } = useSelectedTeam();
-  const [companyTab, setCompanyTab] = useState<"dashboard" | "agenda" | "staff" | "finance">("dashboard");
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") === "finance" ? "finance" : "dashboard";
+  const [companyTab, setCompanyTab] = useState<"dashboard" | "agenda" | "staff" | "finance">(initialTab);
   const showBudgetWizard = useShouldShowBudgetWizard(teamId ?? null);
 
   // Fetch team to check company_type
