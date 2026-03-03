@@ -971,12 +971,17 @@ export type Database = {
       }
       notification_preferences: {
         Row: {
+          budget_alert_email: boolean
           created_at: string
+          daily_checkin_email: boolean
           id: string
           milestone_email: boolean
           milestone_sms: boolean
+          new_artist_email: boolean
+          preferred_notification_time: string
           task_assigned_email: boolean
           task_assigned_sms: boolean
+          task_completed_email: boolean
           task_due_soon_email: boolean
           task_due_soon_sms: boolean
           task_overdue_email: boolean
@@ -985,12 +990,17 @@ export type Database = {
           weekly_summary_email: boolean
         }
         Insert: {
+          budget_alert_email?: boolean
           created_at?: string
+          daily_checkin_email?: boolean
           id?: string
           milestone_email?: boolean
           milestone_sms?: boolean
+          new_artist_email?: boolean
+          preferred_notification_time?: string
           task_assigned_email?: boolean
           task_assigned_sms?: boolean
+          task_completed_email?: boolean
           task_due_soon_email?: boolean
           task_due_soon_sms?: boolean
           task_overdue_email?: boolean
@@ -999,12 +1009,17 @@ export type Database = {
           weekly_summary_email?: boolean
         }
         Update: {
+          budget_alert_email?: boolean
           created_at?: string
+          daily_checkin_email?: boolean
           id?: string
           milestone_email?: boolean
           milestone_sms?: boolean
+          new_artist_email?: boolean
+          preferred_notification_time?: string
           task_assigned_email?: boolean
           task_assigned_sms?: boolean
+          task_completed_email?: boolean
           task_due_soon_email?: boolean
           task_due_soon_sms?: boolean
           task_overdue_email?: boolean

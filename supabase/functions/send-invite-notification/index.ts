@@ -4,13 +4,16 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const flagUrl = 'https://ctnsworqzzguykzzvdme.supabase.co/storage/v1/object/public/email-assets/rollout-flag.svg';
+const wordmarkUrl = 'https://ctnsworqzzguykzzvdme.supabase.co/storage/v1/object/public/email-assets/rollout-logo.png';
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { token, email, phone, team_name, invitee_name } = await req.json();
+    const { token, email, phone, team_name, invitee_name, role } = await req.json();
 
     if (!token) {
       return new Response(JSON.stringify({ error: "Token is required" }), {
@@ -22,7 +25,6 @@ Deno.serve(async (req) => {
     const inviteUrl = `https://rollout.cc/join/${token}`;
 
     if (!email) {
-      // No email provided — return the link for manual sharing
       return new Response(
         JSON.stringify({
           success: true,
@@ -42,39 +44,37 @@ Deno.serve(async (req) => {
     }
 
     const firstName = invitee_name?.split(" ")[0] || "";
-    const greeting = firstName ? `Hi ${firstName},` : "Hi,";
+    const roleLabel = role || "member";
 
     const htmlBody = `
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;">
+<body style="margin:0;padding:0;background-color:#ffffff;font-family:Switzer,Arial,Helvetica,sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#ffffff;">
-    <tr><td align="center" style="padding:40px 20px;">
-      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;">
-        <!-- Dark header -->
-        <tr><td style="background-color:#0d0d0d;border-radius:12px 12px 0 0;padding:32px 40px;text-align:center;">
-          <img src="https://rollout.cc/rollout-logo-white.png" alt="ROLLOUT" height="36" style="height:36px;" />
-        </td></tr>
-        <!-- Body -->
-        <tr><td style="background-color:#f5f0e8;padding:40px;border-radius:0 0 12px 12px;">
-          <p style="margin:0 0 16px;font-size:16px;line-height:1.5;color:#0d0d0d;">${greeting}</p>
-          <p style="margin:0 0 24px;font-size:16px;line-height:1.5;color:#0d0d0d;">
-            You've been invited to join <strong>${team_name || "a team"}</strong> on Rollout — the platform for music companies to manage their artists, teams, and operations.
+    <tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#e8e4dc;">
+        <tr><td style="padding:48px 40px;">
+          <img src="${flagUrl}" alt="Rollout" height="40" style="height:40px;margin-bottom:24px;display:block;" />
+          <h1 style="font-size:28px;font-weight:bold;color:#0d0d0d;margin:0 0 16px;line-height:1.2;">It's time to get organized.</h1>
+          <p style="font-size:16px;color:#0d0d0d;line-height:1.5;margin:0 0 16px;">
+            You've been invited to join the team <strong>${team_name || "a team"}</strong> on Rollout and granted access as <strong>${roleLabel}</strong>.
           </p>
-          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
+          <p style="font-size:16px;color:#0d0d0d;line-height:1.5;margin:0 0 24px;">
+            Click the button below to create and verify your Rollout account and begin creating and assigning tasks.
+          </p>
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
             <tr><td style="background-color:#0d0d0d;border-radius:9999px;padding:14px 32px;">
               <a href="${inviteUrl}" target="_blank" style="color:#f2ead9;font-size:15px;font-weight:600;text-decoration:none;display:inline-block;">
-                Accept Invitation
+                Join Team
               </a>
             </td></tr>
           </table>
-          <p style="margin:0 0 8px;font-size:13px;line-height:1.5;color:#666;">
-            This invite expires in 7 days. If you didn't expect this, you can ignore this email.
+          <hr style="border:none;border-top:1px solid #c4c0b8;margin:32px 0;" />
+          <p style="font-size:14px;color:#666666;line-height:1.5;margin:0 0 8px;">
+            For any questions or issues please email <a href="mailto:support@rollout.cc" style="color:#0d0d0d;font-weight:bold;text-decoration:none;">support@rollout.cc</a>
           </p>
-          <p style="margin:0;font-size:12px;color:#999;">
-            <a href="${inviteUrl}" style="color:#999;word-break:break-all;">${inviteUrl}</a>
-          </p>
+          <img src="${wordmarkUrl}" alt="ROLLOUT" height="32" style="height:32px;margin-top:24px;" />
         </td></tr>
       </table>
     </td></tr>

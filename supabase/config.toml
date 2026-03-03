@@ -13,3 +13,7 @@ project_id = "ctnsworqzzguykzzvdme"
     verify_jwt = false
   [functions.spotify-search]
     verify_jwt = false
+  [functions.send-notification]
+    verify_jwt = false
+  [functions.send-digest]
+    verify_jwt = false
