@@ -14,7 +14,7 @@ import { CollapsibleSection, InlineAddTrigger } from "@/components/ui/Collapsibl
 import { ItemEditor, DescriptionEditor } from "@/components/ui/ItemEditor";
 import { MetaBadge } from "@/components/ui/ItemCard";
 import { ToolbarButton } from "@/components/ui/ItemPickers";
-import { cn } from "@/lib/utils";
+import { cn, formatLocalDate } from "@/lib/utils";
 import {
   DragDropContext, Droppable, Draggable, type DropResult,
 } from "@hello-pangea/dnd";
@@ -389,8 +389,8 @@ function TaskItem({
     const dateMatch = parsed_title.match(/\bdue\s+(\S+)/i);
     if (dateMatch) {
       const ds = dateMatch[1].toLowerCase(); const today = new Date();
-      if (ds === "today") due_date = today.toISOString().split("T")[0];
-      else if (ds === "tomorrow") { today.setDate(today.getDate() + 1); due_date = today.toISOString().split("T")[0]; }
+      if (ds === "today") due_date = formatLocalDate(today);
+      else if (ds === "tomorrow") { today.setDate(today.getDate() + 1); due_date = formatLocalDate(today); }
       else if (/^\d{4}-\d{2}-\d{2}$/.test(ds)) due_date = ds;
       else if (/^\d{1,2}\/\d{1,2}$/.test(ds)) { const [m, d] = ds.split("/").map(Number); due_date = `${today.getFullYear()}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`; }
       parsed_title = parsed_title.replace(dateMatch[0], "").trim();

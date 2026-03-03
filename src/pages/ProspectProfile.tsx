@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, Plus, ExternalLink, User, Music, Phone, MessageSquare, RefreshCw } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatLocalDate } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import {
   useProspect,
@@ -57,7 +57,7 @@ export default function ProspectProfile() {
   const upsertDeal = useUpsertDeal();
 
   const [showEngagementForm, setShowEngagementForm] = useState(false);
-  const [engForm, setEngForm] = useState({ engagement_type: "call", outcome: "", next_step: "", engagement_date: new Date().toISOString().split("T")[0] });
+  const [engForm, setEngForm] = useState({ engagement_type: "call", outcome: "", next_step: "", engagement_date: formatLocalDate(new Date()) });
   const [showContactForm, setShowContactForm] = useState(false);
   const [contactForm, setContactForm] = useState({ name: "", role: "", email: "", phone: "" });
   const [syncingSpotify, setSyncingSpotify] = useState(false);
@@ -130,7 +130,7 @@ export default function ProspectProfile() {
       });
       toast.success("Engagement logged!");
       setShowEngagementForm(false);
-      setEngForm({ engagement_type: "call", outcome: "", next_step: "", engagement_date: new Date().toISOString().split("T")[0] });
+      setEngForm({ engagement_type: "call", outcome: "", next_step: "", engagement_date: formatLocalDate(new Date()) });
     } catch (err: any) {
       toast.error(err.message);
     }

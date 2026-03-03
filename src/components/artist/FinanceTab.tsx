@@ -10,7 +10,7 @@ import {
 import { DollarSign, Plus, ChevronDown, ChevronRight, MoreVertical, Check, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, parseLocalDate } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 
 interface FinanceTabProps {
@@ -744,7 +744,7 @@ function TransactionItem({
           )}
           {t.transaction_date && (
             <span className="text-[11px] text-muted-foreground">
-              {format(new Date(t.transaction_date), "MMM d, yyyy")}
+              {format(parseLocalDate(t.transaction_date), "MMM d, yyyy")}
             </span>
           )}
         </div>

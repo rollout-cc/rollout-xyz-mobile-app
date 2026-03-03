@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { format, isToday, isTomorrow, isPast, isYesterday } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { Plus, Music2, Wallet } from "lucide-react";
-import { cn, parseDateFromText } from "@/lib/utils";
+import { cn, parseDateFromText, formatLocalDate } from "@/lib/utils";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { useCallback, useState, useMemo, useRef } from "react";
 import { toast } from "sonner";
@@ -111,7 +111,7 @@ export default function MyWork() {
           description: params.title,
           type: "expense",
           status: "pending",
-          transaction_date: params.due_date || new Date().toISOString().split("T")[0],
+          transaction_date: params.due_date || formatLocalDate(new Date()),
         });
       }
     },
