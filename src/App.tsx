@@ -45,6 +45,15 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function RootRedirect() {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+  if (user) return <Navigate to="/roster" replace />;
+  // Unauthenticated users go to the marketing site
+  window.location.href = "https://rollout.cc";
+  return null;
+}
+
 function AppRoutes() {
   usePushNotifications();
   return (
@@ -67,7 +76,7 @@ function AppRoutes() {
       <Route path="/shared/agenda/:token" element={<PublicAgenda />} />
       <Route path="/join/:token" element={<JoinTeam />} />
       <Route path="/splits/approve/:token" element={<ApproveSplit />} />
-      <Route path="/" element={<Navigate to="/roster" replace />} />
+      <Route path="/" element={<RootRedirect />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
