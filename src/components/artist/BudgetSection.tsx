@@ -329,7 +329,7 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
                 </div>
 
                 {/* Sub-budgets expanded section */}
-                {isExpanded && (subs.length > 0 || isAddingSub) && (
+                {isExpanded && subs.length > 0 && (
                   <div className="border-t border-border bg-muted/20">
                     {subs.map((sb: any) => {
                       const sbTxns = transactionsForSubBudget(sb.id);
@@ -355,7 +355,6 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
                               </Button>
                             </div>
                           </div>
-                          {/* Show linked transactions */}
                           {sbTxns.length > 0 && (
                             <div className="mt-1.5 space-y-1">
                               {sbTxns.slice(0, 5).map((t: any) => (
@@ -372,36 +371,36 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
                         </div>
                       );
                     })}
+                  </div>
+                )}
 
-                    {/* Add sub-budget inline form */}
-                    {isAddingSub && (
-                      <div className="px-4 py-3 space-y-2">
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="Sub-budget name"
-                            value={subLabel}
-                            onChange={(e) => setSubLabel(e.target.value)}
-                            className="h-8 flex-1 text-sm"
-                            autoFocus
-                          />
-                          <Input
-                            placeholder="$0"
-                            value={formatWithCommas(subAmount)}
-                            onChange={(e) => setSubAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-                            className="h-8 w-24 text-sm"
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" && subLabel.trim()) {
-                                addSubBudget.mutate({ budgetId: b.id, label: subLabel.trim(), amount: parseFloat(subAmount) || 0 });
-                              }
-                            }}
-                          />
-                        </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" className="h-7 flex-1 text-xs" onClick={() => addSubBudget.mutate({ budgetId: b.id, label: subLabel.trim(), amount: parseFloat(subAmount) || 0 })} disabled={!subLabel.trim()}>Add</Button>
-                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setAddingSubBudget(null); setSubLabel(""); setSubAmount(""); }}>Cancel</Button>
-                        </div>
-                      </div>
-                    )}
+                {/* Add sub-budget inline form - rendered independently */}
+                {isAddingSub && (
+                  <div className="border-t border-border bg-muted/20 px-4 py-3 space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Sub-budget name"
+                        value={subLabel}
+                        onChange={(e) => setSubLabel(e.target.value)}
+                        className="h-8 flex-1 text-sm"
+                        autoFocus
+                      />
+                      <Input
+                        placeholder="$0"
+                        value={formatWithCommas(subAmount)}
+                        onChange={(e) => setSubAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+                        className="h-8 w-24 text-sm"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && subLabel.trim()) {
+                            addSubBudget.mutate({ budgetId: b.id, label: subLabel.trim(), amount: parseFloat(subAmount) || 0 });
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" className="h-7 flex-1 text-xs" onClick={() => addSubBudget.mutate({ budgetId: b.id, label: subLabel.trim(), amount: parseFloat(subAmount) || 0 })} disabled={!subLabel.trim()}>Add</Button>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setAddingSubBudget(null); setSubLabel(""); setSubAmount(""); }}>Cancel</Button>
+                    </div>
                   </div>
                 )}
               </div>
