@@ -1583,6 +1583,38 @@ export type Database = {
           },
         ]
       }
+      sub_budgets: {
+        Row: {
+          amount: number
+          budget_id: string
+          created_at: string
+          id: string
+          label: string
+        }
+        Insert: {
+          amount?: number
+          budget_id: string
+          created_at?: string
+          id?: string
+          label: string
+        }
+        Update: {
+          amount?: number
+          budget_id?: string
+          created_at?: string
+          id?: string
+          label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sub_budgets_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           artist_id: string | null
@@ -1800,6 +1832,7 @@ export type Database = {
           id: string
           initiative_id: string | null
           status: string
+          sub_budget_id: string | null
           task_id: string | null
           transaction_date: string
           type: string
@@ -1817,6 +1850,7 @@ export type Database = {
           id?: string
           initiative_id?: string | null
           status?: string
+          sub_budget_id?: string | null
           task_id?: string | null
           transaction_date?: string
           type?: string
@@ -1834,6 +1868,7 @@ export type Database = {
           id?: string
           initiative_id?: string | null
           status?: string
+          sub_budget_id?: string | null
           task_id?: string | null
           transaction_date?: string
           type?: string
@@ -1865,6 +1900,13 @@ export type Database = {
             columns: ["initiative_id"]
             isOneToOne: false
             referencedRelation: "initiatives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_sub_budget_id_fkey"
+            columns: ["sub_budget_id"]
+            isOneToOne: false
+            referencedRelation: "sub_budgets"
             referencedColumns: ["id"]
           },
           {
@@ -1923,6 +1965,7 @@ export type Database = {
     }
     Functions: {
       get_artist_team_id: { Args: { p_artist_id: string }; Returns: string }
+      get_budget_team_id: { Args: { p_budget_id: string }; Returns: string }
       get_link_folder_artist_id: {
         Args: { p_folder_id: string }
         Returns: string

@@ -78,6 +78,18 @@ export function WorkTab({ artistId, teamId, showCompleted, showArchived }: WorkT
     },
   });
 
+  const { data: subBudgets = [] } = useQuery({
+    queryKey: ["sub-budgets", artistId],
+    queryFn: async () => {
+      const budgetIds = budgets.map((b: any) => b.id);
+      if (budgetIds.length === 0) return [];
+      const { data, error } = await supabase.from("sub_budgets").select("*").in("budget_id", budgetIds).order("created_at");
+      if (error) throw error;
+      return data;
+    },
+    enabled: budgets.length > 0,
+  });
+
   const activeCampaigns = campaigns.filter((c: any) => !c.is_archived);
   const archivedCampaigns = campaigns.filter((c: any) => c.is_archived);
   const archivedCampaignIds = new Set(archivedCampaigns.map((c: any) => c.id));
@@ -104,7 +116,7 @@ export function WorkTab({ artistId, teamId, showCompleted, showArchived }: WorkT
     return <EmptyWorkState artistId={artistId} teamId={teamId} onCampaignCreated={setNewCampaignId} />;
   }
 
-  const sharedContext = { artistId, teamId, campaigns, teamMembers, budgets, editingTaskId, setEditingTaskId };
+  const sharedContext = { artistId, teamId, campaigns, teamMembers, budgets, subBudgets, editingTaskId, setEditingTaskId };
 
   return (
     <div className="mt-4 space-y-2">
@@ -174,7 +186,7 @@ export function WorkTab({ artistId, teamId, showCompleted, showArchived }: WorkT
 /* ── Task List with drag-and-drop ── */
 function TaskList({ tasks, droppableId, ...ctx }: {
   tasks: any[]; droppableId: string;
-  artistId: string; teamId: string; campaigns: any[]; teamMembers: any[]; budgets: any[];
+  artistId: string; teamId: string; campaigns: any[]; teamMembers: any[]; budgets: any[]; subBudgets: any[];
   editingTaskId: string | null; setEditingTaskId: (id: string | null) => void;
 }) {
   const queryClient = useQueryClient();
@@ -223,6 +235,7 @@ interface TaskItemProps {
   campaigns: any[];
   teamMembers: any[];
   budgets: any[];
+  subBudgets: any[];
   defaultCampaignId?: string;
   autoFocus?: boolean;
   dragHandleProps?: any;
@@ -231,7 +244,7 @@ interface TaskItemProps {
 }
 
 function TaskItem({
-  task, isNew, artistId, teamId, campaigns, teamMembers, budgets,
+  task, isNew, artistId, teamId, campaigns, teamMembers, budgets, subBudgets,
   defaultCampaignId, autoFocus, dragHandleProps, editingTaskId, setEditingTaskId,
 }: TaskItemProps) {
   const queryClient = useQueryClient();
@@ -265,17 +278,38 @@ function TaskItem({
     },
     {
       char: "$",
-      items: budgets.map((b: any) => ({
-        id: b.id,
-        label: `$${b.amount.toLocaleString()} ${b.label}`,
-        icon: <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />,
-      })),
+      items: (() => {
+        const items: any[] = [];
+        budgets.forEach((b: any) => {
+          const subs = subBudgets.filter((sb: any) => sb.budget_id === b.id);
+          items.push({
+            id: b.id,
+            label: subs.length > 0
+              ? `$${b.amount.toLocaleString()} ${b.label} ›`
+              : `$${b.amount.toLocaleString()} ${b.label}`,
+            icon: <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />,
+          });
+          subs.forEach((sb: any) => {
+            items.push({
+              id: `sub:${sb.id}:${b.id}`,
+              label: `    ↳ ${sb.label} ($${Number(sb.amount).toLocaleString()})`,
+              icon: <DollarSign className="h-3.5 w-3.5 text-muted-foreground/50" />,
+            });
+          });
+        });
+        return items;
+      })(),
       onSelect: (item: any, current: string) => {
+        if (String(item.id).startsWith("sub:")) {
+          const parts = String(item.id).split(":");
+          const subBudget = subBudgets.find((sb: any) => sb.id === parts[1]);
+          return current.replace(/\$\S*$/, `$${subBudget?.amount || 0} `);
+        }
         const budget = budgets.find((b: any) => b.id === item.id);
         return current.replace(/\$\S*$/, `$${budget?.amount || 0} `);
       },
     },
-  ], [teamMembers, campaigns, budgets]);
+  ], [teamMembers, campaigns, budgets, subBudgets]);
 
   // Fetch assignee name for existing tasks
   const { data: assignee } = useQuery({
@@ -311,8 +345,9 @@ function TaskItem({
           type: "expense",
           task_id: data.id,
           ...(parsed.budget_id ? { budget_id: parsed.budget_id } : {}),
+          ...(parsed.sub_budget_id ? { sub_budget_id: parsed.sub_budget_id } : {}),
           ...(parsed.initiative_id ? { initiative_id: parsed.initiative_id } : {}),
-        });
+        } as any);
       }
     },
     onSuccess: (_, variables) => {
@@ -389,9 +424,17 @@ function TaskItem({
 
     const dollarMatch = parsed_title.match(/\$(\d+(?:,\d{3})*(?:\.\d{2})?)/);
     let budget_id: string | undefined;
+    let sub_budget_id: string | undefined;
     if (dollarMatch) { expense_amount = parseFloat(dollarMatch[1].replace(/,/g, "")); parsed_title = parsed_title.replace(dollarMatch[0], "").trim();
-      const matchedBudget = budgets.find((b: any) => Number(b.amount) === expense_amount);
-      if (matchedBudget) budget_id = matchedBudget.id;
+      // Check sub-budgets first
+      const matchedSub = subBudgets.find((sb: any) => Number(sb.amount) === expense_amount);
+      if (matchedSub) {
+        sub_budget_id = matchedSub.id;
+        budget_id = matchedSub.budget_id;
+      } else {
+        const matchedBudget = budgets.find((b: any) => Number(b.amount) === expense_amount);
+        if (matchedBudget) budget_id = matchedBudget.id;
+      }
     }
 
     const hashMatch = parsed_title.match(/#(\S+)/);
@@ -412,7 +455,7 @@ function TaskItem({
     }
 
     if (isNew) {
-      addTask.mutate({ title: parsed_title, description: description.trim() || undefined, due_date, expense_amount, initiative_id, assigned_to, budget_id });
+      addTask.mutate({ title: parsed_title, description: description.trim() || undefined, due_date, expense_amount, initiative_id, assigned_to, budget_id, sub_budget_id });
     } else {
       updateTask.mutate({
         title: parsed_title,
@@ -640,7 +683,7 @@ function EmptyWorkState({ artistId, teamId, onCampaignCreated }: { artistId: str
   if (mode === "task") {
     return (
       <div className="mt-4">
-        <TaskItem isNew artistId={artistId} teamId={teamId} campaigns={[]} teamMembers={[]} budgets={[]} autoFocus />
+        <TaskItem isNew artistId={artistId} teamId={teamId} campaigns={[]} teamMembers={[]} budgets={[]} subBudgets={[]} autoFocus />
       </div>
     );
   }

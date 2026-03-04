@@ -60,6 +60,7 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
   const [itemDesc, setItemDesc] = useState("");
   const [itemStatus, setItemStatus] = useState<string>("pending");
   const [itemCategoryId, setItemCategoryId] = useState<string>("none");
+  const [itemSubBudgetId, setItemSubBudgetId] = useState<string>("none");
   const [itemInitiativeId, setItemInitiativeId] = useState<string>("none");
   const [itemDate, setItemDate] = useState(format(new Date(), "yyyy-MM-dd"));
 
@@ -104,6 +105,22 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
       if (error) throw error;
       return data;
     },
+  });
+
+  const { data: subBudgets = [] } = useQuery({
+    queryKey: ["sub-budgets", artistId],
+    queryFn: async () => {
+      const budgetIds = budgets.map((b: any) => b.id);
+      if (budgetIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("sub_budgets")
+        .select("*")
+        .in("budget_id", budgetIds)
+        .order("created_at");
+      if (error) throw error;
+      return data;
+    },
+    enabled: budgets.length > 0,
   });
 
   const { data: initiatives = [] } = useQuery({
@@ -174,6 +191,7 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
         status: itemStatus,
         category_id: resolvedCategoryId === "none" ? null : resolvedCategoryId,
         initiative_id: itemInitiativeId === "none" ? null : itemInitiativeId,
+        sub_budget_id: itemSubBudgetId === "none" ? null : itemSubBudgetId,
         transaction_date: itemDate,
       } as any);
       if (error) throw error;
@@ -220,6 +238,7 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
     setItemDesc("");
     setItemStatus("pending");
     setItemCategoryId("none");
+    setItemSubBudgetId("none");
     setItemInitiativeId("none");
     setItemDate(format(new Date(), "yyyy-MM-dd"));
   };
@@ -261,6 +280,32 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
     const catNames = new Set(categories.map((c: any) => c.name));
     return budgets.filter((b: any) => !catNames.has(b.label));
   }, [budgets, categories]);
+
+  const subBudgetMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    subBudgets.forEach((sb: any) => { m[sb.id] = sb.label; });
+    return m;
+  }, [subBudgets]);
+
+  // Get sub-budgets for the currently selected budget/category
+  const availableSubBudgets = useMemo(() => {
+    if (itemCategoryId === "none") return [];
+    // Find the budget that matches the selected category
+    let budgetId: string | null = null;
+    if (itemCategoryId.startsWith("budget:")) {
+      const label = itemCategoryId.replace("budget:", "");
+      const b = budgets.find((b: any) => b.label === label);
+      if (b) budgetId = b.id;
+    } else {
+      const cat = categories.find((c: any) => c.id === itemCategoryId);
+      if (cat) {
+        const b = budgets.find((b: any) => b.label === cat.name);
+        if (b) budgetId = b.id;
+      }
+    }
+    if (!budgetId) return [];
+    return subBudgets.filter((sb: any) => sb.budget_id === budgetId);
+  }, [itemCategoryId, subBudgets, budgets, categories]);
 
   const grouped = useMemo(() => {
     const groups: { id: string; name: string; items: any[]; total: number }[] = [];
@@ -444,7 +489,21 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
                   </SelectContent>
                 </Select>
 
-                {renderCategorySelect(itemCategoryId, setItemCategoryId)}
+                {renderCategorySelect(itemCategoryId, (v) => { setItemCategoryId(v); setItemSubBudgetId("none"); })}
+
+                {availableSubBudgets.length > 0 && (
+                  <Select value={itemSubBudgetId} onValueChange={setItemSubBudgetId}>
+                    <SelectTrigger className="h-7 w-auto text-xs gap-1 border-border">
+                      <SelectValue placeholder="Sub-budget" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Sub-budget</SelectItem>
+                      {availableSubBudgets.map((sb: any) => (
+                        <SelectItem key={sb.id} value={sb.id}>{sb.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
 
                 {initiatives.length > 0 && (
                   <Select value={itemInitiativeId} onValueChange={setItemInitiativeId}>
@@ -536,6 +595,11 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
                           {t.initiative_id && initiativeMap[t.initiative_id] && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
                               {initiativeMap[t.initiative_id]}
+                            </span>
+                          )}
+                          {t.sub_budget_id && subBudgetMap[t.sub_budget_id] && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
+                              {subBudgetMap[t.sub_budget_id]}
                             </span>
                           )}
                         </div>

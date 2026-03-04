@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -51,6 +51,25 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
     },
   });
 
+  // Fetch sub-budgets
+  const { data: subBudgets = [] } = useQuery({
+    queryKey: ["sub-budgets", artistId],
+    queryFn: async () => {
+      const budgetIds = budgets.map((b: any) => b.id);
+      if (budgetIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("sub_budgets")
+        .select("*")
+        .in("budget_id", budgetIds)
+        .order("created_at");
+      if (error) throw error;
+      return data;
+    },
+    enabled: budgets.length > 0,
+  });
+
+  const [newSubBudgetId, setNewSubBudgetId] = useState<string>("none");
+
   const addTransaction = useMutation({
     mutationFn: async () => {
       const parsedAmount = parseFloat(newAmount) || 0;
@@ -58,6 +77,7 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
       const { error } = await supabase.from("transactions").insert({
         artist_id: artistId,
         budget_id: newBudgetId === "none" ? null : newBudgetId,
+        sub_budget_id: newSubBudgetId === "none" ? null : newSubBudgetId,
         description: newDesc.trim(),
         amount: finalAmount,
         transaction_date: newDate,
@@ -91,12 +111,22 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
     setNewDesc("");
     setNewAmount("");
     setNewBudgetId("none");
+    setNewSubBudgetId("none");
     setNewDate(format(new Date(), "yyyy-MM-dd"));
     setIsExpense(true);
   };
 
+  // Available sub-budgets for selected budget
+  const availableSubBudgets = useMemo(() => {
+    if (newBudgetId === "none") return [];
+    return subBudgets.filter((sb: any) => sb.budget_id === newBudgetId);
+  }, [newBudgetId, subBudgets]);
+
   // Build budget label map
   const budgetMap: Record<string, string> = {};
+  budgets.forEach((b: any) => { budgetMap[b.id] = b.label; });
+  const subBudgetMap: Record<string, string> = {};
+  subBudgets.forEach((sb: any) => { subBudgetMap[sb.id] = sb.label; });
   budgets.forEach((b: any) => { budgetMap[b.id] = b.label; });
 
   // Calculate totals
@@ -192,7 +222,7 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
             />
           </div>
 
-          <Select value={newBudgetId} onValueChange={setNewBudgetId}>
+          <Select value={newBudgetId} onValueChange={(v) => { setNewBudgetId(v); setNewSubBudgetId("none"); }}>
             <SelectTrigger className="h-8 text-sm">
               <SelectValue placeholder="Uncategorized" />
             </SelectTrigger>
@@ -203,6 +233,20 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
               ))}
             </SelectContent>
           </Select>
+
+          {availableSubBudgets.length > 0 && (
+            <Select value={newSubBudgetId} onValueChange={setNewSubBudgetId}>
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue placeholder="Sub-budget" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border border-border z-50">
+                <SelectItem value="none">No Sub-budget</SelectItem>
+                {availableSubBudgets.map((sb: any) => (
+                  <SelectItem key={sb.id} value={sb.id}>{sb.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           <div className="flex gap-2">
             <Button
@@ -255,6 +299,11 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
                       {budgetLabel && (
                         <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
                           {budgetLabel}
+                        </span>
+                      )}
+                      {t.sub_budget_id && subBudgetMap[t.sub_budget_id] && (
+                        <span className="text-[10px] bg-accent text-accent-foreground px-1.5 py-0.5 rounded">
+                          {subBudgetMap[t.sub_budget_id]}
                         </span>
                       )}
                     </div>

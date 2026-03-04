@@ -35,6 +35,9 @@ export const ArtistCard = React.memo(function ArtistCard({ artist, onClick, onDe
   const totalSpending = (artist.transactions || [])
     .filter((t: any) => t.type === "expense")
     .reduce((s: number, t: any) => s + Math.abs(Number(t.amount || 0)), 0);
+  const totalRevenue = (artist.transactions || [])
+    .filter((t: any) => t.type === "revenue")
+    .reduce((s: number, t: any) => s + Math.abs(Number(t.amount || 0)), 0);
 
   return (
     <>
@@ -70,7 +73,11 @@ export const ArtistCard = React.memo(function ArtistCard({ artist, onClick, onDe
             </div>
 
             <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground flex-wrap">
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 text-emerald-600" title="Revenue">
+                <DollarSign className="h-3 w-3" />
+                {formatNum(totalRevenue)}
+              </span>
+              <span className="flex items-center gap-1 text-destructive" title="Spent">
                 <DollarSign className="h-3 w-3" />
                 {formatNum(totalSpending)}
               </span>
