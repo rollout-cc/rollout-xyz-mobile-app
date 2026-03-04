@@ -4,19 +4,17 @@ import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSelectedTeam } from "@/contexts/TeamContext";
-import { Checkbox } from "@/components/ui/checkbox";
-import { format, isToday, isTomorrow, isPast, isYesterday } from "date-fns";
+import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import { Plus, Music2, Wallet, ChevronDown, ChevronRight } from "lucide-react";
+import { Music2, Wallet } from "lucide-react";
 import { cn, formatLocalDate } from "@/lib/utils";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { toast } from "sonner";
-import { ItemEditor } from "@/components/ui/ItemEditor";
 import { useArtists } from "@/hooks/useArtists";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotesPanel } from "@/components/notes/NotesPanel";
 import { useNotes } from "@/hooks/useNotes";
-import { RichTextEditor } from "@/components/ui/RichTextEditor";
+import { WorkItemRow } from "@/components/work/WorkItemRow";
+import { WorkItemCreator } from "@/components/work/WorkItemCreator";
 import {
   Select,
   SelectContent,
@@ -33,18 +31,14 @@ export default function MyWork() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("tasks");
-  const [newTitle, setNewTitle] = useState("");
   const [selectedArtistId, setSelectedArtistId] = useState<string | null>(null);
   const [expenseAmount, setExpenseAmount] = useState<number | null>(null);
   const [budgetId, setBudgetId] = useState<string | null>(null);
   const [filterArtistId, setFilterArtistId] = useState<string>("all");
-  const [parsedDate, setParsedDate] = useState<Date | null>(null);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
 
   const { data: artists = [] } = useArtists(teamId);
-
-  // Prefetch notes so they're instant when switching to Notes tab
-  useNotes();
+  useNotes(); // prefetch
 
   const { data: budgets = [] } = useQuery({
     queryKey: ["budgets", selectedArtistId],
@@ -87,10 +81,7 @@ export default function MyWork() {
 
   const updateDescription = useMutation({
     mutationFn: async ({ id, description }: { id: string; description: string }) => {
-      const { error } = await supabase
-        .from("tasks")
-        .update({ description })
-        .eq("id", id);
+      const { error } = await supabase.from("tasks").update({ description }).eq("id", id);
       if (error) throw error;
     },
     onMutate: async ({ id, description }) => {
@@ -102,60 +93,53 @@ export default function MyWork() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["my-work"] }),
   });
 
+  const deleteTask = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("tasks").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["my-work"] }),
+  });
+
   const createTask = useMutation({
     mutationFn: async (params: {
       title: string;
-      due_date?: string;
-      artist_id?: string;
-      expense_amount?: number;
-      budget_id?: string;
+      description: string;
+      dueDate: Date | null;
     }) => {
       if (!teamId || !user?.id) throw new Error("Missing team or user");
       const { error } = await supabase.from("tasks").insert({
         title: params.title,
+        description: params.description || null,
         team_id: teamId,
         assigned_to: user.id,
-        ...(params.due_date ? { due_date: params.due_date } : {}),
-        ...(params.artist_id ? { artist_id: params.artist_id } : {}),
-        ...(params.expense_amount ? { expense_amount: params.expense_amount } : {}),
+        ...(params.dueDate ? { due_date: format(params.dueDate, "yyyy-MM-dd") } : {}),
+        ...(selectedArtistId ? { artist_id: selectedArtistId } : {}),
+        ...(expenseAmount ? { expense_amount: expenseAmount } : {}),
       });
       if (error) throw error;
 
-      if (params.expense_amount && params.artist_id && params.budget_id) {
+      if (expenseAmount && selectedArtistId && budgetId) {
         await supabase.from("transactions").insert({
-          artist_id: params.artist_id,
-          budget_id: params.budget_id,
-          amount: params.expense_amount,
+          artist_id: selectedArtistId,
+          budget_id: budgetId,
+          amount: expenseAmount,
           description: params.title,
           type: "expense",
           status: "pending",
-          transaction_date: params.due_date || formatLocalDate(new Date()),
+          transaction_date: params.dueDate ? format(params.dueDate, "yyyy-MM-dd") : formatLocalDate(new Date()),
         });
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-work"] });
-      setNewTitle("");
       setSelectedArtistId(null);
       setExpenseAmount(null);
       setBudgetId(null);
-      setParsedDate(null);
       toast.success("Work item added");
     },
     onError: (err: any) => toast.error(err.message),
   });
-
-  const handleAddSubmit = () => {
-    const trimmed = newTitle.trim();
-    if (!trimmed) return;
-    createTask.mutate({
-      title: trimmed,
-      due_date: parsedDate ? format(parsedDate, "yyyy-MM-dd") : undefined,
-      artist_id: selectedArtistId || undefined,
-      expense_amount: expenseAmount || undefined,
-      budget_id: budgetId || undefined,
-    });
-  };
 
   const triggers = useMemo(() => {
     const artistTrigger = {
@@ -198,19 +182,6 @@ export default function MyWork() {
     await queryClient.invalidateQueries({ queryKey: ["my-work"] });
   }, [queryClient]);
 
-  const formatDue = (date: string) => {
-    const d = new Date(date);
-    if (isToday(d)) return "Today";
-    if (isTomorrow(d)) return "Tomorrow";
-    if (isYesterday(d)) return "Yesterday";
-    return format(d, "MMM d");
-  };
-
-  const isDueOverdue = (date: string) => {
-    const d = new Date(date);
-    return isPast(d) && !isToday(d);
-  };
-
   const selectedArtist = artists.find((a: any) => a.id === selectedArtistId);
   const selectedBudget = budgets.find((b: any) => b.id === budgetId);
 
@@ -228,10 +199,28 @@ export default function MyWork() {
     return Array.from(map.values());
   }, [allTasks]);
 
+  const metadataPills = (selectedArtist || expenseAmount != null) ? (
+    <div className="flex items-center gap-1.5 ml-7 flex-wrap">
+      {selectedArtist && (
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+          <Music2 className="h-2.5 w-2.5" />
+          {selectedArtist.name}
+          <button onClick={() => { setSelectedArtistId(null); setBudgetId(null); setExpenseAmount(null); }} className="ml-0.5 hover:text-foreground">×</button>
+        </span>
+      )}
+      {expenseAmount != null && (
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+          ${expenseAmount.toLocaleString()}
+          {selectedBudget && <span className="opacity-60">· {selectedBudget.label}</span>}
+          <button onClick={() => { setExpenseAmount(null); setBudgetId(null); }} className="ml-0.5 hover:text-foreground">×</button>
+        </span>
+      )}
+    </div>
+  ) : null;
+
   return (
     <AppLayout title="My Work">
       <div className="mx-auto max-w-2xl pb-20">
-        {/* Header row */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <h1 className="text-foreground text-lg font-bold">My Work</h1>
@@ -275,43 +264,13 @@ export default function MyWork() {
         <PullToRefresh onRefresh={handleRefresh}>
           {tab === "tasks" ? (
             <>
-              {/* Add task input */}
-              <div className="flex items-center gap-2 py-2">
-                <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
-                <ItemEditor
-                  value={newTitle}
-                  onChange={setNewTitle}
-                  onSubmit={handleAddSubmit}
-                  onCancel={() => { setNewTitle(""); setSelectedArtistId(null); setExpenseAmount(null); setBudgetId(null); setParsedDate(null); }}
-                  placeholder="Add work… @ artist, $ expense, type a date"
-                  autoFocus={false}
-                  triggers={triggers}
-                  singleLine
-                  enableDateDetection
-                  onDateParsed={setParsedDate}
-                  parsedDate={parsedDate}
-                />
-              </div>
-
-              {/* Metadata pills */}
-              {(selectedArtist || expenseAmount != null) && (
-                <div className="flex items-center gap-1.5 ml-6 mb-1 flex-wrap">
-                  {selectedArtist && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
-                      <Music2 className="h-2.5 w-2.5" />
-                      {selectedArtist.name}
-                      <button onClick={() => { setSelectedArtistId(null); setBudgetId(null); setExpenseAmount(null); }} className="ml-0.5 hover:text-foreground">×</button>
-                    </span>
-                  )}
-                  {expenseAmount != null && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
-                      ${expenseAmount.toLocaleString()}
-                      {selectedBudget && <span className="opacity-60">· {selectedBudget.label}</span>}
-                      <button onClick={() => { setExpenseAmount(null); setBudgetId(null); }} className="ml-0.5 hover:text-foreground">×</button>
-                    </span>
-                  )}
-                </div>
-              )}
+              <WorkItemCreator
+                variant="inline"
+                placeholder="Add work… @ artist, $ expense, type a date"
+                triggers={triggers}
+                onSubmit={(data) => createTask.mutate(data)}
+                metadataPills={metadataPills}
+              />
 
               <div className="border-t border-border" />
 
@@ -324,72 +283,19 @@ export default function MyWork() {
                 </div>
               ) : (
                 <ul className="divide-y divide-border">
-                  {tasks.map((task) => {
-                    const isExpanded = expandedTaskId === task.id;
-                    return (
-                      <li key={task.id} className="py-1">
-                        <div className="flex items-center gap-2.5 py-1.5 group">
-                          <Checkbox
-                            checked={false}
-                            onCheckedChange={() => toggleComplete.mutate(task.id)}
-                            className="shrink-0"
-                          />
-                          <button
-                            onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
-                            className="shrink-0 p-0.5 text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                          </button>
-                          <div
-                            className="flex-1 min-w-0 cursor-pointer"
-                            onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
-                          >
-                            <p className="text-sm text-foreground leading-snug">{task.title}</p>
-                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap text-xs text-muted-foreground">
-                              {task.artists && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); navigate(`/roster/${task.artists.id}`); }}
-                                  className="hover:text-foreground transition-colors"
-                                >
-                                  {task.artists.name}
-                                </button>
-                              )}
-                              {task.initiatives && (
-                                <span>{task.artists ? "· " : ""}{task.initiatives.name}</span>
-                              )}
-                              {task.due_date && (
-                                <span className={isDueOverdue(task.due_date) ? "text-destructive" : ""}>
-                                  {task.artists || task.initiatives ? "· " : ""}{formatDue(task.due_date)}
-                                </span>
-                              )}
-                              {task.expense_amount != null && task.expense_amount > 0 && (
-                                <span>· ${task.expense_amount.toLocaleString()}</span>
-                              )}
-                            </div>
-                          </div>
-                          {task.artists && (
-                            <Avatar
-                              className="h-6 w-6 shrink-0 cursor-pointer"
-                              onClick={() => navigate(`/roster/${task.artists.id}`)}
-                            >
-                              {task.artists.avatar_url && <AvatarImage src={task.artists.avatar_url} alt={task.artists.name} />}
-                              <AvatarFallback className="text-[9px] font-bold bg-muted">{task.artists.name?.[0]}</AvatarFallback>
-                            </Avatar>
-                          )}
-                        </div>
-                        {isExpanded && (
-                          <div className="ml-[52px] pb-2">
-                            <RichTextEditor
-                              value={task.description || ""}
-                              onBlur={(val) => updateDescription.mutate({ id: task.id, description: val })}
-                              placeholder="Add notes…"
-                              className="min-h-[80px] text-sm"
-                            />
-                          </div>
-                        )}
-                      </li>
-                    );
-                  })}
+                  {tasks.map((task) => (
+                    <WorkItemRow
+                      key={task.id}
+                      task={task as any}
+                      isExpanded={expandedTaskId === task.id}
+                      onToggleExpand={() => setExpandedTaskId(expandedTaskId === task.id ? null : task.id)}
+                      onToggleComplete={() => toggleComplete.mutate(task.id)}
+                      onDelete={() => deleteTask.mutate(task.id)}
+                      onDescriptionChange={(desc) => updateDescription.mutate({ id: task.id, description: desc })}
+                      onNavigateToArtist={(id) => navigate(`/roster/${id}`)}
+                      showArtist={true}
+                    />
+                  ))}
                 </ul>
               )}
             </>
