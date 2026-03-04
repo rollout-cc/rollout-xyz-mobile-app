@@ -51,3 +51,18 @@ export function useCreateArtist() {
     },
   });
 }
+
+export function useDeleteArtist() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, teamId }: { id: string; teamId: string }) => {
+      const { error } = await supabase.from("artists").delete().eq("id", id);
+      if (error) throw error;
+      return { teamId };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["artists", data.teamId] });
+    },
+  });
+}

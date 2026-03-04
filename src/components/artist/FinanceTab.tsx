@@ -4,10 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { DollarSign, Plus, ChevronDown, ChevronRight, MoreVertical, Check, Trash2 } from "lucide-react";
+import { DollarSign, Plus, ChevronDown, ChevronRight, Check, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn, parseLocalDate } from "@/lib/utils";
@@ -515,16 +512,12 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
                   )}
                   <span className="text-sm font-semibold">${group.total.toLocaleString()}</span>
                   {group.id !== "unsorted" && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <button className="p-1 hover:bg-accent rounded"><MoreVertical className="h-3.5 w-3.5 text-muted-foreground" /></button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); deleteCategory.mutate(group.id); }}>
-                          <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Category
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <button
+                      className="p-1 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                      onClick={(e) => { e.stopPropagation(); deleteCategory.mutate(group.id); }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   )}
                 </div>
               </button>

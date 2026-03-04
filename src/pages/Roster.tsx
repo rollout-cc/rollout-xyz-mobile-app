@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { AppLayout } from "@/components/AppLayout";
 import { ARContent } from "@/components/ar/ARContent";
-import { useArtists, useCreateArtist } from "@/hooks/useArtists";
+import { useArtists, useCreateArtist, useDeleteArtist } from "@/hooks/useArtists";
 import { useCreateTeam } from "@/hooks/useTeams";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { useRosterFolders, useCreateRosterFolder, useDeleteRosterFolder, useSetArtistFolder } from "@/hooks/useRosterFolders";
@@ -64,6 +64,7 @@ export default function Roster() {
   const { data: artists = [], isLoading } = useArtists(selectedTeamId);
   const { data: folders = [] } = useRosterFolders(selectedTeamId);
   const createArtist = useCreateArtist();
+  const deleteArtist = useDeleteArtist();
   const createTeam = useCreateTeam();
   const createFolder = useCreateRosterFolder();
   const deleteFolder = useDeleteRosterFolder();
@@ -183,6 +184,16 @@ export default function Roster() {
     setArtistFolder.mutate({ artistId, folderId: null });
   };
 
+  const handleDeleteArtist = async (artistId: string, artistName: string) => {
+    if (!selectedTeamId) return;
+    try {
+      await deleteArtist.mutateAsync({ id: artistId, teamId: selectedTeamId });
+      toast.success(`${artistName} deleted`);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
     const artistId = result.draggableId;
@@ -245,6 +256,8 @@ export default function Roster() {
                 key={artist.id}
                 artist={artist}
                 onClick={() => navigate(`/roster/${artist.id}`)}
+                onEdit={() => navigate(`/roster/${artist.id}`)}
+                onDelete={() => handleDeleteArtist(artist.id, artist.name)}
                 insideFolder
                 onRemoveFromFolder={() => handleRemoveArtistFromFolder(artist.id)}
               />
@@ -384,6 +397,8 @@ export default function Roster() {
                             <ArtistCard
                               artist={artist}
                               onClick={() => navigate(`/roster/${artist.id}`)}
+                              onEdit={() => navigate(`/roster/${artist.id}`)}
+                              onDelete={() => handleDeleteArtist(artist.id, artist.name)}
                               innerRef={dragProvided.innerRef}
                               draggableProps={dragProvided.draggableProps}
                               dragHandleProps={dragProvided.dragHandleProps ?? undefined}

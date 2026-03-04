@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Plus, Trash2, FolderPlus, ListPlus, Calendar, DollarSign, User,
-  MoreHorizontal, Archive, Trash, GripVertical, Hash, Link2, Bookmark,
+  Archive, GripVertical, Hash, Link2, Bookmark,
   Star, Check,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -18,9 +18,6 @@ import { cn, formatLocalDate } from "@/lib/utils";
 import {
   DragDropContext, Droppable, Draggable, type DropResult,
 } from "@hello-pangea/dnd";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -477,8 +474,8 @@ function TaskItem({
             />
           </div>
           {!isNew && (
-            <button onClick={() => deleteTask.mutate()} className="p-1 text-muted-foreground hover:text-foreground shrink-0">
-              <MoreHorizontal className="h-4 w-4" />
+            <button onClick={() => deleteTask.mutate()} className="p-1 text-muted-foreground hover:text-destructive shrink-0">
+              <Trash2 className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
@@ -701,21 +698,22 @@ function CampaignActions({ campaign, artistId, taskCount }: { campaign: any; art
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button className="h-7 w-7 flex items-center justify-center rounded hover:bg-accent transition-colors">
-            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="bg-background z-50">
-          <DropdownMenuItem onClick={() => archiveCampaign.mutate()}>
-            <Archive className="h-4 w-4 mr-2" /> Archive Campaign
-          </DropdownMenuItem>
-          <DropdownMenuItem className="text-destructive" onClick={() => setShowDeleteConfirm(true)}>
-            <Trash className="h-4 w-4 mr-2" /> Delete Campaign
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex items-center gap-0.5">
+        <button
+          onClick={() => archiveCampaign.mutate()}
+          className="h-7 w-7 flex items-center justify-center rounded hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+          title="Archive Campaign"
+        >
+          <Archive className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => setShowDeleteConfirm(true)}
+          className="h-7 w-7 flex items-center justify-center rounded hover:bg-accent transition-colors text-muted-foreground hover:text-destructive"
+          title="Delete Campaign"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>

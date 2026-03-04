@@ -1,16 +1,10 @@
 import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
-import { ChevronDown, ChevronRight, Trash2, MoreHorizontal } from "lucide-react";
+import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { format, isToday, isTomorrow, isPast, isYesterday } from "date-fns";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 
 interface TaskArtist {
@@ -121,18 +115,14 @@ export const WorkItemRow = React.memo(function WorkItemRow({
             <AvatarFallback className="text-[9px] font-bold bg-muted">{task.artists.name?.[0]}</AvatarFallback>
           </Avatar>
         )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-              <MoreHorizontal className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onDelete} className="text-destructive">
-              <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+          onClick={onDelete}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
       </div>
       {isExpanded && (
         <div className="ml-[52px] pb-2">
