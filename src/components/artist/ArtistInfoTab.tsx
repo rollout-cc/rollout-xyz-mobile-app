@@ -471,7 +471,7 @@ function PROSelectField({
         <SelectContent className="max-h-60">
           {primary.length > 0 && (
             <>
-              <SelectItem value="" disabled className="text-[10px] font-semibold text-muted-foreground uppercase">Your Region</SelectItem>
+              <SelectItem value="__header_region__" disabled className="text-[10px] font-semibold text-muted-foreground uppercase">Your Region</SelectItem>
               {primary.map((p) => (
                 <SelectItem key={p} value={p}>{p}</SelectItem>
               ))}
@@ -479,7 +479,7 @@ function PROSelectField({
           )}
           {other.length > 0 && (
             <>
-              <SelectItem value="" disabled className="text-[10px] font-semibold text-muted-foreground uppercase mt-2">Other</SelectItem>
+              <SelectItem value="__header_other__" disabled className="text-[10px] font-semibold text-muted-foreground uppercase mt-2">Other</SelectItem>
               {other.map((p) => (
                 <SelectItem key={p} value={p}>{p}</SelectItem>
               ))}
