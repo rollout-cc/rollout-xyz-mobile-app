@@ -1,3 +1,4 @@
+import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { ChevronDown, ChevronRight, Trash2, MoreHorizontal } from "lucide-react";
@@ -58,7 +59,7 @@ function isDueOverdue(date: string) {
   return isPast(d) && !isToday(d);
 }
 
-export function WorkItemRow({
+export const WorkItemRow = React.memo(function WorkItemRow({
   task,
   isExpanded,
   onToggleExpand,
@@ -145,4 +146,4 @@ export function WorkItemRow({
       )}
     </li>
   );
-}
+});

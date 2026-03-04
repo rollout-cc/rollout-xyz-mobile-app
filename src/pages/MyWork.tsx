@@ -76,7 +76,18 @@ export default function MyWork() {
         .eq("id", taskId);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["my-work"] }),
+    onMutate: async (taskId) => {
+      await queryClient.cancelQueries({ queryKey: ["my-work"] });
+      const prev = queryClient.getQueryData<any[]>(["my-work", user?.id]);
+      queryClient.setQueryData<any[]>(["my-work", user?.id], (old) =>
+        old?.filter((t) => t.id !== taskId) ?? []
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prev) queryClient.setQueryData(["my-work", user?.id], context.prev);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["my-work"] }),
   });
 
   const updateDescription = useMutation({

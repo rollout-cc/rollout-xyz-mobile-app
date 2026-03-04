@@ -1,3 +1,4 @@
+import React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Headphones, FolderOpen, CheckCircle2, MoreVertical, DollarSign } from "lucide-react";
 import {
@@ -21,7 +22,7 @@ function formatNum(n: number): string {
   return String(n);
 }
 
-export function ArtistCard({ artist, onClick, dragHandleProps, innerRef, draggableProps, insideFolder, onRemoveFromFolder }: ArtistCardProps) {
+export const ArtistCard = React.memo(function ArtistCard({ artist, onClick, dragHandleProps, innerRef, draggableProps, insideFolder, onRemoveFromFolder }: ArtistCardProps) {
   const initiativeCount = artist.initiatives?.[0]?.count ?? 0;
   const taskCount = artist.tasks?.[0]?.count ?? 0;
   const listeners = artist.monthly_listeners ?? 0;
@@ -108,4 +109,4 @@ export function ArtistCard({ artist, onClick, dragHandleProps, innerRef, draggab
       )}
     </div>
   );
-}
+});

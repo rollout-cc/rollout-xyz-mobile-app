@@ -88,7 +88,18 @@ export function TasksTab({ artistId, teamId }: TasksTabProps) {
       }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks", artistId] }),
+    onMutate: async ({ id, completed }) => {
+      await queryClient.cancelQueries({ queryKey: ["tasks", artistId] });
+      const prev = queryClient.getQueryData<any[]>(["tasks", artistId]);
+      queryClient.setQueryData<any[]>(["tasks", artistId], (old) =>
+        old?.map((t) => (t.id === id ? { ...t, is_completed: completed, completed_at: completed ? new Date().toISOString() : null } : t)) ?? []
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prev) queryClient.setQueryData(["tasks", artistId], context.prev);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["tasks", artistId] }),
   });
 
   const updateDescription = useMutation({
