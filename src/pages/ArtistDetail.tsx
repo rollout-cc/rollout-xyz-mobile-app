@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { DollarSign, Target, Star, Upload, RefreshCw, Receipt, ArrowLeft } from "lucide-react";
 import { PerformancePills } from "@/components/artist/PerformancePills";
+import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 import { useArtistDetail } from "@/hooks/useArtistDetail";
 import { useSpotifyArtist } from "@/hooks/useSpotifyArtist";
 import { useTeamPlan } from "@/hooks/useTeamPlan";
@@ -36,6 +37,8 @@ export default function ArtistDetail() {
   const [activeView, setActiveView] = useState<ActiveView>(fromFinance ? "finance" : "work");
   const [showCompleted, setShowCompleted] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [upgradeFeature, setUpgradeFeature] = useState("");
   const queryClient = useQueryClient();
 
   const handleRefreshSpotify = async () => {
@@ -138,21 +141,33 @@ export default function ArtistDetail() {
   const listenerLabel = monthlyListeners > 0 ? "monthly listeners" : "followers";
 
   const isTopView = (v: ActiveView) => ["finance", "budgets", "objectives", "information"].includes(v);
-  const toggleTopView = (v: ActiveView) => {
-    setActiveView(prev => prev === v ? "work" : v);
+  const handleViewChange = (v: ActiveView) => {
+    if (v === "finance" && !limits.canUseFinance) {
+      setUpgradeFeature("Finance tools");
+      setUpgradeOpen(true);
+      return;
+    }
+    if (v === "splits" && !limits.canUseSplits) {
+      setUpgradeFeature("Split sheets");
+      setUpgradeOpen(true);
+      return;
+    }
+    if (isTopView(v)) {
+      setActiveView(prev => prev === v ? "work" : v);
+    } else {
+      setActiveView(v);
+    }
   };
 
   // Build action buttons, conditionally showing Finance based on plan
   const actionButtons = [
-    ...(limits.canUseFinance ? [{ key: "finance" as ActiveView, icon: Receipt, label: "Finance" }] : []),
+    { key: "finance" as ActiveView, icon: Receipt, label: "Finance" },
     { key: "budgets" as ActiveView, icon: DollarSign, label: "Budgets" },
     { key: "objectives" as ActiveView, icon: Target, label: "Objectives" },
     { key: "information" as ActiveView, icon: Star, label: "Info" },
   ];
 
-  // Build tab items, conditionally showing Splits based on plan
-  const tabItems: TabView[] = ["work", "links", "timelines"];
-  if (limits.canUseSplits) tabItems.push("splits");
+  const tabItems: TabView[] = ["work", "links", "timelines", "splits"];
 
   return (
     <AppLayout
@@ -164,7 +179,7 @@ export default function ArtistDetail() {
               key={key}
               variant={activeView === key ? "default" : "outline"}
               size="sm"
-              onClick={() => toggleTopView(key)}
+              onClick={() => handleViewChange(key)}
               className="gap-1 shrink-0 text-xs h-7 px-2 sm:px-3 sm:h-8 sm:text-sm"
             >
               <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
@@ -256,7 +271,7 @@ export default function ArtistDetail() {
               {tabItems.map((tab) => (
                 <button
                   key={tab}
-                  onClick={() => setActiveView(tab)}
+                  onClick={() => handleViewChange(tab)}
                   className={`px-3 py-1.5 text-xs sm:text-sm font-medium capitalize transition-colors ${
                     activeView === tab
                       ? "bg-foreground text-background"
@@ -289,6 +304,7 @@ export default function ArtistDetail() {
           {activeView === "splits" && <SplitsTab artistId={artist.id} teamId={artist.team_id} />}
         </div>
       </div>
+      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} feature={upgradeFeature} />
     </AppLayout>
   );
 }

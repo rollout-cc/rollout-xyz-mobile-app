@@ -1,15 +1,13 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useTeamPlan } from "@/hooks/useTeamPlan";
-import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DollarSign, Plus, ChevronDown, ChevronRight, MoreVertical, Check, Trash2, Sparkles } from "lucide-react";
+import { DollarSign, Plus, ChevronDown, ChevronRight, MoreVertical, Check, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn, parseLocalDate } from "@/lib/utils";
@@ -48,28 +46,6 @@ function UndoSnackbar({ message, onUndo, durationMs = 10000 }: { message: string
 }
 
 export function FinanceTab({ artistId, teamId }: FinanceTabProps) {
-  const { limits } = useTeamPlan();
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
-
-  // Gate: if finance not allowed, show upgrade prompt
-  if (!limits.canUseFinance) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
-        <Sparkles className="h-8 w-8 text-muted-foreground" />
-        <div>
-          <p className="font-medium text-foreground mb-1">Finance Tools</p>
-          <p className="text-muted-foreground text-sm max-w-md">
-            Track expenses, revenue, and profitability per artist. Upgrade to Icon to unlock finance tools.
-          </p>
-        </div>
-        <Button size="sm" onClick={() => setUpgradeOpen(true)}>
-          Upgrade to Icon
-        </Button>
-        <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} feature="Finance tools" />
-      </div>
-    );
-  }
-
   return <FinanceTabContent artistId={artistId} teamId={teamId} />;
 }
 

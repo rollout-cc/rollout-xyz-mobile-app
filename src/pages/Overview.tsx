@@ -34,6 +34,8 @@ import { FinanceContent } from "@/components/overview/FinanceContent";
 import { AgendaContent } from "@/components/overview/AgendaContent";
 import { StaffContent } from "@/components/overview/StaffContent";
 import type { StaffMember } from "@/components/overview/StaffMetricsSection";
+import { useTeamPlan } from "@/hooks/useTeamPlan";
+import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 
 
 export default function Overview() {
@@ -42,6 +44,18 @@ export default function Overview() {
   const initialTab = searchParams.get("tab") === "finance" ? "finance" : "dashboard";
   const [companyTab, setCompanyTab] = useState<"dashboard" | "agenda" | "staff" | "finance">(initialTab);
   const showBudgetWizard = useShouldShowBudgetWizard(teamId ?? null);
+  const { limits } = useTeamPlan();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [upgradeFeature, setUpgradeFeature] = useState("");
+
+  const handleCompanyTab = (tab: "dashboard" | "agenda" | "staff" | "finance") => {
+    if (tab === "finance" && !limits.canUseFinance) {
+      setUpgradeFeature("Finance tools");
+      setUpgradeOpen(true);
+      return;
+    }
+    setCompanyTab(tab);
+  };
 
   // Fetch team to check company_type
   const { data: team, refetch: refetchTeam } = useQuery({
@@ -437,7 +451,7 @@ export default function Overview() {
         {(["dashboard", "agenda", "staff", "finance"] as const).map((tab) => (
           <button
             key={tab}
-            onClick={() => setCompanyTab(tab)}
+            onClick={() => handleCompanyTab(tab)}
             className={cn("px-4 py-1.5 rounded-full text-sm font-medium transition-colors capitalize",
               companyTab === tab ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"
             )}
@@ -639,6 +653,7 @@ export default function Overview() {
       )}
       </>
       )}
+      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} feature={upgradeFeature} />
     </AppLayout>
   );
 }
