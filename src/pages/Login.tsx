@@ -214,13 +214,13 @@ export default function Login() {
       </div>
 
       {/* Right panel – waving flag video */}
-      <div className="hidden lg:flex flex-1 items-center justify-center bg-[hsl(0,0%,5%)] relative overflow-hidden">
+      <div className="hidden lg:flex flex-1 items-center justify-center bg-[hsl(35,25%,91%)] relative overflow-hidden">
         <video
           autoPlay
           loop
           muted
           playsInline
-          className="absolute inset-0 w-full h-full object-cover"
+          className="w-1/2 h-1/2 object-contain"
         >
           <source src="/flag-waving.mp4" type="video/mp4" />
           <source src="/flag-waving.mov" type="video/quicktime" />
