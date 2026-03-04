@@ -1,5 +1,5 @@
 // Shared email styles — flat beige design matching Rollout brand
-export const flagUrl = 'https://ctnsworqzzguykzzvdme.supabase.co/storage/v1/object/public/email-assets/rollout-flag.svg'
+export const flagUrl = 'https://app.rollout.cc/rollout-flag.png'
 export const wordmarkUrl = 'https://ctnsworqzzguykzzvdme.supabase.co/storage/v1/object/public/email-assets/rollout-logo.png'
 
 export const main = { backgroundColor: '#ffffff', fontFamily: 'Switzer, Arial, Helvetica, sans-serif' }
