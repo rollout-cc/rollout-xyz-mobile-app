@@ -1,0 +1,1 @@
+ALTER TABLE public.team_subscriptions ADD COLUMN is_grandfathered boolean NOT NULL DEFAULT false;

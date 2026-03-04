@@ -53,6 +53,22 @@ serve(async (req) => {
       .eq("team_id", teamId)
       .single();
 
+    // Grandfathered teams get permanent full access
+    if (sub?.is_grandfathered) {
+      logStep("Grandfathered team detected", { teamId });
+      return new Response(JSON.stringify({
+        plan: "icon",
+        seat_limit: 15,
+        status: "active",
+        is_trialing: false,
+        trial_days_left: 0,
+        current_period_end: "2099-12-31T00:00:00Z",
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     if (!sub || !sub.stripe_subscription_id) {
       // No Stripe subscription — check if trial is still active
       const trialEndsAt = sub?.trial_ends_at ? new Date(sub.trial_ends_at) : null;

@@ -1690,6 +1690,7 @@ export type Database = {
           created_at: string
           current_period_end: string | null
           id: string
+          is_grandfathered: boolean
           plan: string
           seat_limit: number
           status: string
@@ -1703,6 +1704,7 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           id?: string
+          is_grandfathered?: boolean
           plan?: string
           seat_limit?: number
           status?: string
@@ -1716,6 +1718,7 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           id?: string
+          is_grandfathered?: boolean
           plan?: string
           seat_limit?: number
           status?: string

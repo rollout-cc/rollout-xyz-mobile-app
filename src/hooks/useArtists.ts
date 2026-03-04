@@ -46,7 +46,7 @@ export function useCreateArtist() {
       queryClient.invalidateQueries({ queryKey: ["artists", variables.team_id] });
       // Fire-and-forget notification
       import("@/lib/notifications").then(({ notifyNewArtist }) => {
-        notifyNewArtist(variables.team_id, variables.name);
+        notifyNewArtist(variables.team_id, variables.name, undefined, variables.avatar_url);
       });
     },
   });

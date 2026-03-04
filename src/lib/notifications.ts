@@ -163,7 +163,8 @@ export async function checkBudgetThreshold(
 export async function notifyNewArtist(
   teamId: string,
   artistName: string,
-  teamName?: string
+  teamName?: string,
+  avatarUrl?: string
 ) {
   try {
     const { data: members } = await supabase
@@ -178,6 +179,7 @@ export async function notifyNewArtist(
         to_name: name,
         new_artist_name: artistName,
         team_name: teamName,
+        artist_avatar_url: avatarUrl,
       }));
     }
   } catch (err) {

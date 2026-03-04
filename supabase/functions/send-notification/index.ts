@@ -40,6 +40,7 @@ interface NotificationPayload {
   // New artist fields
   new_artist_name?: string;
   team_name?: string;
+  artist_avatar_url?: string;
 }
 
 function formatDate(dateStr?: string): string {
@@ -165,16 +166,31 @@ function getSubjectAndContent(p: NotificationPayload): { subject: string; headin
         manageNotifs: true,
       };
 
-    case 'new_artist':
+    case 'new_artist': {
+      const avatarHtml = p.artist_avatar_url ? `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#d5d0c8;border-radius:8px;margin:0 0 24px;">
+          <tr><td style="padding:16px 20px;">
+            <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+              <td style="vertical-align:middle;padding-right:16px;">
+                <img src="${p.artist_avatar_url}" alt="${p.new_artist_name || ''}" width="64" height="64" style="width:64px;height:64px;border-radius:50%;object-fit:cover;display:block;" />
+              </td>
+              <td style="vertical-align:middle;">
+                <p style="font-size:16px;font-weight:bold;color:#0d0d0d;margin:0;line-height:1.3;">${p.new_artist_name || ''}</p>
+                <p style="font-size:13px;color:#737373;margin:4px 0 0;line-height:1.3;">Added to your roster</p>
+              </td>
+            </tr></table>
+          </td></tr>
+        </table>` : '';
       return {
         subject: `New artist added: ${p.new_artist_name}`,
         heading: 'A new artist has been added.',
-        body: `<strong>${p.new_artist_name}</strong> has been added to your roster${p.team_name ? ` in ${p.team_name}` : ''}.`,
-        card: '',
+        body: p.artist_avatar_url ? '' : `<strong>${p.new_artist_name}</strong> has been added to your roster${p.team_name ? ` in ${p.team_name}` : ''}.`,
+        card: avatarHtml,
         ctaLabel: 'View Roster',
         ctaUrl: `${baseUrl}/roster`,
         manageNotifs: true,
       };
+    }
 
     default:
       return {
