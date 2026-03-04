@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'app.lovable.c232114e61894b4b9345b3f5a8174ff3',
-  appName: 'deploy-my-repo-please',
+  appName: 'Rollout',
   webDir: 'dist',
   // Production mode: no live-reload server.
   // To re-enable hot-reload during development, uncomment:
