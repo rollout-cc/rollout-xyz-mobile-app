@@ -289,7 +289,7 @@ function ShareButton({ member, onUpdate }: { member: any; onUpdate: (patch: Reco
       toast.success("Sharing disabled");
     } else {
       onUpdate({ is_public: true });
-      const url = `https://rollout.cc/shared/member/${token}`;
+      const url = `https://app.rollout.cc/shared/member/${token}`;
       navigator.clipboard.writeText(url);
       toast.success("Link copied! Sharing enabled.");
     }
@@ -297,7 +297,7 @@ function ShareButton({ member, onUpdate }: { member: any; onUpdate: (patch: Reco
 
   const copyLink = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const url = `https://rollout.cc/shared/member/${token}`;
+    const url = `https://app.rollout.cc/shared/member/${token}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     toast.success("Link copied!");

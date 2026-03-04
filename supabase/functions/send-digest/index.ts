@@ -300,7 +300,7 @@ Deno.serve(async (req) => {
           ${linksHtml}
           <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;">
             <tr><td style="background-color:#0d0d0d;border-radius:9999px;padding:14px 32px;">
-              <a href="https://rollout.cc" target="_blank" style="color:#f2ead9;font-size:15px;font-weight:600;text-decoration:none;display:inline-block;">
+              <a href="https://app.rollout.cc" target="_blank" style="color:#f2ead9;font-size:15px;font-weight:600;text-decoration:none;display:inline-block;">
                 ${isWeekly ? 'Visit Rollout' : 'See All Tasks'}
               </a>
             </td></tr>
@@ -310,7 +310,7 @@ Deno.serve(async (req) => {
             For any questions or issues please email <a href="mailto:support@rollout.cc" style="color:#0d0d0d;font-weight:bold;text-decoration:none;">support@rollout.cc</a>
           </p>
           <p style="font-size:14px;color:#666666;line-height:1.5;margin:0 0 8px;">
-            Don't want to receive these notifications from Rollout? <a href="https://rollout.cc/settings" style="color:#0d0d0d;font-weight:bold;text-decoration:none;">Manage notifications</a>
+            Don't want to receive these notifications from Rollout? <a href="https://app.rollout.cc/settings" style="color:#0d0d0d;font-weight:bold;text-decoration:none;">Manage notifications</a>
           </p>
           <img src="${wordmarkUrl}" alt="ROLLOUT" height="32" style="height:32px;margin-top:24px;" />
         </td></tr>

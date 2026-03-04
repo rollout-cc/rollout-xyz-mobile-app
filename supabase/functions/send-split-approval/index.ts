@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
       .eq("id", song_id)
       .single();
 
-    const baseUrl = "https://rollout.cc";
+    const baseUrl = "https://app.rollout.cc";
     const results: { contributor: string; email?: string; sent: boolean; error?: string }[] = [];
 
     // Group entries by contributor for one email per person

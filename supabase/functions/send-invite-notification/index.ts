@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const inviteUrl = `https://rollout.cc/join/${token}`;
+    const inviteUrl = `https://app.rollout.cc/join/${token}`;
 
     if (!email) {
       return new Response(

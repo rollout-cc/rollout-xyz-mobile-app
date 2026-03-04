@@ -85,7 +85,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
       return data.token;
     },
     onSuccess: (token) => {
-      const baseUrl = "https://rollout.cc";
+      const baseUrl = "https://app.rollout.cc";
       const link = `${baseUrl}/join/${token}`;
       setGeneratedLink(link);
     },

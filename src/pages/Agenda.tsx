@@ -381,14 +381,14 @@ export default function Agenda() {
                       <div className="flex gap-2">
                         <input
                           readOnly
-                          value={`https://rollout.cc/shared/agenda/${(artist as any).agenda_public_token}`}
+                          value={`https://app.rollout.cc/shared/agenda/${(artist as any).agenda_public_token}`}
                           className="flex-1 text-xs bg-muted rounded px-2 py-1.5 border border-border truncate"
                         />
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => {
-                            navigator.clipboard.writeText(`https://rollout.cc/shared/agenda/${(artist as any).agenda_public_token}`);
+                            navigator.clipboard.writeText(`https://app.rollout.cc/shared/agenda/${(artist as any).agenda_public_token}`);
                             toast.success("Link copied!");
                           }}
                         >

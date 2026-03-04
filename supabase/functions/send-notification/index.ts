@@ -96,7 +96,7 @@ function buildMilestoneCard(p: NotificationPayload): string {
 }
 
 function getSubjectAndContent(p: NotificationPayload): { subject: string; heading: string; body: string; card: string; ctaLabel: string; ctaUrl: string; manageNotifs: boolean } {
-  const baseUrl = 'https://rollout.cc';
+  const baseUrl = 'https://app.rollout.cc';
 
   switch (p.type) {
     case 'task_assigned':
@@ -215,7 +215,7 @@ function buildHtml(p: NotificationPayload): string {
           <p style="font-size:14px;color:#666666;line-height:1.5;margin:0 0 8px;">
             For any questions or issues please email <a href="mailto:support@rollout.cc" style="color:#0d0d0d;font-weight:bold;text-decoration:none;">support@rollout.cc</a>
           </p>
-          ${manageNotifs ? `<p style="font-size:14px;color:#666666;line-height:1.5;margin:0 0 8px;">Don't want to receive these notifications from Rollout? <a href="https://rollout.cc/settings" style="color:#0d0d0d;font-weight:bold;text-decoration:none;">Manage notifications</a></p>` : ''}
+          ${manageNotifs ? `<p style="font-size:14px;color:#666666;line-height:1.5;margin:0 0 8px;">Don't want to receive these notifications from Rollout? <a href="https://app.rollout.cc/settings" style="color:#0d0d0d;font-weight:bold;text-decoration:none;">Manage notifications</a></p>` : ''}
           <img src="${wordmarkUrl}" alt="ROLLOUT" height="32" style="height:32px;margin-top:24px;" />
         </td></tr>
       </table>

@@ -827,7 +827,7 @@ function ShareTimelineButton({ artist }: { artist: any }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["artist", artist.id] });
       if (!isPublic && token) {
-        const url = `https://rollout.cc/shared/timeline/${token}`;
+        const url = `https://app.rollout.cc/shared/timeline/${token}`;
         navigator.clipboard.writeText(url);
         toast.success("Link copied! Sharing enabled.");
       } else {
@@ -839,7 +839,7 @@ function ShareTimelineButton({ artist }: { artist: any }) {
 
   const copyLink = () => {
     if (!token) return;
-    const url = `https://rollout.cc/shared/timeline/${token}`;
+    const url = `https://app.rollout.cc/shared/timeline/${token}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     toast.success("Link copied!");

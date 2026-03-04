@@ -326,8 +326,8 @@ export function AgendaContent() {
                     <div className="space-y-2">
                       <p className="text-xs text-muted-foreground">Anyone with this link can view this agenda.</p>
                       <div className="flex gap-2">
-                        <input readOnly value={`https://rollout.cc/shared/agenda/${(artist as any).agenda_public_token}`} className="flex-1 text-xs bg-muted rounded px-2 py-1.5 border border-border truncate" />
-                        <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(`https://rollout.cc/shared/agenda/${(artist as any).agenda_public_token}`); toast.success("Link copied!"); }}>
+                        <input readOnly value={`https://app.rollout.cc/shared/agenda/${(artist as any).agenda_public_token}`} className="flex-1 text-xs bg-muted rounded px-2 py-1.5 border border-border truncate" />
+                        <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(`https://app.rollout.cc/shared/agenda/${(artist as any).agenda_public_token}`); toast.success("Link copied!"); }}>
                           <Copy className="h-3.5 w-3.5" />
                         </Button>
                       </div>
