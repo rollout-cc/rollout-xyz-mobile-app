@@ -10,6 +10,15 @@ import { toast } from "sonner";
 import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
 
+const REVENUE_CATEGORIES = [
+  { value: "show_fee", label: "Show Fee" },
+  { value: "brand_deal", label: "Brand Deal" },
+  { value: "feature", label: "Feature" },
+  { value: "royalty", label: "Royalty" },
+  { value: "sync", label: "Sync" },
+  { value: "other", label: "Other" },
+];
+
 interface FinanceLedgerProps {
   artistId: string;
 }
@@ -22,6 +31,8 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
   const [newBudgetId, setNewBudgetId] = useState<string>("none");
   const [newDate, setNewDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [isExpense, setIsExpense] = useState(true);
+  const [newRevenueCategory, setNewRevenueCategory] = useState<string>("none");
+  const [newRevenueSource, setNewRevenueSource] = useState("");
 
   // Fetch transactions
   const { data: transactions = [] } = useQuery({
@@ -74,28 +85,46 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
     mutationFn: async () => {
       const parsedAmount = parseFloat(newAmount) || 0;
       const finalAmount = isExpense ? -Math.abs(parsedAmount) : Math.abs(parsedAmount);
-      const { error } = await supabase.from("transactions").insert({
+      const insert: any = {
         artist_id: artistId,
-        budget_id: newBudgetId === "none" ? null : newBudgetId,
-        sub_budget_id: newSubBudgetId === "none" ? null : newSubBudgetId,
         description: newDesc.trim(),
         amount: finalAmount,
         transaction_date: newDate,
-      } as any);
+      };
+
+      if (isExpense) {
+        insert.budget_id = newBudgetId === "none" ? null : newBudgetId;
+        insert.sub_budget_id = newSubBudgetId === "none" ? null : newSubBudgetId;
+      } else {
+        insert.revenue_category = newRevenueCategory === "none" ? null : newRevenueCategory;
+        insert.revenue_source = newRevenueSource.trim() || null;
+      }
+
+      const { error } = await supabase.from("transactions").insert(insert);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions", artistId] });
       resetForm();
       toast.success("Transaction added");
-      // Check budget threshold
-      if (newBudgetId !== "none") {
+      if (isExpense && newBudgetId !== "none") {
         import("@/lib/notifications").then(({ checkBudgetThreshold }) => {
           checkBudgetThreshold(artistId, newBudgetId);
         });
       }
     },
     onError: (e: any) => toast.error(e.message),
+  });
+
+  const updateRevenueCategory = useMutation({
+    mutationFn: async ({ id, category }: { id: string; category: string }) => {
+      const { error } = await supabase
+        .from("transactions")
+        .update({ revenue_category: category } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["transactions", artistId] }),
   });
 
   const deleteTransaction = useMutation({
@@ -112,24 +141,25 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
     setNewAmount("");
     setNewBudgetId("none");
     setNewSubBudgetId("none");
+    setNewRevenueCategory("none");
+    setNewRevenueSource("");
     setNewDate(format(new Date(), "yyyy-MM-dd"));
     setIsExpense(true);
   };
 
-  // Available sub-budgets for selected budget
   const availableSubBudgets = useMemo(() => {
     if (newBudgetId === "none") return [];
     return subBudgets.filter((sb: any) => sb.budget_id === newBudgetId);
   }, [newBudgetId, subBudgets]);
 
-  // Build budget label map
   const budgetMap: Record<string, string> = {};
   budgets.forEach((b: any) => { budgetMap[b.id] = b.label; });
   const subBudgetMap: Record<string, string> = {};
   subBudgets.forEach((sb: any) => { subBudgetMap[sb.id] = sb.label; });
-  budgets.forEach((b: any) => { budgetMap[b.id] = b.label; });
 
-  // Calculate totals
+  const revCatMap: Record<string, string> = {};
+  REVENUE_CATEGORIES.forEach((c) => { revCatMap[c.value] = c.label; });
+
   const totalIn = transactions
     .filter((t: any) => Number(t.amount) > 0)
     .reduce((s: number, t: any) => s + Number(t.amount), 0);
@@ -222,30 +252,54 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
             />
           </div>
 
-          <Select value={newBudgetId} onValueChange={(v) => { setNewBudgetId(v); setNewSubBudgetId("none"); }}>
-            <SelectTrigger className="h-8 text-sm">
-              <SelectValue placeholder="Uncategorized" />
-            </SelectTrigger>
-            <SelectContent className="bg-popover border border-border z-50">
-              <SelectItem value="none">Uncategorized</SelectItem>
-              {budgets.map((b: any) => (
-                <SelectItem key={b.id} value={b.id}>{b.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {isExpense ? (
+            <>
+              <Select value={newBudgetId} onValueChange={(v) => { setNewBudgetId(v); setNewSubBudgetId("none"); }}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Uncategorized" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border border-border z-50">
+                  <SelectItem value="none">Uncategorized</SelectItem>
+                  {budgets.map((b: any) => (
+                    <SelectItem key={b.id} value={b.id}>{b.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-          {availableSubBudgets.length > 0 && (
-            <Select value={newSubBudgetId} onValueChange={setNewSubBudgetId}>
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue placeholder="Sub-budget" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover border border-border z-50">
-                <SelectItem value="none">No Sub-budget</SelectItem>
-                {availableSubBudgets.map((sb: any) => (
-                  <SelectItem key={sb.id} value={sb.id}>{sb.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              {availableSubBudgets.length > 0 && (
+                <Select value={newSubBudgetId} onValueChange={setNewSubBudgetId}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Sub-budget" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border border-border z-50">
+                    <SelectItem value="none">No Sub-budget</SelectItem>
+                    {availableSubBudgets.map((sb: any) => (
+                      <SelectItem key={sb.id} value={sb.id}>{sb.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </>
+          ) : (
+            <>
+              <Input
+                placeholder="Source (e.g. Nike, Live Nation)"
+                value={newRevenueSource}
+                onChange={(e) => setNewRevenueSource(e.target.value)}
+                className="h-8 text-sm"
+              />
+              <Select value={newRevenueCategory} onValueChange={setNewRevenueCategory}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Revenue Category" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border border-border z-50">
+                  <SelectItem value="none">Uncategorized</SelectItem>
+                  {REVENUE_CATEGORIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </>
           )}
 
           <div className="flex gap-2">
@@ -278,6 +332,7 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
               const isIncome = amount > 0;
               const budgetLabel = t.budget_id ? budgetMap[t.budget_id] : null;
               const txDate = parse(t.transaction_date, "yyyy-MM-dd", new Date());
+              const revCatLabel = t.revenue_category ? revCatMap[t.revenue_category] : null;
 
               return (
                 <div key={t.id} className="flex items-start gap-2 px-3 py-2.5 group hover:bg-muted/30 transition-colors">
@@ -292,7 +347,7 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{t.description}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       <span className="text-[10px] text-muted-foreground">
                         {format(txDate, "MMM d")}
                       </span>
@@ -305,6 +360,31 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
                         <span className="text-[10px] bg-accent text-accent-foreground px-1.5 py-0.5 rounded">
                           {subBudgetMap[t.sub_budget_id]}
                         </span>
+                      )}
+                      {isIncome && t.revenue_source && (
+                        <span className="text-[10px] bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded">
+                          {t.revenue_source}
+                        </span>
+                      )}
+                      {isIncome && revCatLabel && (
+                        <span className="text-[10px] bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded">
+                          {revCatLabel}
+                        </span>
+                      )}
+                      {isIncome && !t.revenue_category && (
+                        <Select
+                          value=""
+                          onValueChange={(v) => updateRevenueCategory.mutate({ id: t.id, category: v })}
+                        >
+                          <SelectTrigger className="h-5 text-[10px] w-auto min-w-0 border-dashed border-emerald-500/30 text-emerald-600 px-1.5 py-0 gap-0.5">
+                            <SelectValue placeholder="Categorize" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover border border-border z-50">
+                            {REVENUE_CATEGORIES.map((c) => (
+                              <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       )}
                     </div>
                   </div>

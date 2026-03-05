@@ -26,6 +26,8 @@ interface WorkItemCreatorProps {
   variant?: "inline" | "card";
   /** Metadata pills to render below input */
   metadataPills?: React.ReactNode;
+  /** Called when title changes, for external parsing (e.g. revenue detection) */
+  onTitleChange?: (title: string) => void;
 }
 
 export function WorkItemCreator({
@@ -35,8 +37,13 @@ export function WorkItemCreator({
   triggers,
   variant = "card",
   metadataPills,
+  onTitleChange,
 }: WorkItemCreatorProps) {
   const [title, setTitle] = useState("");
+  const handleTitleChange = (val: string) => {
+    setTitle(val);
+    onTitleChange?.(val);
+  };
   const [description, setDescription] = useState("");
   const [parsedDate, setParsedDate] = useState<Date | null>(null);
   const [showDescription, setShowDescription] = useState(false);
@@ -45,6 +52,7 @@ export function WorkItemCreator({
     if (!title.trim()) return;
     onSubmit({ title: title.trim(), description, dueDate: parsedDate });
     setTitle("");
+    onTitleChange?.("");
     setDescription("");
     setParsedDate(null);
     setShowDescription(false);
@@ -52,6 +60,7 @@ export function WorkItemCreator({
 
   const handleCancel = () => {
     setTitle("");
+    onTitleChange?.("");
     setDescription("");
     setParsedDate(null);
     setShowDescription(false);
@@ -64,7 +73,7 @@ export function WorkItemCreator({
         <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
         <ItemEditor
           value={title}
-          onChange={setTitle}
+          onChange={handleTitleChange}
           onSubmit={handleSubmit}
           onCancel={handleCancel}
           placeholder={placeholder}
@@ -88,7 +97,7 @@ export function WorkItemCreator({
         <div className="flex-1 min-w-0 space-y-1">
           <ItemEditor
             value={title}
-            onChange={setTitle}
+            onChange={handleTitleChange}
             onSubmit={handleSubmit}
             onCancel={handleCancel}
             placeholder={placeholder}
