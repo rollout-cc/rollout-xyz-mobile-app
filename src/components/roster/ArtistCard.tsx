@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Headphones, FolderOpen, CheckCircle2, DollarSign, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -24,20 +25,32 @@ function formatNum(n: number): string {
   return String(n);
 }
 
+type BarView = "revenue" | "spending";
+
 export const ArtistCard = React.memo(function ArtistCard({ artist, onClick, onDelete, dragHandleProps, innerRef, draggableProps, insideFolder, onRemoveFromFolder }: ArtistCardProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [barView, setBarView] = useState<BarView>("revenue");
   const initiativeCount = artist.initiatives?.[0]?.count ?? 0;
   const taskCount = artist.tasks?.[0]?.count ?? 0;
   const listeners = artist.monthly_listeners ?? 0;
 
-  const budgets: { label: string; amount: number }[] = (artist.budgets || []).slice(0, 3);
-  const totalBudget = budgets.reduce((s: number, b: any) => s + Number(b.amount || 0), 0);
+  const budgets: { label: string; amount: number; id: string }[] = (artist.budgets || []).slice(0, 3);
   const totalSpending = (artist.transactions || [])
     .filter((t: any) => t.type === "expense")
     .reduce((s: number, t: any) => s + Math.abs(Number(t.amount || 0)), 0);
   const totalRevenue = (artist.transactions || [])
     .filter((t: any) => t.type === "revenue")
     .reduce((s: number, t: any) => s + Math.abs(Number(t.amount || 0)), 0);
+
+  const spendingByBudget = (budgetId: string) =>
+    (artist.transactions || [])
+      .filter((t: any) => t.type === "expense" && t.budget_id === budgetId)
+      .reduce((s: number, t: any) => s + Math.abs(Number(t.amount || 0)), 0);
+
+  const revenueByBudget = (budgetId: string) =>
+    (artist.transactions || [])
+      .filter((t: any) => t.type === "revenue" && t.budget_id === budgetId)
+      .reduce((s: number, t: any) => s + Math.abs(Number(t.amount || 0)), 0);
 
   return (
     <>
@@ -72,24 +85,25 @@ export const ArtistCard = React.memo(function ArtistCard({ artist, onClick, onDe
               </div>
             </div>
 
-            <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground flex-wrap">
-              <span className="flex items-center gap-1 text-emerald-600" title="Revenue">
+            {/* Badge pills for revenue & spent */}
+            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[11px] px-2 py-0.5 font-semibold gap-1">
                 <DollarSign className="h-3 w-3" />
                 {formatNum(totalRevenue)}
-              </span>
-              <span className="flex items-center gap-1 text-destructive" title="Spent">
+              </Badge>
+              <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 text-[11px] px-2 py-0.5 font-semibold gap-1">
                 <DollarSign className="h-3 w-3" />
                 {formatNum(totalSpending)}
-              </span>
-              <span className="flex items-center gap-1" title="Monthly Listeners">
+              </Badge>
+              <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground" title="Monthly Listeners">
                 <Headphones className="h-3 w-3" />
                 {listeners > 0 ? formatNum(listeners) : "—"}
               </span>
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground">
                 <FolderOpen className="h-3 w-3" />
                 {initiativeCount}
               </span>
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground">
                 <CheckCircle2 className="h-3 w-3" />
                 {taskCount}
               </span>
@@ -97,22 +111,51 @@ export const ArtistCard = React.memo(function ArtistCard({ artist, onClick, onDe
           </div>
         </div>
 
+        {/* Pill switcher + progress bars */}
         {budgets.length > 0 && (
-          <div className="px-4 pb-4 space-y-2">
-            {budgets.map((b: any, i: number) => {
-              const pct = totalBudget > 0 ? (Number(b.amount) / totalBudget) * 100 : 0;
-              return (
-                <div key={i}>
-                  <div className="text-xs font-medium mb-0.5">{b.label}</div>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-emerald-500 transition-all"
-                      style={{ width: `${Math.min(pct, 100)}%` }}
-                    />
+          <div className="px-4 pb-4">
+            <div className="flex items-center gap-1 mb-2.5">
+              <button
+                onClick={(e) => { e.stopPropagation(); setBarView("revenue"); }}
+                className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors ${
+                  barView === "revenue"
+                    ? "bg-emerald-500/15 text-emerald-600"
+                    : "text-muted-foreground hover:bg-accent"
+                }`}
+              >
+                Revenue
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setBarView("spending"); }}
+                className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors ${
+                  barView === "spending"
+                    ? "bg-destructive/15 text-destructive"
+                    : "text-muted-foreground hover:bg-accent"
+                }`}
+              >
+                Spending
+              </button>
+            </div>
+            <div className="space-y-2">
+              {budgets.map((b: any, i: number) => {
+                const budgetAmt = Number(b.amount || 0);
+                const value = barView === "revenue" ? revenueByBudget(b.id) : spendingByBudget(b.id);
+                const pct = budgetAmt > 0 ? (value / budgetAmt) * 100 : 0;
+                return (
+                  <div key={i}>
+                    <div className="text-xs font-medium mb-0.5">{b.label}</div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          barView === "revenue" ? "bg-emerald-500" : "bg-destructive"
+                        }`}
+                        style={{ width: `${Math.min(pct, 100)}%` }}
+                      />
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
