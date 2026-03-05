@@ -88,7 +88,7 @@ export function AppLayout({ children, title, actions }: AppLayoutProps) {
           </header>
 
           {/* Content */}
-          <main className="flex-1 p-4 sm:p-6 pb-20 sm:pb-6 overflow-x-hidden min-w-0 scroll-container">
+          <main className="flex-1 p-4 sm:p-6 pb-20 sm:pb-6 overflow-x-hidden overflow-y-auto min-w-0 scroll-container">
             {children}
           </main>
         </div>
