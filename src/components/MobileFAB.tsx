@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { Plus, X, UserPlus, ListTodo, FolderPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -58,17 +59,18 @@ export function MobileFAB({ onAction }: { onAction?: (key: string) => void }) {
 
   // Single action — just trigger directly
   if (routeActions.length === 1) {
-    return (
+    return createPortal(
       <button
         onClick={() => handleAction(routeActions[0].key)}
-        className="fixed bottom-[calc(env(safe-area-inset-bottom)+10px)] left-1/2 -translate-x-1/2 z-[60] flex h-14 w-14 items-center justify-center rounded-full bg-foreground text-background shadow-lg active:scale-95 transition-transform"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom)+10px)] left-1/2 -translate-x-1/2 z-[45] flex h-14 w-14 items-center justify-center rounded-full bg-foreground text-background shadow-lg active:scale-95 transition-transform"
       >
         <Plus className="h-6 w-6" />
-      </button>
+      </button>,
+      document.body
     );
   }
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <AnimatePresence>
@@ -77,7 +79,7 @@ export function MobileFAB({ onAction }: { onAction?: (key: string) => void }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[55] bg-background/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[45] bg-background/60 backdrop-blur-sm"
             onClick={() => setIsOpen(false)}
           />
         )}
@@ -93,7 +95,7 @@ export function MobileFAB({ onAction }: { onAction?: (key: string) => void }) {
             exit={{ opacity: 0, y: 20, scale: 0.8 }}
             transition={{ delay: index * 0.05 }}
             onClick={() => handleAction(action.key)}
-            className="fixed left-1/2 -translate-x-1/2 z-[60] flex items-center gap-3"
+            className="fixed left-1/2 -translate-x-1/2 z-[45] flex items-center gap-3"
             style={{ bottom: `calc(env(safe-area-inset-bottom) + ${78 + index * 56}px)` }}
           >
             <span className="rounded-lg bg-card px-3 py-1.5 text-sm font-medium shadow-md border border-border">
@@ -110,7 +112,7 @@ export function MobileFAB({ onAction }: { onAction?: (key: string) => void }) {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "fixed bottom-[calc(env(safe-area-inset-bottom)+10px)] left-1/2 -translate-x-1/2 z-[60] flex h-14 w-14 items-center justify-center rounded-full shadow-lg active:scale-95 transition-all",
+          "fixed bottom-[calc(env(safe-area-inset-bottom)+10px)] left-1/2 -translate-x-1/2 z-[45] flex h-14 w-14 items-center justify-center rounded-full shadow-lg active:scale-95 transition-all",
           isOpen
             ? "bg-muted text-foreground rotate-45"
             : "bg-foreground text-background"
@@ -118,6 +120,7 @@ export function MobileFAB({ onAction }: { onAction?: (key: string) => void }) {
       >
         <Plus className="h-6 w-6 transition-transform" />
       </button>
-    </>
+    </>,
+    document.body
   );
 }

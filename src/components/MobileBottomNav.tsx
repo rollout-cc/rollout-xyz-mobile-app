@@ -23,7 +23,7 @@ export function MobileBottomNav() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background safe-area-bottom">
       <div className="flex items-center h-14">
         {leftItems.map(({ to, icon: Icon, label }) => (
           <button
