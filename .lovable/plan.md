@@ -1,34 +1,45 @@
 
 
-## Redesign Team Invite Dialog + BCC All Resend Emails + Fix JobTitleSelect Scroll
+## Fix Artist Info Tab Crash + Add Error Boundaries + Harden Database Access
 
-### 1. Redesign `InviteMemberDialog` — email-first flow
+### Investigation Results
 
-**File: `src/components/settings/InviteMemberDialog.tsx`**
+I navigated to an artist profile and clicked Info — it loaded fine for "Cigarettes After Sex." This suggests the crash is **data-dependent**: a specific artist's `artist_travel_info` row likely has a value that causes a runtime error (e.g., `date-fns` `parse()` crashing on malformed date, or a component receiving `undefined` where it expects a string).
 
-- Add `email` and `name` (first + last) input fields above Role selector
-- On submit: insert into `invite_links` with `invitee_email` and `invitee_name`, then invoke `send-invite-notification` edge function with `{ token, email, team_name, invitee_name, role }`
-- Get team name from `useTeams()` hook (already returns team name)
-- After success: show confirmation state with "Email sent to X" AND the invite link visible with copy button as fallback ("Didn't get the email? Copy the link")
-- If email field is left empty, fall back to link-only generation (current behavior)
-- Button text: "Send Invite" when email present, "Generate Link" when empty
+Since there's **no Error Boundary** anywhere in the app, any thrown error in any component results in a full white screen crash with no recovery.
 
-### 2. Add BCC to all Resend email calls
+### Plan
 
-Add `bcc: ["accounts@rollout.cc"]` to every Resend API call across all 4 edge functions:
+#### 1. Add React Error Boundary component
 
-- `supabase/functions/send-invite-notification/index.ts`
-- `supabase/functions/send-notification/index.ts`
-- `supabase/functions/create-contact-request/index.ts`
-- `supabase/functions/send-digest/index.ts`
+Create `src/components/ErrorBoundary.tsx` — a class component that catches render errors and shows a recovery UI with a "Reload" button instead of a white screen.
 
-### 3. Fix `JobTitleSelect` scroll
+#### 2. Wrap key views in Error Boundaries
 
-**File: `src/components/ui/JobTitleSelect.tsx`**
+In `ArtistDetail.tsx`, wrap each view panel (`ArtistInfoTab`, `FinanceTab`, `WorkTab`, etc.) in an `<ErrorBoundary>` so one tab crashing doesn't kill the whole page.
 
-The `ScrollArea` with `max-h-72` doesn't properly scroll when departments expand. Replace with a plain `div` using `max-h-72 overflow-y-auto` which handles dynamic content expansion reliably inside popovers.
+In `App.tsx`, wrap `<AppRoutes>` in a top-level `<ErrorBoundary>` as a safety net.
 
-### 4. Add `send-invite-notification` to `config.toml`
+#### 3. Add global `unhandledrejection` handler
 
-The function is missing from `supabase/config.toml`. Add it with `verify_jwt = false` so it can be invoked from the client.
+In `App.tsx`, add a `useEffect` that listens for `unhandledrejection` events and shows a toast instead of crashing.
+
+#### 4. Harden `ArtistInfoTab` against bad data
+
+- **`DateField`**: Wrap `parse(value, "yyyy-MM-dd", new Date())` in a try/catch — malformed date strings crash `date-fns`
+- **`MemberCard`**: Add null guards for all `member` properties accessed directly
+- **`PROSelectField`**: Already guarded via `useTeamRegion` defaults, but add fallback if `getPROsForRegion` returns empty arrays
+
+#### 5. Move `toast` import to top of `ArtistDetail.tsx`
+
+The `import { toast } from "sonner"` is at line 327 (mid-file, before `ObjectivesPanel`). While ES module hoisting makes this technically work, it's bad practice and could cause confusion. Move it to the top imports block. Same for `import { Plus } from "lucide-react"` at line 313 and `import { InlineField }` at line 328.
+
+### Files to create/modify
+
+| File | Change |
+|------|--------|
+| `src/components/ErrorBoundary.tsx` | **New** — React error boundary with recovery UI |
+| `src/App.tsx` | Wrap routes in ErrorBoundary, add `unhandledrejection` handler |
+| `src/pages/ArtistDetail.tsx` | Wrap each view in ErrorBoundary, move imports to top |
+| `src/components/artist/ArtistInfoTab.tsx` | try/catch in DateField parse, null guards |
 
