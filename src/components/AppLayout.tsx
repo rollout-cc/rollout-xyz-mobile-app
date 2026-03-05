@@ -31,12 +31,12 @@ export function AppLayout({ children, title, actions }: AppLayoutProps) {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
+      <div className="flex h-screen w-full overflow-hidden">
         {!isMobile && (
           <AppSidebar selectedTeamId={selectedTeamId} onSelectTeam={setSelectedTeamId} />
         )}
 
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Top bar */}
           <header className="flex h-14 items-center justify-between border-b border-border px-4 sm:px-6">
             <div className="flex items-center gap-2">
