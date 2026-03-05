@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { useTeamPlan } from "@/hooks/useTeamPlan";
+import { useTeams } from "@/hooks/useTeams";
 import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +26,7 @@ import { JobTitleSelect } from "@/components/ui/JobTitleSelect";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 const roleLabelMap: Record<string, string> = {
@@ -44,9 +45,11 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
   const { user } = useAuth();
   const { selectedTeamId: teamId } = useSelectedTeam();
   const { limits, seatLimit } = useTeamPlan();
+  const { data: teams } = useTeams();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
-  // Count current team members
+  const currentTeam = teams?.find((t) => t.id === teamId);
+
   const { data: memberCount = 0 } = useQuery({
     queryKey: ["team-member-count", teamId],
     queryFn: async () => {
@@ -60,12 +63,17 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
     enabled: !!teamId,
   });
 
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteeName, setInviteeName] = useState("");
   const [inviteRole, setInviteRole] = useState<string>("manager");
   const [addToStaff, setAddToStaff] = useState(false);
   const [staffEmploymentType, setStaffEmploymentType] = useState("w2");
   const [jobTitle, setJobTitle] = useState("");
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+  const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const hasEmail = inviteEmail.trim().length > 0;
 
   const createInvite = useMutation({
     mutationFn: async (role: string) => {
@@ -78,16 +86,41 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
           add_to_staff: addToStaff,
           staff_employment_type: addToStaff ? staffEmploymentType : null,
           invitee_job_title: jobTitle || null,
+          invitee_email: inviteEmail.trim() || null,
+          invitee_name: inviteeName.trim() || null,
         })
         .select("token")
         .single();
       if (error) throw error;
-      return data.token;
-    },
-    onSuccess: (token) => {
+
+      const token = data.token;
       const baseUrl = "https://app.rollout.cc";
       const link = `${baseUrl}/join/${token}`;
+
+      // If email provided, send invite notification
+      if (inviteEmail.trim()) {
+        const { error: fnError } = await supabase.functions.invoke("send-invite-notification", {
+          body: {
+            token,
+            email: inviteEmail.trim(),
+            team_name: currentTeam?.name || "",
+            invitee_name: inviteeName.trim() || undefined,
+            role: roleLabelMap[role] || role,
+          },
+        });
+        if (fnError) {
+          console.error("Failed to send invite email:", fnError);
+          // Still show the link even if email fails
+        }
+      }
+
+      return { link, emailSent: !!inviteEmail.trim() };
+    },
+    onSuccess: ({ link, emailSent }) => {
       setGeneratedLink(link);
+      if (emailSent) {
+        setEmailSentTo(inviteEmail.trim());
+      }
     },
     onError: (err: any) => {
       toast.error(err.message || "Failed to create invite");
@@ -106,6 +139,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
     }
     setCopied(false);
     setGeneratedLink(null);
+    setEmailSentTo(null);
     createInvite.mutate(inviteRole);
   };
 
@@ -120,7 +154,10 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
   const handleClose = () => {
     onOpenChange(false);
     setGeneratedLink(null);
+    setEmailSentTo(null);
     setCopied(false);
+    setInviteEmail("");
+    setInviteeName("");
     setInviteRole("manager");
     setAddToStaff(false);
     setStaffEmploymentType("w2");
@@ -134,12 +171,32 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
           <DialogHeader>
             <DialogTitle>Invite a team member</DialogTitle>
             <DialogDescription>
-              Generate a shareable invite link. It expires in 7 days.
+              Send an invite email or generate a shareable link. Expires in 7 days.
             </DialogDescription>
           </DialogHeader>
 
           {!generatedLink ? (
             <div className="space-y-4 py-2">
+              {/* Email & Name */}
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  placeholder="name@company.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input
+                  placeholder="First and last name"
+                  value={inviteeName}
+                  onChange={(e) => setInviteeName(e.target.value)}
+                />
+              </div>
+
+              {/* Role */}
               <div className="space-y-2">
                 <Label>Role</Label>
                 <Select value={inviteRole} onValueChange={setInviteRole}>
@@ -198,14 +255,31 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
                   onClick={handleCreateInvite}
                   disabled={createInvite.isPending}
                 >
-                  {createInvite.isPending ? "Generating..." : "Generate Link"}
+                  {createInvite.isPending
+                    ? "Sending..."
+                    : hasEmail
+                    ? "Send Invite"
+                    : "Generate Link"}
                 </Button>
               </DialogFooter>
             </div>
           ) : (
             <div className="space-y-4 py-2">
+              {emailSentTo && (
+                <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/50 p-3">
+                  <Mail className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">Invite sent to {emailSentTo}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      They'll receive an email with instructions to join as{" "}
+                      <span className="font-medium">{roleLabelMap[inviteRole] ?? inviteRole}</span>.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
-                <Label>Invite Link</Label>
+                <Label>{emailSentTo ? "Didn't get the email? Copy the link" : "Invite Link"}</Label>
                 <div className="flex gap-2">
                   <Input
                     readOnly
@@ -226,10 +300,12 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
                     )}
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Share this link with the person you'd like to invite. They'll be added as a{" "}
-                  <span className="font-medium">{roleLabelMap[inviteRole] ?? inviteRole}</span>.
-                </p>
+                {!emailSentTo && (
+                  <p className="text-xs text-muted-foreground">
+                    Share this link with the person you'd like to invite. They'll be added as a{" "}
+                    <span className="font-medium">{roleLabelMap[inviteRole] ?? inviteRole}</span>.
+                  </p>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={handleClose}>

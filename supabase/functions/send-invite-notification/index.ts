@@ -91,6 +91,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: "Rollout <accounts@rollout.cc>",
         to: [email],
+        bcc: ["accounts@rollout.cc"],
         subject: `You've been invited to join ${team_name || "a team"} on Rollout`,
         html: htmlBody,
       }),

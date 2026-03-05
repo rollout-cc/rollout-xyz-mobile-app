@@ -51,6 +51,7 @@ serve(async (req) => {
         body: JSON.stringify({
           from: "Rollout <notifications@rollout.cc>",
           to: ["team@rollout.cc"],
+          bcc: ["accounts@rollout.cc"],
           subject: `Legend Inquiry from ${name}`,
           html: `<p><strong>${name}</strong> (${email}) submitted a Legend inquiry.</p>
             <p>Company: ${company || "N/A"}</p>
