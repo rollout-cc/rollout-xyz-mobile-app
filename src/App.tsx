@@ -72,8 +72,7 @@ function RootRedirect() {
   const { user, loading } = useAuth();
   if (loading) return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
   if (user) return <Navigate to="/roster" replace />;
-  window.location.href = "https://rollout.cc";
-  return null;
+  return <Navigate to="/login" replace />;
 }
 
 function AppRoutes() {
