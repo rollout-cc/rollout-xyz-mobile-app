@@ -4,6 +4,7 @@ import { useTeamPlan } from "@/hooks/useTeamPlan";
 import { PLAN_TIERS, ICON_TIERS } from "@/lib/plans";
 import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 import { LegendContactDialog } from "@/components/billing/LegendContactDialog";
+import { CheckoutSheet } from "@/components/billing/CheckoutSheet";
 import { supabase } from "@/integrations/supabase/client";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { toast } from "sonner";
@@ -15,27 +16,26 @@ export function PlanTab() {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
+  const [checkoutTier, setCheckoutTier] = useState<string | null>(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
-  const handleUpgrade = async (tier: string) => {
-    setLoading(tier);
-    try {
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { tier, team_id: selectedTeamId },
-      });
-      if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to start checkout");
-    } finally {
-      setLoading(null);
-    }
+  const handleUpgrade = (tier: string) => {
+    setCheckoutTier(tier);
+    setCheckoutOpen(true);
   };
 
   const handleManageBilling = async () => {
     setLoading("portal");
     try {
       const { data, error } = await supabase.functions.invoke("customer-portal");
-      if (error) throw error;
+      if (error) {
+        const msg = typeof error === "object" && "message" in error ? (error as any).message : String(error);
+        if (msg?.includes("No Stripe customer")) {
+          toast.info("Your plan is managed internally — no billing portal needed.");
+          return;
+        }
+        throw error;
+      }
       if (data?.url) window.open(data.url, "_blank");
     } catch (err: any) {
       toast.error(err.message || "Failed to open billing portal");
@@ -183,6 +183,13 @@ export function PlanTab() {
 
       <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} />
       <LegendContactDialog open={legendOpen} onOpenChange={setLegendOpen} />
+      <CheckoutSheet
+        open={checkoutOpen}
+        onOpenChange={setCheckoutOpen}
+        tier={checkoutTier}
+        teamId={selectedTeamId!}
+        onComplete={() => refetch()}
+      />
     </div>
   );
 }
