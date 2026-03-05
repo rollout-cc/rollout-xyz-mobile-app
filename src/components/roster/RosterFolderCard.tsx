@@ -32,36 +32,36 @@ export function RosterFolderCard({ folder, artists, onOpenAddDialog, onDelete, o
     <div
       onClick={onClick}
       className={cn(
-        "relative flex flex-col rounded-lg overflow-hidden cursor-pointer group border bg-card hover:shadow-md transition-all max-w-[216px]",
+        "relative flex flex-col rounded-xl overflow-hidden cursor-pointer group border bg-card hover:shadow-md transition-all max-w-[260px]",
         isDraggingOver
           ? "border-primary border-2 shadow-lg ring-2 ring-primary/20"
           : "border-border"
       )}
     >
-      <div className="p-3 pb-2.5">
-        <div className="flex items-start justify-between gap-0.5 mb-2.5">
-          <h3 className="text-[13px] font-semibold truncate">{folder.name}</h3>
+      <div className="p-3.5 pb-3">
+        <div className="flex items-start justify-between gap-1 mb-3">
+          <h3 className="text-sm font-semibold truncate">{folder.name}</h3>
           <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity">
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 shrink-0"
+              className="h-7 w-7 shrink-0"
               onClick={(e) => { e.stopPropagation(); onOpenAddDialog?.(); }}
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 shrink-0 text-destructive hover:text-destructive"
+              className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-1.5 mb-2">
+        <div className="grid grid-cols-2 gap-2 mb-2.5">
           {[0, 1, 2, 3].map((i) => {
             const a = displayArtists[i];
             return (
@@ -69,24 +69,24 @@ export function RosterFolderCard({ folder, artists, onOpenAddDialog, onDelete, o
                 {a ? (
                   <Avatar className="h-full w-full rounded-full">
                     <AvatarImage src={a.avatar_url ?? undefined} className="object-cover" />
-                    <AvatarFallback className="text-xs font-bold rounded-full">{a.name?.[0]}</AvatarFallback>
+                    <AvatarFallback className="text-sm font-bold rounded-full">{a.name?.[0]}</AvatarFallback>
                   </Avatar>
                 ) : null}
               </div>
             );
           })}
         </div>
-        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{artists.length} artist{artists.length !== 1 ? "s" : ""}</span>
           <div className="flex items-center gap-2">
             {totalListeners > 0 && (
               <span className="flex items-center gap-0.5">
-                <Headphones className="h-3 w-3" />
+                <Headphones className="h-3.5 w-3.5" />
                 {formatNum(totalListeners)}
               </span>
             )}
             <span className="flex items-center gap-0.5">
-              <DollarSign className="h-3 w-3" />
+              <DollarSign className="h-3.5 w-3.5" />
               {formatNum(totalSpent)}
             </span>
           </div>
