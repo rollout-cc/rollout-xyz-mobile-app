@@ -214,8 +214,8 @@ export default function Login() {
       </div>
 
       {/* Right panel – waving flag video */}
-      <div className="hidden lg:flex flex-1 items-center justify-center bg-[hsl(35,25%,91%)] p-8">
-        <div className="w-full h-[70vh] rounded-2xl overflow-hidden">
+      <div className="hidden lg:flex flex-1 items-center justify-center bg-[hsl(35,25%,91%)] pr-0 pl-8 py-8">
+        <div className="w-[90%] h-[80vh] rounded-2xl overflow-hidden mr-auto">
           <video
             autoPlay
             loop
