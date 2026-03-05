@@ -280,35 +280,28 @@ export default function Roster() {
   // Main roster view with DnD
   return (
     <AppLayout title="Artists">
-      {/* Tabs */}
-      <div className="flex items-center gap-1 mb-5">
-        <button
-          onClick={() => setActiveTab("roster")}
-          className={cn("px-4 py-1.5 rounded-full text-sm font-medium transition-colors",
-            activeTab === "roster" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"
-          )}
-        >
-          Current Roster
-        </button>
-        <button
-          onClick={() => setActiveTab("ar")}
-          className={cn("px-4 py-1.5 rounded-full text-sm font-medium transition-colors",
-            activeTab === "ar" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"
-          )}
-        >
-          A&R Signings
-        </button>
-      </div>
-
-      {activeTab === "ar" ? (
-        <ARContent />
-      ) : (
-      <>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          {SortSelect}
+      {/* Tabs + Sort row */}
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setActiveTab("roster")}
+            className={cn("px-4 py-1.5 rounded-full text-sm font-medium transition-colors",
+              activeTab === "roster" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"
+            )}
+          >
+            Current Roster
+          </button>
+          <button
+            onClick={() => setActiveTab("ar")}
+            className={cn("px-4 py-1.5 rounded-full text-sm font-medium transition-colors",
+              activeTab === "ar" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"
+            )}
+          >
+            A&R Signings
+          </button>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          {activeTab === "roster" && SortSelect}
           <Button
             variant="outline"
             size="sm"
@@ -325,6 +318,11 @@ export default function Roster() {
           </Button>
         </div>
       </div>
+
+      {activeTab === "ar" ? (
+        <ARContent />
+      ) : (
+      <>
       <PullToRefresh onRefresh={handleRefresh}>
         {creatingFolder && (
           <div className="mb-4">

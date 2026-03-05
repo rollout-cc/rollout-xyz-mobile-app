@@ -172,9 +172,18 @@ export default function ArtistDetail() {
 
   const tabItems: TabView[] = ["work", "links", "timelines", "splits"];
 
+  const handleBack = () => {
+    if (fromFinance) {
+      navigate("/overview?tab=finance");
+    } else {
+      navigate(artist?.folder_id ? `/roster?folder=${artist.folder_id}` : "/roster");
+    }
+  };
+
   return (
     <AppLayout
       title="Artist"
+      onBack={handleBack}
       actions={
         <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
           {actionButtons.map(({ key, icon: Icon, label }) => (
@@ -192,16 +201,10 @@ export default function ArtistDetail() {
         </div>
       }
     >
-      {/* Back arrow */}
+      {/* Back arrow — desktop only; on mobile it lives in the top header */}
       <button
-        onClick={() => {
-          if (fromFinance) {
-            navigate("/overview?tab=finance");
-          } else {
-            navigate(artist?.folder_id ? `/roster?folder=${artist.folder_id}` : "/roster");
-          }
-        }}
-        className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors mb-2 -mt-1"
+        onClick={handleBack}
+        className="hidden sm:flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors mb-2 -mt-1"
       >
         <ArrowLeft className="h-4 w-4" />
       </button>
