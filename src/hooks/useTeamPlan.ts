@@ -44,6 +44,26 @@ const DEFAULT_PLAN: TeamPlan = {
   },
 };
 
+const STORAGE_KEY = "team-plan-cache";
+
+function getCachedPlan(teamId: string): TeamPlan | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed.teamId === teamId && Date.now() - parsed.ts < 10 * 60 * 1000) {
+      return parsed.plan;
+    }
+  } catch {}
+  return null;
+}
+
+function setCachedPlan(teamId: string, plan: TeamPlan) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ teamId, plan, ts: Date.now() }));
+  } catch {}
+}
+
 export function useTeamPlan(): TeamPlan & { isLoading: boolean; refetch: () => void } {
   const { selectedTeamId } = useSelectedTeam();
 
@@ -57,8 +77,14 @@ export function useTeamPlan(): TeamPlan & { isLoading: boolean; refetch: () => v
       return data;
     },
     enabled: !!selectedTeamId,
-    refetchInterval: 60_000, // every minute
-    staleTime: 30_000,
+    refetchInterval: 5 * 60_000, // every 5 minutes (was 60s)
+    staleTime: 5 * 60_000, // 5 minutes (was 30s)
+    placeholderData: () => {
+      if (!selectedTeamId) return undefined;
+      const cached = getCachedPlan(selectedTeamId);
+      if (cached) return { plan: cached.plan, seat_limit: cached.seatLimit, status: cached.status, is_trialing: cached.isTrialing, trial_days_left: cached.trialDaysLeft, current_period_end: cached.currentPeriodEnd };
+      return undefined;
+    },
   });
 
   if (!data) return { ...DEFAULT_PLAN, isLoading, refetch };
@@ -66,7 +92,7 @@ export function useTeamPlan(): TeamPlan & { isLoading: boolean; refetch: () => v
   const plan = data.plan as "rising" | "icon" | "legend";
   const isPaid = plan === "icon" || plan === "legend";
 
-  return {
+  const result: TeamPlan = {
     plan,
     seatLimit: data.seat_limit,
     status: data.status,
@@ -84,7 +110,10 @@ export function useTeamPlan(): TeamPlan & { isLoading: boolean; refetch: () => v
       canInviteMembers: isPaid,
       canUsePermissions: isPaid,
     },
-    isLoading,
-    refetch,
   };
+
+  // Cache for instant next render
+  if (selectedTeamId) setCachedPlan(selectedTeamId, result);
+
+  return { ...result, isLoading, refetch };
 }

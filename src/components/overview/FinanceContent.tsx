@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSelectedTeam } from "@/contexts/TeamContext";
-import { useTeams } from "@/hooks/useTeams";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,16 +26,13 @@ import { CompanyBudgetSection } from "./CompanyBudgetSection";
 type DateRange = "month" | "quarter" | "ytd" | "all";
 
 export function FinanceContent() {
-  const { selectedTeamId: teamId } = useSelectedTeam();
-  const { data: teams = [] } = useTeams();
-  const myRole = teams.find((t) => t.id === teamId)?.role ?? null;
-  const canEdit = myRole === "team_owner" || myRole === "manager";
+  const { selectedTeamId: teamId, canManage: canEdit } = useSelectedTeam();
   const queryClient = useQueryClient();
   const [dateRange, setDateRange] = useState<DateRange>("all");
 
   // ── Data fetching ──
   const { data: team } = useQuery({
-    queryKey: ["finance-team", teamId],
+    queryKey: ["team-detail", teamId],
     queryFn: async () => {
       const { data, error } = await supabase.from("teams").select("*").eq("id", teamId!).single();
       if (error) throw error;
@@ -46,7 +42,7 @@ export function FinanceContent() {
   });
 
   const { data: artists = [] } = useQuery({
-    queryKey: ["finance-artists", teamId],
+    queryKey: ["artists-summary", teamId],
     queryFn: async () => {
       const { data, error } = await supabase.from("artists").select("id, name, avatar_url").eq("team_id", teamId!);
       if (error) throw error;
@@ -56,7 +52,7 @@ export function FinanceContent() {
   });
 
   const { data: budgets = [] } = useQuery({
-    queryKey: ["finance-budgets", teamId],
+    queryKey: ["budgets", teamId],
     queryFn: async () => {
       const ids = artists.map((a) => a.id);
       if (!ids.length) return [];
@@ -68,7 +64,7 @@ export function FinanceContent() {
   });
 
   const { data: allTransactions = [] } = useQuery({
-    queryKey: ["finance-transactions", teamId],
+    queryKey: ["transactions", teamId],
     queryFn: async () => {
       const ids = artists.map((a) => a.id);
       if (!ids.length) return [];
@@ -80,7 +76,7 @@ export function FinanceContent() {
   });
 
   const { data: companyExpenses = [] } = useQuery({
-    queryKey: ["finance-company-expenses", teamId],
+    queryKey: ["company-expenses", teamId],
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("company_expenses").select("*").eq("team_id", teamId!);
       if (error) throw error;
@@ -90,7 +86,7 @@ export function FinanceContent() {
   });
 
   const { data: categories = [] } = useQuery({
-    queryKey: ["finance-categories", teamId],
+    queryKey: ["budget-categories", teamId],
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("company_budget_categories").select("*").eq("team_id", teamId!).order("created_at");
       if (error) throw error;
@@ -100,7 +96,7 @@ export function FinanceContent() {
   });
 
   const { data: staffEmployment = [] } = useQuery({
-    queryKey: ["finance-staff", teamId],
+    queryKey: ["staff-employment", teamId],
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("staff_employment").select("*").eq("team_id", teamId!);
       if (error) throw error;
@@ -110,7 +106,7 @@ export function FinanceContent() {
   });
 
   const { data: staffProfiles = [] } = useQuery({
-    queryKey: ["finance-staff-profiles", teamId],
+    queryKey: ["staff-profiles", staffEmployment.map((s: any) => s.user_id)],
     queryFn: async () => {
       const ids = staffEmployment.map((s: any) => s.user_id);
       if (!ids.length) return [];
@@ -122,7 +118,7 @@ export function FinanceContent() {
   });
 
   const { data: tasks = [] } = useQuery({
-    queryKey: ["finance-tasks", teamId],
+    queryKey: ["tasks", teamId],
     queryFn: async () => {
       const { data, error } = await supabase.from("tasks").select("*").eq("team_id", teamId!);
       if (error) throw error;
@@ -184,7 +180,7 @@ export function FinanceContent() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["finance-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
       toast.success("Transaction updated");
     },
   });

@@ -77,10 +77,8 @@ const permissionLabelMap: Record<string, string> = {
 
 export function TeamManagement({ showSection = "members" }: { showSection?: "members" | "profile" }) {
   const { user } = useAuth();
-  const { selectedTeamId: teamId } = useSelectedTeam();
+  const { selectedTeamId: teamId, canManage } = useSelectedTeam();
   const { data: teams = [] } = useTeams();
-  const myRole = teams.find((t) => t.id === teamId)?.role ?? null;
-  const canManage = myRole === "team_owner" || myRole === "manager";
   const queryClient = useQueryClient();
 
   const [showInvite, setShowInvite] = useState(false);

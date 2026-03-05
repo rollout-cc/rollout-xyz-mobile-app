@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useTeams } from "@/hooks/useTeams";
+import { useSelectedTeam } from "@/contexts/TeamContext";
 import { CompanyOnboardingWizard } from "@/components/onboarding/CompanyOnboardingWizard";
 
 interface Props {
@@ -19,8 +19,7 @@ export function BuildYourCompany({ teamId, onComplete }: Props) {
 }
 
 export function useShouldShowBudgetWizard(teamId: string | null) {
-  const { data: teams = [] } = useTeams();
-  const myRole = teams.find((t) => t.id === teamId)?.role ?? null;
+  const { role } = useSelectedTeam();
 
   const { data: team } = useQuery({
     queryKey: ["team-budget-check", teamId],
@@ -37,7 +36,7 @@ export function useShouldShowBudgetWizard(teamId: string | null) {
   });
 
   const showBudgetWizard =
-    myRole === "team_owner" &&
+    role === "team_owner" &&
     (team as any)?.onboarding_completed === true &&
     (!team?.annual_budget || Number(team.annual_budget) === 0);
 
