@@ -379,10 +379,84 @@ export function FinanceContent() {
         </div>
       </CollapsibleSection>
 
+      {/* Pending Approvals - Quick Action Section */}
+      {(() => {
+        const allPending = artistBreakdown.flatMap((artist) =>
+          artist.transactions
+            .filter((t: any) => (t as any).approval_status === "pending")
+            .map((t: any) => ({ ...t, artistName: artist.name, artistAvatar: artist.avatar_url }))
+        );
+        if (allPending.length === 0) return null;
+        return (
+          <CollapsibleSection title={`Pending Approvals (${allPending.length})`} defaultOpen>
+            <div className="rounded-xl border border-border overflow-hidden">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30">
+                    <th className="text-left p-2.5 font-medium">Artist</th>
+                    <th className="text-left p-2.5 font-medium">Description</th>
+                    <th className="text-left p-2.5 font-medium">Type</th>
+                    <th className="text-right p-2.5 font-medium">Amount</th>
+                    <th className="text-left p-2.5 font-medium">Date</th>
+                    {canEdit && <th className="text-center p-2.5 font-medium w-20">Actions</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {allPending.map((t: any) => (
+                    <tr key={t.id} className="border-b border-border last:border-0 hover:bg-accent/20">
+                      <td className="p-2.5">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage src={t.artistAvatar ?? undefined} />
+                            <AvatarFallback className="text-[8px]">{t.artistName[0]}</AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium">{t.artistName}</span>
+                        </div>
+                      </td>
+                      <td className="p-2.5">{t.description}</td>
+                      <td className="p-2.5">
+                        <Badge variant={t.type === "revenue" ? "default" : "outline"} className={cn("text-[10px]", t.type === "revenue" ? "bg-emerald-100 text-emerald-800" : "")}>
+                          {t.type}
+                        </Badge>
+                      </td>
+                      <td className={cn("p-2.5 text-right font-medium", t.type === "revenue" ? "text-emerald-600" : "text-destructive")}>
+                        {t.type === "revenue" ? "+" : "-"}{fmt(Math.abs(Number(t.amount)))}
+                      </td>
+                      <td className="p-2.5">{format(parseLocalDate(t.transaction_date), "MMM d")}</td>
+                      {canEdit && (
+                        <td className="p-2.5 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => approveTransaction.mutate({ id: t.id, status: "approved" })}
+                              className="p-1.5 rounded-md hover:bg-emerald-100 text-emerald-600 transition-colors"
+                            >
+                              <Check className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => approveTransaction.mutate({ id: t.id, status: "denied" })}
+                              className="p-1.5 rounded-md hover:bg-red-100 text-red-600 transition-colors"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CollapsibleSection>
+        );
+      })()}
+
       {/* Artist Financial Drill-Down */}
       <CollapsibleSection title="Artist Financials" defaultOpen>
         <Accordion type="multiple" className="space-y-2">
-          {artistBreakdown.map((artist) => (
+          {artistBreakdown.map((artist) => {
+            const pendingTxns = artist.transactions.filter((t: any) => (t as any).approval_status === "pending");
+            const nonPendingTxns = artist.transactions.filter((t: any) => (t as any).approval_status !== "pending");
+            return (
             <AccordionItem key={artist.id} value={artist.id} className="rounded-xl border border-border overflow-hidden">
               <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent/30">
                 <div className="flex items-center gap-3 flex-1">
@@ -404,6 +478,44 @@ export function FinanceContent() {
                 </div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
+                {/* Pending approvals for this artist - shown first */}
+                {pendingTxns.length > 0 && (
+                  <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50/50 overflow-hidden">
+                    <div className="px-3 py-2 border-b border-amber-200 bg-amber-100/50">
+                      <span className="text-xs font-semibold text-amber-800">{pendingTxns.length} Pending Approval{pendingTxns.length > 1 ? "s" : ""}</span>
+                    </div>
+                    <div className="divide-y divide-amber-200">
+                      {pendingTxns.map((t: any) => (
+                        <div key={t.id} className="flex items-center gap-3 px-3 py-2">
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs font-medium">{t.description}</span>
+                            <span className="text-[10px] text-muted-foreground ml-2">{format(parseLocalDate(t.transaction_date), "MMM d")}</span>
+                          </div>
+                          <span className={cn("text-xs font-semibold tabular-nums", t.type === "revenue" ? "text-emerald-600" : "text-destructive")}>
+                            {t.type === "revenue" ? "+" : "-"}{fmt(Math.abs(Number(t.amount)))}
+                          </span>
+                          {canEdit && (
+                            <div className="flex items-center gap-0.5">
+                              <button
+                                onClick={() => approveTransaction.mutate({ id: t.id, status: "approved" })}
+                                className="p-1 rounded hover:bg-emerald-100 text-emerald-600"
+                              >
+                                <Check className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => approveTransaction.mutate({ id: t.id, status: "denied" })}
+                                className="p-1 rounded hover:bg-red-100 text-red-600"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Budget utilization */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between text-xs mb-1">
@@ -425,7 +537,7 @@ export function FinanceContent() {
                   </div>
                 )}
 
-                {/* Transactions ledger */}
+                {/* Transactions ledger - non-pending only */}
                 <div className="rounded-lg border border-border overflow-hidden">
                   <table className="w-full text-xs">
                     <thead>
@@ -435,11 +547,10 @@ export function FinanceContent() {
                         <th className="text-left p-2 font-medium">Type</th>
                         <th className="text-right p-2 font-medium">Amount</th>
                         <th className="text-center p-2 font-medium">Status</th>
-                        {canEdit && <th className="text-center p-2 font-medium">Actions</th>}
                       </tr>
                     </thead>
                     <tbody>
-                      {artist.transactions.map((t: any) => (
+                      {nonPendingTxns.map((t: any) => (
                         <tr key={t.id} className="border-b border-border last:border-0 hover:bg-accent/20">
                           <td className="p-2">{format(parseLocalDate(t.transaction_date), "MMM d")}</td>
                           <td className="p-2">{t.description}</td>
@@ -453,44 +564,24 @@ export function FinanceContent() {
                           </td>
                           <td className="p-2 text-center">
                             <Badge variant="outline" className={cn("text-[10px]",
-                              (t as any).approval_status === "pending" ? "bg-amber-50 text-amber-700 border-amber-200" :
                               (t as any).approval_status === "denied" ? "bg-red-50 text-red-700 border-red-200" :
                               "bg-emerald-50 text-emerald-700 border-emerald-200"
                             )}>
                               {(t as any).approval_status || "approved"}
                             </Badge>
                           </td>
-                          {canEdit && (
-                            <td className="p-2 text-center">
-                              {(t as any).approval_status === "pending" && (
-                                <div className="flex items-center justify-center gap-1">
-                                  <button
-                                    onClick={() => approveTransaction.mutate({ id: t.id, status: "approved" })}
-                                    className="p-1 rounded hover:bg-emerald-100 text-emerald-600"
-                                  >
-                                    <Check className="h-3.5 w-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => approveTransaction.mutate({ id: t.id, status: "denied" })}
-                                    className="p-1 rounded hover:bg-red-100 text-red-600"
-                                  >
-                                    <X className="h-3.5 w-3.5" />
-                                  </button>
-                                </div>
-                              )}
-                            </td>
-                          )}
                         </tr>
                       ))}
-                      {artist.transactions.length === 0 && (
-                        <tr><td colSpan={canEdit ? 6 : 5} className="p-4 text-center text-muted-foreground">No transactions</td></tr>
+                      {nonPendingTxns.length === 0 && (
+                        <tr><td colSpan={5} className="p-4 text-center text-muted-foreground">No approved transactions</td></tr>
                       )}
                     </tbody>
                   </table>
                 </div>
               </AccordionContent>
             </AccordionItem>
-          ))}
+            );
+          })}
           {artistBreakdown.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-8">No artists in roster</p>
           )}
