@@ -320,7 +320,7 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
                   {subs.length > 0 && (
                     <button
                       onClick={() => toggleExpand(b.id)}
-                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors pt-1"
+                      className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors pt-1"
                     >
                       {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                       {subs.length} sub-budget{subs.length > 1 ? "s" : ""}
@@ -343,7 +343,7 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
                             </div>
                             <div className="flex items-center gap-2">
                               {sbTxns.length > 0 && (
-                                <span className="text-[10px] text-muted-foreground">{sbTxns.length} txn{sbTxns.length > 1 ? "s" : ""} · ${sbSpent.toLocaleString()}</span>
+                                <span className="text-xs text-muted-foreground">{sbTxns.length} txn{sbTxns.length > 1 ? "s" : ""} · ${sbSpent.toLocaleString()}</span>
                               )}
                               <Button
                                 variant="ghost"
@@ -365,7 +365,7 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
                                   </span>
                                 </div>
                               ))}
-                              {sbTxns.length > 5 && <span className="text-[10px] text-muted-foreground">+{sbTxns.length - 5} more</span>}
+                              {sbTxns.length > 5 && <span className="text-xs text-muted-foreground">+{sbTxns.length - 5} more</span>}
                             </div>
                           )}
                         </div>
@@ -398,8 +398,8 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
                       />
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" className="h-7 flex-1 text-xs" onClick={() => addSubBudget.mutate({ budgetId: b.id, label: subLabel.trim(), amount: parseFloat(subAmount) || 0 })} disabled={!subLabel.trim()}>Add</Button>
-                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setAddingSubBudget(null); setSubLabel(""); setSubAmount(""); }}>Cancel</Button>
+                      <Button size="sm" className="h-8 flex-1 text-sm" onClick={() => addSubBudget.mutate({ budgetId: b.id, label: subLabel.trim(), amount: parseFloat(subAmount) || 0 })} disabled={!subLabel.trim()}>Add</Button>
+                      <Button size="sm" variant="ghost" className="h-8 text-sm" onClick={() => { setAddingSubBudget(null); setSubLabel(""); setSubAmount(""); }}>Cancel</Button>
                     </div>
                   </div>
                 )}

@@ -34,7 +34,7 @@ function UndoSnackbar({ message, onUndo, durationMs = 10000 }: { message: string
   return (
     <div className="fixed bottom-6 right-6 z-50 bg-foreground text-background rounded-lg shadow-lg px-4 py-3 flex items-center gap-3 min-w-[260px] animate-in slide-in-from-bottom-4">
       <span className="text-sm flex-1">{message}</span>
-      <Button variant="secondary" size="sm" className="h-7 text-xs shrink-0" onClick={onUndo}>Undo</Button>
+      <Button variant="secondary" size="sm" className="h-8 text-sm shrink-0" onClick={onUndo}>Undo</Button>
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-muted/30 rounded-b-lg overflow-hidden">
         <div className="h-full bg-primary transition-none" style={{ width: `${100 - pct}%` }} />
       </div>
@@ -354,14 +354,14 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
 
   const renderCategorySelect = (value: string, onChange: (v: string) => void, className?: string) => (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className={cn("h-7 w-auto text-xs gap-1 border-border", className)}>
+      <SelectTrigger className={cn("h-8 w-auto text-sm gap-1 border-border", className)}>
         <SelectValue placeholder="Category" />
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="none">Uncategorized</SelectItem>
         {categories.length > 0 && (
           <SelectGroup>
-            <SelectLabel className="text-[10px] uppercase tracking-wider">Categories</SelectLabel>
+            <SelectLabel className="text-xs uppercase tracking-wider">Categories</SelectLabel>
             {categories.map((c: any) => (
               <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
             ))}
@@ -369,7 +369,7 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
         )}
         {budgetOnlyLabels.length > 0 && (
           <SelectGroup>
-            <SelectLabel className="text-[10px] uppercase tracking-wider">Budgets</SelectLabel>
+            <SelectLabel className="text-xs uppercase tracking-wider">Budgets</SelectLabel>
             {budgetOnlyLabels.map((b: any) => (
               <SelectItem key={`budget:${b.label}`} value={`budget:${b.label}`}>{b.label}</SelectItem>
             ))}
@@ -479,7 +479,7 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
               {/* Badges row */}
               <div className="flex flex-wrap items-center gap-2">
                 <Select value={itemStatus} onValueChange={setItemStatus}>
-                  <SelectTrigger className="h-7 w-auto text-xs gap-1 border-border">
+                  <SelectTrigger className="h-8 w-auto text-sm gap-1 border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -493,7 +493,7 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
 
                 {availableSubBudgets.length > 0 && (
                   <Select value={itemSubBudgetId} onValueChange={setItemSubBudgetId}>
-                    <SelectTrigger className="h-7 w-auto text-xs gap-1 border-border">
+                    <SelectTrigger className="h-8 w-auto text-sm gap-1 border-border">
                       <SelectValue placeholder="Sub-budget" />
                     </SelectTrigger>
                     <SelectContent>
@@ -507,7 +507,7 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
 
                 {initiatives.length > 0 && (
                   <Select value={itemInitiativeId} onValueChange={setItemInitiativeId}>
-                    <SelectTrigger className="h-7 w-auto text-xs gap-1 border-border">
+                    <SelectTrigger className="h-8 w-auto text-sm gap-1 border-border">
                       <SelectValue placeholder="Campaign" />
                     </SelectTrigger>
                     <SelectContent>
@@ -523,7 +523,7 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
                   type="date"
                   value={itemDate}
                   onChange={(e) => setItemDate(e.target.value)}
-                  className="h-7 w-auto text-xs border-border"
+                  className="h-8 w-auto text-sm border-border"
                 />
               </div>
             </div>
@@ -566,7 +566,7 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <span className="text-[10px] text-muted-foreground">{Math.round(pct)}%</span>
+                      <span className="text-xs text-muted-foreground">{Math.round(pct)}%</span>
                     </div>
                   )}
                   <span className="text-sm font-semibold">${group.total.toLocaleString()}</span>
@@ -589,21 +589,21 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium truncate">{t.description || "Untitled"}</span>
-                          <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0", statusColor(t.status))}>
+                          <span className={cn("text-xs px-1.5 py-0.5 rounded-full font-medium shrink-0", statusColor(t.status))}>
                             {statusLabel(t.status)}
                           </span>
                           {t.initiative_id && initiativeMap[t.initiative_id] && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                            <span className="text-xs px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
                               {initiativeMap[t.initiative_id]}
                             </span>
                           )}
                           {t.sub_budget_id && subBudgetMap[t.sub_budget_id] && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
+                            <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
                               {subBudgetMap[t.sub_budget_id]}
                             </span>
                           )}
                         </div>
-                        <span className="text-[11px] text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                           {t.transaction_date ? format(parseLocalDate(t.transaction_date), "MMM d, yyyy") : ""}
                         </span>
                       </div>

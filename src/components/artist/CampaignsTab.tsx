@@ -93,7 +93,7 @@ export function CampaignsTab({ artistId, teamId }: CampaignsTabProps) {
                 onCheckedChange={setShowArchived}
                 className="scale-90"
               />
-              <span className="text-xs text-muted-foreground">
+              <span className="text-sm text-muted-foreground">
                 Archived ({archivedCampaigns.length})
               </span>
             </div>
@@ -130,7 +130,7 @@ export function CampaignsTab({ artistId, teamId }: CampaignsTabProps) {
               <div>
                 <p className="font-medium">{c.name}</p>
                 {c.description && <p className="text-sm text-muted-foreground mt-1">{c.description}</p>}
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   {c.start_date ?? "—"} → {c.end_date ?? "—"}
                 </p>
               </div>

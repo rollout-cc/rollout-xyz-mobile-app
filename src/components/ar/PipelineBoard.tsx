@@ -133,7 +133,7 @@ function ProspectCard({ p, onSelect, onDelete, dragProvided, dragSnapshot }: any
         </div>
       </div>
       {followUp && (
-        <div className={cn("text-[10px] font-medium mt-2 ml-[56px] inline-flex px-1.5 py-0.5 rounded-full", followUp.cls)}>
+        <div className={cn("text-xs font-medium mt-2 ml-[56px] inline-flex px-1.5 py-0.5 rounded-full", followUp.cls)}>
           Follow up {followUp.label}
         </div>
       )}
@@ -211,7 +211,7 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete, on
                 {onAddToStage && (
                   <button
                     onClick={() => onAddToStage(stage)}
-                    className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors mt-2 px-1 w-full"
+                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mt-2 px-1 w-full"
                   >
                     <Plus className="h-3 w-3" /> New
                   </button>
@@ -242,12 +242,12 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete, on
               >
                 <Avatar className="h-7 w-7 shrink-0 border border-border">
                   {p.avatar_url && <AvatarImage src={p.avatar_url} alt={p.artist_name} />}
-                  <AvatarFallback className="text-[10px] font-bold">{p.artist_name?.[0]}</AvatarFallback>
+                  <AvatarFallback className="text-xs font-bold">{p.artist_name?.[0]}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <span className="font-medium text-xs text-muted-foreground truncate block">{p.artist_name}</span>
                   {p.monthly_listeners > 0 && (
-                    <span className="text-[10px] text-muted-foreground/60">
+                    <span className="text-xs text-muted-foreground/60">
                       <Headphones className="inline h-2.5 w-2.5 mr-0.5" />
                       {formatNum(p.monthly_listeners)}
                     </span>

@@ -38,7 +38,7 @@ export function SplitProjectCard({ project, teamId, onDelete }: Props) {
             {open ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
             <div className="flex-1 min-w-0">
               <span className="font-semibold text-sm">{project.name}</span>
-              <Badge variant="secondary" className="ml-2 text-[10px]">{typeLabel}</Badge>
+              <Badge variant="secondary" className="ml-2 text-xs">{typeLabel}</Badge>
             </div>
             <span className="text-xs text-muted-foreground">{songs.length} track{songs.length !== 1 ? "s" : ""}</span>
             <Button

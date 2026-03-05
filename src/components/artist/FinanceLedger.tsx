@@ -172,7 +172,7 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 gap-1 text-xs"
+          className="h-8 gap-1 text-sm"
           onClick={() => setShowAdd(!showAdd)}
         >
           <Plus className="h-3.5 w-3.5" /> Add
@@ -182,15 +182,15 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
       {/* Summary bar */}
       <div className="grid grid-cols-3 gap-px bg-border">
         <div className="bg-card px-3 py-2">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Income</span>
+          <span className="text-xs uppercase tracking-wider text-muted-foreground">Income</span>
           <p className="text-sm font-semibold text-emerald-600">${totalIn.toLocaleString()}</p>
         </div>
         <div className="bg-card px-3 py-2">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Expenses</span>
+          <span className="text-xs uppercase tracking-wider text-muted-foreground">Expenses</span>
           <p className="text-sm font-semibold text-destructive">${totalOut.toLocaleString()}</p>
         </div>
         <div className="bg-card px-3 py-2">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Balance</span>
+          <span className="text-xs uppercase tracking-wider text-muted-foreground">Balance</span>
           <p className={cn("text-sm font-semibold", balance >= 0 ? "text-emerald-600" : "text-destructive")}>
             ${Math.abs(balance).toLocaleString()}
           </p>
@@ -205,7 +205,7 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
             <button
               onClick={() => setIsExpense(true)}
               className={cn(
-                "flex-1 text-xs font-medium py-1.5 transition-colors",
+                "flex-1 text-sm font-medium py-1.5 transition-colors",
                 isExpense ? "bg-destructive/10 text-destructive" : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -214,7 +214,7 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
             <button
               onClick={() => setIsExpense(false)}
               className={cn(
-                "flex-1 text-xs font-medium py-1.5 transition-colors",
+                "flex-1 text-sm font-medium py-1.5 transition-colors",
                 !isExpense ? "bg-emerald-500/10 text-emerald-600" : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -298,13 +298,13 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
           <div className="flex gap-2">
             <Button
               size="sm"
-              className="h-7 flex-1 text-xs"
+              className="h-8 flex-1 text-sm"
               onClick={() => addTransaction.mutate()}
               disabled={!newDesc.trim() || !newAmount}
             >
               Add Transaction
             </Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={resetForm}>
+            <Button size="sm" variant="ghost" className="h-8 text-sm" onClick={resetForm}>
               Cancel
             </Button>
           </div>
@@ -341,26 +341,26 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{t.description}</p>
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {format(txDate, "MMM d")}
                       </span>
                       {budgetLabel && (
-                        <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                        <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
                           {budgetLabel}
                         </span>
                       )}
                       {t.sub_budget_id && subBudgetMap[t.sub_budget_id] && (
-                        <span className="text-[10px] bg-accent text-accent-foreground px-1.5 py-0.5 rounded">
+                        <span className="text-xs bg-accent text-accent-foreground px-1.5 py-0.5 rounded">
                           {subBudgetMap[t.sub_budget_id]}
                         </span>
                       )}
                       {isIncome && t.revenue_source && (
-                        <span className="text-[10px] bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded">
+                        <span className="text-xs bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded">
                           {t.revenue_source}
                         </span>
                       )}
                       {isIncome && revCatLabel && (
-                        <span className="text-[10px] bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded">
+                        <span className="text-xs bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded">
                           {revCatLabel}
                         </span>
                       )}
@@ -369,7 +369,7 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
                           value=""
                           onValueChange={(v) => updateRevenueCategory.mutate({ id: t.id, category: v })}
                         >
-                          <SelectTrigger className="h-5 text-[10px] w-auto min-w-0 border-dashed border-emerald-500/30 text-emerald-600 px-1.5 py-0 gap-0.5">
+                          <SelectTrigger className="h-7 text-xs w-auto min-w-0 border-dashed border-emerald-500/30 text-emerald-600 px-1.5 py-0 gap-0.5">
                             <SelectValue placeholder="Categorize" />
                           </SelectTrigger>
                           <SelectContent className="bg-popover border border-border z-50">

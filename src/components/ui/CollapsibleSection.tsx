@@ -32,8 +32,8 @@ export function CollapsibleSection({
 
   return (
     <div className={cn("", className)}>
-      {/* Section header */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-muted/30 rounded-t-lg border-b border-border/30">
+      {/* Section header - only the header has border, radius, background */}
+      <div className="flex items-center gap-3 px-3 sm:px-4 py-3 bg-muted/40 border border-border rounded-xl">
         <button
           onClick={toggle}
           className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
@@ -60,9 +60,9 @@ export function CollapsibleSection({
         )}
       </div>
 
-      {/* Content */}
+      {/* Content - no border, no background, no horizontal padding (aligns with header edges) */}
       {isOpen && (
-        <div className="px-4 pr-2 pt-1 pb-2">{children}</div>
+        <div className="pt-4 sm:pt-5 pb-4">{children}</div>
       )}
     </div>
   );

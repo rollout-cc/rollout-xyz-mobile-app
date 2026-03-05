@@ -96,7 +96,7 @@ export function CheckoutSheet({ open, onOpenChange, tier, teamId, onComplete }: 
         </div>
 
         <div className="px-6 py-3 border-t border-border">
-          <p className="text-[10px] text-muted-foreground text-center">
+          <p className="text-xs text-muted-foreground text-center">
             By subscribing you agree to Rollout's terms of service. Cancel anytime.
           </p>
         </div>

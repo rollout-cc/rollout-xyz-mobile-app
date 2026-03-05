@@ -273,7 +273,7 @@ export function FinanceContent() {
   return (
     <div className="space-y-6">
       {/* Header + Date Filter */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-foreground">Finance</h1>
           <p className="text-sm text-muted-foreground mt-1">Company-wide financial overview</p>
@@ -385,62 +385,112 @@ export function FinanceContent() {
         if (allPending.length === 0) return null;
         return (
           <CollapsibleSection title={`Pending Approvals (${allPending.length})`} defaultOpen>
-            <div className="rounded-xl border border-border overflow-hidden">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30">
-                    <th className="text-left p-2.5 font-medium">Artist</th>
-                    <th className="text-left p-2.5 font-medium">Description</th>
-                    <th className="text-left p-2.5 font-medium">Type</th>
-                    <th className="text-right p-2.5 font-medium">Amount</th>
-                    <th className="text-left p-2.5 font-medium">Date</th>
-                    {canEdit && <th className="text-center p-2.5 font-medium w-20">Actions</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {allPending.map((t: any) => (
-                    <tr key={t.id} className="border-b border-border last:border-0 hover:bg-accent/20">
-                      <td className="p-2.5">
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-5 w-5">
-                            <AvatarImage src={t.artistAvatar ?? undefined} />
-                            <AvatarFallback className="text-[8px]">{t.artistName[0]}</AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">{t.artistName}</span>
-                        </div>
-                      </td>
-                      <td className="p-2.5">{t.description}</td>
-                      <td className="p-2.5">
-                        <Badge variant={t.type === "revenue" ? "default" : "outline"} className={cn("text-[10px]", t.type === "revenue" ? "bg-emerald-100 text-emerald-800" : "")}>
-                          {t.type}
-                        </Badge>
-                      </td>
-                      <td className={cn("p-2.5 text-right font-medium", t.type === "revenue" ? "text-emerald-600" : "text-destructive")}>
-                        {t.type === "revenue" ? "+" : "-"}{fmt(Math.abs(Number(t.amount)))}
-                      </td>
-                      <td className="p-2.5">{format(parseLocalDate(t.transaction_date), "MMM d")}</td>
-                      {canEdit && (
-                        <td className="p-2.5 text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <button
-                              onClick={() => approveTransaction.mutate({ id: t.id, status: "approved" })}
-                              className="p-1.5 rounded-md hover:bg-emerald-100 text-emerald-600 transition-colors"
-                            >
-                              <Check className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => approveTransaction.mutate({ id: t.id, status: "denied" })}
-                              className="p-1.5 rounded-md hover:bg-red-100 text-red-600 transition-colors"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
+            <div className="rounded-xl border border-border overflow-hidden bg-card">
+              {/* Desktop table */}
+              <div className="hidden sm:block">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="text-left p-2.5 font-medium">Artist</th>
+                      <th className="text-left p-2.5 font-medium">Description</th>
+                      <th className="text-left p-2.5 font-medium">Type</th>
+                      <th className="text-right p-2.5 font-medium">Amount</th>
+                      <th className="text-left p-2.5 font-medium">Date</th>
+                      {canEdit && <th className="text-center p-2.5 font-medium w-20">Actions</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allPending.map((t: any) => (
+                      <tr key={t.id} className="border-b border-border last:border-0 hover:bg-accent/20">
+                        <td className="p-2.5">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-5 w-5">
+                              <AvatarImage src={t.artistAvatar ?? undefined} />
+                              <AvatarFallback className="text-[8px]">{t.artistName[0]}</AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium">{t.artistName}</span>
                           </div>
                         </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        <td className="p-2.5">{t.description}</td>
+                        <td className="p-2.5">
+                          <Badge variant={t.type === "revenue" ? "default" : "outline"} className={cn("text-[10px]", t.type === "revenue" ? "bg-emerald-100 text-emerald-800" : "")}>
+                            {t.type}
+                          </Badge>
+                        </td>
+                        <td className={cn("p-2.5 text-right font-medium tabular-nums", t.type === "revenue" ? "text-emerald-600" : "text-destructive")}>
+                          {t.type === "revenue" ? "+" : "-"}{fmt(Math.abs(Number(t.amount)))}
+                        </td>
+                        <td className="p-2.5">{format(parseLocalDate(t.transaction_date), "MMM d")}</td>
+                        {canEdit && (
+                          <td className="p-2.5 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={() => approveTransaction.mutate({ id: t.id, status: "approved" })}
+                                className="p-1.5 rounded-md hover:bg-emerald-100 text-emerald-600 transition-colors"
+                              >
+                                <Check className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => approveTransaction.mutate({ id: t.id, status: "denied" })}
+                                className="p-1.5 rounded-md hover:bg-red-100 text-red-600 transition-colors"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile two-row cards */}
+              <div className="sm:hidden divide-y divide-border">
+                {allPending.map((t: any) => (
+                  <div key={t.id} className="flex flex-col gap-1.5 px-4 py-3 hover:bg-accent/20 transition-colors">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Avatar className="h-5 w-5 shrink-0">
+                        <AvatarImage src={t.artistAvatar ?? undefined} />
+                        <AvatarFallback className="text-[8px]">{t.artistName[0]}</AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium text-sm truncate">{t.artistName}</span>
+                    </div>
+                    <div className="flex flex-col gap-1.5 pl-7">
+                      <p className="text-xs text-muted-foreground leading-snug min-w-0">{t.description}</p>
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={t.type === "revenue" ? "default" : "outline"} className={cn("text-[10px]", t.type === "revenue" ? "bg-emerald-100 text-emerald-800" : "")}>
+                            {t.type}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">{format(parseLocalDate(t.transaction_date), "MMM d")}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={cn("text-xs font-semibold tabular-nums", t.type === "revenue" ? "text-emerald-600" : "text-destructive")}>
+                            {t.type === "revenue" ? "+" : "-"}{fmt(Math.abs(Number(t.amount)))}
+                          </span>
+                          {canEdit && (
+                            <div className="flex items-center gap-0.5">
+                              <button
+                                onClick={() => approveTransaction.mutate({ id: t.id, status: "approved" })}
+                                className="p-1.5 rounded-md hover:bg-emerald-100 text-emerald-600 transition-colors"
+                              >
+                                <Check className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => approveTransaction.mutate({ id: t.id, status: "denied" })}
+                                className="p-1.5 rounded-md hover:bg-red-100 text-red-600 transition-colors"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </CollapsibleSection>
         );
@@ -455,21 +505,25 @@ export function FinanceContent() {
             return (
             <AccordionItem key={artist.id} value={artist.id} className="rounded-xl border border-border overflow-hidden">
               <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent/30">
-                <div className="flex items-center gap-3 flex-1">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={artist.avatar_url ?? undefined} />
-                    <AvatarFallback className="text-xs">{artist.name[0]}</AvatarFallback>
-                  </Avatar>
-                  <span className="font-medium text-sm">{artist.name}</span>
-                  {artist.pendingCount > 0 && (
-                    <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800">
-                      {artist.pendingCount} pending
-                    </Badge>
-                  )}
-                  <div className="ml-auto flex items-center gap-4 text-xs text-muted-foreground mr-2">
-                    <span>Budget: {fmt(artist.budget)}</span>
-                    <span className="text-emerald-600">Rev: {fmt(artist.revenue)}</span>
-                    <span className="text-destructive">Exp: {fmt(artist.expenses)}</span>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 flex-1 min-w-0">
+                  {/* Row 1: avatar + name + pending badge */}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar className="h-8 w-8 shrink-0">
+                      <AvatarImage src={artist.avatar_url ?? undefined} />
+                      <AvatarFallback className="text-xs">{artist.name[0]}</AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium text-sm truncate">{artist.name}</span>
+                    {artist.pendingCount > 0 && (
+                      <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800 shrink-0">
+                        {artist.pendingCount} pending
+                      </Badge>
+                    )}
+                  </div>
+                  {/* Row 2 on mobile / inline on desktop: financial stats */}
+                  <div className="flex items-center gap-3 sm:gap-4 sm:ml-auto text-xs text-muted-foreground mr-2 pl-11 sm:pl-0">
+                    <span className="tabular-nums">Budget: {fmt(artist.budget)}</span>
+                    <span className="tabular-nums text-emerald-600">Rev: {fmt(artist.revenue)}</span>
+                    <span className="tabular-nums text-destructive">Exp: {fmt(artist.expenses)}</span>
                   </div>
                 </div>
               </AccordionTrigger>
@@ -667,70 +721,154 @@ function CompanyExpensesTable({ expenses, categories, teamId, canEdit }: { expen
   });
 
   const fmt = (n: number) => `$${Math.abs(n).toLocaleString()}`;
+  const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount), 0);
 
   return (
-    <div className="rounded-xl border border-border overflow-hidden">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border bg-muted/30">
-            <th className="text-left p-3 font-medium">Date</th>
-            <th className="text-left p-3 font-medium">Description</th>
-            <th className="text-left p-3 font-medium">Category</th>
-            <th className="text-right p-3 font-medium">Amount</th>
-            {canEdit && <th className="w-10"></th>}
-          </tr>
-        </thead>
-        <tbody>
-          {expenses.map((e: any) => {
-            const cat = categories.find((c: any) => c.id === e.category_id);
-            return (
-              <tr key={e.id} className="border-b border-border last:border-0 hover:bg-accent/20 group">
-                <td className="p-3 text-xs">{format(parseLocalDate(e.expense_date), "MMM d, yyyy")}</td>
-                <td className="p-3">{e.description}</td>
-                <td className="p-3 text-xs text-muted-foreground">{cat?.name || "—"}</td>
-                <td className="p-3 text-right font-medium text-destructive">{fmt(Number(e.amount))}</td>
-                {canEdit && (
-                  <td className="p-3">
-                    <button onClick={() => deleteExpense.mutate(e.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+    <div className="rounded-xl border border-border overflow-hidden bg-card">
+      {/* Desktop table — hidden on mobile */}
+      <div className="hidden sm:block">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border bg-muted/40">
+              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Date</th>
+              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Description</th>
+              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Category</th>
+              <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Amount</th>
+              {canEdit && <th className="w-12 px-4 py-3" />}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {expenses.map((e: any) => {
+              const cat = categories.find((c: any) => c.id === e.category_id);
+              return (
+                <tr key={e.id} className="hover:bg-muted/30 transition-colors group">
+                  <td className="px-4 py-3.5 text-sm text-muted-foreground whitespace-nowrap">
+                    {format(parseLocalDate(e.expense_date), "MMM d, yyyy")}
                   </td>
-                )}
+                  <td className="px-4 py-3.5 text-sm font-medium">{e.description}</td>
+                  <td className="px-4 py-3.5">
+                    {cat?.name
+                      ? <Badge variant="secondary" className="text-xs font-normal">{cat.name}</Badge>
+                      : <span className="text-muted-foreground text-sm">—</span>
+                    }
+                  </td>
+                  <td className="px-4 py-3.5 text-right font-semibold text-destructive tabular-nums">{fmt(Number(e.amount))}</td>
+                  {canEdit && (
+                    <td className="px-4 py-3.5 text-right">
+                      <button
+                        onClick={() => deleteExpense.mutate(e.id)}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
+            {expenses.length === 0 && (
+              <tr>
+                <td colSpan={canEdit ? 5 : 4} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                  No company expenses recorded
+                </td>
               </tr>
-            );
-          })}
-          {expenses.length === 0 && (
-            <tr><td colSpan={canEdit ? 5 : 4} className="p-6 text-center text-muted-foreground">No company expenses</td></tr>
+            )}
+          </tbody>
+          {expenses.length > 0 && (
+            <tfoot>
+              <tr className="border-t border-border bg-muted/30">
+                <td colSpan={canEdit ? 3 : 2} className="px-4 py-3 text-sm font-semibold text-muted-foreground">
+                  Total
+                </td>
+                <td className="px-4 py-3 text-right font-bold text-destructive tabular-nums">{fmt(totalExpenses)}</td>
+                {canEdit && <td />}
+              </tr>
+            </tfoot>
           )}
-        </tbody>
-      </table>
+        </table>
+      </div>
+
+      {/* Mobile card list — shown only on small screens */}
+      <div className="sm:hidden divide-y divide-border">
+        {expenses.length === 0 && (
+          <p className="px-4 py-10 text-center text-sm text-muted-foreground">No company expenses recorded</p>
+        )}
+        {expenses.map((e: any) => {
+          const cat = categories.find((c: any) => c.id === e.category_id);
+          return (
+            <div key={e.id} className="flex items-start justify-between gap-3 px-4 py-4 hover:bg-muted/30 transition-colors">
+              <div className="flex-1 min-w-0 space-y-0.5">
+                <p className="text-sm font-medium leading-snug">{e.description}</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-muted-foreground">
+                    {format(parseLocalDate(e.expense_date), "MMM d, yyyy")}
+                  </span>
+                  {cat?.name && (
+                    <Badge variant="secondary" className="text-[10px] font-normal h-4 px-1.5">{cat.name}</Badge>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 pt-0.5">
+                <span className="text-sm font-semibold text-destructive tabular-nums">{fmt(Number(e.amount))}</span>
+                {canEdit && (
+                  <button
+                    onClick={() => deleteExpense.mutate(e.id)}
+                    className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        {expenses.length > 0 && (
+          <div className="flex items-center justify-between px-4 py-3 bg-muted/30">
+            <span className="text-sm font-semibold text-muted-foreground">Total</span>
+            <span className="text-sm font-bold text-destructive tabular-nums">{fmt(totalExpenses)}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Add expense form */}
       {canEdit && (
-        <div className="flex items-center gap-2 p-3 border-t border-border bg-muted/10">
-          <Input
-            value={newDesc}
-            onChange={(e) => setNewDesc(e.target.value)}
-            placeholder="Description"
-            className="h-8 text-sm flex-1"
-          />
-          <CurrencyInput
-            value={newAmount}
-            onChange={setNewAmount}
-            placeholder="0"
-            className="h-8 text-sm w-32"
-          />
-          <Select value={newCat} onValueChange={setNewCat}>
-            <SelectTrigger className="h-8 text-xs w-36">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((c: any) => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button size="sm" onClick={() => addExpense.mutate()} disabled={!newDesc.trim() || !newAmount}>
-            <Plus className="h-3.5 w-3.5" />
-          </Button>
+        <div className="border-t border-border bg-muted/10 p-4 space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Add Expense</p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Input
+              value={newDesc}
+              onChange={(e) => setNewDesc(e.target.value)}
+              placeholder="Description"
+              className="h-9 text-sm flex-1"
+            />
+            <div className="flex gap-2">
+              <CurrencyInput
+                value={newAmount}
+                onChange={setNewAmount}
+                placeholder="Amount"
+                className="h-9 text-sm w-full sm:w-32"
+              />
+              <Select value={newCat} onValueChange={setNewCat}>
+                <SelectTrigger className="h-9 text-sm w-full sm:w-36">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                onClick={() => addExpense.mutate()}
+                disabled={!newDesc.trim() || !newAmount}
+                className="h-9 px-4 shrink-0"
+              >
+                <Plus className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Add</span>
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

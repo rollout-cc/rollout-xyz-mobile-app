@@ -98,12 +98,12 @@ export function SplitSongEditor({ songId, teamId }: Props) {
         <div key={entry.id} className="grid grid-cols-[1fr_100px_80px_80px_80px_32px] gap-2 items-center">
           <div className="text-sm font-medium truncate">{entry.contributor?.name ?? "—"}</div>
           <Select value={entry.role} onValueChange={(v) => handleRoleChange(entry.id, v)}>
-            <SelectTrigger className="h-7 text-xs">
+            <SelectTrigger className="h-8 text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {ROLES.map((r) => (
-                <SelectItem key={r} value={r} className="text-xs capitalize">
+                <SelectItem key={r} value={r} className="text-sm capitalize">
                   {r.replace("_", " ")}
                 </SelectItem>
               ))}
@@ -113,7 +113,7 @@ export function SplitSongEditor({ songId, teamId }: Props) {
             type="number"
             min={0}
             max={100}
-            className="h-7 text-xs text-center"
+            className="h-8 text-sm text-center"
             value={entry.master_pct ?? ""}
             onChange={(e) => handlePctChange(entry.id, "master_pct", e.target.value)}
             placeholder="-"
@@ -122,7 +122,7 @@ export function SplitSongEditor({ songId, teamId }: Props) {
             type="number"
             min={0}
             max={100}
-            className="h-7 text-xs text-center"
+            className="h-8 text-sm text-center"
             value={entry.producer_pct ?? ""}
             onChange={(e) => handlePctChange(entry.id, "producer_pct", e.target.value)}
             placeholder="-"
@@ -131,7 +131,7 @@ export function SplitSongEditor({ songId, teamId }: Props) {
             type="number"
             min={0}
             max={100}
-            className="h-7 text-xs text-center"
+            className="h-8 text-sm text-center"
             value={entry.writer_pct ?? ""}
             onChange={(e) => handlePctChange(entry.id, "writer_pct", e.target.value)}
             placeholder="-"

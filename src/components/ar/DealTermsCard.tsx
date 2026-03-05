@@ -31,7 +31,7 @@ function TermField({ label, value, onChange, type = "text", placeholder }: {
 }) {
   return (
     <div>
-      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Label className="text-sm text-muted-foreground">{label}</Label>
       <Input
         type={type}
         defaultValue={value || ""}
@@ -50,7 +50,7 @@ function DollarField({ label, value, onChange, placeholder }: {
 
   return (
     <div>
-      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Label className="text-sm text-muted-foreground">{label}</Label>
       <div className="relative">
         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
         <Input
@@ -75,7 +75,7 @@ function TermSelect({ label, value, options, onChange }: {
 }) {
   return (
     <div>
-      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Label className="text-sm text-muted-foreground">{label}</Label>
       <Select value={value || ""} onValueChange={onChange}>
         <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
         <SelectContent>

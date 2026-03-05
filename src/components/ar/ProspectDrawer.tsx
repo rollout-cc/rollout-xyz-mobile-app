@@ -281,7 +281,7 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
                       <Field label="Genre" value={prospect.primary_genre ?? ""} placeholder="Auto-filled from Spotify" onSave={(v) => handleFieldUpdate("primary_genre", v || null)} />
                       <Field label="City" value={prospect.city ?? ""} placeholder="e.g. Atlanta" onSave={(v) => handleFieldUpdate("city", v || null)} />
                       <div>
-                        <span className="text-muted-foreground text-xs font-medium">Monthly Listeners</span>
+                        <span className="text-muted-foreground text-sm font-medium">Monthly Listeners</span>
                         <div className="text-sm font-semibold py-2 px-3 mt-1 rounded-lg bg-card border border-border">
                           {syncingSpotify ? (
                             <span className="text-muted-foreground">Fetching...</span>
@@ -300,7 +300,7 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
                     <h4 className="text-xs font-semibold text-muted-foreground mb-3">Socials & Links</h4>
                     <div className="grid grid-cols-2 gap-x-5 gap-y-4">
                       <div>
-                        <span className="text-muted-foreground text-xs font-medium">Spotify URI</span>
+                        <span className="text-muted-foreground text-sm font-medium">Spotify URI</span>
                         <div className="flex items-center gap-1.5 mt-1">
                           <InlineField
                             value={prospect.spotify_uri ?? ""}
@@ -327,7 +327,7 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
 
                   {/* Notes */}
                   <section>
-                    <span className="text-muted-foreground text-xs font-medium">Notes</span>
+                    <span className="text-muted-foreground text-sm font-medium">Notes</span>
                     <div className="mt-1">
                       <InlineField
                         value={prospect.notes ?? ""}
@@ -346,12 +346,12 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
                       <div className="grid grid-cols-2 gap-3">
                         <SelectField label="Type" value={engForm.engagement_type} options={ENGAGEMENT_TYPES} placeholder="Select type" onSave={(v) => setEngForm((p) => ({ ...p, engagement_type: v }))} />
                         <div>
-                          <span className="text-muted-foreground text-xs font-medium">Date</span>
+                          <span className="text-muted-foreground text-sm font-medium">Date</span>
                           <Input type="date" value={engForm.engagement_date} onChange={(e) => setEngForm((p) => ({ ...p, engagement_date: e.target.value }))} className="h-9 mt-1 bg-transparent border-border rounded-lg text-sm" />
                         </div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground text-xs font-medium">Outcome / Notes</span>
+                        <span className="text-muted-foreground text-sm font-medium">Outcome / Notes</span>
                         <div className="mt-1">
                           <RichTextEditor
                             value={engForm.outcome}
@@ -361,7 +361,7 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
                         </div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground text-xs font-medium">Next Step</span>
+                        <span className="text-muted-foreground text-sm font-medium">Next Step</span>
                         <Input value={engForm.next_step} onChange={(e) => setEngForm((p) => ({ ...p, next_step: e.target.value }))} placeholder="What's next?" className="h-9 mt-1 bg-transparent border-border rounded-lg text-sm" />
                       </div>
                       <div className="flex gap-2 pt-1">
@@ -370,7 +370,7 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
                       </div>
                     </div>
                   ) : (
-                    <Button size="sm" variant="outline" className="w-full gap-1.5 text-xs rounded-lg" onClick={() => setShowEngagementForm(true)}>
+                    <Button size="sm" variant="outline" className="w-full gap-1.5 text-sm rounded-lg" onClick={() => setShowEngagementForm(true)}>
                       <Plus className="h-3.5 w-3.5" /> Log Engagement
                     </Button>
                   )}
@@ -385,13 +385,13 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-[10px] font-semibold">{stageLabel(eng.engagement_type)}</Badge>
-                            <span className="text-[11px] text-muted-foreground">
+                            <Badge variant="secondary" className="text-xs font-semibold">{stageLabel(eng.engagement_type)}</Badge>
+                            <span className="text-xs text-muted-foreground">
                               {new Date(eng.engagement_date).toLocaleDateString()}
                             </span>
                           </div>
-                          {eng.outcome && <p className="text-xs mt-1.5 text-foreground leading-relaxed">{eng.outcome}</p>}
-                          {eng.next_step && <p className="text-xs text-muted-foreground mt-1">Next: {eng.next_step}</p>}
+                          {eng.outcome && <p className="text-sm mt-1.5 text-foreground leading-relaxed">{eng.outcome}</p>}
+                          {eng.next_step && <p className="text-sm text-muted-foreground mt-1">Next: {eng.next_step}</p>}
                         </div>
                       </div>
                     ))}
@@ -433,7 +433,7 @@ function Field({
 }) {
   return (
     <div>
-      <span className="text-muted-foreground text-xs font-medium">{label}</span>
+      <span className="text-muted-foreground text-sm font-medium">{label}</span>
       <div className="mt-1">
         <InlineField value={value} placeholder={placeholder} onSave={onSave} />
       </div>
@@ -451,7 +451,7 @@ function SocialField({
   const url = value.startsWith("http") ? value : handle ? `${urlPrefix}${handle}` : null;
   return (
     <div>
-      <span className="text-muted-foreground text-xs font-medium">{label}</span>
+      <span className="text-muted-foreground text-sm font-medium">{label}</span>
       <div className="flex items-center gap-1.5 mt-1">
         <InlineField value={value} placeholder={placeholder} onSave={onSave} />
         {value && url && (
@@ -477,7 +477,7 @@ function SelectField({
 }) {
   return (
     <div>
-      <span className="text-muted-foreground text-xs font-medium">{label}</span>
+      <span className="text-muted-foreground text-sm font-medium">{label}</span>
       <Select value={value} onValueChange={onSave}>
         <SelectTrigger className="w-full bg-card border border-border rounded-lg text-foreground h-9 mt-1 text-sm">
           <SelectValue placeholder={placeholder} />

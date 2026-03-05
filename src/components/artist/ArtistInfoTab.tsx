@@ -53,7 +53,7 @@ function GoalsSection({ artist }: { artist: any }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
         {fields.map(({ key, label }) => (
           <div key={key}>
-            <span className="text-muted-foreground text-xs">{label}</span>
+            <span className="text-muted-foreground text-sm">{label}</span>
             <InlineField
               value={artist[key] ?? ""}
               placeholder={`Enter ${label.toLowerCase()}`}
@@ -252,7 +252,7 @@ function MemberCard({
               <SelectField label="Dress Size" value={member.dress_size ?? ""} options={["XS", "S", "M", "L", "XL", "0", "2", "4", "6", "8", "10", "12", "14", "16"]} placeholder="Select size" onSave={(v) => onUpdate({ dress_size: v })} />
               <SelectField label="Hat Size" value={member.hat_size ?? ""} options={["S", "M", "L", "XL", "6 7/8", "7", "7 1/8", "7 1/4", "7 3/8", "7 1/2", "7 5/8", "7 3/4"]} placeholder="Select size" onSave={(v) => onUpdate({ hat_size: v })} />
               <div className="col-span-2 sm:col-span-3">
-                <span className="text-muted-foreground text-xs">Favorite Clothing Brands</span>
+                <span className="text-muted-foreground text-sm">Favorite Clothing Brands</span>
                 <BrandTagInput value={member.favorite_brands ?? ""} onSave={(v) => onUpdate({ favorite_brands: v })} />
               </div>
             </div>
@@ -332,7 +332,7 @@ function Field({
 }) {
   return (
     <div>
-      <span className="text-muted-foreground text-xs">{label}</span>
+      <span className="text-muted-foreground text-sm">{label}</span>
       <InlineField value={value} placeholder={placeholder} onSave={onSave} as={as} />
     </div>
   );
@@ -346,7 +346,7 @@ function EntityField({
 }) {
   return (
     <div>
-      <span className="text-muted-foreground text-xs">{label}</span>
+      <span className="text-muted-foreground text-sm">{label}</span>
       <IndustryEntitySelect entityType={entityType} value={value} onSave={onSave} />
     </div>
   );
@@ -360,7 +360,7 @@ function SelectField({
 }) {
   return (
     <div>
-      <span className="text-muted-foreground text-xs">{label}</span>
+      <span className="text-muted-foreground text-sm">{label}</span>
       <Select value={value} onValueChange={onSave}>
         <SelectTrigger className="w-full bg-transparent border border-border rounded-md text-foreground h-9 mt-0.5">
           <SelectValue placeholder={placeholder} />
@@ -401,7 +401,7 @@ function DateField({
 
   return (
     <div>
-      <span className="text-muted-foreground text-xs">{label}</span>
+      <span className="text-muted-foreground text-sm">{label}</span>
       <Popover>
         <PopoverTrigger asChild>
           <Button
@@ -421,7 +421,7 @@ function DateField({
               value={String(viewMonth.getFullYear())}
               onValueChange={(y) => setViewMonth(new Date(Number(y), viewMonth.getMonth()))}
             >
-              <SelectTrigger className="h-8 text-xs flex-1 bg-background border-border">
+              <SelectTrigger className="h-8 text-sm flex-1 bg-background border-border">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-popover border border-border z-[60] max-h-60">
@@ -434,7 +434,7 @@ function DateField({
               value={String(viewMonth.getMonth())}
               onValueChange={(m) => setViewMonth(new Date(viewMonth.getFullYear(), Number(m)))}
             >
-              <SelectTrigger className="h-8 text-xs flex-1 bg-background border-border">
+              <SelectTrigger className="h-8 text-sm flex-1 bg-background border-border">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-popover border border-border z-[60]">
@@ -471,7 +471,7 @@ function PROSelectField({
 
   return (
     <div>
-      <span className="text-muted-foreground text-xs">{label}</span>
+      <span className="text-muted-foreground text-sm">{label}</span>
       <Select value={value || undefined} onValueChange={onSave}>
         <SelectTrigger className="h-9 mt-0.5 bg-transparent border-border text-sm">
           <SelectValue placeholder="Select PRO" />
@@ -479,7 +479,7 @@ function PROSelectField({
         <SelectContent className="max-h-60">
           {primary.length > 0 && (
             <>
-              <SelectItem value="__header_region__" disabled className="text-[10px] font-semibold text-muted-foreground uppercase">Your Region</SelectItem>
+              <SelectItem value="__header_region__" disabled className="text-xs font-semibold text-muted-foreground uppercase">Your Region</SelectItem>
               {primary.map((p) => (
                 <SelectItem key={p} value={p}>{p}</SelectItem>
               ))}
@@ -487,7 +487,7 @@ function PROSelectField({
           )}
           {other.length > 0 && (
             <>
-              <SelectItem value="__header_other__" disabled className="text-[10px] font-semibold text-muted-foreground uppercase mt-2">Other</SelectItem>
+              <SelectItem value="__header_other__" disabled className="text-xs font-semibold text-muted-foreground uppercase mt-2">Other</SelectItem>
               {other.map((p) => (
                 <SelectItem key={p} value={p}>{p}</SelectItem>
               ))}

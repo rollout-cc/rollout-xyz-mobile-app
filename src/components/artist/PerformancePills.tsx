@@ -33,7 +33,7 @@ export function PerformancePills({ artistId, spotifyId, artistName, variant = "b
       <Button
         variant="secondary"
         size="sm"
-        className="bg-white/10 hover:bg-white/20 text-white border-0 backdrop-blur-md text-xs gap-1"
+        className="bg-white/10 hover:bg-white/20 text-white border-0 backdrop-blur-md text-sm gap-1"
         onClick={() => sync()}
         disabled={isSyncing}
       >
@@ -69,7 +69,7 @@ export function PerformancePills({ artistId, spotifyId, artistName, variant = "b
       <Button
         variant="secondary"
         size="sm"
-        className="bg-white/10 hover:bg-white/20 text-white border-0 backdrop-blur-md text-xs gap-1"
+        className="bg-white/10 hover:bg-white/20 text-white border-0 backdrop-blur-md text-sm gap-1"
         onClick={() => sync()}
         disabled={isSyncing}
       >
@@ -87,7 +87,7 @@ export function PerformancePills({ artistId, spotifyId, artistName, variant = "b
           className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-lg backdrop-blur-md border border-white/10 text-white"
         >
           <pill.icon className="h-3 w-3 text-white/70" />
-          <span className="text-[10px] uppercase tracking-wider text-white/60">{pill.label}</span>
+          <span className="text-xs uppercase tracking-wider text-white/60">{pill.label}</span>
           <span className="text-sm font-bold">{pill.value}</span>
         </div>
       ))}

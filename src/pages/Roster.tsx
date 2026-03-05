@@ -213,8 +213,8 @@ export default function Roster() {
 
   const SortSelect = (
     <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-      <SelectTrigger className="w-[170px] h-8 text-xs">
-        <ArrowUpDown className="h-3 w-3 mr-1.5 shrink-0" />
+      <SelectTrigger className="h-7 min-w-0 w-[110px] sm:w-[130px] gap-1.5 px-2 py-1 text-xs [&>svg]:h-3 [&>svg]:w-3">
+        <ArrowUpDown className="h-2.5 w-2.5 shrink-0" />
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

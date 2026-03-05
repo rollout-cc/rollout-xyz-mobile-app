@@ -225,7 +225,7 @@ export default function ProspectProfile() {
                 <Field label="Genre" value={prospect.primary_genre ?? ""} placeholder="Auto-filled from Spotify" onSave={(v) => handleFieldUpdate("primary_genre", v || null)} />
                 <Field label="City" value={prospect.city ?? ""} placeholder="e.g. Atlanta" onSave={(v) => handleFieldUpdate("city", v || null)} />
                 <div>
-                  <span className="text-muted-foreground text-xs">Monthly Listeners</span>
+                  <span className="text-muted-foreground text-sm">Monthly Listeners</span>
                   <div className="text-sm font-medium py-1.5 px-2">
                     {syncingSpotify ? (
                       <span className="text-muted-foreground">Fetching...</span>
@@ -237,7 +237,7 @@ export default function ProspectProfile() {
                   </div>
                 </div>
                 <div>
-                  <span className="text-muted-foreground text-xs">Next Follow Up</span>
+                  <span className="text-muted-foreground text-sm">Next Follow Up</span>
                   <Input
                     type="date"
                     defaultValue={prospect.next_follow_up || ""}
@@ -252,7 +252,7 @@ export default function ProspectProfile() {
               <h4 className="text-xs font-semibold text-muted-foreground mb-2">Socials & Links</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <span className="text-muted-foreground text-xs">Spotify URI</span>
+                  <span className="text-muted-foreground text-sm">Spotify URI</span>
                   <div className="flex items-center gap-1">
                     <InlineField
                       value={prospect.spotify_uri ?? ""}
@@ -278,7 +278,7 @@ export default function ProspectProfile() {
             </div>
 
             <div className="mt-4">
-              <span className="text-muted-foreground text-xs">Key Songs</span>
+              <span className="text-muted-foreground text-sm">Key Songs</span>
               <InlineField
                 value={(prospect.key_songs || []).join(", ")}
                 placeholder="Song 1, Song 2, Song 3"
@@ -287,7 +287,7 @@ export default function ProspectProfile() {
             </div>
 
             <div className="mt-3">
-              <span className="text-muted-foreground text-xs">Notes</span>
+              <span className="text-muted-foreground text-sm">Notes</span>
               <InlineField
                 value={prospect.notes ?? ""}
                 placeholder="General notes..."
@@ -305,7 +305,7 @@ export default function ProspectProfile() {
                   <User className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm">{c.name}</div>
-                    <div className="text-xs text-muted-foreground">{[c.role, c.email, c.phone].filter(Boolean).join(" · ")}</div>
+                    <div className="text-sm text-muted-foreground">{[c.role, c.email, c.phone].filter(Boolean).join(" · ")}</div>
                   </div>
                 </div>
               ))}
@@ -313,19 +313,19 @@ export default function ProspectProfile() {
                 <div className="rounded-lg border border-border p-3 space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <span className="text-muted-foreground text-xs">Name</span>
+                      <span className="text-muted-foreground text-sm">Name</span>
                       <Input value={contactForm.name} onChange={(e) => setContactForm((p) => ({ ...p, name: e.target.value }))} placeholder="Contact name" className="h-9 mt-0.5 bg-transparent border-border" />
                     </div>
                     <div>
-                      <span className="text-muted-foreground text-xs">Role</span>
+                      <span className="text-muted-foreground text-sm">Role</span>
                       <Input value={contactForm.role} onChange={(e) => setContactForm((p) => ({ ...p, role: e.target.value }))} placeholder="Manager, Lawyer..." className="h-9 mt-0.5 bg-transparent border-border" />
                     </div>
                     <div>
-                      <span className="text-muted-foreground text-xs">Email</span>
+                      <span className="text-muted-foreground text-sm">Email</span>
                       <Input value={contactForm.email} onChange={(e) => setContactForm((p) => ({ ...p, email: e.target.value }))} placeholder="email@example.com" className="h-9 mt-0.5 bg-transparent border-border" />
                     </div>
                     <div>
-                      <span className="text-muted-foreground text-xs">Phone</span>
+                      <span className="text-muted-foreground text-sm">Phone</span>
                       <Input value={contactForm.phone} onChange={(e) => setContactForm((p) => ({ ...p, phone: e.target.value }))} placeholder="+1 555 555 5555" className="h-9 mt-0.5 bg-transparent border-border" />
                     </div>
                   </div>
@@ -364,12 +364,12 @@ export default function ProspectProfile() {
                   <div className="grid grid-cols-2 gap-3">
                     <SelectField label="Type" value={engForm.engagement_type} options={ENGAGEMENT_TYPES} placeholder="Select type" onSave={(v) => setEngForm((p) => ({ ...p, engagement_type: v }))} />
                     <div>
-                      <span className="text-muted-foreground text-xs">Date</span>
+                      <span className="text-muted-foreground text-sm">Date</span>
                       <Input type="date" value={engForm.engagement_date} onChange={(e) => setEngForm((p) => ({ ...p, engagement_date: e.target.value }))} className="h-9 mt-0.5 bg-transparent border-border" />
                     </div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground text-xs">Outcome / Notes</span>
+                    <span className="text-muted-foreground text-sm">Outcome / Notes</span>
                     <RichTextEditor
                       value={engForm.outcome}
                       onChange={(v) => setEngForm((p) => ({ ...p, outcome: v }))}
@@ -377,7 +377,7 @@ export default function ProspectProfile() {
                     />
                   </div>
                   <div>
-                    <span className="text-muted-foreground text-xs">Next Step</span>
+                    <span className="text-muted-foreground text-sm">Next Step</span>
                     <Input value={engForm.next_step} onChange={(e) => setEngForm((p) => ({ ...p, next_step: e.target.value }))} placeholder="What's next?" className="h-9 mt-0.5 bg-transparent border-border" />
                   </div>
                   <div className="flex gap-2">
@@ -401,13 +401,13 @@ export default function ProspectProfile() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-[10px]">{stageLabel(eng.engagement_type)}</Badge>
-                        <span className="text-[10px] text-muted-foreground">
+                        <Badge variant="secondary" className="text-xs">{stageLabel(eng.engagement_type)}</Badge>
+                        <span className="text-xs text-muted-foreground">
                           {new Date(eng.engagement_date).toLocaleDateString()}
                         </span>
                       </div>
-                      {eng.outcome && <p className="text-xs mt-1 text-foreground">{eng.outcome}</p>}
-                      {eng.next_step && <p className="text-xs text-muted-foreground mt-0.5">Next: {eng.next_step}</p>}
+                      {eng.outcome && <p className="text-sm mt-1 text-foreground">{eng.outcome}</p>}
+                      {eng.next_step && <p className="text-sm text-muted-foreground mt-0.5">Next: {eng.next_step}</p>}
                     </div>
                   </div>
                 ))}
@@ -431,7 +431,7 @@ function Field({
 }) {
   return (
     <div>
-      <span className="text-muted-foreground text-xs">{label}</span>
+      <span className="text-muted-foreground text-sm">{label}</span>
       <InlineField value={value} placeholder={placeholder} onSave={onSave} as={as} />
     </div>
   );
@@ -445,7 +445,7 @@ function SelectField({
 }) {
   return (
     <div>
-      <span className="text-muted-foreground text-xs">{label}</span>
+      <span className="text-muted-foreground text-sm">{label}</span>
       <Select value={value} onValueChange={onSave}>
         <SelectTrigger className="w-full bg-transparent border border-border rounded-md text-foreground h-9 mt-0.5">
           <SelectValue placeholder={placeholder} />

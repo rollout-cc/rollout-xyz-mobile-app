@@ -76,13 +76,13 @@ export default function Tasks() {
                     {task.artists && (
                       <button
                         onClick={() => navigate(`/roster/${task.artists.id}`)}
-                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                       >
                         {task.artists.name}
                       </button>
                     )}
                     {task.initiatives && (
-                      <span className="text-xs text-muted-foreground">· {task.initiatives.name}</span>
+                      <span className="text-sm text-muted-foreground">· {task.initiatives.name}</span>
                     )}
                   </div>
                 ) : undefined

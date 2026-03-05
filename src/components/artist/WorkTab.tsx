@@ -578,7 +578,7 @@ function TaskItem({
           {task.title}
         </p>
         {task.description && (
-          <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{task.description}</p>
         )}
 
         {/* Metadata badges row — filled values are "active" MetaBadges, empties are muted icons */}
@@ -693,11 +693,11 @@ function EmptyWorkState({ artistId, teamId, onCampaignCreated }: { artistId: str
     <div className="flex flex-col items-center justify-center py-20 gap-6 text-center">
       <p className="text-muted-foreground text-lg">No campaigns or tasks yet</p>
       <div className="flex items-center gap-3">
-        <Button variant="default" size="lg" className="gap-2 text-base" onClick={() => { setMode("campaign"); setTimeout(() => campaignInputRef.current?.focus(), 50); }}>
-          <FolderPlus className="h-5 w-5" /> New Campaign
+        <Button variant="default" size="default" className="gap-2" onClick={() => { setMode("campaign"); setTimeout(() => campaignInputRef.current?.focus(), 50); }}>
+          <FolderPlus className="h-4 w-4" /> New Campaign
         </Button>
-        <Button variant="outline" size="lg" className="gap-2 text-base" onClick={() => setMode("task")}>
-          <ListPlus className="h-5 w-5" /> New Task
+        <Button variant="outline" size="default" className="gap-2" onClick={() => setMode("task")}>
+          <ListPlus className="h-4 w-4" /> New Task
         </Button>
       </div>
     </div>

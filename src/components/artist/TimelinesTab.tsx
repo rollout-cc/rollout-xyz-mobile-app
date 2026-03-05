@@ -229,7 +229,7 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
       {/* Top bar */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1 text-xs font-medium">
+          <div className="flex items-center gap-1 text-sm font-medium">
             <button
               onClick={() => setView("list")}
               className={cn(
@@ -379,11 +379,11 @@ function EmptyTimelinesState({
     <div className="flex flex-col items-center justify-center py-20 gap-6 text-center">
       <p className="text-muted-foreground text-lg">No timelines or milestones yet</p>
       <div className="flex items-center gap-3">
-        <Button variant="default" size="lg" className="gap-2 text-base" onClick={() => { setMode("timeline"); setTimeout(() => inputRef.current?.focus(), 50); }}>
-          <FolderPlus className="h-5 w-5" /> New Timeline
+        <Button variant="default" size="default" className="gap-2" onClick={() => { setMode("timeline"); setTimeout(() => inputRef.current?.focus(), 50); }}>
+          <FolderPlus className="h-4 w-4" /> New Timeline
         </Button>
-        <Button variant="outline" size="lg" className="gap-2 text-base" onClick={() => setMode("milestone")}>
-          <ListPlus className="h-5 w-5" /> New Milestone
+        <Button variant="outline" size="default" className="gap-2" onClick={() => setMode("milestone")}>
+          <ListPlus className="h-4 w-4" /> New Milestone
         </Button>
       </div>
       <div className="mt-2">
@@ -446,7 +446,7 @@ function CalendarView({ milestones }: { milestones: any[] }) {
       </div>
       <div className="grid grid-cols-7 border-b border-border">
         {weekDays.map((wd) => (
-          <div key={wd} className="text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground py-2">{wd}</div>
+          <div key={wd} className="text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground py-2">{wd}</div>
         ))}
       </div>
       <div className="grid grid-cols-7">
@@ -462,7 +462,7 @@ function CalendarView({ milestones }: { milestones: any[] }) {
                 {events.slice(0, 3).map((ev: any) => (
                   <Tooltip key={ev.id}>
                     <TooltipTrigger asChild>
-                      <div className={cn("text-[10px] sm:text-xs font-medium truncate rounded px-1 py-0.5 text-white cursor-default", colorMap[ev.id] || "bg-primary")}>{ev.title}</div>
+                      <div className={cn("text-xs font-medium truncate rounded px-1 py-0.5 text-white cursor-default", colorMap[ev.id] || "bg-primary")}>{ev.title}</div>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="text-xs max-w-[200px]">
                       <p className="font-medium">{ev.title}</p>

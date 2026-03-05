@@ -340,7 +340,7 @@ export function SplitWizard({ artistId, teamId, onComplete, onCancel }: Props) {
             </div>
             <button
               onClick={addTrack}
-              className="text-xs text-primary hover:underline flex items-center gap-1"
+              className="text-sm text-primary hover:underline flex items-center gap-1"
             >
               <Plus className="h-3 w-3" /> Add another track
             </button>
@@ -537,7 +537,7 @@ function RoleSection({
       ))}
       <button
         onClick={onAdd}
-        className="text-xs text-primary hover:underline flex items-center gap-1"
+        className="text-sm text-primary hover:underline flex items-center gap-1"
       >
         <Plus className="h-3 w-3" /> Add {label.toLowerCase()}
       </button>
@@ -639,7 +639,7 @@ function ContributorRow({
           {allTitles.map((title, songIdx) => (
             <label
               key={songIdx}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer"
             >
               <Checkbox
                 checked={entry.songIndices.includes(songIdx)}

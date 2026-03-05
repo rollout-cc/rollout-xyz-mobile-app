@@ -78,7 +78,7 @@ export function TrialWelcomeDialog({ open, onOpenChange }: TrialWelcomeDialogPro
                 Start My Free Trial
               </Button>
 
-              <p className="text-[11px] text-muted-foreground text-center mt-2">
+              <p className="text-xs text-muted-foreground text-center mt-2">
                 All features. 30 days free. No credit card needed.
               </p>
             </div>

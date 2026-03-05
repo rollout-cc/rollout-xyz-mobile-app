@@ -258,20 +258,20 @@ export default function MyWork() {
   const metadataPills = (selectedArtist || expenseAmount != null || revenueMode) ? (
     <div className="flex items-center gap-1.5 ml-7 flex-wrap">
       {selectedArtist && (
-        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+        <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
           <Music2 className="h-2.5 w-2.5" />
           {selectedArtist.name}
           <button onClick={() => { setSelectedArtistId(null); setBudgetId(null); setExpenseAmount(null); }} className="ml-0.5 hover:text-foreground">×</button>
         </span>
       )}
       {revenueMode && revenueAmount != null && (
-        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600">
+        <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600">
           +${revenueAmount.toLocaleString()}
           {revenueSource && <span className="opacity-70">· {revenueSource}</span>}
         </span>
       )}
       {!revenueMode && expenseAmount != null && (
-        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+        <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
           ${expenseAmount.toLocaleString()}
           {selectedBudget && <span className="opacity-60">· {selectedBudget.label}</span>}
           <button onClick={() => { setExpenseAmount(null); setBudgetId(null); }} className="ml-0.5 hover:text-foreground">×</button>
@@ -290,7 +290,7 @@ export default function MyWork() {
               <button
                 onClick={() => setTab("tasks")}
                 className={cn(
-                  "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                  "px-3 py-1 text-sm font-medium rounded-md transition-colors",
                   tab === "tasks" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -299,7 +299,7 @@ export default function MyWork() {
               <button
                 onClick={() => setTab("notes")}
                 className={cn(
-                  "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                  "px-3 py-1 text-sm font-medium rounded-md transition-colors",
                   tab === "notes" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -309,7 +309,7 @@ export default function MyWork() {
           </div>
           {tab === "tasks" && taskArtists.length > 0 && (
             <Select value={filterArtistId} onValueChange={setFilterArtistId}>
-              <SelectTrigger className="w-[140px] h-7 text-xs">
+              <SelectTrigger className="w-[140px] h-8 text-sm">
                 <SelectValue placeholder="All Artists" />
               </SelectTrigger>
               <SelectContent>

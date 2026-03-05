@@ -157,7 +157,7 @@ export default function StaffDetail() {
           <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> {completedTasks} completed</span>
         </div>
         <div className="mt-3">
-          <div className="flex items-center justify-between text-xs mb-1">
+          <div className="flex items-center justify-between text-sm mb-1">
             <span className="text-muted-foreground">Task Completion</span>
             <span className="font-semibold">{completionRate}%</span>
           </div>
@@ -236,7 +236,7 @@ export default function StaffDetail() {
                       {t.title}
                     </span>
                     {t.artist_id && artistMap[t.artist_id] && (
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {artistMap[t.artist_id]}
                       </span>
                     )}
