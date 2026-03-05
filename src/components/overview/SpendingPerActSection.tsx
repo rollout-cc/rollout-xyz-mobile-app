@@ -38,7 +38,7 @@ export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSi
         <span className="caption-bold">{artistCount} artists</span>
       </div>
 
-      <div className="space-y-4">
+      <div className={artistBreakdown.length > 1 ? "grid grid-cols-1 sm:grid-cols-2 gap-4" : "space-y-4"}>
         {artistBreakdown.map((artist) => (
           <div
             key={artist.id}
