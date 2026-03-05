@@ -389,6 +389,7 @@ function TaskItem({
     },
     onSuccess: (completed) => {
       queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
+      queryClient.invalidateQueries({ queryKey: ["tasks-completed-count", artistId] });
       if (completed && task) {
         import("@/lib/notifications").then(({ notifyTaskCompleted }) => {
           notifyTaskCompleted(task);
