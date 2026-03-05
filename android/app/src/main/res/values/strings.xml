@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Rollout</string>
+    <string name="title_activity_main">Rollout</string>
+    <string name="package_name">app.lovable.c232114e61894b4b9345b3f5a8174ff3</string>
+    <string name="custom_url_scheme">app.lovable.c232114e61894b4b9345b3f5a8174ff3</string>
+</resources>

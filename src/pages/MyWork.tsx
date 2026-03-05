@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { format } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Music2, Wallet } from "lucide-react";
 import { cn, formatLocalDate } from "@/lib/utils";
 import { PullToRefresh } from "@/components/PullToRefresh";
@@ -30,8 +30,13 @@ export default function MyWork() {
   const { user } = useAuth();
   const { selectedTeamId: teamId } = useSelectedTeam();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<Tab>("tasks");
+  const tab: Tab = location.pathname === "/notes" ? "notes" : "tasks";
+
+  const setTab = (value: Tab) => {
+    navigate(value === "notes" ? "/notes" : "/my-work", { replace: true });
+  };
   const [selectedArtistId, setSelectedArtistId] = useState<string | null>(null);
   const [expenseAmount, setExpenseAmount] = useState<number | null>(null);
   const [budgetId, setBudgetId] = useState<string | null>(null);

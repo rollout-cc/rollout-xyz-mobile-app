@@ -101,6 +101,7 @@ function AppRoutes() {
         <Route path="/overview" element={<ProtectedRoute><Overview /></ProtectedRoute>} />
         <Route path="/agenda" element={<Navigate to="/overview" replace />} />
         <Route path="/my-work" element={<ProtectedRoute><MyWork /></ProtectedRoute>} />
+        <Route path="/notes" element={<ProtectedRoute><MyWork /></ProtectedRoute>} />
         <Route path="/roster/:artistId" element={<ProtectedRoute><ArtistDetail /></ProtectedRoute>} />
         <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
         <Route path="/staff" element={<Navigate to="/overview" replace />} />
