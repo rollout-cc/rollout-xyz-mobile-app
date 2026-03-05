@@ -1,45 +1,60 @@
 
 
-## Fix Artist Info Tab Crash + Add Error Boundaries + Harden Database Access
+# Plan: Fix Platform Scrolling + Seed Comprehensive Dummy Data + Two-Column Spending Layout
 
-### Investigation Results
+## 1. Fix Platform-Wide Scrolling (Critical)
 
-I navigated to an artist profile and clicked Info — it loaded fine for "Cigarettes After Sex." This suggests the crash is **data-dependent**: a specific artist's `artist_travel_info` row likely has a value that causes a runtime error (e.g., `date-fns` `parse()` crashing on malformed date, or a component receiving `undefined` where it expects a string).
+The root cause of the scrolling issue is that the app layout uses `min-h-screen` on the outer container, which allows the flex container to grow beyond the viewport instead of constraining it. This means `overflow-y-auto` on `<main>` has no bounded height to scroll within.
 
-Since there's **no Error Boundary** anywhere in the app, any thrown error in any component results in a full white screen crash with no recovery.
+**Fix in `src/components/AppLayout.tsx`:**
+- Change outer div from `min-h-screen` to `h-screen overflow-hidden`
+- Ensure the inner content column has `overflow-hidden` so the `<main>` element becomes the scroll boundary
+- `<main>` already has `overflow-y-auto` from the previous fix, which will now work correctly because it has a bounded parent
 
-### Plan
+**Fix in `index.html`:**
+- Remove `user-scalable=no` from the viewport meta tag — this can interfere with trackpad gestures on desktop browsers
 
-#### 1. Add React Error Boundary component
+## 2. Two-Column Layout for Spending Per Act
 
-Create `src/components/ErrorBoundary.tsx` — a class component that catches render errors and shows a recovery UI with a "Reload" button instead of a white screen.
+**File: `src/components/overview/SpendingPerActSection.tsx`**
+- When `artistBreakdown.length > 1`, render the artist cards in a responsive two-column grid (`grid grid-cols-1 sm:grid-cols-2 gap-4`) instead of a single-column `space-y-4` stack
 
-#### 2. Wrap key views in Error Boundaries
+## 3. Seed Comprehensive Dummy Data via Database Migration
 
-In `ArtistDetail.tsx`, wrap each view panel (`ArtistInfoTab`, `FinanceTab`, `WorkTab`, etc.) in an `<ErrorBoundary>` so one tab crashing doesn't kill the whole page.
+Insert realistic data across all platform areas for the existing artists. This will be done via a SQL migration that:
 
-In `App.tsx`, wrap `<AppRoutes>` in a top-level `<ErrorBoundary>` as a safety net.
+**Budgets & Transactions (expand existing):**
+- Ensure every artist has 3-5 budget categories with varying amounts
+- Add 5-10 expense transactions per artist across categories
+- Add 3-6 revenue transactions per artist with varied `revenue_category` values (royalty, live, merch, brand_deal, show_fee, etc.)
 
-#### 3. Add global `unhandledrejection` handler
+**Initiatives (Campaigns/Objectives):**
+- Insert 2-3 initiatives per artist with date ranges and descriptions
 
-In `App.tsx`, add a `useEffect` that listens for `unhandledrejection` events and shows a toast instead of crashing.
+**Tasks (Work Items):**
+- Insert 5-10 tasks per artist with varying statuses (completed/incomplete), due dates, and budget linkages
 
-#### 4. Harden `ArtistInfoTab` against bad data
+**Artist Links:**
+- Insert 3-5 links per artist (Spotify, Instagram, press kit, etc.)
 
-- **`DateField`**: Wrap `parse(value, "yyyy-MM-dd", new Date())` in a try/catch — malformed date strings crash `date-fns`
-- **`MemberCard`**: Add null guards for all `member` properties accessed directly
-- **`PROSelectField`**: Already guarded via `useTeamRegion` defaults, but add fallback if `getPROsForRegion` returns empty arrays
+**Artist Milestones (Release Plans/Timelines):**
+- Create 1-2 timelines per artist
+- Add 3-5 milestones per timeline with dates and descriptions
 
-#### 5. Move `toast` import to top of `ArtistDetail.tsx`
+**Artist Information (Travel/Member Info):**
+- Insert 2-3 band member records per artist with clothing sizes, travel info, dietary restrictions
 
-The `import { toast } from "sonner"` is at line 327 (mid-file, before `ObjectivesPanel`). While ES module hoisting makes this technically work, it's bad practice and could cause confusion. Move it to the top imports block. Same for `import { Plus } from "lucide-react"` at line 313 and `import { InlineField }` at line 328.
+**Splits:**
+- Create 1 split project per artist with 2-3 songs and 2-4 contributor entries
 
-### Files to create/modify
+**Artist Contacts:**
+- Add 2-3 contacts per artist (manager, lawyer, publicist)
 
-| File | Change |
-|------|--------|
-| `src/components/ErrorBoundary.tsx` | **New** — React error boundary with recovery UI |
-| `src/App.tsx` | Wrap routes in ErrorBoundary, add `unhandledrejection` handler |
-| `src/pages/ArtistDetail.tsx` | Wrap each view in ErrorBoundary, move imports to top |
-| `src/components/artist/ArtistInfoTab.tsx` | try/catch in DateField parse, null guards |
+All data will reference existing artist IDs queried dynamically via CTEs in the migration SQL.
+
+## Files to Edit
+1. `index.html` — remove `user-scalable=no`
+2. `src/components/AppLayout.tsx` — fix scroll container hierarchy
+3. `src/components/overview/SpendingPerActSection.tsx` — two-column grid
+4. Database migration — comprehensive seed data across all tables
 
