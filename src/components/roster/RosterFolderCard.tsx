@@ -32,7 +32,7 @@ export function RosterFolderCard({ folder, artists, onOpenAddDialog, onDelete, o
     <div
       onClick={onClick}
       className={cn(
-        "relative flex flex-col rounded-xl overflow-hidden cursor-pointer group border bg-card hover:shadow-md transition-all max-w-[260px]",
+        "relative flex flex-col rounded-xl overflow-hidden cursor-pointer group border bg-card hover:shadow-md transition-all",
         isDraggingOver
           ? "border-primary border-2 shadow-lg ring-2 ring-primary/20"
           : "border-border"
