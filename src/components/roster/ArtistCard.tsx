@@ -8,7 +8,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-import { REVENUE_CATEGORY_LABELS } from "@/lib/revenueCategories";
+import { REVENUE_CATEGORY_LABELS, REVENUE_CATEGORY_ALIASES } from "@/lib/revenueCategories";
 
 interface ArtistCardProps {
   artist: any;
@@ -58,7 +58,8 @@ export const ArtistCard = React.memo(function ArtistCard({ artist, onClick, onDe
     transactions
       .filter((t: any) => t.type === "revenue")
       .forEach((t: any) => {
-        const cat = t.revenue_category || "uncategorized";
+        const rawCat = t.revenue_category || "uncategorized";
+        const cat = REVENUE_CATEGORY_ALIASES[rawCat] || rawCat;
         cats[cat] = (cats[cat] || 0) + Math.abs(Number(t.amount || 0));
       });
     return Object.entries(cats)
