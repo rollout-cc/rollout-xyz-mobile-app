@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Headphones, FolderOpen, CheckCircle2, DollarSign, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,8 +32,21 @@ function formatNum(n: number): string {
 type BarView = "revenue" | "spending";
 
 export const ArtistCard = React.memo(function ArtistCard({ artist, onClick, onDelete, dragHandleProps, innerRef, draggableProps, insideFolder, onRemoveFromFolder }: ArtistCardProps) {
+  const queryClient = useQueryClient();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [barView, setBarView] = useState<BarView>("revenue");
+
+  const handleMouseEnter = useCallback(() => {
+    queryClient.prefetchQuery({
+      queryKey: ["artist", artist.id],
+      queryFn: async () => {
+        const { data, error } = await supabase.from("artists").select("*").eq("id", artist.id).single();
+        if (error) throw error;
+        return data;
+      },
+      staleTime: 60_000,
+    });
+  }, [artist.id, queryClient]);
   const initiativeCount = artist.initiatives?.[0]?.count ?? 0;
   const taskCount = artist.tasks?.[0]?.count ?? 0;
   const listeners = artist.monthly_listeners ?? 0;
@@ -76,6 +91,7 @@ export const ArtistCard = React.memo(function ArtistCard({ artist, onClick, onDe
         {...(draggableProps || {})}
         {...(dragHandleProps || {})}
         onClick={onClick}
+        onMouseEnter={handleMouseEnter}
         className="relative flex flex-col rounded-xl overflow-hidden cursor-pointer group border border-border bg-card hover:shadow-md transition-shadow"
       >
         {/* Top section: avatar + stats */}

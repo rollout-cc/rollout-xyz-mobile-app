@@ -85,7 +85,7 @@ export default function Overview() {
   });
 
   const { data: artists = [] } = useQuery({
-    queryKey: ["overview-artists", teamId],
+    queryKey: ["artists-summary", teamId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("artists")
@@ -98,7 +98,7 @@ export default function Overview() {
   });
 
   const { data: budgets = [] } = useQuery({
-    queryKey: ["overview-budgets", teamId],
+    queryKey: ["budgets", teamId],
     queryFn: async () => {
       const artistIds = artists.map((a) => a.id);
       if (artistIds.length === 0) return [];
@@ -110,7 +110,7 @@ export default function Overview() {
   });
 
   const { data: transactions = [] } = useQuery({
-    queryKey: ["overview-transactions", teamId],
+    queryKey: ["transactions", teamId],
     queryFn: async () => {
       const artistIds = artists.map((a) => a.id);
       if (artistIds.length === 0) return [];
@@ -122,7 +122,7 @@ export default function Overview() {
   });
 
   const { data: tasks = [] } = useQuery({
-    queryKey: ["overview-tasks", teamId],
+    queryKey: ["tasks", teamId],
     queryFn: async () => {
       const { data, error } = await supabase.from("tasks").select("*").eq("team_id", teamId!);
       if (error) throw error;
@@ -132,7 +132,7 @@ export default function Overview() {
   });
 
   const { data: initiatives = [] } = useQuery({
-    queryKey: ["overview-initiatives", teamId],
+    queryKey: ["initiatives", teamId],
     queryFn: async () => {
       const artistIds = artists.map((a) => a.id);
       if (artistIds.length === 0) return [];
@@ -145,7 +145,7 @@ export default function Overview() {
 
   // ——— Staff data ———
   const { data: memberships = [] } = useQuery({
-    queryKey: ["overview-memberships", teamId],
+    queryKey: ["memberships", teamId],
     queryFn: async () => {
       const { data, error } = await supabase.from("team_memberships").select("user_id, role").eq("team_id", teamId!);
       if (error) throw error;
@@ -157,7 +157,7 @@ export default function Overview() {
   const memberUserIds = useMemo(() => memberships.map((m) => m.user_id), [memberships]);
 
   const { data: memberProfiles = [] } = useQuery({
-    queryKey: ["overview-member-profiles", memberUserIds],
+    queryKey: ["member-profiles", memberUserIds],
     queryFn: async () => {
       if (memberUserIds.length === 0) return [];
       const { data, error } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", memberUserIds);
@@ -169,7 +169,7 @@ export default function Overview() {
 
   // ——— Prospects data ———
   const { data: prospects = [] } = useQuery({
-    queryKey: ["overview-prospects", teamId],
+    queryKey: ["prospects", teamId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("prospects")
@@ -302,6 +302,17 @@ export default function Overview() {
 
   // ——— Staff members ———
   const staffMembers: StaffMember[] = useMemo(() => {
+    // Pre-compute maxRevenue in a single pass (O(n) instead of O(n²))
+    const revenuePerMember: Record<string, number> = {};
+    for (const m of memberships) {
+      const mTasks = tasks.filter((t: any) => t.assigned_to === m.user_id && t.is_completed);
+      const mIds = new Set(mTasks.map((t: any) => t.id));
+      revenuePerMember[m.user_id] = transactions
+        .filter((t: any) => t.type === "revenue" && t.task_id && mIds.has(t.task_id))
+        .reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
+    }
+    const maxRevenue = Math.max(1, ...Object.values(revenuePerMember));
+
     return memberships.map((m) => {
       const profile2 = memberProfiles.find((p) => p.id === m.user_id);
       const memberTasks = tasks.filter((t: any) => t.assigned_to === m.user_id);
@@ -317,23 +328,9 @@ export default function Overview() {
         (t: any) => t.is_completed && t.due_date && t.completed_at && new Date(t.completed_at) <= new Date(t.due_date)
       ).length;
 
-      const completedTaskIds = new Set(memberTasks.filter((t: any) => t.is_completed).map((t: any) => t.id));
-      const revenue = transactions
-        .filter((t: any) => t.type === "revenue" && t.task_id && completedTaskIds.has(t.task_id))
-        .reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
-
+      const revenue = revenuePerMember[m.user_id] || 0;
       const completionRate = assigned > 0 ? completed / assigned : 0;
       const onTimeRate = completed > 0 ? onTime / completed : 0;
-      const maxRevenue = Math.max(
-        1,
-        ...memberships.map((mm) => {
-          const mTasks = tasks.filter((t: any) => t.assigned_to === mm.user_id && t.is_completed);
-          const mIds = new Set(mTasks.map((t: any) => t.id));
-          return transactions
-            .filter((t: any) => t.type === "revenue" && t.task_id && mIds.has(t.task_id))
-            .reduce((s, t: any) => s + Math.abs(Number(t.amount)), 0);
-        })
-      );
       const revenueFactor = revenue / maxRevenue;
       const score = Math.round(completionRate * 50 + onTimeRate * 30 + revenueFactor * 20);
 
