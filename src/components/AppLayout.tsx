@@ -6,6 +6,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTeams } from "@/hooks/useTeams";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, ChevronsUpDown } from "lucide-react";
 import {
   DropdownMenu,
@@ -23,11 +26,21 @@ interface AppLayoutProps {
 
 export function AppLayout({ children, title, actions }: AppLayoutProps) {
   const { selectedTeamId, setSelectedTeamId } = useSelectedTeam();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { data: teams = [] } = useTeams();
   const selectedTeam = teams.find((t) => t.id === selectedTeamId);
+
+  const { data: profile } = useQuery({
+    queryKey: ["my-profile"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", user!.id).single();
+      return data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+  });
 
   return (
     <SidebarProvider>
@@ -71,8 +84,13 @@ export function AppLayout({ children, title, actions }: AppLayoutProps) {
               {actions}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                    <User className="h-4 w-4 text-muted-foreground" />
+                  <button className="flex h-8 w-8 items-center justify-center rounded-full overflow-hidden">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={profile?.avatar_url ?? undefined} />
+                      <AvatarFallback className="bg-muted text-xs font-semibold">
+                        {profile?.full_name?.[0] ?? <User className="h-4 w-4 text-muted-foreground" />}
+                      </AvatarFallback>
+                    </Avatar>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
