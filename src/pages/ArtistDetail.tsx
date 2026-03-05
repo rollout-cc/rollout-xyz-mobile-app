@@ -261,7 +261,7 @@ export default function ArtistDetail() {
             <span>${totalBudget.toLocaleString()}</span>
           </div>
           <span className="text-border">·</span>
-          <div className="caption-bold">{completedCount} work done</div>
+          <div className="caption-bold">{completedCount} tasks completed by team</div>
           <div className="flex-1" />
           <PerformancePills artistId={artist.id} spotifyId={artist.spotify_id} artistName={artist.name} />
         </div>
