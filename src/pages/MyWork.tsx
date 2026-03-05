@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState, useMemo } from "react";
+import { useCallback, useState, useMemo, useEffect } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,6 +15,7 @@ import { NotesPanel } from "@/components/notes/NotesPanel";
 import { useNotes } from "@/hooks/useNotes";
 import { WorkItemRow } from "@/components/work/WorkItemRow";
 import { WorkItemCreator } from "@/components/work/WorkItemCreator";
+import { parseRevenueIntent } from "@/lib/revenueParser";
 import {
   Select,
   SelectContent,
@@ -36,9 +37,30 @@ export default function MyWork() {
   const [budgetId, setBudgetId] = useState<string | null>(null);
   const [filterArtistId, setFilterArtistId] = useState<string>("all");
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  const [revenueMode, setRevenueMode] = useState(false);
+  const [revenueSource, setRevenueSource] = useState<string | null>(null);
+  const [revenueAmount, setRevenueAmount] = useState<number | null>(null);
+  const [titleForParsing, setTitleForParsing] = useState("");
 
   const { data: artists = [] } = useArtists(teamId);
   useNotes(); // prefetch
+
+  // Parse revenue intent whenever title changes
+  useEffect(() => {
+    const result = parseRevenueIntent(titleForParsing);
+    if (result.isRevenue && result.amount) {
+      setRevenueMode(true);
+      setRevenueAmount(result.amount);
+      setRevenueSource(result.source);
+      // Clear expense state when revenue detected
+      setExpenseAmount(null);
+      setBudgetId(null);
+    } else {
+      setRevenueMode(false);
+      setRevenueAmount(null);
+      setRevenueSource(null);
+    }
+  }, [titleForParsing]);
 
   const { data: budgets = [] } = useQuery({
     queryKey: ["budgets", selectedArtistId],
@@ -119,18 +141,37 @@ export default function MyWork() {
       dueDate: Date | null;
     }) => {
       if (!teamId || !user?.id) throw new Error("Missing team or user");
+
+      const revResult = parseRevenueIntent(params.title);
+      const isRev = revResult.isRevenue && revResult.amount;
+
       const { error } = await supabase.from("tasks").insert({
-        title: params.title,
+        title: isRev ? revResult.cleanTitle : params.title,
         description: params.description || null,
         team_id: teamId,
         assigned_to: user.id,
         ...(params.dueDate ? { due_date: format(params.dueDate, "yyyy-MM-dd") } : {}),
         ...(selectedArtistId ? { artist_id: selectedArtistId } : {}),
-        ...(expenseAmount ? { expense_amount: expenseAmount } : {}),
+        ...(!isRev && expenseAmount ? { expense_amount: expenseAmount } : {}),
       });
       if (error) throw error;
 
-      if (expenseAmount && selectedArtistId && budgetId) {
+      // Create revenue transaction
+      if (isRev && selectedArtistId) {
+        await supabase.from("transactions").insert({
+          artist_id: selectedArtistId,
+          amount: revResult.amount,
+          description: revResult.cleanTitle,
+          type: "revenue",
+          revenue_source: revResult.source,
+          revenue_category: null,
+          status: "pending",
+          transaction_date: params.dueDate ? format(params.dueDate, "yyyy-MM-dd") : formatLocalDate(new Date()),
+        } as any);
+      }
+
+      // Create expense transaction (existing logic)
+      if (!isRev && expenseAmount && selectedArtistId && budgetId) {
         await supabase.from("transactions").insert({
           artist_id: selectedArtistId,
           budget_id: budgetId,
@@ -147,6 +188,10 @@ export default function MyWork() {
       setSelectedArtistId(null);
       setExpenseAmount(null);
       setBudgetId(null);
+      setRevenueMode(false);
+      setRevenueAmount(null);
+      setRevenueSource(null);
+      setTitleForParsing("");
       toast.success("Work item added");
     },
     onError: (err: any) => toast.error(err.message),
@@ -167,7 +212,7 @@ export default function MyWork() {
     };
     const budgetTrigger = {
       char: "$",
-      items: selectedArtistId
+      items: (selectedArtistId && !revenueMode)
         ? budgets.map((b: any) => ({
             id: b.id,
             label: `${b.label} — $${b.amount.toLocaleString()}`,
@@ -187,7 +232,7 @@ export default function MyWork() {
       },
     };
     return [artistTrigger, budgetTrigger];
-  }, [artists, budgets, selectedArtistId]);
+  }, [artists, budgets, selectedArtistId, revenueMode]);
 
   const handleRefresh = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["my-work"] });
@@ -210,7 +255,7 @@ export default function MyWork() {
     return Array.from(map.values());
   }, [allTasks]);
 
-  const metadataPills = (selectedArtist || expenseAmount != null) ? (
+  const metadataPills = (selectedArtist || expenseAmount != null || revenueMode) ? (
     <div className="flex items-center gap-1.5 ml-7 flex-wrap">
       {selectedArtist && (
         <span className="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
@@ -219,7 +264,13 @@ export default function MyWork() {
           <button onClick={() => { setSelectedArtistId(null); setBudgetId(null); setExpenseAmount(null); }} className="ml-0.5 hover:text-foreground">×</button>
         </span>
       )}
-      {expenseAmount != null && (
+      {revenueMode && revenueAmount != null && (
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600">
+          +${revenueAmount.toLocaleString()}
+          {revenueSource && <span className="opacity-70">· {revenueSource}</span>}
+        </span>
+      )}
+      {!revenueMode && expenseAmount != null && (
         <span className="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
           ${expenseAmount.toLocaleString()}
           {selectedBudget && <span className="opacity-60">· {selectedBudget.label}</span>}
@@ -280,6 +331,7 @@ export default function MyWork() {
                 placeholder="Add work… @ artist, $ expense, type a date"
                 triggers={triggers}
                 onSubmit={(data) => createTask.mutate(data)}
+                onTitleChange={setTitleForParsing}
                 metadataPills={metadataPills}
               />
 

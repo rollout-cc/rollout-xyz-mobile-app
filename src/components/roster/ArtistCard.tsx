@@ -8,6 +8,15 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+const REVENUE_CATEGORY_LABELS: Record<string, string> = {
+  show_fee: "Show Fee",
+  brand_deal: "Brand Deal",
+  feature: "Feature",
+  royalty: "Royalty",
+  sync: "Sync",
+  other: "Other",
+};
+
 interface ArtistCardProps {
   artist: any;
   onClick: () => void;
@@ -35,22 +44,36 @@ export const ArtistCard = React.memo(function ArtistCard({ artist, onClick, onDe
   const listeners = artist.monthly_listeners ?? 0;
 
   const budgets: { label: string; amount: number; id: string }[] = (artist.budgets || []).slice(0, 3);
-  const totalSpending = (artist.transactions || [])
+  const transactions: any[] = artist.transactions || [];
+
+  const totalSpending = transactions
     .filter((t: any) => t.type === "expense")
     .reduce((s: number, t: any) => s + Math.abs(Number(t.amount || 0)), 0);
-  const totalRevenue = (artist.transactions || [])
+  const totalRevenue = transactions
     .filter((t: any) => t.type === "revenue")
     .reduce((s: number, t: any) => s + Math.abs(Number(t.amount || 0)), 0);
 
+  // Spending by budget for burn rate bars
   const spendingByBudget = (budgetId: string) =>
-    (artist.transactions || [])
+    transactions
       .filter((t: any) => t.type === "expense" && t.budget_id === budgetId)
       .reduce((s: number, t: any) => s + Math.abs(Number(t.amount || 0)), 0);
 
-  const revenueByBudget = (budgetId: string) =>
-    (artist.transactions || [])
-      .filter((t: any) => t.type === "revenue" && t.budget_id === budgetId)
-      .reduce((s: number, t: any) => s + Math.abs(Number(t.amount || 0)), 0);
+  // Revenue grouped by category for proportional bars
+  const revenueByCategory = (() => {
+    const cats: Record<string, number> = {};
+    transactions
+      .filter((t: any) => t.type === "revenue")
+      .forEach((t: any) => {
+        const cat = t.revenue_category || "uncategorized";
+        cats[cat] = (cats[cat] || 0) + Math.abs(Number(t.amount || 0));
+      });
+    return Object.entries(cats)
+      .map(([key, amount]) => ({ key, label: REVENUE_CATEGORY_LABELS[key] || "Uncategorized", amount }))
+      .sort((a, b) => b.amount - a.amount);
+  })();
+
+  const hasBars = barView === "spending" ? budgets.length > 0 : revenueByCategory.length > 0;
 
   return (
     <>
@@ -112,7 +135,7 @@ export const ArtistCard = React.memo(function ArtistCard({ artist, onClick, onDe
         </div>
 
         {/* Pill switcher + progress bars */}
-        {budgets.length > 0 && (
+        {(budgets.length > 0 || revenueByCategory.length > 0) && (
           <div className="px-4 pb-4">
             <div className="flex items-center gap-1 mb-2.5">
               <button
@@ -137,24 +160,51 @@ export const ArtistCard = React.memo(function ArtistCard({ artist, onClick, onDe
               </button>
             </div>
             <div className="space-y-2">
-              {budgets.map((b: any, i: number) => {
+              {barView === "spending" && budgets.map((b: any, i: number) => {
                 const budgetAmt = Number(b.amount || 0);
-                const value = barView === "revenue" ? revenueByBudget(b.id) : spendingByBudget(b.id);
-                const pct = budgetAmt > 0 ? (value / budgetAmt) * 100 : 0;
+                const spent = spendingByBudget(b.id);
+                const pct = budgetAmt > 0 ? (spent / budgetAmt) * 100 : 0;
+                const barColor = pct > 90 ? "bg-destructive" : pct > 70 ? "bg-amber-500" : "bg-emerald-500";
                 return (
                   <div key={i}>
-                    <div className="text-xs font-medium mb-0.5">{b.label}</div>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-xs font-medium">{b.label}</span>
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        ${formatNum(spent)} / ${formatNum(budgetAmt)}
+                      </span>
+                    </div>
                     <div className="h-2 rounded-full bg-muted overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all ${
-                          barView === "revenue" ? "bg-emerald-500" : "bg-destructive"
-                        }`}
+                        className={`h-full rounded-full transition-all ${barColor}`}
                         style={{ width: `${Math.min(pct, 100)}%` }}
                       />
                     </div>
                   </div>
                 );
               })}
+              {barView === "revenue" && (revenueByCategory.length > 0 ? (
+                revenueByCategory.slice(0, 3).map((cat) => {
+                  const pct = totalRevenue > 0 ? (cat.amount / totalRevenue) * 100 : 0;
+                  return (
+                    <div key={cat.key}>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-xs font-medium">{cat.label}</span>
+                        <span className="text-[10px] text-muted-foreground tabular-nums">
+                          ${formatNum(cat.amount)}
+                        </span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all bg-emerald-500"
+                          style={{ width: `${Math.min(pct, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-[10px] text-muted-foreground">No revenue recorded</p>
+              ))}
             </div>
           </div>
         )}

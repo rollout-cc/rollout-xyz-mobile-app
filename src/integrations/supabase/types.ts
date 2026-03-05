@@ -1831,6 +1831,8 @@ export type Database = {
           description: string
           id: string
           initiative_id: string | null
+          revenue_category: string | null
+          revenue_source: string | null
           status: string
           sub_budget_id: string | null
           task_id: string | null
@@ -1849,6 +1851,8 @@ export type Database = {
           description: string
           id?: string
           initiative_id?: string | null
+          revenue_category?: string | null
+          revenue_source?: string | null
           status?: string
           sub_budget_id?: string | null
           task_id?: string | null
@@ -1867,6 +1871,8 @@ export type Database = {
           description?: string
           id?: string
           initiative_id?: string | null
+          revenue_category?: string | null
+          revenue_source?: string | null
           status?: string
           sub_budget_id?: string | null
           task_id?: string | null

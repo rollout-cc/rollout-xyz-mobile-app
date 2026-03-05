@@ -8,6 +8,7 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { formatLocalDate } from "@/lib/utils";
 import { format } from "date-fns";
+import { parseRevenueIntent } from "@/lib/revenueParser";
 import { WorkItemRow } from "@/components/work/WorkItemRow";
 import { WorkItemCreator } from "@/components/work/WorkItemCreator";
 
@@ -62,18 +63,36 @@ export function TasksTab({ artistId, teamId }: TasksTabProps) {
 
   const addTask = useMutation({
     mutationFn: async ({ title, description, dueDate }: { title: string; description: string; dueDate: Date | null }) => {
+      const revResult = parseRevenueIntent(title);
+      const isRev = revResult.isRevenue && revResult.amount;
+
       const { error } = await supabase.from("tasks").insert({
         artist_id: artistId,
         team_id: teamId,
-        title,
+        title: isRev ? revResult.cleanTitle : title,
         description: description || null,
         due_date: dueDate ? formatLocalDate(dueDate) : null,
       });
       if (error) throw error;
+
+      // Auto-create revenue transaction
+      if (isRev) {
+        await supabase.from("transactions").insert({
+          artist_id: artistId,
+          amount: revResult.amount,
+          description: revResult.cleanTitle,
+          type: "revenue",
+          revenue_source: revResult.source,
+          revenue_category: null,
+          status: "pending",
+          transaction_date: dueDate ? formatLocalDate(dueDate) : formatLocalDate(new Date()),
+        } as any);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
       queryClient.invalidateQueries({ queryKey: ["tasks-monthly-count", teamId] });
+      queryClient.invalidateQueries({ queryKey: ["transactions", artistId] });
       setShowAdd(false);
       toast.success("Work item created");
     },
