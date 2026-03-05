@@ -10,6 +10,12 @@ const config: CapacitorConfig = {
   //   url: 'https://c232114e-6189-4b4b-9345-b3f5a8174ff3.lovableproject.com?forceHideBadge=true',
   //   cleartext: true,
   // },
+  ios: {
+    // Disable the WKWebView's native UIScrollView so the viewport cannot
+    // be dragged/bounced beyond its bounds on a real device.
+    // CSS overflow-scroll containers within the app still work normally.
+    scrollEnabled: false,
+  },
 };
 
 export default config;
