@@ -381,7 +381,15 @@ function DateField({
 }: {
   label: string; value: string; onSave: (v: string) => void;
 }) {
-  const date = value ? parse(value, "yyyy-MM-dd", new Date()) : undefined;
+  let date: Date | undefined;
+  if (value) {
+    try {
+      const parsed = parse(value, "yyyy-MM-dd", new Date());
+      date = isNaN(parsed.getTime()) ? undefined : parsed;
+    } catch {
+      date = undefined;
+    }
+  }
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 1940 + 1 }, (_, i) => currentYear - i);
   const months = [

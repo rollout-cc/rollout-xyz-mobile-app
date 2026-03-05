@@ -3,7 +3,10 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { DollarSign, Target, Star, Upload, RefreshCw, Receipt, ArrowLeft } from "lucide-react";
+import { DollarSign, Target, Star, Upload, RefreshCw, Receipt, ArrowLeft, Plus } from "lucide-react";
+import { toast } from "sonner";
+import { InlineField } from "@/components/ui/InlineField";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PerformancePills } from "@/components/artist/PerformancePills";
 import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 import { useArtistDetail } from "@/hooks/useArtistDetail";
@@ -294,14 +297,16 @@ export default function ArtistDetail() {
             </div>
           </div>
 
-          {activeView === "finance" && <FinanceTab artistId={artist.id} teamId={artist.team_id} />}
-          {activeView === "budgets" && <BudgetSection artistId={artist.id} />}
-          {activeView === "objectives" && <ObjectivesPanel artist={artist} />}
-          {activeView === "information" && <ArtistInfoTab artist={artist} />}
-          {activeView === "work" && <WorkTab artistId={artist.id} teamId={artist.team_id} showCompleted={showCompleted} showArchived={showArchived} />}
-          {activeView === "links" && <LinksTab artistId={artist.id} />}
-          {activeView === "timelines" && <TimelinesTab artistId={artist.id} />}
-          {activeView === "splits" && <SplitsTab artistId={artist.id} teamId={artist.team_id} />}
+          <ErrorBoundary fallbackMessage="Could not load this section.">
+            {activeView === "finance" && <FinanceTab artistId={artist.id} teamId={artist.team_id} />}
+            {activeView === "budgets" && <BudgetSection artistId={artist.id} />}
+            {activeView === "objectives" && <ObjectivesPanel artist={artist} />}
+            {activeView === "information" && <ArtistInfoTab artist={artist} />}
+            {activeView === "work" && <WorkTab artistId={artist.id} teamId={artist.team_id} showCompleted={showCompleted} showArchived={showArchived} />}
+            {activeView === "links" && <LinksTab artistId={artist.id} />}
+            {activeView === "timelines" && <TimelinesTab artistId={artist.id} />}
+            {activeView === "splits" && <SplitsTab artistId={artist.id} teamId={artist.team_id} />}
+          </ErrorBoundary>
         </div>
       </div>
       <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} feature={upgradeFeature} />
@@ -309,8 +314,7 @@ export default function ArtistDetail() {
   );
 }
 
-// Work tab extra controls  
-import { Plus } from "lucide-react";
+// Work tab extra controls
 
 function WorkTabControls({ artistId, showArchived, setShowArchived }: { artistId: string; showArchived: boolean; setShowArchived: (v: boolean) => void }) {
   return (
@@ -324,8 +328,7 @@ function WorkTabControls({ artistId, showArchived, setShowArchived }: { artistId
 }
 
 // Objectives panel
-import { toast } from "sonner";
-import { InlineField } from "@/components/ui/InlineField";
+// Objectives panel
 
 function ObjectivesPanel({ artist }: { artist: any }) {
   const queryClient = useQueryClient();

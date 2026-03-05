@@ -9,6 +9,8 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { TeamProvider } from "@/contexts/TeamContext";
 import { useTeams } from "@/hooks/useTeams";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { toast } from "sonner";
 
 // Lazy-loaded pages
 const Login = React.lazy(() => import("./pages/Login"));
@@ -75,6 +77,19 @@ function RootRedirect() {
   return <Navigate to="/login" replace />;
 }
 
+function UnhandledRejectionHandler() {
+  React.useEffect(() => {
+    const handler = (event: PromiseRejectionEvent) => {
+      console.error("Unhandled rejection:", event.reason);
+      toast.error("An unexpected error occurred.");
+      event.preventDefault();
+    };
+    window.addEventListener("unhandledrejection", handler);
+    return () => window.removeEventListener("unhandledrejection", handler);
+  }, []);
+  return null;
+}
+
 function AppRoutes() {
   usePushNotifications();
   return (
@@ -113,7 +128,10 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <AppRoutes />
+            <ErrorBoundary fallbackMessage="Something went wrong. Please reload the page.">
+              <UnhandledRejectionHandler />
+              <AppRoutes />
+            </ErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>
       </TeamProvider>
