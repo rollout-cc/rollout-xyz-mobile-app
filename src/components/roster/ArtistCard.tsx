@@ -8,14 +8,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const REVENUE_CATEGORY_LABELS: Record<string, string> = {
-  show_fee: "Show Fee",
-  brand_deal: "Brand Deal",
-  feature: "Feature",
-  royalty: "Royalty",
-  sync: "Sync",
-  other: "Other",
-};
+import { REVENUE_CATEGORY_LABELS } from "@/lib/revenueCategories";
 
 interface ArtistCardProps {
   artist: any;

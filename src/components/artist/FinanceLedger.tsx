@@ -10,14 +10,7 @@ import { toast } from "sonner";
 import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
 
-const REVENUE_CATEGORIES = [
-  { value: "show_fee", label: "Show Fee" },
-  { value: "brand_deal", label: "Brand Deal" },
-  { value: "feature", label: "Feature" },
-  { value: "royalty", label: "Royalty" },
-  { value: "sync", label: "Sync" },
-  { value: "other", label: "Other" },
-];
+import { REVENUE_CATEGORIES, REVENUE_CATEGORY_LABELS as revCatLabels } from "@/lib/revenueCategories";
 
 interface FinanceLedgerProps {
   artistId: string;
