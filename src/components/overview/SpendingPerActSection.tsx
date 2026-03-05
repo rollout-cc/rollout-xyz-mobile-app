@@ -75,7 +75,7 @@ export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSi
                 <div className="text-sm font-bold text-emerald-500 truncate">{fmt(artist.revenue)}</div>
               </div>
               <div>
-                <div className="caption text-muted-foreground mb-0.5">P&L</div>
+                <div className="caption text-muted-foreground mb-0.5">{artist.gp >= 0 ? "Profit" : "Loss"}</div>
                 <div className={cn("text-sm font-bold truncate", artist.gp >= 0 ? "text-emerald-500" : "text-destructive")}>{fmtSigned(artist.gp)}</div>
               </div>
             </div>
