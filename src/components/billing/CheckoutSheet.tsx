@@ -73,7 +73,7 @@ export function CheckoutSheet({ open, onOpenChange, tier, teamId, onComplete }: 
         {/* Rollout branding header */}
         <div className="px-6 pt-6 pb-4 border-b border-border">
           <div className="flex items-center gap-3 mb-2">
-            <img src={rolloutLogo} alt="Rollout" className="h-6 dark:invert" />
+            <img src={rolloutLogo} alt="Rollout" className="h-8 dark:invert" />
           </div>
           <p className="text-xs text-muted-foreground">
             Secure checkout powered by Stripe
