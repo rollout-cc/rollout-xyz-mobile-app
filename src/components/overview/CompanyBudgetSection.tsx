@@ -176,6 +176,14 @@ export function CompanyBudgetSection() {
   const remaining = annualBudget - totalArtistAllocated - totalPayroll - totalCategorySpend;
 
   const fmt = (n: number) => `$${Math.abs(n).toLocaleString()}`;
+  const abbr = (n: number) => {
+    const abs = Math.abs(n);
+    const sign = n < 0 ? "-" : "";
+    if (abs >= 1_000_000_000) return `${sign}$${(abs / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}B`;
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
+    return `${sign}$${abs.toLocaleString()}`;
+  };
 
   // Categories available to add (not yet added)
   const existingNames = new Set(categories.map((c: any) => c.name));
@@ -211,15 +219,17 @@ export function CompanyBudgetSection() {
               onClick={() => { setBudgetInput(annualBudget.toString()); setEditingBudget(true); }}
               className="text-lg font-bold mt-1 hover:text-primary transition-colors text-left w-full"
             >
-              {fmt(annualBudget)}
+              <span className="sm:hidden">{abbr(annualBudget)}</span>
+              <span className="hidden sm:inline">{fmt(annualBudget)}</span>
             </button>
           )}
         </div>
-        <SummaryCard label="Artist Allocation" value={fmt(totalArtistAllocated)} />
-        <SummaryCard label="Staff Payroll" value={fmt(totalPayroll)} />
+        <SummaryCard label="Artist Allocation" value={fmt(totalArtistAllocated)} mobileValue={abbr(totalArtistAllocated)} />
+        <SummaryCard label="Staff Payroll" value={fmt(totalPayroll)} mobileValue={abbr(totalPayroll)} />
         <SummaryCard
           label="Remaining"
           value={`${remaining < 0 ? "-" : ""}${fmt(remaining)}`}
+          mobileValue={abbr(remaining)}
           accent={remaining < 0 ? "text-destructive" : "text-emerald-600"}
         />
       </div>
@@ -292,11 +302,18 @@ export function CompanyBudgetSection() {
   );
 }
 
-function SummaryCard({ label, value, accent }: { label: string; value: string; accent?: string }) {
+function SummaryCard({ label, value, mobileValue, accent }: { label: string; value: string; mobileValue?: string; accent?: string }) {
   return (
     <div className="rounded-xl border border-border p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={cn("text-lg font-bold mt-1", accent)}>{value}</p>
+      <p className={cn("text-lg font-bold mt-1", accent)}>
+        {mobileValue ? (
+          <>
+            <span className="sm:hidden">{mobileValue}</span>
+            <span className="hidden sm:inline">{value}</span>
+          </>
+        ) : value}
+      </p>
     </div>
   );
 }

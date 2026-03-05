@@ -208,6 +208,11 @@ export function AgendaContent() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggle = (id: string) => setCollapsed((p) => ({ ...p, [id]: !p[id] }));
   const formatMoney = (n: number) => `$${n.toLocaleString()}`;
+  const formatMoneyAbbr = (n: number) => {
+    if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+    if (n >= 1_000) return `$${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
+    return `$${n.toLocaleString()}`;
+  };
 
   const exportAgenda = useCallback(() => {
     if (!artist) return;
@@ -249,64 +254,75 @@ export function AgendaContent() {
 
   if (!teamId) return <p className="text-muted-foreground">Loading...</p>;
 
+  const weekRangeShort = `${format(weekStart, "MMM d")} – ${format(weekEnd, "MMM d")}`;
+  const weekRangeFull = `${format(weekStart, "MMMM d")} – ${format(weekEnd, "MMMM d, yyyy")}`;
+
   return (
     <div>
-      {/* Filters */}
-      <div className="flex items-center gap-3 mb-6 min-w-0 overflow-x-auto">
-        <Select value={artistId || ""} onValueChange={(v) => setSelectedArtistId(v)}>
-          <SelectTrigger className="w-[200px]">
-            <div className="flex items-center gap-2">
-              {artist && (
-                <Avatar className="h-5 w-5">
-                  <AvatarImage src={artist.avatar_url ?? undefined} />
-                  <AvatarFallback className="text-[10px]">{artist.name[0]}</AvatarFallback>
-                </Avatar>
-              )}
-              <SelectValue placeholder="Select artist" />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            {artists.map((a) => (
-              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="w-[180px] justify-start gap-2">
-              <User className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="truncate text-sm">
-                {allSelected ? "All Members" : noneSelected ? "No Members" : selectedAssignees.length === 1 ? profileMap[selectedAssignees[0]] || "1 Member" : `${selectedAssignees.length} Members`}
-              </span>
-              <ChevronDown className="h-3.5 w-3.5 ml-auto text-muted-foreground" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-[200px] p-1">
-            <button onClick={toggleSelectAll} className="flex items-center gap-2 w-full rounded-sm px-2 py-1.5 text-sm hover:bg-accent">
-              <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} />
-              <span>Select All</span>
-            </button>
-            <div className="h-px bg-border my-1" />
-            {scopedMemberIds.map((uid) => {
-              const checked = allSelected || (!noneSelected && selectedAssignees.includes(uid));
-              return (
-                <button key={uid} onClick={() => toggleAssignee(uid)} className="flex items-center gap-2 w-full rounded-sm px-2 py-1.5 text-sm hover:bg-accent">
-                  <Checkbox checked={checked} onCheckedChange={() => toggleAssignee(uid)} />
-                  <span className="truncate">{profileMap[uid] || "?"}</span>
-                </button>
-              );
-            })}
-          </PopoverContent>
-        </Popover>
+      {/* Filters — two rows on mobile, single row on desktop */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 mb-6">
+        {/* Row 1: artist + members */}
+        <div className="flex items-center gap-2 min-w-0">
+          <Select value={artistId || ""} onValueChange={(v) => setSelectedArtistId(v)}>
+            <SelectTrigger className="flex-1 sm:w-[200px] sm:flex-none">
+              <div className="flex items-center gap-2">
+                {artist && (
+                  <Avatar className="h-5 w-5 shrink-0">
+                    <AvatarImage src={artist.avatar_url ?? undefined} />
+                    <AvatarFallback className="text-[10px]">{artist.name[0]}</AvatarFallback>
+                  </Avatar>
+                )}
+                <SelectValue placeholder="Select artist" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              {artists.map((a) => (
+                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="shrink-0 gap-1.5 px-3">
+                <User className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-sm hidden sm:inline truncate max-w-[120px]">
+                  {allSelected ? "All Members" : noneSelected ? "No Members" : selectedAssignees.length === 1 ? profileMap[selectedAssignees[0]] || "1 Member" : `${selectedAssignees.length} Members`}
+                </span>
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-[200px] p-1">
+              <button onClick={toggleSelectAll} className="flex items-center gap-2 w-full rounded-sm px-2 py-1.5 text-sm hover:bg-accent">
+                <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} />
+                <span>Select All</span>
+              </button>
+              <div className="h-px bg-border my-1" />
+              {scopedMemberIds.map((uid) => {
+                const checked = allSelected || (!noneSelected && selectedAssignees.includes(uid));
+                return (
+                  <button key={uid} onClick={() => toggleAssignee(uid)} className="flex items-center gap-2 w-full rounded-sm px-2 py-1.5 text-sm hover:bg-accent">
+                    <Checkbox checked={checked} onCheckedChange={() => toggleAssignee(uid)} />
+                    <span className="truncate">{profileMap[uid] || "?"}</span>
+                  </button>
+                );
+              })}
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {/* Row 2 on mobile / continues same row on desktop: export + share */}
         {artist && (
-          <>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={exportAgenda}>
-              <Copy className="h-3.5 w-3.5" /> Export View
+          <div className="flex items-center gap-2 sm:ml-auto">
+            <Button variant="outline" size="sm" className="gap-1.5 flex-1 sm:flex-none" onClick={exportAgenda}>
+              <Copy className="h-3.5 w-3.5" />
+              <span>Export</span>
             </Button>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5">
-                  <Share2 className="h-3.5 w-3.5" /> Share
+                <Button variant="outline" size="sm" className="gap-1.5 flex-1 sm:flex-none">
+                  <Share2 className="h-3.5 w-3.5" />
+                  <span>Share</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-[300px] p-4">
@@ -336,7 +352,7 @@ export function AgendaContent() {
                 </div>
               </PopoverContent>
             </Popover>
-          </>
+          </div>
         )}
       </div>
 
@@ -344,29 +360,45 @@ export function AgendaContent() {
         <p className="text-muted-foreground text-sm">Select an artist to view their agenda.</p>
       ) : (
         <>
-          <div className="flex items-start gap-5 mb-6 min-w-0">
-            <Avatar className="h-16 w-16">
-              <AvatarImage src={artist.avatar_url ?? undefined} />
-              <AvatarFallback className="text-xl">{artist.name[0]}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <h2>{artist.name}</h2>
+          {/* Artist header */}
+          <div className="flex items-center justify-between gap-3 mb-5 min-w-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <Avatar className="h-10 w-10 shrink-0">
+                <AvatarImage src={artist.avatar_url ?? undefined} />
+                <AvatarFallback className="text-base">{artist.name[0]}</AvatarFallback>
+              </Avatar>
+              <h2 className="truncate">{artist.name}</h2>
             </div>
-            <div className="flex items-center gap-4 text-sm">
-              <span>Open Tasks <strong>{openTaskCount}</strong></span>
-              <span>Campaigns <strong>{campaignCount}</strong></span>
+            <div className="flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
+              <div className="text-center">
+                <div className="text-base font-bold text-foreground">{openTaskCount}</div>
+                <div>Tasks</div>
+              </div>
+              <div className="w-px h-6 bg-border" />
+              <div className="text-center">
+                <div className="text-base font-bold text-foreground">{campaignCount}</div>
+                <div>Campaigns</div>
+              </div>
             </div>
           </div>
 
+          {/* Budget cards */}
           {budgetCards.length > 0 && (
-            <div className="flex gap-3 overflow-x-auto pb-2 mb-8 min-w-0">
+            <div className="flex gap-2.5 overflow-x-auto pb-2 mb-6 min-w-0 scrollbar-hide">
               {budgetCards.map((b) => {
                 const pctColor = b.pct > 90 ? "bg-destructive" : b.pct > 60 ? "bg-orange-500" : "bg-emerald-500";
                 return (
-                  <div key={b.id} className="min-w-[160px] rounded-lg border border-border p-3 shrink-0">
-                    <div className="text-xs text-muted-foreground mb-1">{b.label}</div>
-                    <div className="text-sm font-bold">{formatMoney(b.spent)}/{formatMoney(Number(b.amount))}</div>
-                    <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div key={b.id} className="min-w-[140px] sm:min-w-[160px] rounded-lg border border-border p-3 shrink-0">
+                    <div className="text-[11px] text-muted-foreground mb-1 truncate">{b.label}</div>
+                    <div className="text-sm font-bold tabular-nums">
+                      <span className="sm:hidden">
+                        {formatMoneyAbbr(b.spent)}<span className="font-normal text-muted-foreground">/{formatMoneyAbbr(Number(b.amount))}</span>
+                      </span>
+                      <span className="hidden sm:inline">
+                        {formatMoney(b.spent)}<span className="font-normal text-muted-foreground">/{formatMoney(Number(b.amount))}</span>
+                      </span>
+                    </div>
+                    <div className="mt-2 h-1 rounded-full bg-muted overflow-hidden">
                       <div className={cn("h-full rounded-full transition-all", pctColor)} style={{ width: `${b.pct}%` }} />
                     </div>
                   </div>
@@ -376,7 +408,8 @@ export function AgendaContent() {
           )}
 
           <AgendaSection
-            title={`This Week — ${format(weekStart, "MMMM d")} - ${format(weekEnd, "MMMM d, yyyy")}`}
+            title="This Week"
+            subtitle={<><span className="sm:hidden">{weekRangeShort}</span><span className="hidden sm:inline">{weekRangeFull}</span></>}
             open={!collapsed["week"]}
             onToggle={() => toggle("week")}
           >
@@ -407,21 +440,22 @@ export function AgendaContent() {
           ))}
 
           <AgendaSection
-            title={`Milestones This Week — ${format(weekStart, "MMMM d")} - ${format(weekEnd, "MMMM d, yyyy")}`}
+            title="Milestones"
+            subtitle={<><span className="sm:hidden">{weekRangeShort}</span><span className="hidden sm:inline">{weekRangeFull}</span></>}
             open={!collapsed["milestones"]}
             onToggle={() => toggle("milestones")}
           >
             {weeklyMilestones.length === 0 ? (
               <p className="text-sm text-muted-foreground py-3">No milestones this week.</p>
             ) : (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 mt-2">
                 {weeklyMilestones.map((m: any) => (
-                  <div key={m.id} className="rounded-lg border border-border p-4">
+                  <div key={m.id} className="rounded-lg border border-border p-3">
                     <div className="font-semibold text-sm">{m.title}</div>
-                    {m.description && <div className="text-xs text-muted-foreground mt-0.5">{m.description}</div>}
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-3">
-                      <CalendarDays className="h-3 w-3" />
-                      {format(parse(m.date, "yyyy-MM-dd", new Date()), "MMMM d, yyyy")}
+                    {m.description && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{m.description}</div>}
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2.5">
+                      <CalendarDays className="h-3 w-3 shrink-0" />
+                      {format(parse(m.date, "yyyy-MM-dd", new Date()), "MMM d, yyyy")}
                     </div>
                   </div>
                 ))}
@@ -433,12 +467,15 @@ export function AgendaContent() {
     </div>
   );
 }
-function AgendaSection({ title, open, onToggle, children }: { title: string; open: boolean; onToggle: () => void; children: React.ReactNode }) {
+function AgendaSection({ title, subtitle, open, onToggle, children }: { title: string; subtitle?: React.ReactNode; open: boolean; onToggle: () => void; children: React.ReactNode }) {
   return (
     <div className="border-t border-border py-4 mb-2">
-      <button onClick={onToggle} className="flex items-center justify-between w-full text-left">
-        <h3 className="text-base font-semibold">{title}</h3>
-        {open ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
+      <button onClick={onToggle} className="flex items-center justify-between w-full text-left gap-3">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold leading-snug">{title}</h3>
+          {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+        </div>
+        {open ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
       </button>
       {open && <div className="mt-3">{children}</div>}
     </div>
@@ -450,28 +487,42 @@ function TaskRow({ task, initiatives, profileMap }: { task: any; initiatives: an
   const isOverdue = task.due_date && new Date(task.due_date) < now;
   const initiative = task.initiative_id ? initiatives.find((i) => i.id === task.initiative_id) : null;
   const assigneeName = task.assigned_to ? profileMap[task.assigned_to] : null;
+  const hasMeta = task.due_date || (task.expense_amount != null && task.expense_amount > 0) || assigneeName;
 
   return (
     <div className="flex items-start gap-3 py-3 border-b border-border last:border-b-0">
-      <div className="h-5 w-5 rounded border-2 border-muted-foreground/30 mt-0.5 shrink-0" />
+      <div className="h-4 w-4 rounded border-2 border-muted-foreground/30 mt-[3px] shrink-0" />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-medium text-sm">{task.title}</span>
-          {task.expense_amount != null && task.expense_amount > 0 && (
-            <span className="text-xs text-muted-foreground">${Number(task.expense_amount).toLocaleString()}</span>
-          )}
-          {task.due_date && (
-            <span className={cn("text-xs px-1.5 py-0.5 rounded", isOverdue ? "bg-destructive/10 text-destructive font-medium" : "text-muted-foreground")}>
-              {format(new Date(task.due_date), "MMM d, yyyy")}
-            </span>
-          )}
-          {assigneeName && <User className="h-3.5 w-3.5 text-muted-foreground" />}
-        </div>
+        {/* Title + description */}
+        <p className="font-medium text-sm leading-snug">{task.title}</p>
         {(initiative || task.description) && (
-          <div className="text-xs text-muted-foreground mt-0.5 truncate">
+          <p className="text-xs text-muted-foreground mt-0.5 truncate">
             {initiative && <strong>{initiative.name}</strong>}
-            {initiative && task.description && " "}
+            {initiative && task.description && " · "}
             {task.description}
+          </p>
+        )}
+        {/* Meta row — date, cost, assignee */}
+        {hasMeta && (
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            {task.due_date && (
+              <span className={cn(
+                "text-[11px] font-medium px-1.5 py-0.5 rounded",
+                isOverdue ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
+              )}>
+                {format(new Date(task.due_date), "MMM d")}
+              </span>
+            )}
+            {task.expense_amount != null && task.expense_amount > 0 && (
+              <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
+                <DollarSign className="h-2.5 w-2.5" />{Number(task.expense_amount).toLocaleString()}
+              </span>
+            )}
+            {assigneeName && (
+              <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                <User className="h-2.5 w-2.5" />{assigneeName}
+              </span>
+            )}
           </div>
         )}
       </div>
