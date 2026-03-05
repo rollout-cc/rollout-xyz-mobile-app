@@ -356,7 +356,7 @@ export default function Roster() {
             {/* Folder cards as droppable targets */}
             {folders.length > 0 && (
               <div className="mb-6">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                   {folders.map((folder: any) => {
                     const fArtists = artists.filter((a: any) => a.folder_id === folder.id);
                     return (
@@ -389,7 +389,7 @@ export default function Roster() {
                     {folders.length > 0 && (
                       <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">All Artists</h3>
                     )}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-8">
                       {uncategorizedArtists.map((artist: any, index: number) => (
                         <Draggable key={artist.id} draggableId={artist.id} index={index}>
                           {(dragProvided) => (
