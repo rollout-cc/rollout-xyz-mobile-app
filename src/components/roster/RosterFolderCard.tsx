@@ -61,7 +61,7 @@ export function RosterFolderCard({ folder, artists, onOpenAddDialog, onDelete, o
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-1 mb-3 max-w-[120px]">
+        <div className="grid grid-cols-2 gap-1 mb-3 max-w-[150px]">
           {[0, 1, 2, 3].map((i) => {
             const a = displayArtists[i];
             return (
