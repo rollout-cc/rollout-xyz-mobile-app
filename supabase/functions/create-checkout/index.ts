@@ -46,12 +46,12 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const { tier, team_id } = await req.json();
+    const { tier, team_id, embedded } = await req.json();
     if (!tier || !PRICE_MAP[tier]) throw new Error(`Invalid tier: ${tier}`);
     if (!team_id) throw new Error("team_id is required");
 
     const priceId = PRICE_MAP[tier];
-    logStep("Creating checkout for tier", { tier, priceId });
+    logStep("Creating checkout for tier", { tier, priceId, embedded });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
@@ -63,6 +63,30 @@ serve(async (req) => {
     }
 
     const origin = req.headers.get("origin") || "https://rollout-cc.lovable.app";
+
+    if (embedded) {
+      // Embedded checkout mode — returns client_secret for frontend SDK
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        customer_email: customerId ? undefined : user.email,
+        line_items: [{ price: priceId, quantity: 1 }],
+        mode: "subscription",
+        subscription_data: {
+          trial_period_days: 30,
+          metadata: { team_id },
+        },
+        metadata: { team_id },
+        ui_mode: "embedded",
+        return_url: `${origin}/settings?tab=plan&checkout=success`,
+      });
+
+      logStep("Embedded checkout session created", { sessionId: session.id });
+
+      return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
