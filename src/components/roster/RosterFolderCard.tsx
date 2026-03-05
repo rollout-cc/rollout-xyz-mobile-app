@@ -61,25 +61,24 @@ export function RosterFolderCard({ folder, artists, onOpenAddDialog, onDelete, o
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-1.5 mb-3 max-w-[70%]">
-          {[0, 1, 2, 3].map((i) => {
-            const a = displayArtists[i];
-            return (
-              <div key={i} className="aspect-square rounded-full overflow-hidden bg-muted">
-                {a ? (
-                  <Avatar className="h-full w-full rounded-full">
-                    <AvatarImage src={a.avatar_url ?? undefined} className="object-cover" />
-                    <AvatarFallback className="text-sm font-bold rounded-full">{a.name?.[0]}</AvatarFallback>
-                  </Avatar>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{artists.length} artist{artists.length !== 1 ? "s" : ""}</span>
-          <div className="flex items-center gap-3">
+        <div className="flex gap-3 mb-1">
+          <div className="grid grid-cols-2 gap-1.5 w-[65%] shrink-0">
+            {[0, 1, 2, 3].map((i) => {
+              const a = displayArtists[i];
+              return (
+                <div key={i} className="aspect-square rounded-full overflow-hidden bg-muted">
+                  {a ? (
+                    <Avatar className="h-full w-full rounded-full">
+                      <AvatarImage src={a.avatar_url ?? undefined} className="object-cover" />
+                      <AvatarFallback className="text-sm font-bold rounded-full">{a.name?.[0]}</AvatarFallback>
+                    </Avatar>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex flex-col justify-end text-xs text-muted-foreground gap-1 pb-0.5">
+            <span>{artists.length} artist{artists.length !== 1 ? "s" : ""}</span>
             {totalListeners > 0 && (
               <span className="flex items-center gap-0.5">
                 <Headphones className="h-3 w-3" />
