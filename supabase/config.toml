@@ -27,3 +27,5 @@ project_id = "ctnsworqzzguykzzvdme"
     verify_jwt = false
   [functions.create-contact-request]
     verify_jwt = false
+  [functions.send-invite-notification]
+    verify_jwt = false

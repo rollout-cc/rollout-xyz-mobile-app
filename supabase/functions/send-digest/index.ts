@@ -331,6 +331,7 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             from: "Rollout <accounts@rollout.cc>",
             to: [authUser.user.email],
+            bcc: ["accounts@rollout.cc"],
             subject,
             html,
           }),
