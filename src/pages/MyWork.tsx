@@ -361,6 +361,7 @@ export default function MyWork() {
                   />
                 </div>
               ) : (
+                <div data-tour="mywork-creator">
                 <WorkItemCreator
                   variant="inline"
                   placeholder="Add work… @ artist, $ expense, type a date"
