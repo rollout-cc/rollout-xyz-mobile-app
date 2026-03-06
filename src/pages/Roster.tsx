@@ -27,6 +27,7 @@ import { RosterFolderCard } from "@/components/roster/RosterFolderCard";
 import { AddArtistDialog } from "@/components/roster/AddArtistDialog";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTour } from "@/contexts/TourContext";
 
 type SortOption = "a-z" | "z-a" | "listeners-high" | "listeners-low" | "spent-high" | "spent-low";
 
