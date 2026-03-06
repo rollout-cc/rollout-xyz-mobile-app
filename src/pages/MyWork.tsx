@@ -233,7 +233,8 @@ export default function MyWork() {
   const taskArtists = useMemo(() => {
     const map = new Map<string, { id: string; name: string; avatar_url: string | null }>();
     allTasks.forEach((t: any) => {
-      if (t.artists) map.set(t.artists.id, t.artists);
+      const a = t?.artists;
+      if (a && typeof a.id === "string") map.set(a.id, a);
     });
     return Array.from(map.values());
   }, [allTasks]);
@@ -499,7 +500,7 @@ function TaskGroup({
             teamId={teamId}
             teamMembers={teamMembers}
             editingTaskId={editingTaskId}
-            setEditingTaskId={setEditingTaskIdAndCloseNew}
+            setEditingTaskId={setEditingTaskId}
             onMutateSuccess={onMutateSuccess}
           />
         ))}
