@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTour } from "@/contexts/TourContext";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,8 @@ export default function ArtistDetail() {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState("");
   const queryClient = useQueryClient();
+  const { tryStartPageTour } = useTour();
+  useEffect(() => { tryStartPageTour("artist-detail-tour"); }, [tryStartPageTour]);
 
   const handleRefreshSpotify = async () => {
     const result = await refetchSpotify();
@@ -206,7 +209,7 @@ export default function ArtistDetail() {
       title="Artist"
       onBack={handleBack}
       actions={
-        <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide" data-tour="artist-actions">
           {actionButtons.map(({ key, icon: Icon, label }) => (
             <Button
               key={key}
@@ -230,7 +233,7 @@ export default function ArtistDetail() {
         <ArrowLeft className="h-4 w-4" />
       </button>
       {/* Banner */}
-      <div className="relative rounded-xl overflow-hidden mb-4 shadow-2xl group">
+      <div className="relative rounded-xl overflow-hidden mb-4 shadow-2xl group" data-tour="artist-banner">
         <div className="relative h-52 sm:h-72 lg:h-[320px] overflow-hidden">
           <img
             src={hasBanner ? bannerUrl! : defaultBanner}
@@ -362,7 +365,7 @@ export default function ArtistDetail() {
       <div className="flex gap-6">
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-            <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0">
+            <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0" data-tour="artist-tabs">
               {tabItems.map((tab) => (
                 <button
                   key={tab}

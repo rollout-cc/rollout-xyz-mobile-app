@@ -108,6 +108,8 @@ export default function Onboarding() {
         .eq("id", createdTeamId);
     }
     toast.success("You're all set!");
+    // Flag to trigger welcome tour on first roster visit
+    localStorage.setItem("rollout_start_welcome_tour", "1");
     navigate("/roster", { replace: true });
   };
 

@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useTeams } from "@/hooks/useTeams";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { useTeamPlan } from "@/hooks/useTeamPlan";
+import { useTour } from "@/contexts/TourContext";
 
 type SettingsSection = "profile" | "notifications" | "team" | "plan" | "billing";
 type TeamSubSection = "members" | "profile";
@@ -31,6 +32,7 @@ export default function Settings() {
   const { selectedTeamId } = useSelectedTeam();
   const { isPaid, isTrialing, refetch: refetchPlan } = useTeamPlan();
   const hasPaidAccess = isPaid || isTrialing;
+  const { resetAllTours, startTour } = useTour();
 
   const myRole = teams.find((t) => t.id === selectedTeamId)?.role;
   const isOwnerOrManager = myRole === "team_owner" || myRole === "manager";
@@ -181,7 +183,7 @@ export default function Settings() {
         </button>
 
         {/* Top-level tabs */}
-        <div className="flex gap-1 mb-6">
+        <div className="flex gap-1 mb-6" data-tour="settings-tabs">
           {tabs.map(({ key, label }) => (
             <button
               key={key}
@@ -245,6 +247,22 @@ export default function Settings() {
             <Button onClick={handleSave} disabled={saving} className="rounded-md">
               {saving ? "Saving..." : "Save Settings"}
             </Button>
+
+            <div className="border-t border-border pt-6 mt-4">
+              <h3 className="text-sm font-medium text-foreground mb-2">App Tour</h3>
+              <p className="text-xs text-muted-foreground mb-3">Restart the guided tour to rediscover all features.</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  await resetAllTours();
+                  startTour("welcome-tour");
+                  toast.success("Tour restarted!");
+                }}
+              >
+                Restart App Tour
+              </Button>
+            </div>
           </div>
         )}
 

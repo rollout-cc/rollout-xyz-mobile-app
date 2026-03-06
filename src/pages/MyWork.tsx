@@ -12,6 +12,7 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { toast } from "sonner";
 import { useArtists } from "@/hooks/useArtists";
 import { NotesPanel } from "@/components/notes/NotesPanel";
+import { useTour } from "@/contexts/TourContext";
 import { useNotes } from "@/hooks/useNotes";
 import { WorkTaskItem } from "@/components/work/WorkTaskItem";
 import { WorkItemCreator } from "@/components/work/WorkItemCreator";
@@ -51,6 +52,8 @@ export default function MyWork() {
   const [titleForParsing, setTitleForParsing] = useState("");
 
   const { data: artists = [] } = useArtists(teamId);
+  const { tryStartPageTour } = useTour();
+  useEffect(() => { tryStartPageTour("mywork-tour"); }, [tryStartPageTour]);
   useNotes(); // prefetch
 
   // Parse revenue intent whenever title changes
@@ -293,7 +296,7 @@ export default function MyWork() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
             <h1 className="text-foreground text-xl font-bold tracking-tight">My Work</h1>
-            <div className="flex items-center rounded-lg bg-muted p-0.5">
+            <div className="flex items-center rounded-lg bg-muted p-0.5" data-tour="mywork-tabs">
               <button
                 onClick={() => setTab("tasks")}
                 className={cn(
@@ -315,18 +318,20 @@ export default function MyWork() {
             </div>
           </div>
           {tab === "tasks" && taskArtists.length > 0 && (
-            <Select value={filterArtistId} onValueChange={setFilterArtistId}>
-              <SelectTrigger className="w-[130px] h-8 text-sm">
-                <SelectValue placeholder="All Artists" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Artists</SelectItem>
-                <SelectItem value="none">Me</SelectItem>
-                {taskArtists.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <span data-tour="mywork-filter">
+              <Select value={filterArtistId} onValueChange={setFilterArtistId}>
+                <SelectTrigger className="w-[130px] h-8 text-sm">
+                  <SelectValue placeholder="All Artists" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Artists</SelectItem>
+                  <SelectItem value="none">Me</SelectItem>
+                  {taskArtists.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </span>
           )}
         </div>
 
@@ -357,18 +362,20 @@ export default function MyWork() {
                   />
                 </div>
               ) : (
-                <WorkItemCreator
-                  variant="inline"
-                  placeholder="Add work… @ artist, $ expense, type a date"
-                  triggers={triggers}
-                  onSubmit={(data) => createTask.mutate(data)}
-                  onTitleChange={setTitleForParsing}
-                  metadataPills={metadataPills}
-                  onOpenFullForm={(currentTitle) => {
-                    setAddFormInitialTitle(currentTitle);
-                    setShowFullAddForm(true);
-                  }}
-                />
+                <div data-tour="mywork-creator">
+                  <WorkItemCreator
+                    variant="inline"
+                    placeholder="Add work… @ artist, $ expense, type a date"
+                    triggers={triggers}
+                    onSubmit={(data) => createTask.mutate(data)}
+                    onTitleChange={setTitleForParsing}
+                    metadataPills={metadataPills}
+                    onOpenFullForm={(currentTitle) => {
+                      setAddFormInitialTitle(currentTitle);
+                      setShowFullAddForm(true);
+                    }}
+                  />
+                </div>
               )}
 
               {isLoading ? (

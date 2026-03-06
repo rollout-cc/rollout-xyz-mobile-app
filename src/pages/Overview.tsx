@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { cn, formatLocalDate } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -36,7 +36,7 @@ import { StaffContent } from "@/components/overview/StaffContent";
 import type { StaffMember } from "@/components/overview/StaffMetricsSection";
 import { useTeamPlan } from "@/hooks/useTeamPlan";
 import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
-
+import { useTour } from "@/contexts/TourContext";
 
 export default function Overview() {
   const { selectedTeamId: teamId } = useSelectedTeam();
@@ -47,6 +47,8 @@ export default function Overview() {
   const { limits } = useTeamPlan();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState("");
+  const { tryStartPageTour } = useTour();
+  useEffect(() => { tryStartPageTour("overview-tour"); }, [tryStartPageTour]);
 
   const handleCompanyTab = (tab: "dashboard" | "agenda" | "staff" | "finance") => {
     if (tab === "finance" && !limits.canUseFinance) {
@@ -444,7 +446,7 @@ export default function Overview() {
       ) : (
       <>
       {/* Company tabs */}
-      <div className="flex items-center gap-1 mb-5">
+      <div className="flex items-center gap-1 mb-5" data-tour="overview-tabs">
         {(["dashboard", "agenda", "staff", "finance"] as const).map((tab) => (
           <button
             key={tab}
@@ -590,10 +592,12 @@ export default function Overview() {
           {/* Sections grid */}
           <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId="overview-sections">
-              {(provided) => (
+              {(provided) => {
+                const sectionProps = { ...provided.droppableProps, "data-tour": "overview-sections" };
+                return (
                 <div
                   ref={provided.innerRef}
-                  {...provided.droppableProps}
+                  {...sectionProps}
                   className={cn(
                     "gap-4",
                     layout === "two-column"
@@ -621,7 +625,8 @@ export default function Overview() {
                   })}
                   {provided.placeholder}
                 </div>
-              )}
+              );
+              }}
             </Droppable>
           </DragDropContext>
 

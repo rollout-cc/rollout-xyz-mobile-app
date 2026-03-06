@@ -7,6 +7,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { TeamProvider } from "@/contexts/TeamContext";
+import { TourProvider } from "@/contexts/TourContext";
+import { TourOverlay } from "@/components/tour/TourOverlay";
 import { useTeams } from "@/hooks/useTeams";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -131,7 +133,10 @@ const App = () => (
           <BrowserRouter>
             <ErrorBoundary fallbackMessage="Something went wrong. Please reload the page.">
               <UnhandledRejectionHandler />
-              <AppRoutes />
+              <TourProvider>
+                <TourOverlay />
+                <AppRoutes />
+              </TourProvider>
             </ErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>
