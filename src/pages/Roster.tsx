@@ -304,11 +304,12 @@ export default function Roster() {
           </button>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {activeTab === "roster" && SortSelect}
+          {activeTab === "roster" && <span data-tour="roster-sort">{SortSelect}</span>}
           <Button
             variant="outline"
             size="sm"
             className="gap-1 hidden sm:inline-flex"
+            data-tour="add-category-btn"
             onClick={() => {
               setCreatingFolder(true);
               setTimeout(() => folderInputRef.current?.focus(), 50);
@@ -316,7 +317,7 @@ export default function Roster() {
           >
             <FolderPlus className="h-3.5 w-3.5" /> Category
           </Button>
-          <Button onClick={handleOpenAddArtist} size="sm" className="gap-1 hidden sm:inline-flex">
+          <Button onClick={handleOpenAddArtist} size="sm" className="gap-1 hidden sm:inline-flex" data-tour="add-artist-btn">
             Add Artist
           </Button>
         </div>
