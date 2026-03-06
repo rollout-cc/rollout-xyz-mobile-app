@@ -247,6 +247,22 @@ export default function Settings() {
             <Button onClick={handleSave} disabled={saving} className="rounded-md">
               {saving ? "Saving..." : "Save Settings"}
             </Button>
+
+            <div className="border-t border-border pt-6 mt-4">
+              <h3 className="text-sm font-medium text-foreground mb-2">App Tour</h3>
+              <p className="text-xs text-muted-foreground mb-3">Restart the guided tour to rediscover all features.</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  await resetAllTours();
+                  startTour("welcome-tour");
+                  toast.success("Tour restarted!");
+                }}
+              >
+                Restart App Tour
+              </Button>
+            </div>
           </div>
         )}
 

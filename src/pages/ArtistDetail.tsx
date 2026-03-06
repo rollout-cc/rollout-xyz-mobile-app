@@ -365,7 +365,7 @@ export default function ArtistDetail() {
       <div className="flex gap-6">
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-            <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0">
+            <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0" data-tour="artist-tabs">
               {tabItems.map((tab) => (
                 <button
                   key={tab}
