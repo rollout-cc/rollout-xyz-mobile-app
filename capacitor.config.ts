@@ -16,6 +16,16 @@ const config: CapacitorConfig = {
     // CSS overflow-scroll containers within the app still work normally.
     scrollEnabled: false,
   },
+  plugins: {
+    Keyboard: {
+      // Resize the <body> element when the keyboard shows/hides so that
+      // the layout adjusts without relying on the native WKWebView scroll
+      // (which is disabled above). This fixes the keyboard not appearing
+      // when scrollEnabled is false.
+      resize: 'body',
+      resizeOnFullScreen: true,
+    },
+  },
 };
 
 export default config;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -7,8 +7,6 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ChevronRight } from "lucide-react";
 import rolloutLogo from "@/assets/rollout-logo.png";
-import rolloutFlag from "@/assets/rollout-flag.svg";
-
 
 export default function Login() {
   const [searchParams] = useSearchParams();
@@ -82,11 +80,20 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen">
+    // h-dvh = dynamic viewport height: adjusts when the iOS keyboard appears,
+    // unlike min-h-screen / 100vh which are fixed to the layout viewport.
+    <div className="flex h-dvh">
+
       {/* Left panel – form */}
-      <div className="flex flex-1 flex-col justify-between bg-[hsl(35,25%,91%)] px-8 sm:px-16 lg:px-24 py-12">
-        <div>
-          <img src={rolloutLogo} alt="Rollout" className="h-16 sm:h-20 mb-16 sm:mb-24" />
+      <div className="flex flex-1 flex-col justify-between bg-[hsl(35,25%,91%)] px-8 sm:px-16 lg:px-24 overflow-y-auto">
+        {/*
+          Safe-area spacer: absorbs the Dynamic Island / notch height on iOS
+          (same pattern used by AppLayout's header). Zero height on desktop.
+        */}
+        <div className="safe-area-top" aria-hidden="true" />
+
+        <div className="py-10 sm:py-12">
+          <img src={rolloutLogo} alt="Rollout" className="h-16 sm:h-20 mb-12 sm:mb-20" />
 
           {mode === "login" ? (
             <div className="max-w-md">
@@ -95,25 +102,30 @@ export default function Login() {
               <form onSubmit={handleEmailLogin} className="flex flex-col gap-4">
                 <Input
                   type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  autoCorrect="off"
+                  autoCapitalize="none"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder="Email"
-                  className="h-12 rounded-lg border-[hsl(0,0%,75%)] bg-transparent text-foreground placeholder:text-muted-foreground"
+                  className="h-12 rounded-lg border-[hsl(0,0%,75%)] bg-transparent text-foreground placeholder:text-muted-foreground touch-manipulation"
                 />
                 <Input
                   type="password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="Password"
-                  className="h-12 rounded-lg border-[hsl(0,0%,75%)] bg-transparent text-foreground placeholder:text-muted-foreground"
+                  className="h-12 rounded-lg border-[hsl(0,0%,75%)] bg-transparent text-foreground placeholder:text-muted-foreground touch-manipulation"
                 />
 
                 <button
                   type="button"
                   onClick={handleForgotPassword}
-                  className="text-sm text-muted-foreground hover:text-foreground self-start -mt-1 transition-colors"
+                  className="text-sm text-muted-foreground hover:text-foreground self-start -mt-1 transition-colors touch-manipulation"
                 >
                   Forgot Password
                 </button>
@@ -121,7 +133,7 @@ export default function Login() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="h-12 rounded-full bg-foreground text-background hover:bg-foreground/90 font-medium mt-2"
+                  className="h-12 rounded-full bg-foreground text-background hover:bg-foreground/90 font-medium mt-2 touch-manipulation"
                 >
                   {loading ? "Signing in..." : "Sign In with Email"}
                 </Button>
@@ -136,7 +148,7 @@ export default function Login() {
                   type="button"
                   onClick={handleGoogleLogin}
                   variant="outline"
-                  className="h-12 rounded-full border-[hsl(0,0%,75%)] bg-transparent text-foreground hover:bg-[hsl(35,20%,86%)] font-medium"
+                  className="h-12 rounded-full border-[hsl(0,0%,75%)] bg-transparent text-foreground hover:bg-[hsl(35,20%,86%)] font-medium touch-manipulation"
                 >
                   <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
@@ -156,33 +168,41 @@ export default function Login() {
               <form onSubmit={handleEmailSignup} className="flex flex-col gap-4">
                 <Input
                   type="text"
+                  inputMode="text"
+                  autoComplete="name"
+                  autoCorrect="off"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
                   placeholder="Full Name"
-                  className="h-12 rounded-lg border-[hsl(0,0%,75%)] bg-transparent text-foreground placeholder:text-muted-foreground"
+                  className="h-12 rounded-lg border-[hsl(0,0%,75%)] bg-transparent text-foreground placeholder:text-muted-foreground touch-manipulation"
                 />
                 <Input
                   type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  autoCorrect="off"
+                  autoCapitalize="none"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder="Email"
-                  className="h-12 rounded-lg border-[hsl(0,0%,75%)] bg-transparent text-foreground placeholder:text-muted-foreground"
+                  className="h-12 rounded-lg border-[hsl(0,0%,75%)] bg-transparent text-foreground placeholder:text-muted-foreground touch-manipulation"
                 />
                 <Input
                   type="password"
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
                   placeholder="Password"
-                  className="h-12 rounded-lg border-[hsl(0,0%,75%)] bg-transparent text-foreground placeholder:text-muted-foreground"
+                  className="h-12 rounded-lg border-[hsl(0,0%,75%)] bg-transparent text-foreground placeholder:text-muted-foreground touch-manipulation"
                 />
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="h-12 rounded-full bg-foreground text-background hover:bg-foreground/90 font-medium mt-2"
+                  className="h-12 rounded-full bg-foreground text-background hover:bg-foreground/90 font-medium mt-2 touch-manipulation"
                 >
                   {loading ? "Creating account..." : "Start Free Trial"}
                 </Button>
@@ -190,7 +210,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setMode("login")}
-                  className="text-sm text-muted-foreground hover:text-foreground self-start transition-colors"
+                  className="text-sm text-muted-foreground hover:text-foreground self-start transition-colors touch-manipulation"
                 >
                   ← Back to Sign In
                 </button>
@@ -199,11 +219,12 @@ export default function Login() {
           )}
         </div>
 
-        {/* Bottom CTA */}
+        {/* Bottom CTA — justify-between pushes this to the bottom of the panel */}
         {mode === "login" && (
           <button
             onClick={() => setMode("signup")}
-            className="flex items-center justify-between max-w-md mt-12 px-5 py-4 rounded-lg border border-[hsl(0,0%,75%)] hover:bg-[hsl(35,20%,86%)] transition-colors"
+            className="flex items-center justify-between max-w-md mb-10 sm:mb-12 px-5 py-4 rounded-lg border border-[hsl(0,0%,75%)] hover:bg-[hsl(35,20%,86%)] transition-colors touch-manipulation"
+            style={{ marginBottom: "max(2.5rem, calc(var(--safe-area-inset-bottom) + 1.5rem))" }}
           >
             <span className="text-sm font-medium text-foreground">Don't have an account?</span>
             <span className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -213,7 +234,7 @@ export default function Login() {
         )}
       </div>
 
-      {/* Right panel – waving flag video */}
+      {/* Right panel – waving flag video (desktop only) */}
       <div className="hidden lg:flex flex-1 items-center justify-center bg-[hsl(35,25%,91%)] pr-0 pl-8 py-8">
         <div className="w-[90%] h-[80vh] rounded-2xl overflow-hidden mr-auto">
           <video
