@@ -166,8 +166,8 @@ export function ItemEditor({
   }, [onDateParsed]);
 
   return (
-    <div className="relative flex-1 min-w-0">
-      <div className="flex items-center gap-2">
+    <div className="relative flex-1 min-w-0 overflow-hidden">
+      <div className="flex items-center gap-2 min-w-0">
         <input
           ref={inputRef}
           value={value}
@@ -175,7 +175,7 @@ export function ItemEditor({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className={cn(
-            "w-full bg-transparent outline-none text-sm placeholder:text-muted-foreground/50",
+            "w-full min-w-0 bg-transparent outline-none text-sm placeholder:text-muted-foreground/50",
             className
           )}
         />
@@ -255,7 +255,7 @@ export function DescriptionEditor({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className={cn(
-        "w-full bg-transparent text-xs text-muted-foreground outline-none placeholder:text-muted-foreground/40",
+        "w-full min-w-0 bg-transparent text-xs text-muted-foreground outline-none placeholder:text-muted-foreground/40",
         className
       )}
       onKeyDown={(e) => {

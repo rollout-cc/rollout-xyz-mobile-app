@@ -416,16 +416,16 @@ export function WorkTaskItem({
   /* ── Edit / New form ── */
   if (isEditing || (isNew && (showNew || autoFocus))) {
     return (
-      <div className="mb-2 rounded-xl border border-border bg-card px-4 py-3.5 space-y-3">
-        <div className="flex items-start gap-3">
+      <div className="mb-2 rounded-xl border border-border bg-card px-3 py-3.5 space-y-3 overflow-hidden min-w-0 sm:px-4">
+        <div className="flex items-start gap-3 min-w-0">
           <Checkbox disabled className="opacity-20 mt-[3px] shrink-0" />
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 overflow-hidden">
             <ItemEditor
               value={title}
               onChange={setTitle}
               onSubmit={parseAndSubmit}
               onCancel={handleCancel}
-              placeholder={`Task title… @ assign, # campaign, $ budget, due tomorrow`}
+              placeholder="Task title… @ assign, # campaign, $ budget"
               autoFocus={autoFocus || showNew || isEditing}
               triggers={triggers}
               className="text-[15px] font-medium leading-snug"
@@ -449,9 +449,9 @@ export function WorkTaskItem({
           )}
         </div>
 
-        <div className="flex items-center justify-between pt-0.5">
-          {/* Quick-add toolbar */}
-          <div className="flex items-center gap-0.5 -ml-1">
+        <div className="flex flex-col gap-2 pt-0.5 sm:flex-row sm:items-center sm:justify-between">
+          {/* Quick-add toolbar: scroll horizontally on narrow screens */}
+          <div className="flex items-center gap-0.5 -mx-1 px-1 min-w-0 overflow-x-auto overflow-y-hidden scrollbar-hide">
             <ToolbarButton icon={<Star className="h-4 w-4" />} title="Priority" onClick={() => {}} />
             <ToolbarButton icon={<User className="h-4 w-4" />} title="Assign (@)" onClick={() => setTitle((prev) => prev + " @")} />
             <ToolbarButton icon={<Calendar className="h-4 w-4" />} title="Due date" onClick={() => setTitle((prev) => prev + " due ")} />
@@ -460,10 +460,10 @@ export function WorkTaskItem({
             <ToolbarButton icon={<Link2 className="h-4 w-4" />} title="Link" onClick={() => {}} />
             <ToolbarButton icon={<Bookmark className="h-4 w-4" />} title="Timeline" onClick={() => {}} />
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="h-9 px-4 text-sm" onClick={handleCancel}>Cancel</Button>
-            <Button size="sm" className="h-9 px-4 text-sm gap-1.5" onClick={parseAndSubmit} disabled={!title.trim()}>
-              <Check className="h-3.5 w-3.5" /> Save
+          <div className="flex items-center justify-end gap-2 shrink-0">
+            <Button variant="ghost" size="sm" className="h-9 px-3 text-sm sm:px-4" onClick={handleCancel}>Cancel</Button>
+            <Button size="sm" className="h-9 px-3 text-sm gap-1.5 sm:px-4" onClick={parseAndSubmit} disabled={!title.trim()}>
+              <Check className="h-3.5 w-3.5 shrink-0" /> Save
             </Button>
           </div>
         </div>
