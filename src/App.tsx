@@ -133,7 +133,10 @@ const App = () => (
           <BrowserRouter>
             <ErrorBoundary fallbackMessage="Something went wrong. Please reload the page.">
               <UnhandledRejectionHandler />
-              <AppRoutes />
+              <TourProvider>
+                <TourOverlay />
+                <AppRoutes />
+              </TourProvider>
             </ErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>

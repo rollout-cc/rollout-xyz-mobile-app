@@ -161,7 +161,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
             {navItems.map((item) => (
               <SidebarMenuItem key={item.to} className={collapsed ? "flex justify-center" : ""}>
                 <SidebarMenuButton asChild tooltip={collapsed ? item.label : undefined}>
-                  <NavLink to={item.to} className={`hover:bg-accent ${collapsed ? "justify-center" : ""}`} activeClassName="bg-accent font-medium">
+                  <NavLink to={item.to} className={`hover:bg-accent ${collapsed ? "justify-center" : ""}`} activeClassName="bg-accent font-medium" data-tour={item.tourId}>
                     <item.icon className="h-4 w-4 shrink-0" />
                     {!collapsed && <span>{item.label}</span>}
                   </NavLink>
