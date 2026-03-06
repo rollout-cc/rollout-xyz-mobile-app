@@ -119,6 +119,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
+                  data-tour="team-switcher"
                   className={`flex items-center gap-2 rounded-md text-sm hover:bg-accent transition-colors ${collapsed ? "justify-center w-8 h-8 p-0" : "w-full px-2 py-1.5"}`}
                 >
                    <div className={`flex items-center justify-center rounded-md bg-muted text-xs font-semibold shrink-0 overflow-hidden ${collapsed ? "h-8 w-8" : "h-7 w-7"}`}>
