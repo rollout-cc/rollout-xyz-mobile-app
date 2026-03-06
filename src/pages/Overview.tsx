@@ -36,7 +36,7 @@ import { StaffContent } from "@/components/overview/StaffContent";
 import type { StaffMember } from "@/components/overview/StaffMetricsSection";
 import { useTeamPlan } from "@/hooks/useTeamPlan";
 import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
-
+import { useTour } from "@/contexts/TourContext";
 
 export default function Overview() {
   const { selectedTeamId: teamId } = useSelectedTeam();
