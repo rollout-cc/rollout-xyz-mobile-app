@@ -81,7 +81,7 @@ function ProspectCard({ p, onSelect, onDelete, dragProvided, dragSnapshot }: any
       onClick={() => onSelect(p.id)}
       onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') onSelect(p.id); }}
       className={cn(
-        "w-full text-left rounded-xl border border-border bg-card p-3 hover:shadow-sm transition-shadow group cursor-pointer select-none",
+        "w-full text-left rounded-xl border border-border bg-card p-3 hover:shadow-sm transition-shadow group cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary",
         dragSnapshot.isDragging && "shadow-lg ring-2 ring-primary/30"
       )}
     >
@@ -102,7 +102,7 @@ function ProspectCard({ p, onSelect, onDelete, dragProvided, dragSnapshot }: any
                   <button
                     onClick={(e) => e.stopPropagation()}
                     onPointerDown={(e) => e.stopPropagation()}
-                    className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0"
+                    className="ml-auto opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0"
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>
@@ -157,8 +157,8 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete, on
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="pb-4 overflow-x-auto scrollbar-hide">
-        <div className="grid grid-cols-5 gap-4" style={{ minWidth: "850px" }}>
+      <div className="pb-4 overflow-x-visible md:overflow-x-auto scrollbar-hide">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-5 md:min-w-[900px]">
           {STAGES.map((stage) => {
             const items = activeProspects.filter((p: any) => p.stage === stage);
             return (
@@ -258,7 +258,7 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete, on
                     <AlertDialogTrigger asChild>
                       <button
                         onClick={(e) => e.stopPropagation()}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0"
+                        className="opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0"
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>

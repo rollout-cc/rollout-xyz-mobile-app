@@ -188,7 +188,7 @@ export function ProspectDrawer({ prospectId, onClose }: ProspectDrawerProps) {
 
   return (
     <Sheet open={!!prospectId} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <SheetContent side="right" className="w-full sm:max-w-xl p-0 flex flex-col overflow-hidden">
+      <SheetContent side="right" hideClose className="w-full sm:max-w-xl p-0 flex flex-col overflow-hidden">
         {isLoading || !prospect ? (
           <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
             {isLoading ? "Loading..." : "Prospect not found."}

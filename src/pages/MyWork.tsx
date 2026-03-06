@@ -4,16 +4,16 @@ import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSelectedTeam } from "@/contexts/TeamContext";
-import { format } from "date-fns";
+import { format, isToday, isPast } from "date-fns";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Music2, Wallet } from "lucide-react";
+import { Music2, Wallet, CalendarDays, Clock, Inbox } from "lucide-react";
 import { cn, formatLocalDate } from "@/lib/utils";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { toast } from "sonner";
 import { useArtists } from "@/hooks/useArtists";
 import { NotesPanel } from "@/components/notes/NotesPanel";
 import { useNotes } from "@/hooks/useNotes";
-import { WorkItemRow } from "@/components/work/WorkItemRow";
+import { WorkTaskItem } from "@/components/work/WorkTaskItem";
 import { WorkItemCreator } from "@/components/work/WorkItemCreator";
 import { parseRevenueIntent } from "@/lib/revenueParser";
 import {
@@ -33,6 +33,7 @@ export default function MyWork() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const tab: Tab = location.pathname === "/notes" ? "notes" : "tasks";
+  const autoCreateNote = tab === "notes" && !!(location.state as Record<string, unknown> | null)?.createNote;
 
   const setTab = (value: Tab) => {
     navigate(value === "notes" ? "/notes" : "/my-work", { replace: true });
@@ -41,7 +42,9 @@ export default function MyWork() {
   const [expenseAmount, setExpenseAmount] = useState<number | null>(null);
   const [budgetId, setBudgetId] = useState<string | null>(null);
   const [filterArtistId, setFilterArtistId] = useState<string>("all");
-  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [showFullAddForm, setShowFullAddForm] = useState(false);
+  const [addFormInitialTitle, setAddFormInitialTitle] = useState("");
   const [revenueMode, setRevenueMode] = useState(false);
   const [revenueSource, setRevenueSource] = useState<string | null>(null);
   const [revenueAmount, setRevenueAmount] = useState<number | null>(null);
@@ -95,48 +98,18 @@ export default function MyWork() {
     enabled: !!user?.id,
   });
 
-  const toggleComplete = useMutation({
-    mutationFn: async (taskId: string) => {
-      const { error } = await supabase
-        .from("tasks")
-        .update({ is_completed: true, completed_at: new Date().toISOString() })
-        .eq("id", taskId);
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ["team-members", teamId],
+    queryFn: async () => {
+      const { data: memberships, error } = await supabase.from("team_memberships").select("user_id, role").eq("team_id", teamId!);
       if (error) throw error;
+      if (!memberships?.length) return [];
+      const userIds = memberships.map((m: any) => m.user_id);
+      const { data: profiles, error: pErr } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", userIds);
+      if (pErr) throw pErr;
+      return (profiles || []).map((p: any) => ({ ...p, role: memberships.find((m: any) => m.user_id === p.id)?.role }));
     },
-    onMutate: async (taskId) => {
-      await queryClient.cancelQueries({ queryKey: ["my-work"] });
-      const prev = queryClient.getQueryData<any[]>(["my-work", user?.id]);
-      queryClient.setQueryData<any[]>(["my-work", user?.id], (old) =>
-        old?.filter((t) => t.id !== taskId) ?? []
-      );
-      return { prev };
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.prev) queryClient.setQueryData(["my-work", user?.id], context.prev);
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ["my-work"] }),
-  });
-
-  const updateDescription = useMutation({
-    mutationFn: async ({ id, description }: { id: string; description: string }) => {
-      const { error } = await supabase.from("tasks").update({ description }).eq("id", id);
-      if (error) throw error;
-    },
-    onMutate: async ({ id, description }) => {
-      await queryClient.cancelQueries({ queryKey: ["my-work"] });
-      queryClient.setQueriesData<any[]>({ queryKey: ["my-work"] }, (old) =>
-        old?.map((t) => (t.id === id ? { ...t, description } : t)) ?? []
-      );
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ["my-work"] }),
-  });
-
-  const deleteTask = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("tasks").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["my-work"] }),
+    enabled: !!teamId,
   });
 
   const createTask = useMutation({
@@ -243,6 +216,11 @@ export default function MyWork() {
     await queryClient.invalidateQueries({ queryKey: ["my-work"] });
   }, [queryClient]);
 
+  const setEditingTaskIdAndCloseNew = useCallback((id: string | null) => {
+    setEditingTaskId(id);
+    if (id != null) setShowFullAddForm(false);
+  }, []);
+
   const selectedArtist = artists.find((a: any) => a.id === selectedArtistId);
   const selectedBudget = budgets.find((b: any) => b.id === budgetId);
 
@@ -260,23 +238,46 @@ export default function MyWork() {
     return Array.from(map.values());
   }, [allTasks]);
 
+  const grouped = useMemo(() => {
+    const overdue: typeof tasks = [];
+    const today: typeof tasks = [];
+    const upcoming: typeof tasks = [];
+    const anytime: typeof tasks = [];
+
+    tasks.forEach((t) => {
+      if (!t.due_date) {
+        anytime.push(t);
+      } else {
+        const d = new Date(t.due_date + "T00:00:00");
+        if (isToday(d)) today.push(t);
+        else if (isPast(d)) overdue.push(t);
+        else upcoming.push(t);
+      }
+    });
+
+    return { overdue, today, upcoming, anytime };
+  }, [tasks]);
+
+  const nonEmptyGroupCount = [grouped.overdue, grouped.today, grouped.upcoming, grouped.anytime].filter(g => g.length > 0).length;
+  const showGroupHeaders = nonEmptyGroupCount > 1;
+
   const metadataPills = (selectedArtist || expenseAmount != null || revenueMode) ? (
-    <div className="flex items-center gap-1.5 ml-7 flex-wrap">
+    <div className="flex items-center gap-1.5 flex-wrap">
       {selectedArtist && (
-        <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-[3px] rounded-full bg-muted text-muted-foreground">
           <Music2 className="h-2.5 w-2.5" />
           {selectedArtist.name}
           <button onClick={() => { setSelectedArtistId(null); setBudgetId(null); setExpenseAmount(null); }} className="ml-0.5 hover:text-foreground">×</button>
         </span>
       )}
       {revenueMode && revenueAmount != null && (
-        <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600">
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-[3px] rounded-full bg-emerald-500/10 text-emerald-600">
           +${revenueAmount.toLocaleString()}
           {revenueSource && <span className="opacity-70">· {revenueSource}</span>}
         </span>
       )}
       {!revenueMode && expenseAmount != null && (
-        <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-[3px] rounded-full bg-muted text-muted-foreground">
           ${expenseAmount.toLocaleString()}
           {selectedBudget && <span className="opacity-60">· {selectedBudget.label}</span>}
           <button onClick={() => { setExpenseAmount(null); setBudgetId(null); }} className="ml-0.5 hover:text-foreground">×</button>
@@ -287,16 +288,16 @@ export default function MyWork() {
 
   return (
     <AppLayout title="My Work">
-      <div className="mx-auto max-w-2xl pb-20">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <h1 className="text-foreground text-lg font-bold">My Work</h1>
+      <div className="mx-auto max-w-2xl pb-24">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-foreground text-xl font-bold tracking-tight">My Work</h1>
             <div className="flex items-center rounded-lg bg-muted p-0.5">
               <button
                 onClick={() => setTab("tasks")}
                 className={cn(
-                  "px-3 py-1 text-sm font-medium rounded-md transition-colors",
-                  tab === "tasks" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  "px-3.5 py-1.5 text-sm font-medium rounded-md transition-colors",
+                  tab === "tasks" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
                 )}
               >
                 Work
@@ -304,8 +305,8 @@ export default function MyWork() {
               <button
                 onClick={() => setTab("notes")}
                 className={cn(
-                  "px-3 py-1 text-sm font-medium rounded-md transition-colors",
-                  tab === "notes" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  "px-3.5 py-1.5 text-sm font-medium rounded-md transition-colors",
+                  tab === "notes" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
                 )}
               >
                 Notes
@@ -314,7 +315,7 @@ export default function MyWork() {
           </div>
           {tab === "tasks" && taskArtists.length > 0 && (
             <Select value={filterArtistId} onValueChange={setFilterArtistId}>
-              <SelectTrigger className="w-[140px] h-8 text-sm">
+              <SelectTrigger className="w-[130px] h-8 text-sm">
                 <SelectValue placeholder="All Artists" />
               </SelectTrigger>
               <SelectContent>
@@ -330,48 +331,179 @@ export default function MyWork() {
 
         <PullToRefresh onRefresh={handleRefresh}>
           {tab === "tasks" ? (
+            !teamId ? (
+              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground text-sm">
+                Select a team to view your work.
+              </div>
+            ) : (
             <>
-              <WorkItemCreator
-                variant="inline"
-                placeholder="Add work… @ artist, $ expense, type a date"
-                triggers={triggers}
-                onSubmit={(data) => createTask.mutate(data)}
-                onTitleChange={setTitleForParsing}
-                metadataPills={metadataPills}
-              />
-
-              <div className="border-t border-border" />
-
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">Loading…</div>
-              ) : tasks.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-1">
-                  <p className="text-sm font-medium">All clear</p>
-                  <p className="text-xs">No work right now.</p>
+              {showFullAddForm ? (
+                <div className="mb-2">
+                  <WorkTaskItem
+                    isNew
+                    artistId={selectedArtistId ?? ""}
+                    teamId={teamId}
+                    teamMembers={teamMembers}
+                    autoFocus
+                    initialTitle={addFormInitialTitle}
+                    defaultAssignedTo={user?.id ?? undefined}
+                    onCancel={() => setShowFullAddForm(false)}
+                    onMutateSuccess={() => {
+                      queryClient.invalidateQueries({ queryKey: ["my-work"] });
+                      setShowFullAddForm(false);
+                      setAddFormInitialTitle("");
+                    }}
+                  />
                 </div>
               ) : (
-                <ul className="divide-y divide-border">
-                  {tasks.map((task) => (
-                    <WorkItemRow
-                      key={task.id}
-                      task={task as any}
-                      isExpanded={expandedTaskId === task.id}
-                      onToggleExpand={() => setExpandedTaskId(expandedTaskId === task.id ? null : task.id)}
-                      onToggleComplete={() => toggleComplete.mutate(task.id)}
-                      onDelete={() => deleteTask.mutate(task.id)}
-                      onDescriptionChange={(desc) => updateDescription.mutate({ id: task.id, description: desc })}
-                      onNavigateToArtist={(id) => navigate(`/roster/${id}`)}
-                      showArtist={true}
-                    />
-                  ))}
-                </ul>
+                <WorkItemCreator
+                  variant="inline"
+                  placeholder="Add work… @ artist, $ expense, type a date"
+                  triggers={triggers}
+                  onSubmit={(data) => createTask.mutate(data)}
+                  onTitleChange={setTitleForParsing}
+                  metadataPills={metadataPills}
+                  onOpenFullForm={(currentTitle) => {
+                    setAddFormInitialTitle(currentTitle);
+                    setShowFullAddForm(true);
+                  }}
+                />
+              )}
+
+              {isLoading ? (
+                <div className="flex items-center justify-center py-20 text-muted-foreground text-sm">Loading…</div>
+              ) : tasks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-2">
+                  <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-1">
+                    <Inbox className="h-5 w-5 text-muted-foreground/40" />
+                  </div>
+                  <p className="text-sm font-semibold text-foreground/70">All clear</p>
+                  <p className="text-xs text-muted-foreground/50">Nothing on your plate right now.</p>
+                </div>
+              ) : (
+                <div className="mt-2">
+                  <TaskGroup
+                    tasks={grouped.overdue}
+                    label="Overdue"
+                    icon={<Clock className="h-3 w-3" />}
+                    variant="overdue"
+                    showHeader={showGroupHeaders}
+                    teamId={teamId}
+                    teamMembers={teamMembers}
+                    editingTaskId={editingTaskId}
+                    setEditingTaskId={setEditingTaskIdAndCloseNew}
+                    onMutateSuccess={() => queryClient.invalidateQueries({ queryKey: ["my-work"] })}
+                  />
+                  <TaskGroup
+                    tasks={grouped.today}
+                    label="Today"
+                    icon={<CalendarDays className="h-3 w-3" />}
+                    variant="today"
+                    showHeader={showGroupHeaders}
+                    teamId={teamId}
+                    teamMembers={teamMembers}
+                    editingTaskId={editingTaskId}
+                    setEditingTaskId={setEditingTaskIdAndCloseNew}
+                    onMutateSuccess={() => queryClient.invalidateQueries({ queryKey: ["my-work"] })}
+                  />
+                  <TaskGroup
+                    tasks={grouped.upcoming}
+                    label="Upcoming"
+                    icon={<CalendarDays className="h-3 w-3" />}
+                    variant="default"
+                    showHeader={showGroupHeaders}
+                    teamId={teamId}
+                    teamMembers={teamMembers}
+                    editingTaskId={editingTaskId}
+                    setEditingTaskId={setEditingTaskIdAndCloseNew}
+                    onMutateSuccess={() => queryClient.invalidateQueries({ queryKey: ["my-work"] })}
+                  />
+                  <TaskGroup
+                    tasks={grouped.anytime}
+                    label="Anytime"
+                    icon={<Inbox className="h-3 w-3" />}
+                    variant="default"
+                    showHeader={showGroupHeaders}
+                    teamId={teamId}
+                    teamMembers={teamMembers}
+                    editingTaskId={editingTaskId}
+                    setEditingTaskId={setEditingTaskIdAndCloseNew}
+                    onMutateSuccess={() => queryClient.invalidateQueries({ queryKey: ["my-work"] })}
+                  />
+                </div>
               )}
             </>
+            )
           ) : (
-            <NotesPanel />
+            <NotesPanel autoCreate={autoCreateNote} />
           )}
         </PullToRefresh>
       </div>
     </AppLayout>
+  );
+}
+
+/* ── Date-grouped task section (reuses Work section task component) ── */
+
+function TaskGroup({
+  tasks,
+  label,
+  icon,
+  variant,
+  showHeader,
+  teamId,
+  teamMembers,
+  editingTaskId,
+  setEditingTaskId,
+  onMutateSuccess,
+}: {
+  tasks: any[];
+  label: string;
+  icon: import("react").ReactNode;
+  variant: "overdue" | "today" | "default";
+  showHeader: boolean;
+  teamId: string;
+  teamMembers: any[];
+  editingTaskId: string | null;
+  setEditingTaskId: (id: string | null) => void;
+  onMutateSuccess: () => void;
+}) {
+  if (tasks.length === 0) return null;
+
+  return (
+    <div className="mb-1">
+      {showHeader && (
+        <div className="flex items-center gap-2 pt-5 pb-2 px-1">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest",
+              variant === "overdue" && "text-destructive",
+              variant === "today" && "text-primary",
+              variant === "default" && "text-muted-foreground/50"
+            )}
+          >
+            {icon}
+            {label}
+          </span>
+          <span className="text-[10px] font-semibold text-muted-foreground/30 tabular-nums">
+            {tasks.length}
+          </span>
+        </div>
+      )}
+      <div className="divide-y divide-border/20">
+        {tasks.map((task) => (
+          <WorkTaskItem
+            key={task.id}
+            task={task}
+            artistId={task.artist_id ?? ""}
+            teamId={teamId}
+            teamMembers={teamMembers}
+            editingTaskId={editingTaskId}
+            setEditingTaskId={setEditingTaskIdAndCloseNew}
+            onMutateSuccess={onMutateSuccess}
+          />
+        ))}
+      </div>
+    </div>
   );
 }

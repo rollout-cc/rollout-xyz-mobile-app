@@ -28,6 +28,8 @@ interface WorkItemCreatorProps {
   metadataPills?: React.ReactNode;
   /** Called when title changes, for external parsing (e.g. revenue detection) */
   onTitleChange?: (title: string) => void;
+  /** When set, Enter or tapping the row opens the full add form with this title instead of submitting inline */
+  onOpenFullForm?: (currentTitle: string) => void;
 }
 
 export function WorkItemCreator({
@@ -38,6 +40,7 @@ export function WorkItemCreator({
   variant = "card",
   metadataPills,
   onTitleChange,
+  onOpenFullForm,
 }: WorkItemCreatorProps) {
   const [title, setTitle] = useState("");
   const handleTitleChange = (val: string) => {
@@ -68,31 +71,59 @@ export function WorkItemCreator({
   };
 
   if (variant === "inline") {
+    const openFullForm = () => onOpenFullForm?.(title);
     return (
-      <div className="flex items-center gap-2 py-2">
-        <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
-        <ItemEditor
-          value={title}
-          onChange={handleTitleChange}
-          onSubmit={handleSubmit}
-          onCancel={handleCancel}
-          placeholder={placeholder}
-          autoFocus={false}
-          triggers={triggers}
-          singleLine
-          enableDateDetection
-          onDateParsed={setParsedDate}
-          parsedDate={parsedDate}
-        />
+      <div className="py-1">
+        <div
+          className="flex items-center gap-3 px-1 py-2.5 rounded-xl cursor-text active:bg-muted/40 transition-colors"
+          onClick={onOpenFullForm ? () => openFullForm() : undefined}
+          role={onOpenFullForm ? "button" : undefined}
+          tabIndex={onOpenFullForm ? 0 : undefined}
+          onKeyDown={
+            onOpenFullForm
+              ? (e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    openFullForm();
+                  }
+                }
+              : undefined
+          }
+        >
+          <div
+            className={cn(
+              "h-4 w-4 rounded-sm border border-muted-foreground/25 shrink-0 flex items-center justify-center",
+              onOpenFullForm && "cursor-pointer"
+            )}
+          >
+            <Plus className="h-2.5 w-2.5 text-muted-foreground/40" />
+          </div>
+          <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
+            <ItemEditor
+              value={title}
+              onChange={handleTitleChange}
+              onSubmit={onOpenFullForm ? openFullForm : handleSubmit}
+              onCancel={handleCancel}
+              placeholder={placeholder}
+              autoFocus={false}
+              triggers={triggers}
+              singleLine
+              enableDateDetection
+              onDateParsed={setParsedDate}
+              parsedDate={parsedDate}
+            />
+          </div>
+        </div>
+        {metadataPills && <div className="mt-1 ml-[38px]">{metadataPills}</div>}
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-border p-3 space-y-2">
+    <div className="rounded-xl border border-border p-3 space-y-2 bg-card">
       <div className="flex items-start gap-3">
         <div className="pt-0.5 shrink-0">
-          <div className="h-4 w-4 rounded border border-muted-foreground/30" />
+          <div className="h-4 w-4 rounded-sm border border-muted-foreground/20" />
         </div>
         <div className="flex-1 min-w-0 space-y-1">
           <ItemEditor
@@ -128,7 +159,7 @@ export function WorkItemCreator({
 
       {metadataPills}
 
-      <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/50">
+      <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/40">
         <Button variant="ghost" size="sm" onClick={handleCancel}>Cancel</Button>
         <Button size="sm" onClick={handleSubmit} disabled={!title.trim()} className="gap-1">
           Save

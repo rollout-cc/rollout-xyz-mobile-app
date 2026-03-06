@@ -23,7 +23,12 @@ interface SpotifyArtist {
   followers?: { total: number };
 }
 
-export function ARContent() {
+interface ARContentProps {
+  openNew?: boolean;
+  onNewHandled?: () => void;
+}
+
+export function ARContent({ openNew, onNewHandled }: ARContentProps) {
   const { data: prospects = [], isLoading } = useProspects();
   const { selectedTeamId: teamId } = useSelectedTeam();
   const createProspect = useCreateProspect();
@@ -41,6 +46,14 @@ export function ARContent() {
   const [addingIds, setAddingIds] = useState<Set<string>>(new Set());
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    if (openNew) {
+      handleOpenNewProspect();
+      onNewHandled?.();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openNew]);
 
   const handleOpenNewProspect = () => {
     if (limits.maxProspects !== null && prospects.length >= limits.maxProspects) {
@@ -167,22 +180,50 @@ export function ARContent() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-2 mb-4 sm:mb-5">
+      <div className="flex flex-col gap-2 mb-4 sm:mb-5">
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search or find on Spotify..." className="pl-9" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search or find on Spotify..."
+            className="pl-9"
+          />
         </div>
-        <div className="flex items-center border border-border rounded-md shrink-0">
-          <button onClick={() => setView("board")} className={cn("px-2.5 py-1.5 text-sm transition-colors rounded-l-md", view === "board" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent")}>
-            <LayoutGrid className="h-4 w-4" />
-          </button>
-          <button onClick={() => setView("table")} className={cn("px-2.5 py-1.5 text-sm transition-colors rounded-r-md", view === "table" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent")}>
-            <List className="h-4 w-4" />
-          </button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center border border-border rounded-md shrink-0">
+            <button
+              onClick={() => setView("board")}
+              className={cn(
+                "px-2.5 py-1.5 text-sm transition-colors rounded-l-md",
+                view === "board"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent"
+              )}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setView("table")}
+              className={cn(
+                "px-2.5 py-1.5 text-sm transition-colors rounded-r-md",
+                view === "table"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent"
+              )}
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+          <Button
+            size="sm"
+            onClick={handleOpenNewProspect}
+            className="gap-1 flex-1 justify-center"
+          >
+            <Plus className="h-4 w-4" />
+            <span>New Prospect</span>
+          </Button>
         </div>
-        <Button size="sm" onClick={handleOpenNewProspect} className="gap-1 shrink-0">
-          <Plus className="h-4 w-4" /> <span className="hidden sm:inline">New Prospect</span>
-        </Button>
       </div>
 
       {/* Spotify search results */}

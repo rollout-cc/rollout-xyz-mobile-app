@@ -43,7 +43,11 @@ const editorKeyDownHandler = (e: React.KeyboardEvent) => {
   }
 };
 
-export function NotesPanel() {
+interface NotesPanelProps {
+  autoCreate?: boolean;
+}
+
+export function NotesPanel({ autoCreate }: NotesPanelProps) {
   const { user } = useAuth();
   const { data: notes = [], isLoading } = useNotes();
   const createNote = useCreateNote();
@@ -62,6 +66,11 @@ export function NotesPanel() {
     const result = await createNote.mutateAsync("");
     setSelectedId(result.id);
   };
+
+  useEffect(() => {
+    if (autoCreate) handleCreate();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleContentChange = useCallback(
     (val: string) => {

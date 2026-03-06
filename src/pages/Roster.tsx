@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { AppLayout } from "@/components/AppLayout";
 import { ARContent } from "@/components/ar/ARContent";
@@ -26,7 +26,6 @@ import { ArtistCard } from "@/components/roster/ArtistCard";
 import { RosterFolderCard } from "@/components/roster/RosterFolderCard";
 import { AddArtistDialog } from "@/components/roster/AddArtistDialog";
 import { PullToRefresh } from "@/components/PullToRefresh";
-import { MobileFAB } from "@/components/MobileFAB";
 import { useQueryClient } from "@tanstack/react-query";
 
 type SortOption = "a-z" | "z-a" | "listeners-high" | "listeners-low" | "spent-high" | "spent-low";
@@ -84,8 +83,12 @@ export default function Roster() {
     }
   }, [trialWelcomeOpen]);
 
-  const [activeTab, setActiveTab] = useState<"roster" | "ar">(searchParams.get("tab") === "ar" ? "ar" : "roster");
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState<"roster" | "ar">(
+    searchParams.get("tab") === "ar" || (location.state as Record<string, unknown>)?.openAddProspect ? "ar" : "roster"
+  );
   const [showAddArtist, setShowAddArtist] = useState(false);
+  const [openNewProspect, setOpenNewProspect] = useState(false);
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(searchParams.get("folder"));
@@ -98,15 +101,15 @@ export default function Roster() {
     await queryClient.invalidateQueries({ queryKey: ["roster-folders"] });
   }, [queryClient]);
 
-  const handleFABAction = useCallback((key: string) => {
-    if (key === "add-artist") {
-      if (limits.maxArtists !== null && artists.length >= limits.maxArtists) {
-        setUpgradeOpen(true);
-        return;
-      }
-      setShowAddArtist(true);
-    }
-  }, [limits.maxArtists, artists.length]);
+  useEffect(() => {
+    const state = location.state as Record<string, unknown> | null;
+    if (!state) return;
+    if (state.openAddArtist) handleOpenAddArtist();
+    if (state.openAddProspect) setOpenNewProspect(true);
+    // Clear state so back-navigation doesn't retrigger
+    window.history.replaceState({}, "");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleOpenAddArtist = () => {
     if (limits.maxArtists !== null && artists.length >= limits.maxArtists) {
@@ -264,7 +267,6 @@ export default function Roster() {
           </div>
         )}
 
-        <MobileFAB onAction={handleFABAction} />
         <AddArtistDialog
           open={showAddArtist}
           onOpenChange={setShowAddArtist}
@@ -320,7 +322,7 @@ export default function Roster() {
       </div>
 
       {activeTab === "ar" ? (
-        <ARContent />
+        <ARContent openNew={openNewProspect} onNewHandled={() => setOpenNewProspect(false)} />
       ) : (
       <>
       <PullToRefresh onRefresh={handleRefresh}>
@@ -412,8 +414,6 @@ export default function Roster() {
           </DragDropContext>
         )}
       </PullToRefresh>
-
-      <MobileFAB onAction={handleFABAction} />
 
       <AddArtistDialog
         open={showAddArtist}
