@@ -363,18 +363,19 @@ export default function MyWork() {
                 </div>
               ) : (
                 <div data-tour="mywork-creator">
-                <WorkItemCreator
-                  variant="inline"
-                  placeholder="Add work… @ artist, $ expense, type a date"
-                  triggers={triggers}
-                  onSubmit={(data) => createTask.mutate(data)}
-                  onTitleChange={setTitleForParsing}
-                  metadataPills={metadataPills}
-                  onOpenFullForm={(currentTitle) => {
-                    setAddFormInitialTitle(currentTitle);
-                    setShowFullAddForm(true);
-                  }}
-                />
+                  <WorkItemCreator
+                    variant="inline"
+                    placeholder="Add work… @ artist, $ expense, type a date"
+                    triggers={triggers}
+                    onSubmit={(data) => createTask.mutate(data)}
+                    onTitleChange={setTitleForParsing}
+                    metadataPills={metadataPills}
+                    onOpenFullForm={(currentTitle) => {
+                      setAddFormInitialTitle(currentTitle);
+                      setShowFullAddForm(true);
+                    }}
+                  />
+                </div>
               )}
 
               {isLoading ? (
