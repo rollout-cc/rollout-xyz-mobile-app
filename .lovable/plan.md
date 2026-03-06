@@ -1,112 +1,114 @@
 
 
-# Performance Audit: Speed & Flow Improvements
+## App Tour for New Users
 
-After reviewing the full codebase, here are the bottlenecks and concrete fixes ranked by impact.
+### Overview
 
----
+Build a step-by-step tooltip tour system that auto-triggers after onboarding completes, with an initial overview tour across pages and per-page mini-tours that trigger on first visit. Users can also restart the tour from settings.
 
-## 1. Waterfall Query Chains (HIGH IMPACT)
+### Architecture
 
-**Problem:** Several pages chain queries sequentially -- each waits for the previous to finish before starting. This creates "waterfall" loading where the page takes 3-4x longer than necessary.
+**No external library** — build a lightweight custom tour system using a React context + portal-based tooltip component. This keeps bundle size small and gives full control over styling.
 
-**Where it happens:**
-- **Overview.tsx**: Fetches `artists` first, then waits for that result before fetching `budgets`, `transactions`, and `initiatives` (all use `enabled: artists.length > 0`). That's 3 sequential hops.
-- **FinanceContent.tsx**: Same pattern -- `artists` -> `budgets`, `transactions`, `company_expenses`, etc. Plus `staffEmployment` -> `staffProfiles` is another waterfall.
-- **StaffContent.tsx**: `memberships` -> `memberProfiles`, and `artists` -> `transactions`.
+#### Core Components
 
-**Fix:** Create a single database function (RPC) that returns all needed data for the Overview and Finance pages in one call. Alternatively, restructure queries to use the team_id directly (budgets, transactions can be fetched via joins or team_id filter) so they all fire in parallel.
+1. **`TourContext`** (`src/contexts/TourContext.tsx`)
+   - Manages tour state: current tour ID, step index, completion status
+   - Reads/writes tour progress to a `tour_progress` database table so it persists across sessions
+   - Exposes `startTour(tourId)`, `nextStep()`, `prevStep()`, `skipTour()`, `resetTours()`
 
----
+2. **`TourOverlay`** (`src/components/tour/TourOverlay.tsx`)
+   - Portal-rendered spotlight overlay with a tooltip bubble
+   - Uses `element.getBoundingClientRect()` to position the spotlight cutout around the target element
+   - Tooltip shows: step title, description, step counter (e.g. "3 of 8"), Next/Back/Skip buttons
+   - Smooth transitions between steps using framer-motion
 
-## 2. `useTeamPlan()` Calls an Edge Function Every 60 Seconds (HIGH IMPACT)
+3. **`TourStep`** marker component (`src/components/tour/TourStep.tsx`)
+   - A wrapper or `data-tour="step-id"` attribute system to mark DOM elements as tour targets
+   - Tour definitions reference these IDs
 
-**Problem:** `useTeamPlan()` invokes the `check-subscription` edge function (cold-start latency ~200-800ms) on every page load and re-polls every 60s. This is called from at least 8 different components. While React Query deduplicates, the edge function call itself is slow and blocks UI decisions (feature gating).
+4. **Tour definitions** (`src/lib/tourSteps.ts`)
+   - Each tour is an array of step objects: `{ id, targetSelector, title, description, page?, placement }`
+   - Tours defined:
+     - **`welcome-tour`** (initial overview, ~8 steps): Sidebar navigation, team switcher, artist roster, add artist button, overview page, my work, notes, settings
+     - **`roster-tour`** (~4 steps): Search/filter, folders, artist cards, sort options
+     - **`artist-detail-tour`** (~6 steps): Banner/avatar area, work tab, finance tab, timelines, splits, links
+     - **`overview-tour`** (~5 steps): Dashboard tabs (agenda, staff, finance), KPI cards, budget section, widgets, weekly digest
+     - **`my-work-tour`** (~4 steps): Task list, note creation, task assignment, filters
+     - **`ar-tour`** (~3 steps): Pipeline board, prospect cards, deal terms
+     - **`settings-tour`** (~3 steps): Profile, team management, notifications, billing
 
-**Fix:**
-- Increase `staleTime` to 5 minutes (from 30s) and `refetchInterval` to 5 minutes (from 60s)
-- Cache the result in `localStorage` as a fallback so the first render doesn't block on network
+### Database
 
----
+New table: **`tour_progress`**
+```sql
+CREATE TABLE public.tour_progress (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  tour_id text NOT NULL,
+  completed boolean NOT NULL DEFAULT false,
+  completed_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, tour_id)
+);
+ALTER TABLE public.tour_progress ENABLE ROW LEVEL SECURITY;
+-- Users can only read/write their own progress
+CREATE POLICY "Users manage own tour progress" ON public.tour_progress FOR ALL TO authenticated
+  USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+```
 
-## 3. `useTeams()` Called 14+ Times Across Components (MEDIUM IMPACT)
+### Tour Trigger Logic
 
-**Problem:** `useTeams()` is called in 14 places. React Query deduplicates the network call, but each call triggers the hook logic and context lookups. More importantly, the `role` check pattern (`teams.find(t => t.id === teamId)?.role`) is repeated everywhere.
+- **After onboarding**: When the user finishes the 7-step onboarding and lands on the roster page, check if `welcome-tour` is completed. If not, auto-start it.
+- **Per-page mini-tours**: Each page (Roster, ArtistDetail, Overview, MyWork, AR, Settings) checks on mount if its specific tour has been completed. If not, start it automatically.
+- **Manual restart**: Add a "Restart App Tour" button in Settings that resets all `tour_progress` rows and re-triggers the welcome tour.
+- **Cross-page navigation**: The welcome tour auto-navigates between pages (Roster → Overview → My Work) using `react-router-dom`'s `navigate()`. A brief delay between navigation and step highlight ensures DOM is ready.
 
-**Fix:** Move `role` into `TeamContext` so components just read `const { role } = useSelectedTeam()` instead of re-querying teams and filtering.
+### Tooltip Design
 
----
+- Dark background (`bg-foreground text-background`) matching the existing app style
+- Spotlight: semi-transparent overlay with a rounded cutout around the target element
+- Placement: auto-detect best position (top/bottom/left/right) based on viewport space
+- Mobile-friendly: on mobile, tooltips anchor to bottom of screen if target is near top, and vice versa
+- Skip link always visible, Back button from step 2 onward
 
-## 4. Duplicate Data Fetching Between Pages (MEDIUM IMPACT)
+### Integration Points
 
-**Problem:** Overview.tsx, FinanceContent.tsx, and StaffContent.tsx all fetch the same data (artists, transactions, tasks, memberships, profiles) with different query keys (`overview-artists` vs `finance-artists` vs `staff-artists`). This means navigating between tabs re-fetches everything from scratch.
+- **`AppLayout.tsx`**: Wrap children with `<TourOverlay />` 
+- **`Onboarding.tsx`**: On final step completion, set a flag to trigger the welcome tour
+- **`Roster.tsx`**: Add `data-tour` attributes to key elements (search bar, add artist button, folder section)
+- **`ArtistDetail.tsx`**: Add `data-tour` attributes to tab buttons, banner area, budget section
+- **`Overview.tsx`**: Add `data-tour` attributes to tab switcher, KPI cards, widgets
+- **`MyWork.tsx`**: Add `data-tour` attributes to task list, notes panel, filters
+- **`ARList.tsx`**: Add `data-tour` attributes to pipeline board
+- **`Settings.tsx`**: Add `data-tour` attributes to section nav, "Restart Tour" button added here
+- **`AppSidebar.tsx`**: Add `data-tour` attributes to nav items and team switcher
 
-**Fix:** Unify query keys. Use `["artists", teamId]` everywhere instead of `["overview-artists", teamId]`, `["finance-artists", teamId]`, `["staff-artists", teamId]`. This lets React Query share the cache across all views.
+### Files to Create
+- `src/contexts/TourContext.tsx`
+- `src/components/tour/TourOverlay.tsx`
+- `src/components/tour/TourStep.tsx`
+- `src/lib/tourSteps.ts`
 
----
+### Files to Modify
+- `src/App.tsx` — add TourProvider
+- `src/components/AppLayout.tsx` — render TourOverlay
+- `src/pages/Onboarding.tsx` — trigger welcome tour on completion
+- `src/pages/Roster.tsx` — add data-tour attributes, trigger roster-tour
+- `src/pages/ArtistDetail.tsx` — add data-tour attributes, trigger artist-detail-tour
+- `src/pages/Overview.tsx` — add data-tour attributes, trigger overview-tour
+- `src/pages/MyWork.tsx` — add data-tour attributes, trigger my-work-tour
+- `src/pages/ARList.tsx` — add data-tour attributes, trigger ar-tour
+- `src/pages/Settings.tsx` — add data-tour attributes, add "Restart Tour" button
+- `src/components/AppSidebar.tsx` — add data-tour attributes
+- `src/components/MobileBottomNav.tsx` — add data-tour attributes
 
-## 5. Heavy `useMemo` Computations on Every Render (MEDIUM IMPACT)
-
-**Problem:** `staffMembers` computation in Overview.tsx has an O(n*m) loop inside it (for each member, it iterates all other members to compute `maxRevenue`). With more staff, this becomes expensive.
-
-**Fix:** Pre-compute `maxRevenue` once outside the map, then pass it in. Single pass instead of quadratic.
-
----
-
-## 6. Missing Prefetching on Navigation (LOW-MEDIUM IMPACT)
-
-**Problem:** When a user clicks an artist card, it navigates to ArtistDetail which then starts fetching from scratch. No data is prefetched on hover or anticipation.
-
-**Fix:** Add `queryClient.prefetchQuery` on artist card hover/mouse-enter for the artist detail data. This makes the transition feel instant.
-
----
-
-## 7. Large Bundle: DnD Library Loaded on Every Page (LOW IMPACT)
-
-**Problem:** `@hello-pangea/dnd` (~45KB gzipped) is imported in Roster.tsx and Overview.tsx. It's lazy-loaded via React.lazy, but it's still a significant chunk for pages that may not need drag-and-drop.
-
-**Fix:** No immediate action needed since pages are already lazy-loaded. Could consider dynamic import of the DnD wrapper only when folders exist.
-
----
-
-## 8. Edge Function Cold Starts (LOW IMPACT, Infrastructure)
-
-**Problem:** `spotify-artist`, `check-subscription`, `scrape-chartmasters` all have cold-start latency. The Spotify artist data is fetched via edge function on every artist detail page load (30min staleTime helps but first visit is slow).
-
-**Fix:** Already mitigated by staleTime. Could add a background sync job instead of on-demand fetching.
-
----
-
-## Implementation Plan (Ordered by Impact)
-
-### Step 1: Unify query keys across Overview/Finance/Staff
-- Change all `["finance-artists", teamId]`, `["overview-artists", teamId]`, `["staff-artists", teamId]` to `["artists-summary", teamId]`
-- Same for transactions, budgets, tasks, memberships, profiles
-- Instant cache sharing = no re-fetch when switching tabs
-
-### Step 2: Remove waterfall queries
-- Fetch budgets and transactions using `team_id` joins instead of waiting for artist IDs
-- Create an RPC function `get_team_finance_summary` that returns artists + budgets + transactions in one call
-
-### Step 3: Optimize useTeamPlan caching
-- Increase staleTime to 5min, refetchInterval to 5min
-- Add localStorage fallback for instant first render
-
-### Step 4: Move role into TeamContext
-- Eliminate 14 redundant `useTeams()` calls for role checking
-
-### Step 5: Fix quadratic staffMembers computation
-- Pre-compute maxRevenue in a single pass
-
-### Step 6: Add prefetching on artist card hover
-- `onMouseEnter` triggers `queryClient.prefetchQuery` for artist detail
-
-### Files to Edit
-1. `src/pages/Overview.tsx` -- unify query keys, remove waterfalls
-2. `src/components/overview/FinanceContent.tsx` -- unify query keys, remove waterfalls
-3. `src/components/overview/StaffContent.tsx` -- unify query keys
-4. `src/hooks/useTeamPlan.ts` -- increase cache times
-5. `src/contexts/TeamContext.tsx` -- add role to context
-6. `src/components/roster/ArtistCard.tsx` -- add prefetch on hover
-7. Database migration -- create RPC function for combined finance data
+### Implementation Order
+1. Database migration (tour_progress table)
+2. Tour context + overlay components
+3. Tour step definitions
+4. Wire up welcome tour (auto-trigger after onboarding, cross-page navigation)
+5. Add data-tour attributes across all pages
+6. Wire up per-page mini-tours
+7. Add "Restart Tour" in Settings
 
