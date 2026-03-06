@@ -298,6 +298,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    const perfData = parseChartmastersMarkdown(markdown);
     console.log("Parsed performance data:", JSON.stringify({
       chartmasters_artist: perfData.chartmasters_artist_name,
       lead_streams_total: perfData.lead_streams_total,
