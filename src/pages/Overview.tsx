@@ -597,7 +597,7 @@ export default function Overview() {
                 return (
                 <div
                   ref={provided.innerRef}
-                  {...provided.droppableProps}
+                  {...sectionProps}
                   className={cn(
                     "gap-4",
                     layout === "two-column"
@@ -625,7 +625,8 @@ export default function Overview() {
                   })}
                   {provided.placeholder}
                 </div>
-              )}
+              );
+              }}
             </Droppable>
           </DragDropContext>
 
