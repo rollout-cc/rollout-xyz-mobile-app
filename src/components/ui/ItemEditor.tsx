@@ -49,10 +49,18 @@ export function ItemEditor({
   parsedDate,
 }: ItemEditorProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [activeTrigger, setActiveTrigger] = useState<TriggerConfig | null>(null);
   const [triggerQuery, setTriggerQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const lastDetectedRef = useRef<string | null>(null);
+
+  // Auto-scroll selected item into view
+  useEffect(() => {
+    if (!dropdownRef.current) return;
+    const selected = dropdownRef.current.children[selectedIndex] as HTMLElement | undefined;
+    selected?.scrollIntoView({ block: "nearest" });
+  }, [selectedIndex]);
 
   useEffect(() => {
     if (autoFocus) {
@@ -176,7 +184,14 @@ export function ItemEditor({
         )}
       </div>
       {activeTrigger && filteredItems.length > 0 && (
-        <div className="absolute left-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-xl z-50 min-w-[200px] py-1 max-h-[200px] overflow-y-auto">
+        <div
+          ref={dropdownRef}
+          className="absolute left-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-xl z-50 min-w-[200px] py-1 max-h-[200px] overflow-y-auto overscroll-contain"
+          onMouseDown={(e) => {
+            // Prevent input blur when interacting with dropdown, but allow scroll
+            e.preventDefault();
+          }}
+        >
           {filteredItems.map((item, idx) => (
             <button
               key={item.id}
@@ -186,10 +201,7 @@ export function ItemEditor({
                   ? "bg-accent text-accent-foreground"
                   : "hover:bg-accent"
               )}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                selectItem(item);
-              }}
+              onClick={() => selectItem(item)}
               onMouseEnter={() => setSelectedIndex(idx)}
             >
               {item.icon}

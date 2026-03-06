@@ -52,32 +52,18 @@ export async function notifyUser(
   buildPayload: (email: string, name: string) => NotificationPayload
 ) {
   try {
-    // Check preference
-    const { data: pref } = await supabase
-      .from("notification_preferences")
-      .select(prefKey)
-      .eq("user_id", userId)
-      .single();
-
-    if (!pref || !(pref as any)[prefKey]) return;
-
-    // Get user email from auth (via profile or membership context)
-    // We need to get the email from the profiles + auth workaround
-    // Since we can't query auth.users, we use a service-side approach
-    // Instead, we pass through the edge function which uses service role
+    // Build payload with empty email — edge function resolves it via service role
+    // Also pass pref_key so the edge function checks preferences server-side
+    // (RLS prevents reading other users' notification_preferences client-side)
     const { data: profile } = await supabase
       .from("profiles")
       .select("full_name")
       .eq("id", userId)
       .single();
 
-    // We need the email — get it from team context or pass it in
-    // For now, we'll use a different approach: the edge function can look up the email
-    // Let's adjust: we'll pass user_id and let the edge function resolve it
     const payload = buildPayload("", profile?.full_name || "");
-    // Add user_id so edge function can resolve email
     await supabase.functions.invoke("send-notification", {
-      body: { ...payload, user_id: userId },
+      body: { ...payload, user_id: userId, pref_key: prefKey },
     });
   } catch (err) {
     console.warn("[Notification] Failed:", err);
