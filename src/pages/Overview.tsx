@@ -592,7 +592,9 @@ export default function Overview() {
           {/* Sections grid */}
           <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId="overview-sections">
-              {(provided) => (
+              {(provided) => {
+                const sectionProps = { ...provided.droppableProps, "data-tour": "overview-sections" };
+                return (
                 <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
