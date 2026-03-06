@@ -147,7 +147,10 @@ export function BrandTagInput({ value, onSave }: BrandTagInputProps) {
 
       {/* Suggestions dropdown */}
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md max-h-40 overflow-y-auto">
+        <div
+          className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md max-h-40 overflow-y-auto overscroll-contain"
+          onMouseDown={(e) => e.preventDefault()}
+        >
           {suggestions.map((s, i) => (
             <button
               key={s}
@@ -156,7 +159,7 @@ export function BrandTagInput({ value, onSave }: BrandTagInputProps) {
                 "w-full text-left px-3 py-1.5 text-sm hover:bg-accent transition-colors",
                 i === selectedIdx && "bg-accent"
               )}
-              onMouseDown={(e) => { e.preventDefault(); addTag(s); }}
+              onClick={() => addTag(s)}
             >
               {s}
             </button>
