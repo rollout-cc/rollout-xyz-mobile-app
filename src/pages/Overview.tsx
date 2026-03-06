@@ -446,7 +446,7 @@ export default function Overview() {
       ) : (
       <>
       {/* Company tabs */}
-      <div className="flex items-center gap-1 mb-5">
+      <div className="flex items-center gap-1 mb-5" data-tour="overview-tabs">
         {(["dashboard", "agenda", "staff", "finance"] as const).map((tab) => (
           <button
             key={tab}

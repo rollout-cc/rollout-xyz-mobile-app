@@ -296,7 +296,7 @@ export default function MyWork() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
             <h1 className="text-foreground text-xl font-bold tracking-tight">My Work</h1>
-            <div className="flex items-center rounded-lg bg-muted p-0.5">
+            <div className="flex items-center rounded-lg bg-muted p-0.5" data-tour="mywork-tabs">
               <button
                 onClick={() => setTab("tasks")}
                 className={cn(
