@@ -96,6 +96,18 @@ export default function Roster() {
   const [sortBy, setSortBy] = useState<SortOption>("a-z");
   const folderInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+  const { tryStartPageTour, startTour, isTourCompleted } = useTour();
+
+  useEffect(() => {
+    if (localStorage.getItem("rollout_start_welcome_tour") === "1") {
+      localStorage.removeItem("rollout_start_welcome_tour");
+      if (!isTourCompleted("welcome-tour")) {
+        setTimeout(() => startTour("welcome-tour"), 800);
+        return;
+      }
+    }
+    tryStartPageTour("roster-tour");
+  }, [tryStartPageTour, startTour, isTourCompleted]);
 
   const handleRefresh = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["artists"] });
