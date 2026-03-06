@@ -318,6 +318,7 @@ export default function MyWork() {
             </div>
           </div>
           {tab === "tasks" && taskArtists.length > 0 && (
+            <span data-tour="mywork-filter">
             <Select value={filterArtistId} onValueChange={setFilterArtistId}>
               <SelectTrigger className="w-[130px] h-8 text-sm">
                 <SelectValue placeholder="All Artists" />
