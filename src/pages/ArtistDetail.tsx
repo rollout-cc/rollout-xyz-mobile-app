@@ -60,6 +60,8 @@ export default function ArtistDetail() {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState("");
   const queryClient = useQueryClient();
+  const { tryStartPageTour } = useTour();
+  useEffect(() => { tryStartPageTour("artist-detail-tour"); }, [tryStartPageTour]);
 
   const handleRefreshSpotify = async () => {
     const result = await refetchSpotify();
