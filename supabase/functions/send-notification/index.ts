@@ -247,15 +247,33 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const payload: NotificationPayload & { user_id?: string } = await req.json();
+    const payload: NotificationPayload & { user_id?: string; pref_key?: string } = await req.json();
+
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.1");
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
     // If user_id provided but no email, resolve it via service role
     if (payload.user_id && !payload.to_email) {
-      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
-      const adminClient = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-      );
+      // Check notification preference server-side (RLS blocks cross-user reads)
+      if (payload.pref_key) {
+        const { data: pref } = await adminClient
+          .from("notification_preferences")
+          .select(payload.pref_key)
+          .eq("user_id", payload.user_id)
+          .single();
+
+        if (!pref || !(pref as Record<string, unknown>)[payload.pref_key]) {
+          console.log("Notification skipped: preference disabled", payload.pref_key, payload.user_id);
+          return new Response(JSON.stringify({ skipped: true, reason: "preference disabled" }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       const { data: userData } = await adminClient.auth.admin.getUserById(payload.user_id);
       if (!userData?.user?.email) {
         return new Response(JSON.stringify({ skipped: true, reason: "no email found" }), {
@@ -265,6 +283,7 @@ Deno.serve(async (req) => {
       }
       payload.to_email = userData.user.email;
       delete payload.user_id;
+      delete payload.pref_key;
     }
 
     if (!payload.type || !payload.to_email) {
