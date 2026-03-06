@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useTeams } from "@/hooks/useTeams";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { useTeamPlan } from "@/hooks/useTeamPlan";
+import { useTour } from "@/contexts/TourContext";
 
 type SettingsSection = "profile" | "notifications" | "team" | "plan" | "billing";
 type TeamSubSection = "members" | "profile";
