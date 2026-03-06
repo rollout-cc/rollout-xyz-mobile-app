@@ -209,7 +209,7 @@ export default function ArtistDetail() {
       title="Artist"
       onBack={handleBack}
       actions={
-        <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide" data-tour="artist-actions">
           {actionButtons.map(({ key, icon: Icon, label }) => (
             <Button
               key={key}
