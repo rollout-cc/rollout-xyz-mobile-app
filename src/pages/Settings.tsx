@@ -183,7 +183,7 @@ export default function Settings() {
         </button>
 
         {/* Top-level tabs */}
-        <div className="flex gap-1 mb-6">
+        <div className="flex gap-1 mb-6" data-tour="settings-tabs">
           {tabs.map(({ key, label }) => (
             <button
               key={key}
