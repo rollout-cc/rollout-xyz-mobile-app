@@ -233,7 +233,7 @@ export default function ArtistDetail() {
         <ArrowLeft className="h-4 w-4" />
       </button>
       {/* Banner */}
-      <div className="relative rounded-xl overflow-hidden mb-4 shadow-2xl group">
+      <div className="relative rounded-xl overflow-hidden mb-4 shadow-2xl group" data-tour="artist-banner">
         <div className="relative h-52 sm:h-72 lg:h-[320px] overflow-hidden">
           <img
             src={hasBanner ? bannerUrl! : defaultBanner}
