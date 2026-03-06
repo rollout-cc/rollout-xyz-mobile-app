@@ -52,6 +52,8 @@ export default function MyWork() {
   const [titleForParsing, setTitleForParsing] = useState("");
 
   const { data: artists = [] } = useArtists(teamId);
+  const { tryStartPageTour } = useTour();
+  useEffect(() => { tryStartPageTour("mywork-tour"); }, [tryStartPageTour]);
   useNotes(); // prefetch
 
   // Parse revenue intent whenever title changes
