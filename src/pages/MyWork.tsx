@@ -12,6 +12,7 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { toast } from "sonner";
 import { useArtists } from "@/hooks/useArtists";
 import { NotesPanel } from "@/components/notes/NotesPanel";
+import { useTour } from "@/contexts/TourContext";
 import { useNotes } from "@/hooks/useNotes";
 import { WorkTaskItem } from "@/components/work/WorkTaskItem";
 import { WorkItemCreator } from "@/components/work/WorkItemCreator";
