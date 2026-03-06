@@ -47,6 +47,8 @@ export default function Overview() {
   const { limits } = useTeamPlan();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState("");
+  const { tryStartPageTour } = useTour();
+  useEffect(() => { tryStartPageTour("overview-tour"); }, [tryStartPageTour]);
 
   const handleCompanyTab = (tab: "dashboard" | "agenda" | "staff" | "finance") => {
     if (tab === "finance" && !limits.canUseFinance) {
