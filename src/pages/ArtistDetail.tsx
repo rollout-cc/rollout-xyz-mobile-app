@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTour } from "@/contexts/TourContext";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
