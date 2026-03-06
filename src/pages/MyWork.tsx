@@ -319,18 +319,19 @@ export default function MyWork() {
           </div>
           {tab === "tasks" && taskArtists.length > 0 && (
             <span data-tour="mywork-filter">
-            <Select value={filterArtistId} onValueChange={setFilterArtistId}>
-              <SelectTrigger className="w-[130px] h-8 text-sm">
-                <SelectValue placeholder="All Artists" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Artists</SelectItem>
-                <SelectItem value="none">Me</SelectItem>
-                {taskArtists.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Select value={filterArtistId} onValueChange={setFilterArtistId}>
+                <SelectTrigger className="w-[130px] h-8 text-sm">
+                  <SelectValue placeholder="All Artists" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Artists</SelectItem>
+                  <SelectItem value="none">Me</SelectItem>
+                  {taskArtists.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </span>
           )}
         </div>
 
