@@ -32,6 +32,7 @@ export default function Settings() {
   const { selectedTeamId } = useSelectedTeam();
   const { isPaid, isTrialing, refetch: refetchPlan } = useTeamPlan();
   const hasPaidAccess = isPaid || isTrialing;
+  const { resetAllTours, startTour } = useTour();
 
   const myRole = teams.find((t) => t.id === selectedTeamId)?.role;
   const isOwnerOrManager = myRole === "team_owner" || myRole === "manager";
