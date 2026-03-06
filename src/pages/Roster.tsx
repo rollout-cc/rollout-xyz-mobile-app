@@ -285,7 +285,7 @@ export default function Roster() {
     <AppLayout title="Artists">
       {/* Tabs + Sort row */}
       <div className="flex items-center justify-between gap-2 mb-4">
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1" data-tour="roster-tabs">
           <button
             onClick={() => setActiveTab("roster")}
             className={cn("px-4 py-1.5 rounded-full text-sm font-medium transition-colors",
