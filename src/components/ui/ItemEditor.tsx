@@ -49,10 +49,18 @@ export function ItemEditor({
   parsedDate,
 }: ItemEditorProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [activeTrigger, setActiveTrigger] = useState<TriggerConfig | null>(null);
   const [triggerQuery, setTriggerQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const lastDetectedRef = useRef<string | null>(null);
+
+  // Auto-scroll selected item into view
+  useEffect(() => {
+    if (!dropdownRef.current) return;
+    const selected = dropdownRef.current.children[selectedIndex] as HTMLElement | undefined;
+    selected?.scrollIntoView({ block: "nearest" });
+  }, [selectedIndex]);
 
   useEffect(() => {
     if (autoFocus) {
