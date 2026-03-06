@@ -27,6 +27,7 @@ import { RosterFolderCard } from "@/components/roster/RosterFolderCard";
 import { AddArtistDialog } from "@/components/roster/AddArtistDialog";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTour } from "@/contexts/TourContext";
 
 type SortOption = "a-z" | "z-a" | "listeners-high" | "listeners-low" | "spent-high" | "spent-low";
 
@@ -95,6 +96,18 @@ export default function Roster() {
   const [sortBy, setSortBy] = useState<SortOption>("a-z");
   const folderInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+  const { tryStartPageTour, startTour, isTourCompleted } = useTour();
+
+  useEffect(() => {
+    if (localStorage.getItem("rollout_start_welcome_tour") === "1") {
+      localStorage.removeItem("rollout_start_welcome_tour");
+      if (!isTourCompleted("welcome-tour")) {
+        setTimeout(() => startTour("welcome-tour"), 800);
+        return;
+      }
+    }
+    tryStartPageTour("roster-tour");
+  }, [tryStartPageTour, startTour, isTourCompleted]);
 
   const handleRefresh = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["artists"] });
@@ -284,7 +297,7 @@ export default function Roster() {
     <AppLayout title="Artists">
       {/* Tabs + Sort row */}
       <div className="flex items-center justify-between gap-2 mb-4">
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1" data-tour="roster-tabs">
           <button
             onClick={() => setActiveTab("roster")}
             className={cn("px-4 py-1.5 rounded-full text-sm font-medium transition-colors",
@@ -303,11 +316,12 @@ export default function Roster() {
           </button>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {activeTab === "roster" && SortSelect}
+          {activeTab === "roster" && <span data-tour="roster-sort">{SortSelect}</span>}
           <Button
             variant="outline"
             size="sm"
             className="gap-1 hidden sm:inline-flex"
+            data-tour="add-category-btn"
             onClick={() => {
               setCreatingFolder(true);
               setTimeout(() => folderInputRef.current?.focus(), 50);
@@ -315,7 +329,7 @@ export default function Roster() {
           >
             <FolderPlus className="h-3.5 w-3.5" /> Category
           </Button>
-          <Button onClick={handleOpenAddArtist} size="sm" className="gap-1 hidden sm:inline-flex">
+          <Button onClick={handleOpenAddArtist} size="sm" className="gap-1 hidden sm:inline-flex" data-tour="add-artist-btn">
             Add Artist
           </Button>
         </div>

@@ -62,9 +62,9 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
   };
 
   const navItems = [
-    { to: "/overview", icon: Building2, label: "Company" },
-    { to: "/roster", icon: LayoutGrid, label: "Artists" },
-    { to: "/my-work", icon: CheckCheck, label: "My Work" },
+    { to: "/overview", icon: Building2, label: "Company", tourId: "nav-company" },
+    { to: "/roster", icon: LayoutGrid, label: "Artists", tourId: "nav-artists" },
+    { to: "/my-work", icon: CheckCheck, label: "My Work", tourId: "nav-mywork" },
   ];
 
   return (
@@ -119,6 +119,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
+                  data-tour="team-switcher"
                   className={`flex items-center gap-2 rounded-md text-sm hover:bg-accent transition-colors ${collapsed ? "justify-center w-8 h-8 p-0" : "w-full px-2 py-1.5"}`}
                 >
                    <div className={`flex items-center justify-center rounded-md bg-muted text-xs font-semibold shrink-0 overflow-hidden ${collapsed ? "h-8 w-8" : "h-7 w-7"}`}>
@@ -160,7 +161,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
             {navItems.map((item) => (
               <SidebarMenuItem key={item.to} className={collapsed ? "flex justify-center" : ""}>
                 <SidebarMenuButton asChild tooltip={collapsed ? item.label : undefined}>
-                  <NavLink to={item.to} className={`hover:bg-accent ${collapsed ? "justify-center" : ""}`} activeClassName="bg-accent font-medium">
+                  <NavLink to={item.to} className={`hover:bg-accent ${collapsed ? "justify-center" : ""}`} activeClassName="bg-accent font-medium" data-tour={item.tourId}>
                     <item.icon className="h-4 w-4 shrink-0" />
                     {!collapsed && <span>{item.label}</span>}
                   </NavLink>
