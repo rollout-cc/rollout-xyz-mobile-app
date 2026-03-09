@@ -195,6 +195,10 @@ export default function Login() {
                 </Button>
               </form>
             </div>
+          ) : (
+            <div className="max-w-md">
+              <h2 className="text-2xl font-semibold text-foreground mb-2">Try for free</h2>
+              <p className="text-sm text-muted-foreground mb-6">Start your 30-day free trial. No credit card required.</p>
 
               <form onSubmit={handleEmailSignup} className="flex flex-col gap-4">
                 <Input
