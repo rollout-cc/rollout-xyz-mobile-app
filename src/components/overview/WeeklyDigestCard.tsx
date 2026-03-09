@@ -43,8 +43,9 @@ export function WeeklyDigestCard({
     enabled: !!user?.id,
   });
 
-  // Hide if preference disabled or dismissed this week
-  if (!prefs?.weekly_summary_email || dismissed) return null;
+  // Only show on Fridays (day 5), hide if preference disabled or dismissed this week
+  const isFriday = getDay(new Date()) === 5;
+  if (!isFriday || !prefs?.weekly_summary_email || dismissed) return null;
 
   const handleDismiss = () => {
     localStorage.setItem(mondayKey, "true");
