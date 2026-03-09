@@ -435,6 +435,10 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
                         <Select
                           value=""
                           onValueChange={(val) => {
+                            if (!member.user_id) {
+                              toast.error("This member hasn't accepted their invite yet");
+                              return;
+                            }
                             artists.forEach((artist) => {
                               upsertPermission.mutate({
                                 userId: member.user_id,
@@ -474,13 +478,17 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
                             {canManage ? (
                               <Select
                                 value={currentLevel}
-                                onValueChange={(val) =>
+                                onValueChange={(val) => {
+                                  if (!member.user_id) {
+                                    toast.error("This member hasn't accepted their invite yet");
+                                    return;
+                                  }
                                   upsertPermission.mutate({
                                     userId: member.user_id,
                                     artistId: artist.id,
                                     permission: val,
-                                  })
-                                }
+                                  });
+                                }}
                               >
                                 <SelectTrigger className="h-7 w-28 text-xs">
                                   <SelectValue />
