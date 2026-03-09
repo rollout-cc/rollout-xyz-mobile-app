@@ -150,6 +150,19 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
                   <Plus className="mr-2 h-4 w-4" />
                   Create team
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate("/settings")}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Team Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/settings?tab=profile")}>
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/settings?tab=billing")}>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Billing
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
