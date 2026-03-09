@@ -70,7 +70,6 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
     { to: "/overview", icon: Building2, label: "Company", tourId: "nav-company" },
     { to: "/roster", icon: LayoutGrid, label: "Artists", tourId: "nav-artists" },
     { to: "/my-work", icon: CheckCheck, label: "My Work", tourId: "nav-mywork" },
-    { to: "/settings", icon: Settings, label: "Settings", tourId: "nav-settings" },
   ];
 
   return (
