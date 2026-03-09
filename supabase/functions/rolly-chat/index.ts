@@ -155,13 +155,23 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
               continue;
             }
           }
+          // Resolve assignee
+          let assigneeId = userId; // default to requesting user
+          if (task.assignee_name) {
+            const resolved = await resolveUserId(adminClient, teamId, task.assignee_name);
+            if (resolved) {
+              assigneeId = resolved;
+            }
+            // If not found, still assign to requesting user
+          }
           const { data, error } = await adminClient.from("tasks").insert({
             title: task.title,
             description: task.description || null,
             artist_id: artistId,
             team_id: teamId,
-            assigned_to: userId,
+            assigned_to: assigneeId,
             due_date: task.due_date || null,
+            expense_amount: task.expense_amount || null,
           }).select("id, title").single();
           if (error) {
             results.push({ title: task.title, error: error.message });
