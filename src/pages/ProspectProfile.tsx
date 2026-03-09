@@ -167,10 +167,7 @@ export default function ProspectProfile() {
   };
 
   return (
-    <AppLayout title="A&R">
-      <button onClick={() => navigate("/ar")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
-        <ArrowLeft className="h-4 w-4" /> Back to Pipeline
-      </button>
+    <AppLayout title="A&R" onBack={() => navigate(-1)}>
 
       {/* Header */}
       <div className="flex items-start justify-between mb-6">

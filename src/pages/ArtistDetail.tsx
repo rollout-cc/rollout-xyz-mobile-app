@@ -197,11 +197,7 @@ export default function ArtistDetail() {
   const tabItems: TabView[] = ["work", "links", "timelines", "splits"];
 
   const handleBack = () => {
-    if (fromFinance) {
-      navigate("/overview?tab=finance");
-    } else {
-      navigate(artist?.folder_id ? `/roster?folder=${artist.folder_id}` : "/roster");
-    }
+    navigate(-1);
   };
 
   return (
