@@ -247,7 +247,8 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
           {budgets.map((b: any) => {
             const editing = editState[b.id];
             const amount = Number(b.amount);
-            const pct = amount > 0 ? Math.min((totalSpent / totalBudget) * (amount / totalBudget) * 100 * budgets.length, 100) : 0;
+            const budgetSpent = spentByBudget(b.id);
+            const pct = amount > 0 ? Math.min((budgetSpent / amount) * 100, 100) : 0;
             const barColor = pct >= 100 ? "bg-destructive" : pct >= 75 ? "bg-warning" : "bg-success";
             const subs = subBudgetsByParent(b.id);
             const isExpanded = expandedBudgets[b.id] ?? false;
