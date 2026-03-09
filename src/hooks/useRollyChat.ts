@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export type RollyMessage = { role: "user" | "assistant"; content: string };
 
