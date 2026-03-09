@@ -312,17 +312,17 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
                         className="font-semibold text-lg cursor-pointer hover:text-primary transition-colors"
                         onClick={() => startEdit(b)}
                       >
-                        {amount.toLocaleString("en-US")}
+                        {budgetSpent.toLocaleString("en-US")}
                       </span>
                     )}
-                    <span className="text-xs text-muted-foreground">/{totalBudget.toLocaleString("en-US")}</span>
+                    <span className="text-xs text-muted-foreground">/{amount.toLocaleString("en-US")}</span>
                   </div>
 
                   {/* Progress bar */}
                   <div className="w-full h-2.5 bg-secondary rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all ${barColor}`}
-                      style={{ width: `${(amount / totalBudget) * 100}%` }}
+                      style={{ width: `${pct}%` }}
                     />
                   </div>
 
