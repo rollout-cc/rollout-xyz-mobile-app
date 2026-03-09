@@ -265,7 +265,7 @@ Deno.serve(async (req) => {
           .eq("user_id", payload.user_id)
           .single();
 
-        if (!pref || !(pref as Record<string, unknown>)[payload.pref_key]) {
+        if (!pref || !(pref as unknown as Record<string, unknown>)[payload.pref_key]) {
           console.log("Notification skipped: preference disabled", payload.pref_key, payload.user_id);
           return new Response(JSON.stringify({ skipped: true, reason: "preference disabled" }), {
             status: 200,

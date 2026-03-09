@@ -715,6 +715,39 @@ export type Database = {
           },
         ]
       }
+      education_content: {
+        Row: {
+          concept_key: string
+          created_at: string | null
+          detailed_explanation: string | null
+          example: string | null
+          id: string
+          related_concepts: string[] | null
+          simple_explanation: string
+          title: string
+        }
+        Insert: {
+          concept_key: string
+          created_at?: string | null
+          detailed_explanation?: string | null
+          example?: string | null
+          id?: string
+          related_concepts?: string[] | null
+          simple_explanation: string
+          title: string
+        }
+        Update: {
+          concept_key?: string
+          created_at?: string | null
+          detailed_explanation?: string | null
+          example?: string | null
+          id?: string
+          related_concepts?: string[] | null
+          simple_explanation?: string
+          title?: string
+        }
+        Relationships: []
+      }
       finance_categories: {
         Row: {
           artist_id: string
@@ -1333,6 +1366,83 @@ export type Database = {
           },
         ]
       }
+      rolly_conversations: {
+        Row: {
+          artist_id: string | null
+          created_at: string | null
+          id: string
+          team_id: string
+          title: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          artist_id?: string | null
+          created_at?: string | null
+          id?: string
+          team_id: string
+          title?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          artist_id?: string | null
+          created_at?: string | null
+          id?: string
+          team_id?: string
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rolly_conversations_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rolly_conversations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rolly_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string | null
+          id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          role: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rolly_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "rolly_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       roster_folders: {
         Row: {
           created_at: string
@@ -1416,6 +1526,7 @@ export type Database = {
           id: string
           master_pct: number | null
           producer_pct: number | null
+          project_approval_token: string | null
           role: string
           song_id: string
           writer_pct: number | null
@@ -1429,6 +1540,7 @@ export type Database = {
           id?: string
           master_pct?: number | null
           producer_pct?: number | null
+          project_approval_token?: string | null
           role?: string
           song_id: string
           writer_pct?: number | null
@@ -1442,6 +1554,7 @@ export type Database = {
           id?: string
           master_pct?: number | null
           producer_pct?: number | null
+          project_approval_token?: string | null
           role?: string
           song_id?: string
           writer_pct?: number | null
