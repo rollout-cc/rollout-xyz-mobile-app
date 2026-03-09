@@ -218,7 +218,7 @@ export function ARContent({ openNew, onNewHandled }: ARContentProps) {
           <Button
             size="sm"
             onClick={handleOpenNewProspect}
-            className="gap-1 flex-1 justify-center"
+            className="gap-1"
           >
             <Plus className="h-4 w-4" />
             <span>New Prospect</span>
