@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -7,9 +7,34 @@ import { RollyChat } from "./RollyChat";
 import { useIsMobile } from "@/hooks/use-mobile";
 import rollyIcon from "@/assets/rolly-icon.png";
 
+const GREETING_KEY = "rolly-greeted";
+
 export function RollyFAB() {
   const [isOpen, setIsOpen] = useState(false);
+  const [showGreeting, setShowGreeting] = useState(false);
   const isMobile = useIsMobile();
+
+  // Show greeting bubble on first visit per session
+  useEffect(() => {
+    if (sessionStorage.getItem(GREETING_KEY)) return;
+    const timer = setTimeout(() => {
+      setShowGreeting(true);
+      sessionStorage.setItem(GREETING_KEY, "1");
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Auto-dismiss greeting after 6s
+  useEffect(() => {
+    if (!showGreeting) return;
+    const timer = setTimeout(() => setShowGreeting(false), 6000);
+    return () => clearTimeout(timer);
+  }, [showGreeting]);
+
+  const handleOpen = () => {
+    setShowGreeting(false);
+    setIsOpen(!isOpen);
+  };
 
   return createPortal(
     <>
@@ -49,9 +74,36 @@ export function RollyFAB() {
         )}
       </AnimatePresence>
 
+      {/* Greeting bubble */}
+      <AnimatePresence>
+        {showGreeting && !isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.9 }}
+            transition={{ duration: 0.25 }}
+            className={cn(
+              "fixed z-[59] bg-card border border-border rounded-xl shadow-lg px-4 py-3 max-w-[220px] text-sm text-foreground",
+              isMobile
+                ? "bottom-[calc(env(safe-area-inset-bottom)+134px)] right-4"
+                : "bottom-[72px] right-4"
+            )}
+          >
+            <button
+              onClick={() => setShowGreeting(false)}
+              className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-[10px] hover:bg-accent transition-colors"
+            >
+              ✕
+            </button>
+            <p className="font-medium">Hey! 👋</p>
+            <p className="text-muted-foreground text-xs mt-0.5">Need help with anything? Ask ROLLY.</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* FAB button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleOpen}
         aria-label={isOpen ? "Close ROLLY" : "Open ROLLY"}
         className={cn(
           "fixed z-[59] flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-200 active:scale-95",
@@ -66,7 +118,13 @@ export function RollyFAB() {
         {isOpen ? (
           <X className="h-5 w-5" />
         ) : (
-          <img src={rollyIcon} alt="ROLLY" className="h-8 w-8 invert dark:invert-0" />
+          <motion.img
+            src={rollyIcon}
+            alt="ROLLY"
+            className="h-10 w-10 invert dark:invert-0"
+            animate={{ rotate: [0, 0, 15, -15, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 4 }}
+          />
         )}
       </button>
     </>,
