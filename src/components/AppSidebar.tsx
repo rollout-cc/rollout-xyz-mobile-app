@@ -66,6 +66,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
     { to: "/overview", icon: Building2, label: "Company", tourId: "nav-company" },
     { to: "/roster", icon: LayoutGrid, label: "Artists", tourId: "nav-artists" },
     { to: "/my-work", icon: CheckCheck, label: "My Work", tourId: "nav-mywork" },
+    { to: "/settings", icon: Settings, label: "Settings", tourId: "nav-settings" },
   ];
 
   return (
@@ -149,19 +150,6 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
                 <DropdownMenuItem onClick={() => setShowCreateTeam(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Create team
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate("/settings")}>
-                  <Settings className="mr-2 h-4 w-4" />
-                  Team Settings
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/settings?tab=profile")}>
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/settings?tab=billing")}>
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Billing
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
