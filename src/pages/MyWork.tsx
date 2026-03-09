@@ -184,7 +184,9 @@ export default function MyWork() {
       items: artists.map((a: any) => ({
         id: a.id,
         label: a.name,
-        icon: <Music2 className="h-3.5 w-3.5 text-muted-foreground" />,
+        icon: a.avatar_url
+          ? <img src={a.avatar_url} alt="" className="h-4 w-4 rounded-full object-cover" />
+          : <Music2 className="h-3.5 w-3.5 text-muted-foreground" />,
       })),
       onSelect: (item: { id: string; label: string }, currentValue: string) => {
         setSelectedArtistId(item.id);
