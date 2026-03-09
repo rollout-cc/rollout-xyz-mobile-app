@@ -13,6 +13,7 @@ import { useTeams } from "@/hooks/useTeams";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { toast } from "sonner";
+import { ScrollToTop } from "@/components/ScrollToTop";
 
 // Lazy-loaded pages
 const Login = React.lazy(() => import("./pages/Login"));
@@ -133,6 +134,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <ScrollToTop />
             <ErrorBoundary fallbackMessage="Something went wrong. Please reload the page.">
               <UnhandledRejectionHandler />
               <TourProvider>

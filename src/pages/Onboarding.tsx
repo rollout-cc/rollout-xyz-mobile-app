@@ -122,9 +122,9 @@ export default function Onboarding() {
     : "U";
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-dvh bg-background flex flex-col overflow-hidden">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-border">
+      <div className="flex items-center justify-between px-6 py-3 border-b border-border shrink-0">
         <button
           onClick={handleBack}
           disabled={step === 1}
@@ -143,17 +143,18 @@ export default function Onboarding() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 flex items-center justify-center px-6">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.3 }}
-            className="w-full max-w-[480px]"
-          >
+      {/* Content - scrollable */}
+      <div className="flex-1 overflow-y-auto px-6 py-8">
+        <div className="flex justify-center min-h-full">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.3 }}
+              className="w-full max-w-[480px]"
+            >
             {step === 1 && <StepWelcome />}
             {step === 2 && (
               <StepTailored
@@ -231,8 +232,9 @@ export default function Onboarding() {
                 </Button>
               )}
             </div>
-          </motion.div>
-        </AnimatePresence>
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
