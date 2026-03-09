@@ -741,6 +741,7 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
                         </button>
                       </div>
                     );
+                  })}
                 </div>
               )}
             </div>
