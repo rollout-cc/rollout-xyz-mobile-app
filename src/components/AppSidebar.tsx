@@ -238,7 +238,6 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
               </TooltipTrigger>
               {collapsed && <TooltipContent side="right">Expand</TooltipContent>}
             </Tooltip>
-            )}
           </div>
         </SidebarContent>
       </Sidebar>
