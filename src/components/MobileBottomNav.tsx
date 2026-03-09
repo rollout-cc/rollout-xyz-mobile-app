@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, FolderOpen, CheckCheck } from "lucide-react";
+import { Home, FolderOpen, CheckCheck, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import rollyIcon from "@/assets/rolly-icon.png";
 
 const leftItems = [
   { to: "/overview", icon: Home, label: "Home" },
@@ -9,6 +10,7 @@ const leftItems = [
 
 const rightItems = [
   { to: "/my-work", icon: CheckCheck, label: "My Work" },
+  { to: "/rolly", icon: null, label: "Rolly", isRolly: true },
 ];
 
 export function MobileBottomNav() {
