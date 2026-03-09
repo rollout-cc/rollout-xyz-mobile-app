@@ -16,8 +16,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useTeamPlan } from "@/hooks/useTeamPlan";
 import { useNavigate } from "react-router-dom";
 
 interface AppLayoutProps {
