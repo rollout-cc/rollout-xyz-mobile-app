@@ -99,7 +99,7 @@ export function ObjectiveKpiCard({
   // Empty state — show picker
   if (!objectiveType) {
     return (
-      <div className={cn(cardBase, "relative")}>
+      <div ref={pickerRef} className={cn(cardBase, "relative")}>
         {showPicker ? (
           <div className={cn("p-2 min-w-[160px]", isBanner ? "text-white" : "text-foreground")}>
             <p className="text-[9px] font-bold uppercase tracking-wider opacity-50 mb-1.5 px-1">
