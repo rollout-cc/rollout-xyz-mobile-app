@@ -1,18 +1,13 @@
 import ReactMarkdown from "react-markdown";
 import type { RollyMessage as RollyMessageType } from "@/hooks/useRollyChat";
 import { cn } from "@/lib/utils";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 interface Props {
   message: RollyMessageType;
   isStreaming?: boolean;
 }
 
-/**
- * During streaming we render plain text with a blinking cursor.
- * Once streaming ends we switch to full markdown rendering.
- * This avoids the "jumpy re-parse" feel of ReactMarkdown on every token.
- */
 export function RollyMessage({ message, isStreaming }: Props) {
   const isUser = message.role === "user";
 
@@ -33,31 +28,82 @@ export function RollyMessage({ message, isStreaming }: Props) {
       >
         {isUser ? (
           <p className="whitespace-pre-wrap">{message.content}</p>
-        ) : isStreaming ? (
-          <StreamingText content={message.content} />
         ) : (
-          <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-li:my-0.5 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1">
-            <ReactMarkdown>{message.content}</ReactMarkdown>
-          </div>
+          <TypewriterText content={message.content} isStreaming={!!isStreaming} />
         )}
       </div>
     </div>
   );
 }
 
-/** Renders streaming text with a visible cursor, word by word with a slight stagger */
-function StreamingText({ content }: { content: string }) {
-  const containerRef = useRef<HTMLDivElement>(null);
+/**
+ * Typewriter effect: characters are revealed one-by-one on a timer,
+ * buffering ahead when tokens arrive faster than the reveal speed.
+ * Once streaming ends & buffer is caught up, switches to markdown.
+ */
+function TypewriterText({ content, isStreaming }: { content: string; isStreaming: boolean }) {
+  const [revealed, setRevealed] = useState(0);
+  const revealedRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
+  const lastTimeRef = useRef(0);
+  const doneRef = useRef(false);
 
-  // Auto-scroll the parent when content grows
+  // Speed: ms per character (lower = faster)
+  const CHAR_DELAY = 12;
+
+  const tick = useCallback((time: number) => {
+    if (doneRef.current) return;
+
+    const elapsed = time - lastTimeRef.current;
+    if (elapsed >= CHAR_DELAY) {
+      // Reveal multiple chars if we're behind
+      const charsToReveal = Math.min(
+        Math.floor(elapsed / CHAR_DELAY),
+        3 // max 3 chars per frame to keep it smooth
+      );
+      revealedRef.current = Math.min(revealedRef.current + charsToReveal, content.length);
+      setRevealed(revealedRef.current);
+      lastTimeRef.current = time;
+    }
+
+    if (revealedRef.current < content.length) {
+      rafRef.current = requestAnimationFrame(tick);
+    } else if (!isStreaming) {
+      // Fully caught up and streaming done
+      doneRef.current = true;
+    } else {
+      // Caught up but still streaming — wait for more content
+      rafRef.current = requestAnimationFrame(tick);
+    }
+  }, [content.length, isStreaming]);
+
   useEffect(() => {
-    const el = containerRef.current?.closest("[class*='overflow-y']");
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [content]);
+    if (!doneRef.current) {
+      if (!rafRef.current) {
+        lastTimeRef.current = performance.now();
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    }
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    };
+  }, [tick, content]);
+
+  // Once streaming is done and we've revealed everything, render markdown
+  const fullyRevealed = revealed >= content.length && !isStreaming;
+
+  if (fullyRevealed) {
+    return (
+      <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-li:my-0.5 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1">
+        <ReactMarkdown>{content}</ReactMarkdown>
+      </div>
+    );
+  }
 
   return (
-    <div ref={containerRef} className="whitespace-pre-wrap break-words">
-      {content}
+    <div className="whitespace-pre-wrap break-words">
+      {content.slice(0, revealed)}
       <span className="inline-block h-4 w-[2px] bg-foreground/70 rounded-full ml-0.5 align-baseline animate-pulse" />
     </div>
   );
