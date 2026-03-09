@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { LayoutGrid, Plus, ChevronsUpDown, Building2, ClipboardList, Users, Radar, CheckCheck, PanelLeftOpen, PanelRightOpen, Settings, User, CreditCard } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { LayoutGrid, Plus, ChevronsUpDown, Building2, ClipboardList, Users, Radar, CheckCheck, PanelLeftOpen, PanelRightOpen, Settings, User, CreditCard, Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
 import rolloutLogo from "@/assets/rollout-logo.png";
 import rolloutFlag from "@/assets/rollout-flag.svg";
+import rollyIcon from "@/assets/rolly-icon.png";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -46,6 +48,8 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
   const [newTeamName, setNewTeamName] = useState("");
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
+  const location = useLocation();
+  const isRollyActive = location.pathname === "/rolly";
 
   const selectedTeam = teams.find((t) => t.id === selectedTeamId);
 
@@ -205,25 +209,34 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
             </Tooltip>
 
             {!collapsed ? (
-              <Button
-                className="w-full justify-start gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-                size="sm"
+              <button
+                onClick={() => navigate("/rolly")}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm font-medium transition-colors",
+                  isRollyActive
+                    ? "bg-accent text-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                )}
               >
-                <Plus className="h-4 w-4" />
-                Add
-                <ChevronsUpDown className="ml-auto h-3.5 w-3.5" />
-              </Button>
+                <img src={rollyIcon} alt="ROLLY" className="h-5 w-5 rounded-full shrink-0" />
+                <span>Rolly</span>
+              </button>
             ) : (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    className="w-full justify-center bg-primary text-primary-foreground hover:bg-primary/90"
-                    size="icon"
+                  <button
+                    onClick={() => navigate("/rolly")}
+                    className={cn(
+                      "flex w-full items-center justify-center rounded-md p-2 transition-colors",
+                      isRollyActive
+                        ? "bg-accent text-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                    )}
                   >
-                    <Plus className="h-4 w-4" />
-                  </Button>
+                    <img src={rollyIcon} alt="ROLLY" className="h-5 w-5 rounded-full shrink-0" />
+                  </button>
                 </TooltipTrigger>
-                <TooltipContent side="right">Add</TooltipContent>
+                <TooltipContent side="right">Rolly</TooltipContent>
               </Tooltip>
             )}
           </div>

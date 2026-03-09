@@ -33,6 +33,7 @@ const JoinTeam = React.lazy(() => import("./pages/JoinTeam"));
 const Staff = React.lazy(() => import("./pages/Staff"));
 const StaffDetail = React.lazy(() => import("./pages/StaffDetail"));
 const ARList = React.lazy(() => import("./pages/ARList"));
+const Rolly = React.lazy(() => import("./pages/Rolly"));
 const ApproveSplit = React.lazy(() => import("./pages/ApproveSplit"));
 
 const NotFound = React.lazy(() => import("./pages/NotFound"));
@@ -122,7 +123,7 @@ function AppRoutes() {
         <Route path="/shared/agenda/:token" element={<PublicAgenda />} />
         <Route path="/join/:token" element={<JoinTeam />} />
         <Route path="/splits/approve/:token" element={<ApproveSplit />} />
-        <Route path="/rolly" element={<Navigate to="/roster" replace />} />
+        <Route path="/rolly" element={<ProtectedRoute><Rolly /></ProtectedRoute>} />
         <Route path="/" element={<RootRedirect />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

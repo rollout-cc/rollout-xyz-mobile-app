@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, FolderOpen, CheckCheck } from "lucide-react";
+import { Home, FolderOpen, CheckCheck, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import rollyIcon from "@/assets/rolly-icon.png";
 
 const leftItems = [
   { to: "/overview", icon: Home, label: "Home" },
@@ -9,6 +10,7 @@ const leftItems = [
 
 const rightItems = [
   { to: "/my-work", icon: CheckCheck, label: "My Work" },
+  { to: "/rolly", icon: null, label: "Rolly", isRolly: true },
 ];
 
 export function MobileBottomNav() {
@@ -38,19 +40,20 @@ export function MobileBottomNav() {
           </button>
         ))}
 
-        {/* Fixed-width center spacer sized to the FAB so left/right tabs are optically equal */}
-        <div className="w-16 shrink-0" />
-
-        {rightItems.map(({ to, icon: Icon, label }, i) => (
+        {rightItems.map(({ to, icon: Icon, label, isRolly }: any) => (
           <button
-            key={`${to}-${i}`}
+            key={to}
             onClick={() => navigate(to)}
             className={cn(
               "flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors",
               isActive(to) ? "text-primary" : "text-muted-foreground"
             )}
           >
-            <Icon className="h-5 w-5" />
+            {isRolly ? (
+              <img src={rollyIcon} alt="Rolly" className="h-5 w-5 rounded-full" />
+            ) : (
+              Icon && <Icon className="h-5 w-5" />
+            )}
             <span className="text-xs font-medium">{label}</span>
           </button>
         ))}
