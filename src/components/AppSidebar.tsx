@@ -176,23 +176,54 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
             ))}
           </SidebarMenu>
 
-          {/* Bottom: collapse toggle + add button */}
+          {/* Bottom: Rolly + collapse toggle */}
           <div
-            className="mt-auto space-y-1.5 transition-[padding] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col"
+            className="mt-auto space-y-2 transition-[padding] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col"
             style={{
               padding: collapsed ? "12px 8px" : "12px",
-              alignItems: collapsed ? "center" : "stretch",
+              alignItems: "center",
             }}
           >
+            {/* Rolly card */}
+            {!collapsed ? (
+              <button
+                onClick={() => navigate("/rolly")}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all bg-foreground text-background hover:opacity-90 w-auto self-start",
+                  isRollyActive && "ring-2 ring-primary ring-offset-2 ring-offset-sidebar"
+                )}
+              >
+                <img src={rollyIcon} alt="ROLLY" className="h-5 w-5 rounded-full shrink-0 invert dark:invert-0" />
+                <span>Rolly</span>
+              </button>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => navigate("/rolly")}
+                    className={cn(
+                      "flex items-center justify-center rounded-xl p-2 transition-all bg-foreground text-background hover:opacity-90",
+                      isRollyActive && "ring-2 ring-primary ring-offset-2 ring-offset-sidebar"
+                    )}
+                  >
+                    <img src={rollyIcon} alt="ROLLY" className="h-5 w-5 rounded-full shrink-0 invert dark:invert-0" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right">Rolly</TooltipContent>
+              </Tooltip>
+            )}
+
+            {/* Collapse toggle */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   onClick={toggleSidebar}
-                  className="flex w-full items-center rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                  className="flex items-center rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                   style={{
                     padding: "6px 8px",
                     justifyContent: collapsed ? "center" : "flex-start",
                     gap: collapsed ? "0" : "8px",
+                    width: collapsed ? "auto" : "100%",
                   }}
                 >
                   {collapsed ? (
@@ -207,38 +238,6 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
               </TooltipTrigger>
               {collapsed && <TooltipContent side="right">Expand</TooltipContent>}
             </Tooltip>
-
-            {!collapsed ? (
-              <button
-                onClick={() => navigate("/rolly")}
-                className={cn(
-                  "flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm font-medium transition-colors",
-                  isRollyActive
-                    ? "bg-accent text-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                )}
-              >
-                <img src={rollyIcon} alt="ROLLY" className="h-5 w-5 rounded-full shrink-0" />
-                <span>Rolly</span>
-              </button>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => navigate("/rolly")}
-                    className={cn(
-                      "flex w-full items-center justify-center rounded-md p-2 transition-colors",
-                      isRollyActive
-                        ? "bg-accent text-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                    )}
-                  >
-                    <img src={rollyIcon} alt="ROLLY" className="h-5 w-5 rounded-full shrink-0" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="right">Rolly</TooltipContent>
-              </Tooltip>
-            )}
           </div>
         </SidebarContent>
       </Sidebar>
