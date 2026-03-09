@@ -36,6 +36,10 @@ export function AppLayout({ children, title, actions, onBack }: AppLayoutProps) 
   const isMobile = useIsMobile();
   const { data: teams = [] } = useTeams();
   const selectedTeam = teams.find((t) => t.id === selectedTeamId);
+  const myRole = selectedTeam?.role;
+  const isOwnerOrManager = myRole === "team_owner" || myRole === "manager";
+  const { isPaid, isTrialing } = useTeamPlan();
+  const hasPaidAccess = isPaid || isTrialing;
 
   const { data: profile } = useQuery({
     queryKey: ["my-profile"],
