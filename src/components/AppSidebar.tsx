@@ -178,40 +178,41 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
 
           {/* Bottom: Rolly + collapse toggle */}
           <div
-            className="mt-auto space-y-2 transition-[padding] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col"
+            className="mt-auto transition-[padding] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col items-center"
             style={{
               padding: collapsed ? "12px 8px" : "12px",
-              alignItems: "center",
             }}
           >
             {/* Rolly card */}
-            {!collapsed ? (
-              <button
-                onClick={() => navigate("/rolly")}
-                className={cn(
-                  "flex items-center gap-2.5 rounded-xl px-4 py-3.5 text-sm font-medium transition-all bg-foreground text-background hover:opacity-90 w-auto self-start",
-                  isRollyActive && "ring-2 ring-primary ring-offset-2 ring-offset-sidebar"
-                )}
-              >
-                <img src={rollyIcon} alt="ROLLY" className="h-7 w-7 rounded-full shrink-0 invert dark:invert-0" />
-                <span>Rolly</span>
-              </button>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => navigate("/rolly")}
-                    className={cn(
-                      "flex items-center justify-center rounded-xl p-3 transition-all bg-foreground text-background hover:opacity-90",
-                      isRollyActive && "ring-2 ring-primary ring-offset-2 ring-offset-sidebar"
-                    )}
-                  >
-                    <img src={rollyIcon} alt="ROLLY" className="h-7 w-7 rounded-full shrink-0 invert dark:invert-0" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="right">Rolly</TooltipContent>
-              </Tooltip>
-            )}
+            <div className="mb-4">
+              {!collapsed ? (
+                <button
+                  onClick={() => navigate("/rolly")}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-xl px-4 py-3.5 text-sm font-medium transition-all bg-foreground text-background hover:opacity-90",
+                    isRollyActive && "ring-2 ring-primary ring-offset-2 ring-offset-sidebar"
+                  )}
+                >
+                  <img src={rollyIcon} alt="ROLLY" className="h-7 w-7 rounded-full shrink-0 invert dark:invert-0" />
+                  <span>Rolly</span>
+                </button>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => navigate("/rolly")}
+                      className={cn(
+                        "flex items-center justify-center rounded-xl p-3 transition-all bg-foreground text-background hover:opacity-90",
+                        isRollyActive && "ring-2 ring-primary ring-offset-2 ring-offset-sidebar"
+                      )}
+                    >
+                      <img src={rollyIcon} alt="ROLLY" className="h-7 w-7 rounded-full shrink-0 invert dark:invert-0" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">Rolly</TooltipContent>
+                </Tooltip>
+              )}
+            </div>
 
             {/* Collapse toggle */}
             <Tooltip>
