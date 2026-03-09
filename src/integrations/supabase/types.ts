@@ -1411,6 +1411,39 @@ export type Database = {
           },
         ]
       }
+      rolly_knowledge: {
+        Row: {
+          chapter: string | null
+          content: string
+          created_at: string | null
+          id: string
+          page_end: number | null
+          page_start: number | null
+          search_vector: unknown
+          source: string
+        }
+        Insert: {
+          chapter?: string | null
+          content: string
+          created_at?: string | null
+          id?: string
+          page_end?: number | null
+          page_start?: number | null
+          search_vector?: unknown
+          source?: string
+        }
+        Update: {
+          chapter?: string | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          page_end?: number | null
+          page_start?: number | null
+          search_vector?: unknown
+          source?: string
+        }
+        Relationships: []
+      }
       rolly_messages: {
         Row: {
           content: string
