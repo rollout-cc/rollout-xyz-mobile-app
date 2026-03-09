@@ -219,19 +219,7 @@ export default function Login() {
           )}
         </div>
 
-        {/* Bottom CTA — justify-between pushes this to the bottom of the panel */}
-        {mode === "login" && (
-          <button
-            onClick={() => setMode("signup")}
-            className="flex items-center justify-between max-w-md mb-10 sm:mb-12 px-5 py-4 rounded-lg border border-[hsl(0,0%,75%)] hover:bg-[hsl(35,20%,86%)] transition-colors touch-manipulation"
-            style={{ marginBottom: "max(2.5rem, calc(var(--safe-area-inset-bottom) + 1.5rem))" }}
-          >
-            <span className="text-sm font-medium text-foreground">Don't have an account?</span>
-            <span className="flex items-center gap-1 text-sm text-muted-foreground">
-              Try for free <ChevronRight className="h-4 w-4" />
-            </span>
-          </button>
-        )}
+        <div className="pb-10 sm:pb-12" style={{ paddingBottom: "max(2.5rem, calc(var(--safe-area-inset-bottom) + 1.5rem))" }} />
       </div>
 
       {/* Right panel – waving flag video (desktop only) */}
