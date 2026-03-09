@@ -126,11 +126,9 @@ export default function StaffDetail() {
   const name = profile?.full_name || "Staff Member";
 
   return (
-    <AppLayout title={name}>
+    <AppLayout title={name} onBack={() => navigate(-1)}>
       {/* Header */}
       <div className="mb-6">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4">
-          <ArrowLeft className="h-4 w-4" /> Back
         </button>
         <div className="flex items-center gap-4">
           <Avatar className="h-14 w-14">
