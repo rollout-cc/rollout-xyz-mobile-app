@@ -370,7 +370,7 @@ export default function Roster() {
             {/* Folder cards as droppable targets */}
             {folders.length > 0 && (
               <div className="mb-6">
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+                <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-7 gap-2.5">
                   {folders.map((folder: any) => {
                     const fArtists = artists.filter((a: any) => a.folder_id === folder.id);
                     return (
