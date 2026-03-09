@@ -67,6 +67,14 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
   // Pending delete state for undo
   const [pendingDelete, setPendingDelete] = useState<{ id: string; timer: ReturnType<typeof setTimeout> } | null>(null);
 
+  // Editing state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDesc, setEditDesc] = useState("");
+  const [editAmount, setEditAmount] = useState("");
+  const [editStatus, setEditStatus] = useState("");
+  const [editCategoryId, setEditCategoryId] = useState("none");
+  const [editDate, setEditDate] = useState("");
+
   // Queries
   const { data: transactions = [] } = useQuery({
     queryKey: ["finance-transactions", artistId],
