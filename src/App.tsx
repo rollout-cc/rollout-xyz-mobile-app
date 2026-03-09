@@ -117,7 +117,7 @@ function AppRoutes() {
         <Route path="/shared/agenda/:token" element={<PublicAgenda />} />
         <Route path="/join/:token" element={<JoinTeam />} />
         <Route path="/splits/approve/:token" element={<ApproveSplit />} />
-        <Route path="/rolly" element={<ProtectedRoute><Rolly /></ProtectedRoute>} />
+        <Route path="/rolly" element={<Navigate to="/roster" replace />} />
         <Route path="/" element={<RootRedirect />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
