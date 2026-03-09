@@ -435,6 +435,10 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
                         <Select
                           value=""
                           onValueChange={(val) => {
+                            if (!member.user_id) {
+                              toast.error("This member hasn't accepted their invite yet");
+                              return;
+                            }
                             artists.forEach((artist) => {
                               upsertPermission.mutate({
                                 userId: member.user_id,
