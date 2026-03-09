@@ -145,7 +145,7 @@ export function AppLayout({ children, title, actions, onBack }: AppLayoutProps) 
 
         {isMobile && <MobileBottomNav />}
         {isMobile && <MobileFAB />}
-        <RollyFAB />
+        
       </div>
     </SidebarProvider>
   );

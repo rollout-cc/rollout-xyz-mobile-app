@@ -208,25 +208,34 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
             </Tooltip>
 
             {!collapsed ? (
-              <Button
-                className="w-full justify-start gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-                size="sm"
+              <button
+                onClick={() => navigate("/rolly")}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm font-medium transition-colors",
+                  isRollyActive
+                    ? "bg-accent text-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                )}
               >
-                <Plus className="h-4 w-4" />
-                Add
-                <ChevronsUpDown className="ml-auto h-3.5 w-3.5" />
-              </Button>
+                <img src={rollyIcon} alt="ROLLY" className="h-5 w-5 rounded-full shrink-0" />
+                <span>Rolly</span>
+              </button>
             ) : (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    className="w-full justify-center bg-primary text-primary-foreground hover:bg-primary/90"
-                    size="icon"
+                  <button
+                    onClick={() => navigate("/rolly")}
+                    className={cn(
+                      "flex w-full items-center justify-center rounded-md p-2 transition-colors",
+                      isRollyActive
+                        ? "bg-accent text-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                    )}
                   >
-                    <Plus className="h-4 w-4" />
-                  </Button>
+                    <img src={rollyIcon} alt="ROLLY" className="h-5 w-5 rounded-full shrink-0" />
+                  </button>
                 </TooltipTrigger>
-                <TooltipContent side="right">Add</TooltipContent>
+                <TooltipContent side="right">Rolly</TooltipContent>
               </Tooltip>
             )}
           </div>
