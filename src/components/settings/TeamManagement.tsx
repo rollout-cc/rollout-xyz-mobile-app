@@ -426,8 +426,8 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
                   </span>
                 )}
 
-                {/* Inline artist permissions */}
-                {member.role !== "team_owner" && artists.length > 0 && (
+                {/* Inline artist permissions - only show if member has a valid user_id */}
+                {member.role !== "team_owner" && artists.length > 0 && member.user_id && (
                   <div className="space-y-1.5 pt-1">
                     <div className="flex items-center gap-2">
                       <p className="text-xs font-medium text-muted-foreground">Artist Access</p>
