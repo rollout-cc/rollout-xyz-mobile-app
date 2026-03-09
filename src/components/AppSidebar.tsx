@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutGrid, Plus, ChevronsUpDown, Building2, ClipboardList, Users, Radar, CheckCheck, PanelLeftOpen, PanelRightOpen } from "lucide-react";
+import { LayoutGrid, Plus, ChevronsUpDown, Building2, ClipboardList, Users, Radar, CheckCheck, PanelLeftOpen, PanelRightOpen, Settings, User, CreditCard } from "lucide-react";
 import rolloutLogo from "@/assets/rollout-logo.png";
 import rolloutFlag from "@/assets/rollout-flag.svg";
 import { NavLink } from "@/components/NavLink";
