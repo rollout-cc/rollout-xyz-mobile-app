@@ -1,20 +1,27 @@
 import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSelectedTeam } from "@/contexts/TeamContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 export type RollyMessage = { role: "user" | "assistant"; content: string };
+export type RollyToolAction = { tool: string; success: boolean; message: string; data?: any };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rolly-chat`;
 
 export function useRollyChat() {
   const [messages, setMessages] = useState<RollyMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [lastActions, setLastActions] = useState<RollyToolAction[]>([]);
   const abortRef = useRef<AbortController | null>(null);
+  const { selectedTeamId } = useSelectedTeam();
+  const queryClient = useQueryClient();
 
   const send = useCallback(async (input: string) => {
     const userMsg: RollyMessage = { role: "user", content: input };
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
     setIsLoading(true);
+    setLastActions([]);
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -35,7 +42,7 @@ export function useRollyChat() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ messages: updatedMessages }),
+        body: JSON.stringify({ messages: updatedMessages, team_id: selectedTeamId }),
         signal: controller.signal,
       });
 
@@ -73,6 +80,18 @@ export function useRollyChat() {
 
           try {
             const parsed = JSON.parse(jsonStr);
+
+            // Handle tool actions event
+            if (parsed.type === "tool_actions") {
+              setLastActions(parsed.actions);
+              // Invalidate workspace queries to refresh data
+              queryClient.invalidateQueries({ queryKey: ["rolly-workspace-tasks"] });
+              queryClient.invalidateQueries({ queryKey: ["rolly-workspace-artists"] });
+              queryClient.invalidateQueries({ queryKey: ["rolly-workspace-budgets"] });
+              queryClient.invalidateQueries({ queryKey: ["tasks"] });
+              continue;
+            }
+
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
             if (content) {
               assistantSoFar += content;
@@ -103,6 +122,12 @@ export function useRollyChat() {
           if (jsonStr === "[DONE]") continue;
           try {
             const parsed = JSON.parse(jsonStr);
+            if (parsed.type === "tool_actions") {
+              setLastActions(parsed.actions);
+              queryClient.invalidateQueries({ queryKey: ["rolly-workspace-tasks"] });
+              queryClient.invalidateQueries({ queryKey: ["tasks"] });
+              continue;
+            }
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
             if (content) {
               assistantSoFar += content;
@@ -127,7 +152,7 @@ export function useRollyChat() {
       setIsLoading(false);
       abortRef.current = null;
     }
-  }, [messages]);
+  }, [messages, selectedTeamId, queryClient]);
 
   const stop = useCallback(() => {
     abortRef.current?.abort();
@@ -135,7 +160,8 @@ export function useRollyChat() {
 
   const clear = useCallback(() => {
     setMessages([]);
+    setLastActions([]);
   }, []);
 
-  return { messages, isLoading, send, stop, clear };
+  return { messages, isLoading, send, stop, clear, lastActions };
 }
