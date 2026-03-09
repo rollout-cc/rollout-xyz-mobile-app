@@ -48,6 +48,22 @@ export function useCreateArtist() {
       import("@/lib/notifications").then(({ notifyNewArtist }) => {
         notifyNewArtist(variables.team_id, variables.name, undefined, variables.avatar_url);
       });
+      // Fire-and-forget: fetch monthly listeners if spotify_id present
+      if (variables.spotify_id && data.id) {
+        supabase.functions.invoke("spotify-artist", {
+          body: { spotify_id: variables.spotify_id },
+        }).then(({ data: spotifyData }) => {
+          if (spotifyData?.monthly_listeners) {
+            supabase
+              .from("artists")
+              .update({ monthly_listeners: spotifyData.monthly_listeners })
+              .eq("id", data.id)
+              .then(() => {
+                queryClient.invalidateQueries({ queryKey: ["artists", variables.team_id] });
+              });
+          }
+        }).catch(() => { /* silent fail */ });
+      }
     },
   });
 }
