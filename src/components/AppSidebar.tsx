@@ -189,11 +189,11 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
               <button
                 onClick={() => navigate("/rolly")}
                 className={cn(
-                  "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all bg-foreground text-background hover:opacity-90 w-auto self-start",
+                  "flex items-center gap-2.5 rounded-xl px-4 py-3.5 text-sm font-medium transition-all bg-foreground text-background hover:opacity-90 w-auto self-start",
                   isRollyActive && "ring-2 ring-primary ring-offset-2 ring-offset-sidebar"
                 )}
               >
-                <img src={rollyIcon} alt="ROLLY" className="h-5 w-5 rounded-full shrink-0 invert dark:invert-0" />
+                <img src={rollyIcon} alt="ROLLY" className="h-7 w-7 rounded-full shrink-0 invert dark:invert-0" />
                 <span>Rolly</span>
               </button>
             ) : (
@@ -202,11 +202,11 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
                   <button
                     onClick={() => navigate("/rolly")}
                     className={cn(
-                      "flex items-center justify-center rounded-xl p-2 transition-all bg-foreground text-background hover:opacity-90",
+                      "flex items-center justify-center rounded-xl p-3 transition-all bg-foreground text-background hover:opacity-90",
                       isRollyActive && "ring-2 ring-primary ring-offset-2 ring-offset-sidebar"
                     )}
                   >
-                    <img src={rollyIcon} alt="ROLLY" className="h-5 w-5 rounded-full shrink-0 invert dark:invert-0" />
+                    <img src={rollyIcon} alt="ROLLY" className="h-7 w-7 rounded-full shrink-0 invert dark:invert-0" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="right">Rolly</TooltipContent>
