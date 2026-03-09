@@ -240,6 +240,60 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
     }
   }, [pendingDelete]);
 
+  const updateTransaction = useMutation({
+    mutationFn: async () => {
+      if (!editingId) return;
+      const amt = parseFloat(editAmount) || 0;
+      const tx = transactions.find((t: any) => t.id === editingId);
+      const isExpense = tx?.type === "expense";
+      const finalAmount = isExpense ? -Math.abs(amt) : Math.abs(amt);
+
+      let resolvedCategoryId = editCategoryId;
+      if (editCategoryId.startsWith("budget:")) {
+        const budgetLabel = editCategoryId.replace("budget:", "");
+        const existing = categories.find((c: any) => c.name === budgetLabel);
+        if (existing) {
+          resolvedCategoryId = existing.id;
+        } else {
+          const { data: newCat, error: catErr } = await supabase
+            .from("finance_categories")
+            .insert({ artist_id: artistId, name: budgetLabel } as any)
+            .select("id")
+            .single();
+          if (catErr) throw catErr;
+          resolvedCategoryId = newCat.id;
+        }
+      }
+
+      const { error } = await supabase.from("transactions").update({
+        description: editDesc.trim(),
+        amount: finalAmount,
+        status: editStatus,
+        category_id: resolvedCategoryId === "none" ? null : resolvedCategoryId,
+        transaction_date: editDate,
+      } as any).eq("id", editingId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["finance-transactions", artistId] });
+      qc.invalidateQueries({ queryKey: ["finance-categories", artistId] });
+      setEditingId(null);
+      toast.success("Transaction updated");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const startEditing = (t: any) => {
+    setEditingId(t.id);
+    setEditDesc(t.description || "");
+    setEditAmount(String(Math.abs(Number(t.amount))));
+    setEditStatus(t.status || "");
+    setEditCategoryId(t.category_id || "none");
+    setEditDate(t.transaction_date || "");
+  };
+
+  const cancelEditing = () => setEditingId(null);
+
   const resetItemForm = () => {
     setShowNewItem(false);
     setItemAmount("");
