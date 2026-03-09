@@ -1,0 +1,126 @@
+import { useState, useRef, useEffect } from "react";
+import { Send, Square, Trash2, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { RollyMessage } from "./RollyMessage";
+import { useRollyChat } from "@/hooks/useRollyChat";
+
+const QUICK_ACTIONS = [
+  { label: "Explain recoupment", prompt: "Explain how recoupment works in a record deal with a simple example." },
+  { label: "Plan my release", prompt: "Help me create a release strategy for a new single. What timeline, budget, and marketing steps should I consider?" },
+  { label: "Calculate net income", prompt: "Help me calculate an artist's net income. Walk me through the typical revenue splits and deductions." },
+  { label: "Understand sync licensing", prompt: "What is sync licensing and how can independent artists get sync placements?" },
+];
+
+export function RollyChat() {
+  const { messages, isLoading, send, stop, clear } = useRollyChat();
+  const [input, setInput] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const handleSend = () => {
+    const text = input.trim();
+    if (!text || isLoading) return;
+    setInput("");
+    send(text);
+    // Reset textarea height
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const isEmpty = messages.length === 0;
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Messages area */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+        {isEmpty ? (
+          <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
+            <div className="h-16 w-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center">
+              <Sparkles className="h-8 w-8" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold">Hey, I'm ROLLY</h2>
+              <p className="text-muted-foreground mt-1 max-w-md">
+                Your music business advisor. Ask me about deals, splits, royalties, release strategy, or anything industry-related.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 max-w-lg w-full">
+              {QUICK_ACTIONS.map((action) => (
+                <button
+                  key={action.label}
+                  onClick={() => send(action.prompt)}
+                  className="text-left p-3 rounded-lg border border-border hover:bg-muted transition-colors text-sm"
+                >
+                  <span className="font-medium">{action.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          messages.map((msg, i) => <RollyMessage key={i} message={msg} />)
+        )}
+        {isLoading && messages[messages.length - 1]?.role === "user" && (
+          <div className="flex gap-3">
+            <div className="h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0">
+              R
+            </div>
+            <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3">
+              <div className="flex gap-1">
+                <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-pulse" />
+                <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:150ms]" />
+                <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:300ms]" />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Input area */}
+      <div className="border-t border-border px-4 py-3 bg-background">
+        <div className="flex items-end gap-2 max-w-3xl mx-auto">
+          {messages.length > 0 && (
+            <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-muted-foreground" onClick={clear} title="Clear chat">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+          <Textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+              // Auto-resize
+              e.target.style.height = "auto";
+              e.target.style.height = Math.min(e.target.scrollHeight, 160) + "px";
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask ROLLY anything about the music business..."
+            className="min-h-[40px] max-h-[160px] resize-none rounded-xl py-2.5"
+            rows={1}
+          />
+          {isLoading ? (
+            <Button size="icon" variant="outline" className="h-9 w-9 shrink-0" onClick={stop}>
+              <Square className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button size="icon" className="h-9 w-9 shrink-0" onClick={handleSend} disabled={!input.trim()}>
+              <Send className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

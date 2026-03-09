@@ -1,268 +1,112 @@
 
 
-# Full Implementation Plan: ROLLY + Splits + Calendar + Performance Optimizations
+# Performance Audit: Speed & Flow Improvements
 
-## Overview
-
-This plan covers four major feature areas:
-1. **ROLLY** — AI music business advisor with streaming chat
-2. **Split Sheet Email Consolidation** — Project-level approvals via Resend
-3. **Calendar Sync** — iCal subscription feed for milestones
-4. **Performance Optimizations** — Query consolidation, cache improvements, prefetching
+After reviewing the full codebase, here are the bottlenecks and concrete fixes ranked by impact.
 
 ---
 
-## 1. Critical Blocker: TypeScript Build Error
+## 1. Waterfall Query Chains (HIGH IMPACT)
 
-**File**: `supabase/functions/send-notification/index.ts`, line 268
+**Problem:** Several pages chain queries sequentially -- each waits for the previous to finish before starting. This creates "waterfall" loading where the page takes 3-4x longer than necessary.
 
-**Current code**:
-```typescript
-if (!pref || !(pref as Record<string, unknown>)[payload.pref_key]) {
-```
+**Where it happens:**
+- **Overview.tsx**: Fetches `artists` first, then waits for that result before fetching `budgets`, `transactions`, and `initiatives` (all use `enabled: artists.length > 0`). That's 3 sequential hops.
+- **FinanceContent.tsx**: Same pattern -- `artists` -> `budgets`, `transactions`, `company_expenses`, etc. Plus `staffEmployment` -> `staffProfiles` is another waterfall.
+- **StaffContent.tsx**: `memberships` -> `memberProfiles`, and `artists` -> `transactions`.
 
-**Fix**: Cast through `unknown` first:
-```typescript
-if (!pref || !(pref as unknown as Record<string, unknown>)[payload.pref_key]) {
-```
+**Fix:** Create a single database function (RPC) that returns all needed data for the Overview and Finance pages in one call. Alternatively, restructure queries to use the team_id directly (budgets, transactions can be fetched via joins or team_id filter) so they all fire in parallel.
 
 ---
 
-## 2. Performance Optimizations
+## 2. `useTeamPlan()` Calls an Edge Function Every 60 Seconds (HIGH IMPACT)
 
-### 2.1 Query Keys Already Unified ✓
-Overview.tsx and FinanceContent.tsx both use `["artists-summary", teamId]`, `["budgets", teamId]`, `["transactions", teamId]`, `["tasks", teamId]`. This is already implemented correctly.
+**Problem:** `useTeamPlan()` invokes the `check-subscription` edge function (cold-start latency ~200-800ms) on every page load and re-polls every 60s. This is called from at least 8 different components. While React Query deduplicates, the edge function call itself is slow and blocks UI decisions (feature gating).
 
-### 2.2 Waterfall Queries — Still Present
-**Problem**: `budgets` and `transactions` queries depend on `artists.length > 0`, creating sequential fetches.
-
-**Fix**: Fetch budgets/transactions directly using team_id via a database function or JOIN:
-```sql
-CREATE FUNCTION get_team_finance_data(p_team_id UUID)
-RETURNS TABLE (
-  artists JSONB,
-  budgets JSONB,
-  transactions JSONB
-) AS $$
-  SELECT
-    (SELECT jsonb_agg(row_to_json(a)) FROM artists a WHERE team_id = p_team_id),
-    (SELECT jsonb_agg(row_to_json(b)) FROM budgets b 
-     JOIN artists a ON b.artist_id = a.id WHERE a.team_id = p_team_id),
-    (SELECT jsonb_agg(row_to_json(t)) FROM transactions t 
-     JOIN artists a ON t.artist_id = a.id WHERE a.team_id = p_team_id)
-$$ LANGUAGE sql STABLE;
-```
-
-This collapses 3 sequential queries into 1 RPC call.
-
-### 2.3 useTeamPlan Caching ✓
-Already optimized: 5-minute staleTime/refetchInterval + localStorage cache.
-
-### 2.4 Role in TeamContext ✓
-Already implemented: `role` and `canManage` provided via context.
-
-### 2.5 Artist Card Prefetching ✓
-Already implemented in `ArtistCard.tsx` line 39-49 with `onMouseEnter` prefetch.
-
-### 2.6 Staff Computation ✓
-Already optimized with single-pass `maxRevenue` calculation (lines 308-316 in Overview.tsx).
+**Fix:**
+- Increase `staleTime` to 5 minutes (from 30s) and `refetchInterval` to 5 minutes (from 60s)
+- Cache the result in `localStorage` as a fallback so the first render doesn't block on network
 
 ---
 
-## 3. ROLLY — AI Music Business Advisor
+## 3. `useTeams()` Called 14+ Times Across Components (MEDIUM IMPACT)
 
-### Database Schema
-```sql
--- Conversations
-CREATE TABLE rolly_conversations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
-  artist_id UUID REFERENCES artists(id) ON DELETE SET NULL,
-  title TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+**Problem:** `useTeams()` is called in 14 places. React Query deduplicates the network call, but each call triggers the hook logic and context lookups. More importantly, the `role` check pattern (`teams.find(t => t.id === teamId)?.role`) is repeated everywhere.
 
--- Messages
-CREATE TABLE rolly_messages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  conversation_id UUID NOT NULL REFERENCES rolly_conversations(id) ON DELETE CASCADE,
-  role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
-  content TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- Education content
-CREATE TABLE education_content (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  concept_key TEXT NOT NULL UNIQUE,
-  title TEXT NOT NULL,
-  simple_explanation TEXT NOT NULL,
-  detailed_explanation TEXT,
-  related_concepts TEXT[],
-  example TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- RLS policies for user-scoped access
-ALTER TABLE rolly_conversations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE rolly_messages ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage own conversations" ON rolly_conversations FOR ALL USING (user_id = auth.uid());
-CREATE POLICY "Users can manage messages in own conversations" ON rolly_messages FOR ALL 
-  USING (conversation_id IN (SELECT id FROM rolly_conversations WHERE user_id = auth.uid()));
-```
-
-### Edge Function: `rolly-chat/index.ts`
-- Uses `LOVABLE_API_KEY` to call Lovable AI Gateway
-- Model: `google/gemini-2.5-flash` (fast, cost-effective)
-- Streaming SSE response for real-time rendering
-- System prompt includes music business knowledge (recoupment, splits, commissions, publishing, etc.)
-- Accepts conversation history for context
-
-### Frontend Components
-- `src/pages/Rolly.tsx` — Full-page chat interface
-- `src/components/rolly/RollyChat.tsx` — Chat UI with input and message list
-- `src/components/rolly/RollyMessage.tsx` — Message bubble with markdown
-- `src/hooks/useRollyChat.ts` — Streaming state management
-
-### Routing
-Add `/rolly` route to `App.tsx` and sidebar nav item.
+**Fix:** Move `role` into `TeamContext` so components just read `const { role } = useSelectedTeam()` instead of re-querying teams and filtering.
 
 ---
 
-## 4. Split Sheet Email Consolidation
+## 4. Duplicate Data Fetching Between Pages (MEDIUM IMPACT)
 
-### Current State
-`send-split-approval/index.ts` accepts `song_id` and processes per-song. Email sending via Resend is stubbed but not implemented.
+**Problem:** Overview.tsx, FinanceContent.tsx, and StaffContent.tsx all fetch the same data (artists, transactions, tasks, memberships, profiles) with different query keys (`overview-artists` vs `finance-artists` vs `staff-artists`). This means navigating between tabs re-fetches everything from scratch.
 
-### Changes Required
-
-**Edge Function Refactor**:
-1. Accept `project_id` instead of `song_id`
-2. Fetch ALL songs in the project
-3. Fetch ALL pending entries across all songs
-4. Group by contributor (one consolidated email per person)
-5. Send via Resend with branded template showing all tracks
-
-**Database Addition**:
-```sql
-ALTER TABLE split_entries ADD COLUMN project_approval_token TEXT;
-```
-
-**Email Template**:
-```text
-Subject: Split Approval Request — {Project Name}
-
-{Contributor Name},
-
-You've been added to the following tracks on "{Project Name}" by {Artist}:
-
-• "Track 1" — Producer 50%, Writer 25%
-• "Track 3" — Writer 15%
-
-[Approve All]  [View Details]
-```
-
-**UI Changes**:
-- Add "Send for Approval" button to `SplitProjectCard.tsx` footer
-- Show confirmation dialog with contributor count
-- Disable if any split totals > 100%
-
-**ApproveSplit.tsx Enhancement**:
-- Support bulk approval when token maps to multiple entries
-- Show all tracks with checkboxes for selective approval
+**Fix:** Unify query keys. Use `["artists", teamId]` everywhere instead of `["overview-artists", teamId]`, `["finance-artists", teamId]`, `["staff-artists", teamId]`. This lets React Query share the cache across all views.
 
 ---
 
-## 5. Calendar Sync — iCal Feed
+## 5. Heavy `useMemo` Computations on Every Render (MEDIUM IMPACT)
 
-### Edge Function: `milestone-ical/index.ts`
-Serves subscribable `.ics` feed using artist's `timeline_public_token`.
+**Problem:** `staffMembers` computation in Overview.tsx has an O(n*m) loop inside it (for each member, it iterates all other members to compute `maxRevenue`). With more staff, this becomes expensive.
 
-**Endpoint**: `GET /functions/v1/milestone-ical?token={token}`
-
-**Response**:
-```ical
-BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//ROLLOUT//Milestones//EN
-BEGIN:VEVENT
-DTSTART:20250315
-SUMMARY:Single Release — "Track Name"
-DESCRIPTION:Milestone for Artist Name
-UID:milestone-{id}@rollout.cc
-END:VEVENT
-END:VCALENDAR
-```
-
-### UI Changes: `TimelinesTab.tsx`
-Add "Calendar Sync" button next to share button:
-- Click → Popover with options:
-  - **Google Calendar**: Opens `https://calendar.google.com/calendar/r?cid=webcal://...`
-  - **Apple/Other**: Copy `webcal://` URL to clipboard
+**Fix:** Pre-compute `maxRevenue` once outside the map, then pass it in. Single pass instead of quadratic.
 
 ---
 
-## 6. Implementation Order
+## 6. Missing Prefetching on Navigation (LOW-MEDIUM IMPACT)
 
-### Phase 1: Blockers & Foundation
-1. Fix TypeScript error in `send-notification/index.ts` (line 268)
-2. Create database migration for ROLLY tables
-3. Create database migration for `project_approval_token` column
+**Problem:** When a user clicks an artist card, it navigates to ArtistDetail which then starts fetching from scratch. No data is prefetched on hover or anticipation.
 
-### Phase 2: ROLLY
-4. Create `rolly-chat` edge function with streaming
-5. Create `Rolly.tsx` page and chat components
-6. Add routing and sidebar navigation
-7. Seed `education_content` with 20-30 music business concepts
-
-### Phase 3: Split Consolidation
-8. Refactor `send-split-approval` to accept `project_id`
-9. Add Resend email sending with branded template
-10. Update `SplitProjectCard.tsx` with project-level send button
-11. Enhance `ApproveSplit.tsx` for bulk approval
-
-### Phase 4: Calendar Sync
-12. Create `milestone-ical` edge function
-13. Add calendar sync button/popover to `TimelinesTab.tsx`
-
-### Phase 5: Performance (Optional)
-14. Create `get_team_finance_data` RPC function
-15. Update Overview.tsx and FinanceContent.tsx to use single RPC call
+**Fix:** Add `queryClient.prefetchQuery` on artist card hover/mouse-enter for the artist detail data. This makes the transition feel instant.
 
 ---
 
-## 7. Files to Create
+## 7. Large Bundle: DnD Library Loaded on Every Page (LOW IMPACT)
 
-| File | Purpose |
-|------|---------|
-| `supabase/functions/rolly-chat/index.ts` | AI chat edge function |
-| `supabase/functions/milestone-ical/index.ts` | iCal feed endpoint |
-| `src/pages/Rolly.tsx` | Chat page |
-| `src/components/rolly/RollyChat.tsx` | Chat interface |
-| `src/components/rolly/RollyMessage.tsx` | Message rendering |
-| `src/hooks/useRollyChat.ts` | Streaming hook |
+**Problem:** `@hello-pangea/dnd` (~45KB gzipped) is imported in Roster.tsx and Overview.tsx. It's lazy-loaded via React.lazy, but it's still a significant chunk for pages that may not need drag-and-drop.
 
-## 8. Files to Modify
-
-| File | Changes |
-|------|---------|
-| `supabase/functions/send-notification/index.ts` | Fix line 268 cast |
-| `supabase/functions/send-split-approval/index.ts` | Project-level + Resend |
-| `src/App.tsx` | Add /rolly route |
-| `src/components/AppSidebar.tsx` | Add ROLLY nav item |
-| `src/components/artist/SplitProjectCard.tsx` | Add send button |
-| `src/components/artist/TimelinesTab.tsx` | Add calendar sync |
-| `src/pages/ApproveSplit.tsx` | Bulk approval support |
+**Fix:** No immediate action needed since pages are already lazy-loaded. Could consider dynamic import of the DnD wrapper only when folders exist.
 
 ---
 
-## Technical Notes
+## 8. Edge Function Cold Starts (LOW IMPACT, Infrastructure)
 
-- **LOVABLE_API_KEY** is configured — ROLLY can use AI immediately
-- **RESEND_API_KEY** is configured — Split emails can send immediately
-- Streaming uses SSE with line-by-line parsing
-- ROLLY system prompt: ~2000 tokens covering music business fundamentals
-- iCal is read-only subscription — direct calendar writing requires OAuth (future phase)
+**Problem:** `spotify-artist`, `check-subscription`, `scrape-chartmasters` all have cold-start latency. The Spotify artist data is fetched via edge function on every artist detail page load (30min staleTime helps but first visit is slow).
+
+**Fix:** Already mitigated by staleTime. Could add a background sync job instead of on-demand fetching.
+
+---
+
+## Implementation Plan (Ordered by Impact)
+
+### Step 1: Unify query keys across Overview/Finance/Staff
+- Change all `["finance-artists", teamId]`, `["overview-artists", teamId]`, `["staff-artists", teamId]` to `["artists-summary", teamId]`
+- Same for transactions, budgets, tasks, memberships, profiles
+- Instant cache sharing = no re-fetch when switching tabs
+
+### Step 2: Remove waterfall queries
+- Fetch budgets and transactions using `team_id` joins instead of waiting for artist IDs
+- Create an RPC function `get_team_finance_summary` that returns artists + budgets + transactions in one call
+
+### Step 3: Optimize useTeamPlan caching
+- Increase staleTime to 5min, refetchInterval to 5min
+- Add localStorage fallback for instant first render
+
+### Step 4: Move role into TeamContext
+- Eliminate 14 redundant `useTeams()` calls for role checking
+
+### Step 5: Fix quadratic staffMembers computation
+- Pre-compute maxRevenue in a single pass
+
+### Step 6: Add prefetching on artist card hover
+- `onMouseEnter` triggers `queryClient.prefetchQuery` for artist detail
+
+### Files to Edit
+1. `src/pages/Overview.tsx` -- unify query keys, remove waterfalls
+2. `src/components/overview/FinanceContent.tsx` -- unify query keys, remove waterfalls
+3. `src/components/overview/StaffContent.tsx` -- unify query keys
+4. `src/hooks/useTeamPlan.ts` -- increase cache times
+5. `src/contexts/TeamContext.tsx` -- add role to context
+6. `src/components/roster/ArtistCard.tsx` -- add prefetch on hover
+7. Database migration -- create RPC function for combined finance data
 
