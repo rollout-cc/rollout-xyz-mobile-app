@@ -49,7 +49,7 @@ function TypewriterText({ content, isStreaming }: { content: string; isStreaming
   const doneRef = useRef(false);
 
   // Speed: ms per character (lower = faster)
-  const CHAR_DELAY = 12;
+  const CHAR_DELAY = 4;
 
   const tick = useCallback((time: number) => {
     if (doneRef.current) return;
