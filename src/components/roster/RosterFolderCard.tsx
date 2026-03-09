@@ -38,7 +38,7 @@ export function RosterFolderCard({ folder, artists, onOpenAddDialog, onDelete, o
           : "border-border"
       )}
     >
-      <div className="p-3.5 pb-3">
+      <div className="p-2.5 pb-2.5">
         <div className="flex items-start justify-between gap-1 mb-3">
           <h3 className="text-sm font-semibold truncate">{folder.name}</h3>
           <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity">
