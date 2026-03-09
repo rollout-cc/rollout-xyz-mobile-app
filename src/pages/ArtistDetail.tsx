@@ -296,7 +296,23 @@ export default function ArtistDetail() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-end gap-2 shrink-0">
+                <div className="flex items-end gap-1.5 shrink-0 flex-wrap justify-end max-w-[60%]">
+                  <ObjectiveKpiCard
+                    artistId={artist.id}
+                    slot={1}
+                    objectiveType={(artist as any).objective_1_type}
+                    objectiveTarget={(artist as any).objective_1_target}
+                    currentValue={getObjectiveCurrentValue((artist as any).objective_1_type)}
+                    variant="banner"
+                  />
+                  <ObjectiveKpiCard
+                    artistId={artist.id}
+                    slot={2}
+                    objectiveType={(artist as any).objective_2_type}
+                    objectiveTarget={(artist as any).objective_2_target}
+                    currentValue={getObjectiveCurrentValue((artist as any).objective_2_type)}
+                    variant="banner"
+                  />
                   <div className="rounded-xl border border-white/[0.14] bg-black/30 backdrop-blur-xl shadow-lg px-3 py-2.5 text-right">
                     <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/45 mb-1.5 leading-none">Budget</p>
                     <div className="flex items-center justify-end gap-1">
