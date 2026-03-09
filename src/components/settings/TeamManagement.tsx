@@ -459,7 +459,7 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
                         </Select>
                       )}
                     </div>
-                    <div className={artists.length >= 5 ? "grid grid-cols-2 gap-x-6 gap-y-1" : "space-y-1"}>
+                    <div className={artists.length >= 5 ? "grid grid-cols-2 gap-x-8 gap-y-2" : "space-y-2"}>
                       {artists.map((artist) => {
                         const existingPerm = allPermissions.find(
                           (p) => p.user_id === member.user_id && p.artist_id === artist.id
@@ -467,14 +467,14 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
                         const currentLevel = existingPerm?.permission ?? "no_access";
 
                         return (
-                          <div key={artist.id} className="flex items-center gap-2">
-                            <Avatar className="h-5 w-5">
+                          <div key={artist.id} className="flex items-center gap-2.5">
+                            <Avatar className="h-6 w-6">
                               <AvatarImage src={artist.avatar_url ?? undefined} />
-                              <AvatarFallback className="text-[8px] bg-muted text-muted-foreground">
+                              <AvatarFallback className="text-[9px] bg-muted text-muted-foreground">
                                 {artist.name[0]?.toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="text-xs text-foreground min-w-[80px] truncate">{artist.name}</span>
+                            <span className="text-sm text-foreground w-[140px] truncate">{artist.name}</span>
                             {canManage ? (
                               <Select
                                 value={currentLevel}
