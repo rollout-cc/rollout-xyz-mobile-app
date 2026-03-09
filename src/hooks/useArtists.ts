@@ -11,7 +11,7 @@ export function useArtists(teamId: string | null) {
           *,
           initiatives(count),
           tasks(count),
-          budgets(label, amount),
+          budgets(id, label, amount),
           transactions(amount, type, budget_id, revenue_category, revenue_source)
         `)
         .eq("team_id", teamId!)
