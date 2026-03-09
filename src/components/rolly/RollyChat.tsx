@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Square, Trash2, Sparkles } from "lucide-react";
+import { Send, Square, Trash2, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { RollyMessage } from "./RollyMessage";
-import { useRollyChat } from "@/hooks/useRollyChat";
+import { useRollyChat, RollyToolAction } from "@/hooks/useRollyChat";
+import { cn } from "@/lib/utils";
 
 const QUICK_ACTIONS = [
   { label: "Explain recoupment", prompt: "Explain how recoupment works in a record deal with a simple example." },
