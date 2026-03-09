@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { MessageSquare, X } from "lucide-react";
+import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { RollyChat } from "./RollyChat";
 import { useIsMobile } from "@/hooks/use-mobile";
+import rollyIcon from "@/assets/rolly-icon.png";
 
 export function RollyFAB() {
   const [isOpen, setIsOpen] = useState(false);
@@ -24,15 +25,13 @@ export function RollyFAB() {
               "fixed z-[60] bg-background border border-border shadow-2xl rounded-2xl overflow-hidden flex flex-col",
               isMobile
                 ? "inset-2 bottom-2"
-                : "bottom-20 right-4 w-[420px] h-[560px]"
+                : "bottom-24 right-4 w-[420px] h-[560px]"
             )}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
               <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
-                  R
-                </div>
+                <img src={rollyIcon} alt="ROLLY" className="h-7 w-7 rounded-full" />
                 <span className="font-semibold text-sm text-foreground">ROLLY</span>
               </div>
               <button
@@ -55,7 +54,7 @@ export function RollyFAB() {
         onClick={() => setIsOpen(!isOpen)}
         aria-label={isOpen ? "Close ROLLY" : "Open ROLLY"}
         className={cn(
-          "fixed z-[59] flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition-all duration-200 active:scale-95",
+          "fixed z-[59] flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-200 active:scale-95",
           isMobile
             ? "bottom-[calc(env(safe-area-inset-bottom)+74px)] right-4"
             : "bottom-4 right-4",
@@ -67,7 +66,7 @@ export function RollyFAB() {
         {isOpen ? (
           <X className="h-5 w-5" />
         ) : (
-          <MessageSquare className="h-5 w-5" />
+          <img src={rollyIcon} alt="ROLLY" className="h-8 w-8 invert dark:invert-0" />
         )}
       </button>
     </>,
