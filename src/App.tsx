@@ -115,6 +115,8 @@ function AppRoutes() {
         <Route path="/ar" element={<ProtectedRoute><ARList /></ProtectedRoute>} />
         <Route path="/ar/:prospectId" element={<Navigate to="/ar" replace />} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/settings/team" element={<ProtectedRoute><TeamSettings /></ProtectedRoute>} />
+        <Route path="/settings/billing" element={<ProtectedRoute><BillingPage /></ProtectedRoute>} />
         <Route path="/shared/member/:token" element={<PublicMemberInfo />} />
         <Route path="/shared/timeline/:token" element={<PublicTimeline />} />
         <Route path="/shared/agenda/:token" element={<PublicAgenda />} />
