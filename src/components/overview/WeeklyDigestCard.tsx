@@ -67,7 +67,7 @@ export function WeeklyDigestCard({
       <div className="flex items-center gap-2 mb-3">
         <TrendingUp className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">Weekly Digest</h3>
-      </div>
+        <span className="text-xs text-muted-foreground">— everything that happened the last 7 days</span>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
         <div>
