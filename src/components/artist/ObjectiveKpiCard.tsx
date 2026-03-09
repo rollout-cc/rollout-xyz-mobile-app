@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Target, TrendingUp, Headphones, DollarSign, ChevronDown, X } from "lucide-react";
@@ -45,6 +45,18 @@ export function ObjectiveKpiCard({
   const [showPicker, setShowPicker] = useState(false);
   const [editTarget, setEditTarget] = useState(false);
   const [targetInput, setTargetInput] = useState("");
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showPicker]);
 
   const typeDef = OBJECTIVE_TYPES.find((t) => t.value === objectiveType);
   const Icon = typeDef?.icon ?? Target;
@@ -87,7 +99,7 @@ export function ObjectiveKpiCard({
   // Empty state — show picker
   if (!objectiveType) {
     return (
-      <div className={cn(cardBase, "relative")}>
+      <div ref={pickerRef} className={cn(cardBase, "relative")}>
         {showPicker ? (
           <div className={cn("p-2 min-w-[160px]", isBanner ? "text-white" : "text-foreground")}>
             <p className="text-[9px] font-bold uppercase tracking-wider opacity-50 mb-1.5 px-1">
