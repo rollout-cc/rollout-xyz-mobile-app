@@ -145,15 +145,16 @@ export default function Onboarding() {
 
       {/* Content - scrollable */}
       <div className="flex-1 overflow-y-auto px-6 py-8">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.3 }}
-            className="w-full max-w-[480px]"
-          >
+        <div className="flex justify-center min-h-full">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.3 }}
+              className="w-full max-w-[480px]"
+            >
             {step === 1 && <StepWelcome />}
             {step === 2 && (
               <StepTailored
