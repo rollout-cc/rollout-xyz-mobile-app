@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutGrid, Plus, ChevronsUpDown, Building2, ClipboardList, Users, Radar, CheckCheck, PanelLeftOpen, PanelRightOpen, Sparkles } from "lucide-react";
+import { LayoutGrid, Plus, ChevronsUpDown, Building2, ClipboardList, Users, Radar, CheckCheck, PanelLeftOpen, PanelRightOpen } from "lucide-react";
 import rolloutLogo from "@/assets/rollout-logo.png";
 import rolloutFlag from "@/assets/rollout-flag.svg";
 import { NavLink } from "@/components/NavLink";
@@ -65,7 +65,6 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
     { to: "/overview", icon: Building2, label: "Company", tourId: "nav-company" },
     { to: "/roster", icon: LayoutGrid, label: "Artists", tourId: "nav-artists" },
     { to: "/my-work", icon: CheckCheck, label: "My Work", tourId: "nav-mywork" },
-    { to: "/rolly", icon: Sparkles, label: "ROLLY", tourId: "nav-rolly" },
   ];
 
   return (

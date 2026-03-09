@@ -117,6 +117,22 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
     enabled: !!teamId,
   });
 
+  // Fetch staff employment records for display_name fallback
+  const { data: staffRecords = [] } = useQuery({
+    queryKey: ["staff-display-names", teamId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("staff_employment")
+        .select("user_id, display_name")
+        .eq("team_id", teamId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!teamId,
+  });
+
+  const staffNameMap = new Map(staffRecords.map((s) => [s.user_id, s.display_name]));
+
   // Fetch all artists for this team
   const { data: artists = [] } = useQuery({
     queryKey: ["team-artists-simple", teamId],
@@ -321,7 +337,7 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
       {/* Members list */}
       <div className="space-y-3">
         {members.map((member) => {
-          const name = member.profile?.full_name || "Unnamed";
+          const name = member.profile?.full_name || staffNameMap.get(member.user_id) || "Unnamed";
           const initials = name
             .split(" ")
             .map((n) => n[0])
@@ -413,7 +429,32 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
                 {/* Inline artist permissions */}
                 {member.role !== "team_owner" && artists.length > 0 && (
                   <div className="space-y-1.5 pt-1">
-                    <p className="text-xs font-medium text-muted-foreground">Artist Access</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-medium text-muted-foreground">Artist Access</p>
+                      {canManage && (
+                        <Select
+                          value=""
+                          onValueChange={(val) => {
+                            artists.forEach((artist) => {
+                              upsertPermission.mutate({
+                                userId: member.user_id,
+                                artistId: artist.id,
+                                permission: val,
+                              });
+                            });
+                          }}
+                        >
+                          <SelectTrigger className="h-6 w-auto text-[10px] px-2 gap-1 text-muted-foreground border-dashed">
+                            <SelectValue placeholder="Apply to all" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="no_access">All → No Access</SelectItem>
+                            <SelectItem value="view_access">All → View Access</SelectItem>
+                            <SelectItem value="full_access">All → Full Access</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
                     <div className="space-y-1">
                       {artists.map((artist) => {
                         const existingPerm = allPermissions.find(

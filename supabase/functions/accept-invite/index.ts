@@ -139,11 +139,24 @@ Deno.serve(async (req: Request) => {
       if (staffError) console.error("Staff employment insert error:", staffError);
     }
 
-    // Update profile with job title if provided by invite
-    if (invite.invitee_job_title) {
+    // Update profile with invite data (name + job title)
+    const profileUpdate: Record<string, any> = {};
+    if (invite.invitee_job_title) profileUpdate.job_role = invite.invitee_job_title;
+    if (invite.invitee_name) {
+      // Only set full_name if the profile doesn't already have one
+      const { data: existingProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+      if (!existingProfile?.full_name) {
+        profileUpdate.full_name = invite.invitee_name;
+      }
+    }
+    if (Object.keys(profileUpdate).length > 0) {
       await supabaseAdmin
         .from("profiles")
-        .update({ job_role: invite.invitee_job_title })
+        .update(profileUpdate)
         .eq("id", user.id);
     }
 
