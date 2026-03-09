@@ -170,6 +170,18 @@ export default function ArtistDetail() {
     ? `${(listenerStat / 1_000).toFixed(1).replace(/\.0$/, "")}K`
     : String(listenerStat);
 
+  // Resolve current value for an objective type from tracked data
+  const getObjectiveCurrentValue = (type: string | null): number | null => {
+    if (!type) return null;
+    if (type === "monthly_listeners") return monthlyListeners || null;
+    if (perfSnapshot) {
+      if (type === "monthly_streams") return perfSnapshot.monthly_streams || null;
+      if (type === "daily_streams") return perfSnapshot.daily_streams || null;
+      if (type === "est_monthly_revenue") return perfSnapshot.est_monthly_revenue || null;
+    }
+    return null;
+  };
+
   const isTopView = (v: ActiveView) => ["finance", "budgets", "objectives", "information"].includes(v);
   const handleViewChange = (v: ActiveView) => {
     if (v === "finance" && !limits.canUseFinance) {
