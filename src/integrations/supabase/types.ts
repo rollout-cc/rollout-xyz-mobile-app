@@ -1411,6 +1411,39 @@ export type Database = {
           },
         ]
       }
+      rolly_knowledge: {
+        Row: {
+          chapter: string | null
+          content: string
+          created_at: string | null
+          id: string
+          page_end: number | null
+          page_start: number | null
+          search_vector: unknown
+          source: string
+        }
+        Insert: {
+          chapter?: string | null
+          content: string
+          created_at?: string | null
+          id?: string
+          page_end?: number | null
+          page_start?: number | null
+          search_vector?: unknown
+          source?: string
+        }
+        Update: {
+          chapter?: string | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          page_end?: number | null
+          page_start?: number | null
+          search_vector?: unknown
+          source?: string
+        }
+        Relationships: []
+      }
       rolly_messages: {
         Row: {
           content: string
@@ -2141,6 +2174,15 @@ export type Database = {
       is_team_owner_or_manager: {
         Args: { p_team_id: string }
         Returns: boolean
+      }
+      search_rolly_knowledge: {
+        Args: { match_limit?: number; search_query: string }
+        Returns: {
+          chapter: string
+          content: string
+          id: string
+          rank: number
+        }[]
       }
     }
     Enums: {

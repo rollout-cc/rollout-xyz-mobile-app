@@ -27,7 +27,45 @@ Guidelines:
 - Break down complex topics into digestible explanations
 - Use music industry terminology naturally but explain jargon when first introduced
 - If asked about legal matters, provide educational context but always recommend consulting a qualified attorney
-- Format responses with markdown for readability`;
+- Format responses with markdown for readability
+- When you have reference material from your knowledge base, cite it naturally (e.g., "According to industry standards..." or "As Passman notes...")`;
+
+async function searchKnowledge(adminClient: any, query: string): Promise<string> {
+  // Convert the user query into a tsquery-compatible string
+  const words = query
+    .replace(/[^\w\s]/g, "")
+    .split(/\s+/)
+    .filter((w: string) => w.length > 2)
+    .slice(0, 8);
+
+  if (words.length === 0) return "";
+
+  const tsquery = words.join(" | ");
+
+  const { data, error } = await adminClient.rpc("search_rolly_knowledge", {
+    search_query: tsquery,
+    match_limit: 3,
+  });
+
+  if (error || !data || data.length === 0) {
+    // Fallback: try simple ILIKE search
+    const { data: fallbackData } = await adminClient
+      .from("rolly_knowledge")
+      .select("content, chapter")
+      .or(words.slice(0, 3).map((w: string) => `content.ilike.%${w}%`).join(","))
+      .limit(3);
+
+    if (!fallbackData || fallbackData.length === 0) return "";
+
+    return fallbackData
+      .map((r: any) => `[${r.chapter}]\n${r.content}`)
+      .join("\n\n---\n\n");
+  }
+
+  return data
+    .map((r: any) => `[${r.chapter}]\n${r.content}`)
+    .join("\n\n---\n\n");
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -89,6 +127,28 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Search knowledge base for relevant context
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
+    let knowledgeContext = "";
+    if (lastUserMsg) {
+      try {
+        knowledgeContext = await searchKnowledge(adminClient, lastUserMsg.content);
+      } catch (e) {
+        console.error("Knowledge search error:", e);
+      }
+    }
+
+    // Build system prompt with knowledge context
+    let systemPrompt = SYSTEM_PROMPT;
+    if (knowledgeContext) {
+      systemPrompt += `\n\n## Reference Material (from "All You Need to Know About the Music Business" by Donald S. Passman)\nUse the following excerpts to inform your answers when relevant. Cite naturally but don't quote verbatim:\n\n${knowledgeContext}`;
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -98,7 +158,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: systemPrompt },
           ...messages,
         ],
         stream: true,
