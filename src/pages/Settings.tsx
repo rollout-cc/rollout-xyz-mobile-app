@@ -1,73 +1,33 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Upload, Trash2 } from "lucide-react";
+import { Upload, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { TeamManagement } from "@/components/settings/TeamManagement";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
-import { PlanTab } from "@/components/settings/PlanTab";
-import { BillingTab } from "@/components/settings/BillingTab";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useTeams } from "@/hooks/useTeams";
-import { useSelectedTeam } from "@/contexts/TeamContext";
-import { useTeamPlan } from "@/hooks/useTeamPlan";
 import { useTour } from "@/contexts/TourContext";
 
-type SettingsSection = "profile" | "notifications" | "team" | "plan" | "billing";
-type TeamSubSection = "members" | "profile";
+type ProfileSection = "profile" | "notifications";
 
 export default function Settings() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { data: teams = [] } = useTeams();
-  const { selectedTeamId } = useSelectedTeam();
-  const { isPaid, isTrialing, refetch: refetchPlan } = useTeamPlan();
-  const hasPaidAccess = isPaid || isTrialing;
   const { resetAllTours, startTour } = useTour();
 
-  const myRole = teams.find((t) => t.id === selectedTeamId)?.role;
-  const isOwnerOrManager = myRole === "team_owner" || myRole === "manager";
-
-  const initialTab = (searchParams.get("tab") as SettingsSection) || "profile";
-  const [activeSection, setActiveSection] = useState<SettingsSection>(initialTab);
-
-  // Sync tab from URL changes (e.g. dropdown navigation)
-  useEffect(() => {
-    const tabParam = searchParams.get("tab") as SettingsSection | null;
-    if (tabParam && tabParam !== activeSection) {
-      setActiveSection(tabParam);
-    }
-  }, [searchParams]);
-  const [teamSubSection, setTeamSubSection] = useState<TeamSubSection>("members");
+  const [activeSection, setActiveSection] = useState<ProfileSection>("profile");
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-
-  // Handle checkout success
-  useEffect(() => {
-    if (searchParams.get("checkout") === "success") {
-      toast.success("Subscription activated! Welcome to Icon.");
-      refetchPlan();
-    }
-  }, [searchParams, refetchPlan]);
-
-  // Reset to profile if non-owner lands on team/plan/billing tab
-  useEffect(() => {
-    if ((activeSection === "team" || activeSection === "billing") && !isOwnerOrManager) {
-      setActiveSection("profile");
-    }
-  }, [isOwnerOrManager, activeSection]);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", user?.id],
@@ -157,33 +117,20 @@ export default function Settings() {
 
   if (isLoading) {
     return (
-      <AppLayout title="Settings">
+      <AppLayout title="Profile Settings">
         <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground">Loading...</div>
       </AppLayout>
     );
   }
 
-  const tabs: { key: SettingsSection; label: string }[] = [
+  const tabs: { key: ProfileSection; label: string }[] = [
     { key: "profile", label: "Profile" },
     { key: "notifications", label: "Notifications" },
-    ...(isOwnerOrManager && hasPaidAccess ? [{ key: "team" as const, label: "Team" }] : []),
-    { key: "plan", label: "Plan" },
-    ...(isOwnerOrManager && hasPaidAccess ? [{ key: "billing" as const, label: "Billing" }] : []),
   ];
 
-  const titleMap: Record<SettingsSection, string> = {
-    profile: "Profile Settings",
-    notifications: "Notifications",
-    team: "Team Settings",
-    plan: "Plan",
-    billing: "Billing",
-  };
-
   return (
-    <AppLayout title={titleMap[activeSection]} onBack={() => navigate(-1)}>
+    <AppLayout title="Profile Settings" onBack={() => navigate(-1)}>
       <div className="max-w-3xl">
-
-        {/* Top-level tabs */}
         <div className="flex gap-1 mb-6" data-tour="settings-tabs">
           {tabs.map(({ key, label }) => (
             <button
@@ -271,42 +218,6 @@ export default function Settings() {
           <div className="mt-6">
             <h2 className="text-foreground mb-6">Notifications</h2>
             <NotificationSettings />
-          </div>
-        )}
-
-        {activeSection === "team" && isOwnerOrManager && hasPaidAccess && (
-          <div className="mt-6">
-            <div className="flex gap-1 mb-6">
-              {([
-                { key: "members" as const, label: "Members" },
-                { key: "profile" as const, label: "Team Profile" },
-              ]).map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setTeamSubSection(key)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                    teamSubSection === key
-                      ? "bg-secondary text-secondary-foreground"
-                      : "text-muted-foreground hover:bg-accent"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <TeamManagement showSection={teamSubSection === "members" ? "members" : "profile"} />
-          </div>
-        )}
-
-        {activeSection === "plan" && (
-          <div className="mt-6">
-            <PlanTab />
-          </div>
-        )}
-
-        {activeSection === "billing" && isOwnerOrManager && hasPaidAccess && (
-          <div className="mt-6">
-            <BillingTab />
           </div>
         )}
       </div>

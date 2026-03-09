@@ -22,6 +22,8 @@ const Roster = React.lazy(() => import("./pages/Roster"));
 const ArtistDetail = React.lazy(() => import("./pages/ArtistDetail"));
 const Tasks = React.lazy(() => import("./pages/Tasks"));
 const Settings = React.lazy(() => import("./pages/Settings"));
+const TeamSettings = React.lazy(() => import("./pages/TeamSettings"));
+const BillingPage = React.lazy(() => import("./pages/Billing"));
 const PublicMemberInfo = React.lazy(() => import("./pages/PublicMemberInfo"));
 const Overview = React.lazy(() => import("./pages/Overview"));
 const MyWork = React.lazy(() => import("./pages/MyWork"));
@@ -113,6 +115,8 @@ function AppRoutes() {
         <Route path="/ar" element={<ProtectedRoute><ARList /></ProtectedRoute>} />
         <Route path="/ar/:prospectId" element={<Navigate to="/ar" replace />} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/settings/team" element={<ProtectedRoute><TeamSettings /></ProtectedRoute>} />
+        <Route path="/settings/billing" element={<ProtectedRoute><BillingPage /></ProtectedRoute>} />
         <Route path="/shared/member/:token" element={<PublicMemberInfo />} />
         <Route path="/shared/timeline/:token" element={<PublicTimeline />} />
         <Route path="/shared/agenda/:token" element={<PublicAgenda />} />

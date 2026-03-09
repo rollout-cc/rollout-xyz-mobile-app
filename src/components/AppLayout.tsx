@@ -119,10 +119,10 @@ export function AppLayout({ children, title, actions, onBack }: AppLayoutProps) 
                     </DropdownMenuItem>
                     {isOwnerOrManager && hasPaidAccess && (
                       <>
-                        <DropdownMenuItem onClick={() => navigate("/settings?tab=team")}>
+                        <DropdownMenuItem onClick={() => navigate("/settings/team")}>
                           Team Settings
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate("/settings?tab=billing")}>
+                        <DropdownMenuItem onClick={() => navigate("/settings/billing")}>
                           Billing
                         </DropdownMenuItem>
                       </>
