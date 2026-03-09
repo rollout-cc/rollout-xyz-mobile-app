@@ -337,7 +337,7 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
       {/* Members list */}
       <div className="space-y-3">
         {members.map((member) => {
-          const name = member.profile?.full_name || "Unnamed";
+          const name = member.profile?.full_name || staffNameMap.get(member.user_id) || "Unnamed";
           const initials = name
             .split(" ")
             .map((n) => n[0])
