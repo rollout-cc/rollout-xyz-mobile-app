@@ -9,7 +9,7 @@ const leftItems = [
 
 const rightItems = [
   { to: "/my-work", icon: CheckCheck, label: "My Work" },
-  { to: "/notes", icon: BookOpen, label: "Notes" },
+  { to: "/rolly", icon: Sparkles, label: "ROLLY" },
 ];
 
 export function MobileBottomNav() {
