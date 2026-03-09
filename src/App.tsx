@@ -134,6 +134,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <ScrollToTop />
             <ErrorBoundary fallbackMessage="Something went wrong. Please reload the page.">
               <UnhandledRejectionHandler />
               <TourProvider>
