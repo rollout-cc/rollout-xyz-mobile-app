@@ -257,6 +257,7 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <CalendarSyncButton artist={artist} />
           <ShareTimelineButton artist={artist} />
         </div>
       </div>
