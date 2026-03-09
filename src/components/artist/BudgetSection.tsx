@@ -64,19 +64,28 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
     },
   });
 
-  // Get total spent from task expenses
-  const { data: totalSpent = 0 } = useQuery({
-    queryKey: ["tasks-total-spent", artistId],
+  // Get all expense transactions to compute per-budget spending
+  const { data: expenseTransactions = [] } = useQuery({
+    queryKey: ["budget-expense-transactions", artistId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("tasks")
-        .select("expense_amount")
+        .from("transactions")
+        .select("amount, budget_id")
         .eq("artist_id", artistId)
-        .not("expense_amount", "is", null);
+        .eq("type", "expense");
       if (error) throw error;
-      return data.reduce((sum: number, t: any) => sum + Number(t.expense_amount || 0), 0);
+      return data;
     },
   });
+
+  const totalSpent = expenseTransactions.reduce(
+    (sum: number, t: any) => sum + Math.abs(Number(t.amount || 0)), 0
+  );
+
+  const spentByBudget = (budgetId: string) =>
+    expenseTransactions
+      .filter((t: any) => t.budget_id === budgetId)
+      .reduce((s: number, t: any) => s + Math.abs(Number(t.amount || 0)), 0);
 
   const [editState, setEditState] = useState<Record<string, { label: string; amount: string }>>({});
   const [showAdd, setShowAdd] = useState(false);
@@ -238,7 +247,8 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
           {budgets.map((b: any) => {
             const editing = editState[b.id];
             const amount = Number(b.amount);
-            const pct = amount > 0 ? Math.min((totalSpent / totalBudget) * (amount / totalBudget) * 100 * budgets.length, 100) : 0;
+            const budgetSpent = spentByBudget(b.id);
+            const pct = amount > 0 ? Math.min((budgetSpent / amount) * 100, 100) : 0;
             const barColor = pct >= 100 ? "bg-destructive" : pct >= 75 ? "bg-warning" : "bg-success";
             const subs = subBudgetsByParent(b.id);
             const isExpanded = expandedBudgets[b.id] ?? false;
@@ -302,17 +312,17 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
                         className="font-semibold text-lg cursor-pointer hover:text-primary transition-colors"
                         onClick={() => startEdit(b)}
                       >
-                        {amount.toLocaleString("en-US")}
+                        {budgetSpent.toLocaleString("en-US")}
                       </span>
                     )}
-                    <span className="text-xs text-muted-foreground">/{totalBudget.toLocaleString("en-US")}</span>
+                    <span className="text-xs text-muted-foreground">/{amount.toLocaleString("en-US")}</span>
                   </div>
 
                   {/* Progress bar */}
                   <div className="w-full h-2.5 bg-secondary rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all ${barColor}`}
-                      style={{ width: `${(amount / totalBudget) * 100}%` }}
+                      style={{ width: `${pct}%` }}
                     />
                   </div>
 

@@ -83,6 +83,7 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
         description: newDesc.trim(),
         amount: finalAmount,
         transaction_date: newDate,
+        type: isExpense ? "expense" : "revenue",
       };
 
       if (isExpense) {
