@@ -811,6 +811,57 @@ function NewTimelineInline({ artistId, onCreated }: { artistId: string; onCreate
   );
 }
 
+/* ── Calendar Sync Button ── */
+function CalendarSyncButton({ artist }: { artist: any }) {
+  const [copied, setCopied] = useState(false);
+
+  if (!artist?.timeline_is_public || !artist?.timeline_public_token) return null;
+
+  const icalUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/milestone-ical?token=${artist.timeline_public_token}`;
+  const webcalUrl = icalUrl.replace(/^https?:\/\//, "webcal://");
+  const googleUrl = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcalUrl)}`;
+
+  const copyWebcal = () => {
+    navigator.clipboard.writeText(webcalUrl);
+    setCopied(true);
+    toast.success("Calendar URL copied!");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5">
+          <CalendarDays className="h-4 w-4" />
+          Calendar Sync
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-3 space-y-2" align="end">
+        <p className="text-xs text-muted-foreground mb-2">Subscribe to milestones in your calendar app</p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full justify-start gap-2"
+          onClick={() => window.open(googleUrl, "_blank")}
+        >
+          <CalendarDays className="h-4 w-4" />
+          Google Calendar
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full justify-start gap-2"
+          onClick={copyWebcal}
+        >
+          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          {copied ? "Copied!" : "Copy webcal:// URL"}
+        </Button>
+        <p className="text-[10px] text-muted-foreground">For Apple Calendar, paste the webcal URL into Calendar → File → New Subscription</p>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 /* ── Share Timeline Button ── */
 function ShareTimelineButton({ artist }: { artist: any }) {
   const queryClient = useQueryClient();
