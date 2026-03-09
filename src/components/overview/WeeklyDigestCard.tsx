@@ -3,7 +3,7 @@ import { X, TrendingUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { startOfWeek, format } from "date-fns";
+import { startOfWeek, format, getDay } from "date-fns";
 
 interface WeeklyDigestCardProps {
   tasksCompleted7d: number;
@@ -43,8 +43,9 @@ export function WeeklyDigestCard({
     enabled: !!user?.id,
   });
 
-  // Hide if preference disabled or dismissed this week
-  if (!prefs?.weekly_summary_email || dismissed) return null;
+  // Only show on Fridays (day 5), hide if preference disabled or dismissed this week
+  const isFriday = getDay(new Date()) === 5;
+  if (!isFriday || !prefs?.weekly_summary_email || dismissed) return null;
 
   const handleDismiss = () => {
     localStorage.setItem(mondayKey, "true");
@@ -66,6 +67,7 @@ export function WeeklyDigestCard({
       <div className="flex items-center gap-2 mb-3">
         <TrendingUp className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">Weekly Digest</h3>
+        <span className="text-xs text-muted-foreground">— everything that happened the last 7 days</span>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
