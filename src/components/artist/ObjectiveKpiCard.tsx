@@ -79,6 +79,8 @@ export function ObjectiveKpiCard({
 
   const handleSelectType = (type: string) => {
     save.mutate({ [typeKey]: type, [targetKey]: null });
+    setEditTarget(true);
+    setTargetInput("");
   };
 
   const handleSetTarget = () => {
