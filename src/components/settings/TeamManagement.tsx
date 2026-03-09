@@ -117,6 +117,22 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
     enabled: !!teamId,
   });
 
+  // Fetch staff employment records for display_name fallback
+  const { data: staffRecords = [] } = useQuery({
+    queryKey: ["staff-display-names", teamId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("staff_employment")
+        .select("user_id, display_name")
+        .eq("team_id", teamId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!teamId,
+  });
+
+  const staffNameMap = new Map(staffRecords.map((s) => [s.user_id, s.display_name]));
+
   // Fetch all artists for this team
   const { data: artists = [] } = useQuery({
     queryKey: ["team-artists-simple", teamId],
