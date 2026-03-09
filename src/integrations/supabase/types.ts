@@ -2175,6 +2175,15 @@ export type Database = {
         Args: { p_team_id: string }
         Returns: boolean
       }
+      search_rolly_knowledge: {
+        Args: { match_limit?: number; search_query: string }
+        Returns: {
+          chapter: string
+          content: string
+          id: string
+          rank: number
+        }[]
+      }
     }
     Enums: {
       app_role: "team_owner" | "manager" | "artist" | "guest"
