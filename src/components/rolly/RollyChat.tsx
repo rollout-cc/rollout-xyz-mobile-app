@@ -14,7 +14,7 @@ const QUICK_ACTIONS = [
 ];
 
 export function RollyChat() {
-  const { messages, isLoading, send, stop, clear } = useRollyChat();
+  const { messages, isLoading, send, stop, clear, lastActions } = useRollyChat();
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
