@@ -646,38 +646,102 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
               {/* Items */}
               {!isCollapsed && group.items.length > 0 && (
                 <div className="border-t border-border divide-y divide-border">
-                  {group.items.map((t: any) => (
-                    <div key={t.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/20 transition-colors group/row">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium truncate">{t.description || "Untitled"}</span>
-                          <span className={cn("text-xs px-1.5 py-0.5 rounded-full font-medium shrink-0", statusColor(t.status))}>
-                            {statusLabel(t.status)}
-                          </span>
-                          {t.initiative_id && initiativeMap[t.initiative_id] && (
-                            <span className="text-xs px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
-                              {initiativeMap[t.initiative_id]}
-                            </span>
-                          )}
-                          {t.sub_budget_id && subBudgetMap[t.sub_budget_id] && (
-                            <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
-                              {subBudgetMap[t.sub_budget_id]}
-                            </span>
-                          )}
+                  {group.items.map((t: any) => {
+                    const isEditing = editingId === t.id;
+                    const editStatuses = t.type === "expense" ? EXPENSE_STATUSES : REVENUE_STATUSES;
+
+                    if (isEditing) {
+                      return (
+                        <div key={t.id} className="px-4 py-3 bg-muted/30 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Input
+                              value={editDesc}
+                              onChange={(e) => setEditDesc(e.target.value)}
+                              className="h-8 text-sm flex-1"
+                              autoFocus
+                              onKeyDown={(e) => { if (e.key === "Enter") updateTransaction.mutate(); if (e.key === "Escape") cancelEditing(); }}
+                            />
+                            <CurrencyInput
+                              value={editAmount}
+                              onChange={setEditAmount}
+                              className="h-8 text-sm w-28"
+                            />
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Select value={editStatus} onValueChange={setEditStatus}>
+                              <SelectTrigger className="h-7 w-auto text-xs gap-1 border-border">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {editStatuses.map((s) => (
+                                  <SelectItem key={s} value={s}>{statusLabel(s)}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+
+                            {renderCategorySelect(editCategoryId, setEditCategoryId, "h-7 text-xs")}
+
+                            <Input
+                              type="date"
+                              value={editDate}
+                              onChange={(e) => setEditDate(e.target.value)}
+                              className="h-7 w-auto text-xs border-border"
+                            />
+
+                            <div className="ml-auto flex items-center gap-1">
+                              <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={cancelEditing}>
+                                <X className="h-3 w-3 mr-1" /> Cancel
+                              </Button>
+                              <Button size="sm" className="h-7 text-xs px-2" onClick={() => updateTransaction.mutate()} disabled={!editDesc.trim() || !editAmount}>
+                                <Check className="h-3 w-3 mr-1" /> Save
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {t.transaction_date ? format(parseLocalDate(t.transaction_date), "MMM d, yyyy") : ""}
+                      );
+                    }
+
+                    return (
+                      <div key={t.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/20 transition-colors group/row">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium truncate">{t.description || "Untitled"}</span>
+                            <span className={cn("text-xs px-1.5 py-0.5 rounded-full font-medium shrink-0", statusColor(t.status))}>
+                              {statusLabel(t.status)}
+                            </span>
+                            {t.initiative_id && initiativeMap[t.initiative_id] && (
+                              <span className="text-xs px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                                {initiativeMap[t.initiative_id]}
+                              </span>
+                            )}
+                            {t.sub_budget_id && subBudgetMap[t.sub_budget_id] && (
+                              <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
+                                {subBudgetMap[t.sub_budget_id]}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {t.transaction_date ? format(parseLocalDate(t.transaction_date), "MMM d, yyyy") : ""}
+                          </span>
+                        </div>
+                        <span className={cn("text-sm font-semibold tabular-nums", t.type === "revenue" ? "text-emerald-600" : "text-foreground")}>
+                          {t.type === "revenue" ? "+" : "-"}${Math.abs(Number(t.amount)).toLocaleString()}
                         </span>
+                        <button
+                          className="p-1 opacity-0 group-hover/row:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                          onClick={() => startEditing(t)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          className="p-1 opacity-0 group-hover/row:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                          onClick={() => handleSoftDelete(t.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </div>
-                      <span className={cn("text-sm font-semibold tabular-nums", t.type === "revenue" ? "text-emerald-600" : "text-foreground")}>
-                        {t.type === "revenue" ? "+" : "-"}${Math.abs(Number(t.amount)).toLocaleString()}
-                      </span>
-                      <button
-                        className="p-1 opacity-0 group-hover/row:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                        onClick={() => handleSoftDelete(t.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                    );
+                  })}
                     </div>
                   ))}
                 </div>
