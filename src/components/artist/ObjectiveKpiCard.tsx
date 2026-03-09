@@ -45,6 +45,18 @@ export function ObjectiveKpiCard({
   const [showPicker, setShowPicker] = useState(false);
   const [editTarget, setEditTarget] = useState(false);
   const [targetInput, setTargetInput] = useState("");
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showPicker]);
 
   const typeDef = OBJECTIVE_TYPES.find((t) => t.value === objectiveType);
   const Icon = typeDef?.icon ?? Target;
