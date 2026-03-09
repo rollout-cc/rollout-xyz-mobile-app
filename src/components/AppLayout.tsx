@@ -16,8 +16,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useTeamPlan } from "@/hooks/useTeamPlan";
 import { useNavigate } from "react-router-dom";
 
 interface AppLayoutProps {
@@ -34,6 +36,10 @@ export function AppLayout({ children, title, actions, onBack }: AppLayoutProps) 
   const isMobile = useIsMobile();
   const { data: teams = [] } = useTeams();
   const selectedTeam = teams.find((t) => t.id === selectedTeamId);
+  const myRole = selectedTeam?.role;
+  const isOwnerOrManager = myRole === "team_owner" || myRole === "manager";
+  const { isPaid, isTrialing } = useTeamPlan();
+  const hasPaidAccess = isPaid || isTrialing;
 
   const { data: profile } = useQuery({
     queryKey: ["my-profile"],
@@ -107,10 +113,21 @@ export function AppLayout({ children, title, actions, onBack }: AppLayoutProps) 
                       </Avatar>
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
+                  <DropdownMenuContent align="end" className="bg-popover border border-border z-50 min-w-[180px]">
                     <DropdownMenuItem onClick={() => navigate("/settings")}>
                       Profile Settings
                     </DropdownMenuItem>
+                    {isOwnerOrManager && hasPaidAccess && (
+                      <>
+                        <DropdownMenuItem onClick={() => navigate("/settings?tab=team")}>
+                          Team Settings
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate("/settings?tab=billing")}>
+                          Billing
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={signOut}>
                       Sign out
                     </DropdownMenuItem>

@@ -39,6 +39,14 @@ export default function Settings() {
 
   const initialTab = (searchParams.get("tab") as SettingsSection) || "profile";
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialTab);
+
+  // Sync tab from URL changes (e.g. dropdown navigation)
+  useEffect(() => {
+    const tabParam = searchParams.get("tab") as SettingsSection | null;
+    if (tabParam && tabParam !== activeSection) {
+      setActiveSection(tabParam);
+    }
+  }, [searchParams]);
   const [teamSubSection, setTeamSubSection] = useState<TeamSubSection>("members");
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
