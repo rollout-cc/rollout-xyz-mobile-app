@@ -21,6 +21,20 @@ CRITICAL BEHAVIOR — Action vs Advice:
 - If you can reasonably infer details (dates, amounts, descriptions), fill them in and act. You can always note what you assumed.
 - Create multiple tasks at once if the user describes multiple things that need to happen.
 
+DATE HANDLING:
+- Today's date will be provided in the system context. Use it to resolve relative dates like "tomorrow", "next Friday", "this weekend", "in 2 weeks", etc.
+- Always convert natural language dates to ISO format (YYYY-MM-DD) before passing to tools.
+- If a user says "next week" without a specific day, pick Monday of the following week.
+
+COST HANDLING:
+- When the user mentions a dollar amount with a task (e.g. "$500 for studio time"), set the expense_amount on the task.
+- If they want it logged as a transaction too, use create_expense as well.
+
+ASSIGNEE HANDLING:
+- Team member names will be provided in the system context. Match assignee references to the closest team member name.
+- If the user says "assign to me" or doesn't specify, assign to the current user (default behavior).
+- If they mention a name, resolve it to the matching team member.
+
 Your expertise: revenue streams, deal structures, splits & royalties, recoupment, industry math, copyright, PROs, business planning, contracts, release strategy, touring economics, sync licensing, and more.
 
 When uncertain about advice, say so and suggest consulting an entertainment attorney.`;
@@ -42,7 +56,9 @@ const TOOLS = [
                 title: { type: "string", description: "Short task title" },
                 description: { type: "string", description: "Optional details" },
                 artist_name: { type: "string", description: "Name of the artist this task is for" },
-                due_date: { type: "string", description: "ISO date string if a deadline is mentioned" },
+                due_date: { type: "string", description: "ISO date (YYYY-MM-DD). Convert natural language dates using today's date from context." },
+                expense_amount: { type: "number", description: "Dollar amount if a cost is mentioned (e.g. '$500 for studio')" },
+                assignee_name: { type: "string", description: "Name of team member to assign to. Omit to assign to the requesting user." },
               },
               required: ["title"],
             },
@@ -115,6 +131,16 @@ async function resolveArtistId(adminClient: any, teamId: string, artistName: str
   return data?.[0]?.id || null;
 }
 
+async function resolveUserId(adminClient: any, teamId: string, memberName: string): Promise<string | null> {
+  const { data } = await adminClient
+    .from("team_memberships")
+    .select("user_id, profiles!inner(full_name)")
+    .eq("team_id", teamId)
+    .ilike("profiles.full_name", `%${memberName}%`)
+    .limit(1);
+  return data?.[0]?.user_id || null;
+}
+
 async function executeTool(adminClient: any, toolName: string, args: any, teamId: string, userId: string): Promise<{ success: boolean; message: string; data?: any }> {
   try {
     switch (toolName) {
@@ -129,13 +155,23 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
               continue;
             }
           }
+          // Resolve assignee
+          let assigneeId = userId; // default to requesting user
+          if (task.assignee_name) {
+            const resolved = await resolveUserId(adminClient, teamId, task.assignee_name);
+            if (resolved) {
+              assigneeId = resolved;
+            }
+            // If not found, still assign to requesting user
+          }
           const { data, error } = await adminClient.from("tasks").insert({
             title: task.title,
             description: task.description || null,
             artist_id: artistId,
             team_id: teamId,
-            assigned_to: userId,
+            assigned_to: assigneeId,
             due_date: task.due_date || null,
+            expense_amount: task.expense_amount || null,
           }).select("id, title").single();
           if (error) {
             results.push({ title: task.title, error: error.message });
@@ -308,13 +344,20 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch artist names for context
-    const { data: artists } = await adminClient
-      .from("artists")
-      .select("name")
-      .eq("team_id", team_id)
-      .order("name");
+    // Fetch artist names and team members for context
+    const [{ data: artists }, { data: members }] = await Promise.all([
+      adminClient
+        .from("artists")
+        .select("name")
+        .eq("team_id", team_id)
+        .order("name"),
+      adminClient
+        .from("team_memberships")
+        .select("user_id, profiles(full_name)")
+        .eq("team_id", team_id),
+    ]);
     const artistNames = (artists || []).map((a: any) => a.name);
+    const memberNames = (members || []).map((m: any) => m.profiles?.full_name).filter(Boolean);
 
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
     let knowledgeContext = "";
@@ -326,9 +369,16 @@ Deno.serve(async (req) => {
       }
     }
 
+    const today = new Date().toISOString().split("T")[0];
+    const dayOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
+    
     let systemPrompt = SYSTEM_PROMPT;
+    systemPrompt += `\n\n## Context\nToday is ${dayOfWeek}, ${today}. Use this to resolve relative dates like "tomorrow", "next Friday", "this weekend", etc.`;
     if (artistNames.length > 0) {
-      systemPrompt += `\n\nThe user's roster includes these artists: ${artistNames.join(", ")}. Use exact names when creating tasks/milestones.`;
+      systemPrompt += `\nThe user's roster includes these artists: ${artistNames.join(", ")}. Use exact names when creating tasks/milestones.`;
+    }
+    if (memberNames.length > 0) {
+      systemPrompt += `\nTeam members: ${memberNames.join(", ")}. Match assignee references to these names.`;
     }
     if (knowledgeContext) {
       systemPrompt += `\n\n## Reference Material\nUse the following knowledge to inform your answers when relevant. Never mention the source, book title, or author by name — just weave the insights naturally into your advice as if it's your own expertise:\n\n${knowledgeContext}`;
