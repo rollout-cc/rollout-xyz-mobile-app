@@ -64,19 +64,28 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
     },
   });
 
-  // Get total spent from task expenses
-  const { data: totalSpent = 0 } = useQuery({
-    queryKey: ["tasks-total-spent", artistId],
+  // Get all expense transactions to compute per-budget spending
+  const { data: expenseTransactions = [] } = useQuery({
+    queryKey: ["budget-expense-transactions", artistId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("tasks")
-        .select("expense_amount")
+        .from("transactions")
+        .select("amount, budget_id")
         .eq("artist_id", artistId)
-        .not("expense_amount", "is", null);
+        .eq("type", "expense");
       if (error) throw error;
-      return data.reduce((sum: number, t: any) => sum + Number(t.expense_amount || 0), 0);
+      return data;
     },
   });
+
+  const totalSpent = expenseTransactions.reduce(
+    (sum: number, t: any) => sum + Math.abs(Number(t.amount || 0)), 0
+  );
+
+  const spentByBudget = (budgetId: string) =>
+    expenseTransactions
+      .filter((t: any) => t.budget_id === budgetId)
+      .reduce((s: number, t: any) => s + Math.abs(Number(t.amount || 0)), 0);
 
   const [editState, setEditState] = useState<Record<string, { label: string; amount: string }>>({});
   const [showAdd, setShowAdd] = useState(false);
