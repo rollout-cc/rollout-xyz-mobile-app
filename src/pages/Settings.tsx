@@ -172,15 +172,8 @@ export default function Settings() {
   };
 
   return (
-    <AppLayout title={titleMap[activeSection]}>
+    <AppLayout title={titleMap[activeSection]} onBack={() => navigate(-1)}>
       <div className="max-w-3xl">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </button>
 
         {/* Top-level tabs */}
         <div className="flex gap-1 mb-6" data-tour="settings-tabs">
