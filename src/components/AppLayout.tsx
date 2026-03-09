@@ -113,10 +113,21 @@ export function AppLayout({ children, title, actions, onBack }: AppLayoutProps) 
                       </Avatar>
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
+                  <DropdownMenuContent align="end" className="bg-popover border border-border z-50 min-w-[180px]">
                     <DropdownMenuItem onClick={() => navigate("/settings")}>
                       Profile Settings
                     </DropdownMenuItem>
+                    {isOwnerOrManager && hasPaidAccess && (
+                      <>
+                        <DropdownMenuItem onClick={() => navigate("/settings?tab=team")}>
+                          Team Settings
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate("/settings?tab=billing")}>
+                          Billing
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={signOut}>
                       Sign out
                     </DropdownMenuItem>
