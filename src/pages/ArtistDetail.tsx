@@ -54,6 +54,7 @@ export default function ArtistDetail() {
     prevTeamIdRef.current = selectedTeamId;
   }, [selectedTeamId, navigate]);
   const { data: spotifyData, refetch: refetchSpotify, isFetching: isRefreshingSpotify } = useSpotifyArtist(artist?.spotify_id);
+  const { data: perfSnapshot } = useArtistPerformance(artistId!, artist?.spotify_id, artist?.name);
   const totalBudget = useTotalBudget(artistId!);
   const { limits } = useTeamPlan();
   const [activeView, setActiveView] = useState<ActiveView>(fromFinance ? "finance" : "work");
