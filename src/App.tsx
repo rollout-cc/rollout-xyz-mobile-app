@@ -31,6 +31,7 @@ const Staff = React.lazy(() => import("./pages/Staff"));
 const StaffDetail = React.lazy(() => import("./pages/StaffDetail"));
 const ARList = React.lazy(() => import("./pages/ARList"));
 const ApproveSplit = React.lazy(() => import("./pages/ApproveSplit"));
+const Rolly = React.lazy(() => import("./pages/Rolly"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
