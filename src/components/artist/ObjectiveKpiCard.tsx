@@ -140,6 +140,46 @@ export function ObjectiveKpiCard({
     );
   }
 
+  // Has type but no target yet AND editTarget is active — show target-first view
+  if (editTarget && objectiveTarget == null) {
+    return (
+      <div className={cn(cardBase, "relative", isBanner ? "px-3 py-2.5" : "px-3.5 py-3")}>
+        <p
+          className={cn(
+            "text-[9px] font-bold uppercase tracking-[0.12em] mb-1.5 leading-none",
+            isBanner ? "text-white/45" : "text-muted-foreground"
+          )}
+        >
+          {typeDef?.label ?? "Objective"}
+        </p>
+        <div className="flex items-center gap-1.5">
+          <Icon className={cn("h-3 w-3 shrink-0", isBanner ? "text-emerald-400" : "text-primary")} />
+          <input
+            type="text"
+            value={targetInput}
+            onChange={(e) => setTargetInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleSetTarget(); if (e.key === "Escape") { setEditTarget(false); } }}
+            placeholder="Enter target…"
+            autoFocus
+            className={cn(
+              "w-20 text-sm font-bold bg-transparent outline-none border-b",
+              isBanner ? "text-white border-white/20 placeholder:text-white/30" : "text-foreground border-border placeholder:text-muted-foreground/40"
+            )}
+          />
+          <button
+            onClick={handleSetTarget}
+            className={cn(
+              "text-[10px] font-semibold px-1.5 py-0.5 rounded",
+              isBanner ? "text-white/60 hover:text-white hover:bg-white/10" : "text-muted-foreground hover:text-foreground hover:bg-accent"
+            )}
+          >
+            Set
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Has type, compute progress
   const progress = objectiveTarget && currentValue != null
     ? Math.min((currentValue / objectiveTarget) * 100, 100)
@@ -229,39 +269,15 @@ export function ObjectiveKpiCard({
           </div>
         </div>
       ) : (
-        // No target set yet
-        editTarget ? (
-          <div className="mt-1.5 flex items-center gap-1">
-            <input
-              type="text"
-              value={targetInput}
-              onChange={(e) => setTargetInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleSetTarget(); if (e.key === "Escape") setEditTarget(false); }}
-              placeholder="Target…"
-              autoFocus
-              className={cn(
-                "w-16 text-[10px] bg-transparent outline-none border-b",
-                isBanner ? "text-white border-white/20 placeholder:text-white/30" : "text-foreground border-border placeholder:text-muted-foreground/40"
-              )}
-            />
-            <button
-              onClick={handleSetTarget}
-              className={cn("text-[9px] font-medium", isBanner ? "text-white/50 hover:text-white" : "text-muted-foreground hover:text-foreground")}
-            >
-              Set
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setEditTarget(true)}
-            className={cn(
-              "mt-1 text-[9px] font-medium transition-colors",
-              isBanner ? "text-white/30 hover:text-white/60" : "text-muted-foreground/40 hover:text-muted-foreground"
-            )}
-          >
-            + Set target
-          </button>
-        )
+        <button
+          onClick={() => setEditTarget(true)}
+          className={cn(
+            "mt-1 text-[9px] font-medium transition-colors",
+            isBanner ? "text-white/30 hover:text-white/60" : "text-muted-foreground/40 hover:text-muted-foreground"
+          )}
+        >
+          + Set target
+        </button>
       )}
     </div>
   );
