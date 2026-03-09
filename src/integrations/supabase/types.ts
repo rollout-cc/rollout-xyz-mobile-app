@@ -464,6 +464,10 @@ export type Database = {
           id: string
           monthly_listeners: number | null
           name: string
+          objective_1_target: number | null
+          objective_1_type: string | null
+          objective_2_target: number | null
+          objective_2_type: string | null
           primary_focus: string | null
           primary_goal: string | null
           primary_metric: string | null
@@ -488,6 +492,10 @@ export type Database = {
           id?: string
           monthly_listeners?: number | null
           name: string
+          objective_1_target?: number | null
+          objective_1_type?: string | null
+          objective_2_target?: number | null
+          objective_2_type?: string | null
           primary_focus?: string | null
           primary_goal?: string | null
           primary_metric?: string | null
@@ -512,6 +520,10 @@ export type Database = {
           id?: string
           monthly_listeners?: number | null
           name?: string
+          objective_1_target?: number | null
+          objective_1_type?: string | null
+          objective_2_target?: number | null
+          objective_2_type?: string | null
           primary_focus?: string | null
           primary_goal?: string | null
           primary_metric?: string | null
