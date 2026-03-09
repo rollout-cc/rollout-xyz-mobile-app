@@ -120,12 +120,12 @@ export function WorkItemCreator({
   }
 
   return (
-    <div className="rounded-xl border border-border p-3 space-y-2 bg-card overflow-hidden min-w-0">
+    <div className="rounded-xl border border-border p-3 space-y-2 bg-card min-w-0">
       <div className="flex items-start gap-3 min-w-0">
         <div className="pt-0.5 shrink-0">
           <div className="h-4 w-4 rounded-sm border border-muted-foreground/20" />
         </div>
-        <div className="flex-1 min-w-0 overflow-hidden space-y-1">
+        <div className="flex-1 min-w-0 space-y-1">
           <ItemEditor
             value={title}
             onChange={handleTitleChange}

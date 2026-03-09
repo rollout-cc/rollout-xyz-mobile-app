@@ -416,10 +416,10 @@ export function WorkTaskItem({
   /* ── Edit / New form ── */
   if (isEditing || (isNew && (showNew || autoFocus))) {
     return (
-      <div className="mb-2 rounded-xl border border-border bg-card px-3 py-3.5 space-y-3 overflow-hidden min-w-0 sm:px-4">
+      <div className="mb-2 rounded-xl border border-border bg-card px-3 py-3.5 space-y-3 min-w-0 sm:px-4">
         <div className="flex items-start gap-3 min-w-0">
           <Checkbox disabled className="opacity-20 mt-[3px] shrink-0" />
-          <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="flex-1 min-w-0">
             <ItemEditor
               value={title}
               onChange={setTitle}
