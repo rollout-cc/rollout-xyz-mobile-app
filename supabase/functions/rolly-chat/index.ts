@@ -344,13 +344,20 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch artist names for context
-    const { data: artists } = await adminClient
-      .from("artists")
-      .select("name")
-      .eq("team_id", team_id)
-      .order("name");
+    // Fetch artist names and team members for context
+    const [{ data: artists }, { data: members }] = await Promise.all([
+      adminClient
+        .from("artists")
+        .select("name")
+        .eq("team_id", team_id)
+        .order("name"),
+      adminClient
+        .from("team_memberships")
+        .select("user_id, profiles(full_name)")
+        .eq("team_id", team_id),
+    ]);
     const artistNames = (artists || []).map((a: any) => a.name);
+    const memberNames = (members || []).map((m: any) => m.profiles?.full_name).filter(Boolean);
 
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
     let knowledgeContext = "";
@@ -362,9 +369,16 @@ Deno.serve(async (req) => {
       }
     }
 
+    const today = new Date().toISOString().split("T")[0];
+    const dayOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
+    
     let systemPrompt = SYSTEM_PROMPT;
+    systemPrompt += `\n\n## Context\nToday is ${dayOfWeek}, ${today}. Use this to resolve relative dates like "tomorrow", "next Friday", "this weekend", etc.`;
     if (artistNames.length > 0) {
-      systemPrompt += `\n\nThe user's roster includes these artists: ${artistNames.join(", ")}. Use exact names when creating tasks/milestones.`;
+      systemPrompt += `\nThe user's roster includes these artists: ${artistNames.join(", ")}. Use exact names when creating tasks/milestones.`;
+    }
+    if (memberNames.length > 0) {
+      systemPrompt += `\nTeam members: ${memberNames.join(", ")}. Match assignee references to these names.`;
     }
     if (knowledgeContext) {
       systemPrompt += `\n\n## Reference Material\nUse the following knowledge to inform your answers when relevant. Never mention the source, book title, or author by name — just weave the insights naturally into your advice as if it's your own expertise:\n\n${knowledgeContext}`;
