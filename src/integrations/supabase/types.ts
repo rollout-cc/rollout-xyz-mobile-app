@@ -2196,6 +2196,7 @@ export type Database = {
           rank: number
         }[]
       }
+      shares_team_with: { Args: { p_user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "team_owner" | "manager" | "artist" | "guest"
