@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Square, Trash2, Sparkles } from "lucide-react";
+import { Send, Square, Trash2, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { RollyMessage } from "./RollyMessage";
-import { useRollyChat } from "@/hooks/useRollyChat";
+import { useRollyChat, RollyToolAction } from "@/hooks/useRollyChat";
+import { cn } from "@/lib/utils";
 
 const QUICK_ACTIONS = [
   { label: "Explain recoupment", prompt: "Explain how recoupment works in a record deal with a simple example." },
@@ -13,7 +14,7 @@ const QUICK_ACTIONS = [
 ];
 
 export function RollyChat() {
-  const { messages, isLoading, send, stop, clear } = useRollyChat();
+  const { messages, isLoading, send, stop, clear, lastActions } = useRollyChat();
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -77,6 +78,34 @@ export function RollyChat() {
               isStreaming={isLoading && msg.role === "assistant" && i === messages.length - 1}
             />
           ))
+        )}
+        {/* Tool actions notification */}
+        {lastActions.length > 0 && (
+          <div className="flex gap-3 animate-fade-in">
+            <div className="h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0">
+              R
+            </div>
+            <div className="space-y-1.5">
+              {lastActions.map((action, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium",
+                    action.success
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                      : "bg-destructive/10 text-destructive"
+                  )}
+                >
+                  {action.success ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                  ) : (
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  )}
+                  {action.message}
+                </div>
+              ))}
+            </div>
+          </div>
         )}
         {isLoading && messages[messages.length - 1]?.role === "user" && (
           <div className="flex gap-3 animate-fade-in">
