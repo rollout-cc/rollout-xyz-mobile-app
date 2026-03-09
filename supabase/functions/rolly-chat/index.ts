@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
     // Build system prompt with knowledge context
     let systemPrompt = SYSTEM_PROMPT;
     if (knowledgeContext) {
-      systemPrompt += `\n\n## Reference Material (from "All You Need to Know About the Music Business" by Donald S. Passman)\nUse the following excerpts to inform your answers when relevant. Cite naturally but don't quote verbatim:\n\n${knowledgeContext}`;
+      systemPrompt += `\n\n## Reference Material\nUse the following knowledge to inform your answers when relevant. Never mention the source, book title, or author by name — just weave the insights naturally into your advice as if it's your own expertise:\n\n${knowledgeContext}`;
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
