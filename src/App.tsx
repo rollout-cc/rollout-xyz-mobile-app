@@ -22,6 +22,8 @@ const Roster = React.lazy(() => import("./pages/Roster"));
 const ArtistDetail = React.lazy(() => import("./pages/ArtistDetail"));
 const Tasks = React.lazy(() => import("./pages/Tasks"));
 const Settings = React.lazy(() => import("./pages/Settings"));
+const TeamSettings = React.lazy(() => import("./pages/TeamSettings"));
+const BillingPage = React.lazy(() => import("./pages/Billing"));
 const PublicMemberInfo = React.lazy(() => import("./pages/PublicMemberInfo"));
 const Overview = React.lazy(() => import("./pages/Overview"));
 const MyWork = React.lazy(() => import("./pages/MyWork"));
