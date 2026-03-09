@@ -99,16 +99,11 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
       if (error) throw error;
 
       const userIds = data.map((m) => m.user_id);
-      console.log("[TeamManagement] memberships:", data.length, "userIds:", userIds);
       const { data: profiles, error: profileError } = await supabase
         .from("profiles")
         .select("id, full_name, avatar_url, job_role")
         .in("id", userIds);
-      if (profileError) {
-        console.error("[TeamManagement] profile fetch error:", profileError);
-        throw profileError;
-      }
-      console.log("[TeamManagement] profiles returned:", profiles?.length, profiles?.map(p => ({ id: p.id, name: p.full_name })));
+      if (profileError) throw profileError;
 
       const profileMap = new Map(profiles?.map((p) => [p.id, p]) ?? []);
 
