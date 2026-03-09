@@ -131,6 +131,16 @@ async function resolveArtistId(adminClient: any, teamId: string, artistName: str
   return data?.[0]?.id || null;
 }
 
+async function resolveUserId(adminClient: any, teamId: string, memberName: string): Promise<string | null> {
+  const { data } = await adminClient
+    .from("team_memberships")
+    .select("user_id, profiles!inner(full_name)")
+    .eq("team_id", teamId)
+    .ilike("profiles.full_name", `%${memberName}%`)
+    .limit(1);
+  return data?.[0]?.user_id || null;
+}
+
 async function executeTool(adminClient: any, toolName: string, args: any, teamId: string, userId: string): Promise<{ success: boolean; message: string; data?: any }> {
   try {
     switch (toolName) {
