@@ -459,7 +459,7 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
                         </Select>
                       )}
                     </div>
-                    <div className="space-y-1">
+                    <div className={artists.length >= 5 ? "grid grid-cols-2 gap-x-6 gap-y-1" : "space-y-1"}>
                       {artists.map((artist) => {
                         const existingPerm = allPermissions.find(
                           (p) => p.user_id === member.user_id && p.artist_id === artist.id
