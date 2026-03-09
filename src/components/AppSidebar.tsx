@@ -47,6 +47,8 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
   const [newTeamName, setNewTeamName] = useState("");
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
+  const location = useLocation();
+  const isRollyActive = location.pathname === "/rolly";
 
   const selectedTeam = teams.find((t) => t.id === selectedTeamId);
 
