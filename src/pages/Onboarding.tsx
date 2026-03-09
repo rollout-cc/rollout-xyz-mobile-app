@@ -232,8 +232,9 @@ export default function Onboarding() {
                 </Button>
               )}
             </div>
-          </motion.div>
-        </AnimatePresence>
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
