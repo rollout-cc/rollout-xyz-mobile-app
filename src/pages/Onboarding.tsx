@@ -122,9 +122,9 @@ export default function Onboarding() {
     : "U";
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-dvh bg-background flex flex-col overflow-hidden">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-border">
+      <div className="flex items-center justify-between px-6 py-3 border-b border-border shrink-0">
         <button
           onClick={handleBack}
           disabled={step === 1}
@@ -143,8 +143,8 @@ export default function Onboarding() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 flex items-center justify-center px-6">
+      {/* Content - scrollable */}
+      <div className="flex-1 overflow-y-auto px-6 py-8">
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
