@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, FolderOpen, CheckCheck, BookOpen } from "lucide-react";
+import { Home, FolderOpen, CheckCheck, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const leftItems = [
