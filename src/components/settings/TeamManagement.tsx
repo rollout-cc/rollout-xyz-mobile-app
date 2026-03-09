@@ -429,7 +429,32 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
                 {/* Inline artist permissions */}
                 {member.role !== "team_owner" && artists.length > 0 && (
                   <div className="space-y-1.5 pt-1">
-                    <p className="text-xs font-medium text-muted-foreground">Artist Access</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-medium text-muted-foreground">Artist Access</p>
+                      {canManage && (
+                        <Select
+                          value=""
+                          onValueChange={(val) => {
+                            artists.forEach((artist) => {
+                              upsertPermission.mutate({
+                                userId: member.user_id,
+                                artistId: artist.id,
+                                permission: val,
+                              });
+                            });
+                          }}
+                        >
+                          <SelectTrigger className="h-6 w-auto text-[10px] px-2 gap-1 text-muted-foreground border-dashed">
+                            <SelectValue placeholder="Apply to all" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="no_access">All → No Access</SelectItem>
+                            <SelectItem value="view_access">All → View Access</SelectItem>
+                            <SelectItem value="full_access">All → Full Access</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
                     <div className="space-y-1">
                       {artists.map((artist) => {
                         const existingPerm = allPermissions.find(
