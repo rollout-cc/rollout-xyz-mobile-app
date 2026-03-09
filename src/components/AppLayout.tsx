@@ -142,7 +142,7 @@ export function AppLayout({ children, title, actions, onBack }: AppLayoutProps) 
         </div>
 
         {isMobile && <MobileBottomNav />}
-        {isMobile && <MobileFAB />}
+        
         
       </div>
     </SidebarProvider>
