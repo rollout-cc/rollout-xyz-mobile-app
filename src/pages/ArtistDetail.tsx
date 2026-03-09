@@ -489,11 +489,22 @@ function WorkTabControls({ artistId, showArchived, setShowArchived }: { artistId
   );
 }
 
-// Objectives panel
-// Objectives panel
+// Objectives panel — now shows KPI cards + legacy text fields
 
 function ObjectivesPanel({ artist }: { artist: any }) {
   const queryClient = useQueryClient();
+  const { data: perfSnapshot } = useArtistPerformance(artist.id, artist.spotify_id, artist.name);
+
+  const getObjectiveCurrentValue = (type: string | null): number | null => {
+    if (!type) return null;
+    if (type === "monthly_listeners") return artist.monthly_listeners || null;
+    if (perfSnapshot) {
+      if (type === "monthly_streams") return perfSnapshot.monthly_streams || null;
+      if (type === "daily_streams") return perfSnapshot.daily_streams || null;
+      if (type === "est_monthly_revenue") return perfSnapshot.est_monthly_revenue || null;
+    }
+    return null;
+  };
 
   const save = useMutation({
     mutationFn: async (patch: Record<string, string>) => {
@@ -504,29 +515,50 @@ function ObjectivesPanel({ artist }: { artist: any }) {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const fields = [
+  const textFields = [
     { key: "primary_goal", label: "Primary Goal" },
     { key: "secondary_goal", label: "Secondary Goal" },
     { key: "primary_focus", label: "Primary Focus" },
     { key: "secondary_focus", label: "Secondary Focus" },
-    { key: "primary_metric", label: "Primary Metric" },
-    { key: "secondary_metric", label: "Secondary Metric" },
   ];
 
   return (
-    <div>
-      <h3 className="mb-3">Objectives</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-        {fields.map(({ key, label }) => (
-          <div key={key}>
-            <span className="text-muted-foreground">{label}: </span>
-            <InlineField
-              value={artist[key] ?? ""}
-              placeholder="—"
-              onSave={(v) => save.mutate({ [key]: v })}
-            />
-          </div>
-        ))}
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-semibold text-foreground mb-3">Tracked Objectives</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <ObjectiveKpiCard
+            artistId={artist.id}
+            slot={1}
+            objectiveType={artist.objective_1_type}
+            objectiveTarget={artist.objective_1_target}
+            currentValue={getObjectiveCurrentValue(artist.objective_1_type)}
+            variant="card"
+          />
+          <ObjectiveKpiCard
+            artistId={artist.id}
+            slot={2}
+            objectiveType={artist.objective_2_type}
+            objectiveTarget={artist.objective_2_target}
+            currentValue={getObjectiveCurrentValue(artist.objective_2_type)}
+            variant="card"
+          />
+        </div>
+      </div>
+      <div>
+        <h3 className="text-sm font-semibold text-foreground mb-3">Notes</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          {textFields.map(({ key, label }) => (
+            <div key={key}>
+              <span className="text-muted-foreground">{label}: </span>
+              <InlineField
+                value={artist[key] ?? ""}
+                placeholder="—"
+                onSave={(v) => save.mutate({ [key]: v })}
+              />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
