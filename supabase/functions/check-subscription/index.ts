@@ -41,7 +41,20 @@ serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await anonClient.auth.getUser(token);
-    if (userError || !user) throw new Error(`Authentication error: ${userError?.message || "Auth session missing!"}`);
+    if (userError || !user) {
+      logStep("Auth failed, returning default rising plan", { error: userError?.message });
+      return new Response(JSON.stringify({
+        plan: "rising",
+        seat_limit: 1,
+        status: "active",
+        is_trialing: false,
+        trial_days_left: 0,
+        current_period_end: null,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     // Get team_id from request body
