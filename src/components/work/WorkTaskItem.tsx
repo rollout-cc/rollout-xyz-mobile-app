@@ -175,7 +175,9 @@ export function WorkTaskItem({
       items: teamMembers.map((m: any) => ({
         id: m.id,
         label: m.full_name || "Unknown",
-        icon: <User className="h-3.5 w-3.5 text-muted-foreground" />,
+        icon: m.avatar_url
+          ? <img src={m.avatar_url} alt="" className="h-4 w-4 rounded-full object-cover" />
+          : <User className="h-3.5 w-3.5 text-muted-foreground" />,
       })),
       onSelect: (item: any, current: string) => current.replace(/@\S*$/, `@${item.label} `),
     },
