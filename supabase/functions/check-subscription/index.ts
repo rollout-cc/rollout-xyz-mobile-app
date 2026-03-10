@@ -40,9 +40,9 @@ serve(async (req) => {
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await anonClient.auth.getUser(token);
-    if (userError || !user) {
-      logStep("Auth failed, returning default rising plan", { error: userError?.message });
+    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      logStep("Auth failed, returning default rising plan", { error: claimsError?.message });
       return new Response(JSON.stringify({
         plan: "rising",
         seat_limit: 1,
@@ -55,7 +55,9 @@ serve(async (req) => {
         status: 200,
       });
     }
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    const userId = claimsData.claims.sub;
+    const userEmail = claimsData.claims.email;
+    logStep("User authenticated", { userId, email: userEmail });
 
     // Get team_id from request body
     const body = await req.json().catch(() => ({}));
