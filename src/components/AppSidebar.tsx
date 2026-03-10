@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
 import { LayoutGrid, Plus, ChevronsUpDown, Building2, ClipboardList, Users, Radar, CheckCheck, PanelLeftOpen, PanelRightOpen, Settings, User, CreditCard, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import rolloutLogo from "@/assets/rollout-logo.png";
@@ -183,16 +184,22 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
             }}
           >
             {/* Rolly card */}
-            <div className="mb-4">
+            <div className="mb-4 w-full">
               {!collapsed ? (
                 <button
                   onClick={() => navigate("/rolly")}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-xl px-4 py-3.5 text-sm font-medium transition-all bg-foreground text-background hover:opacity-90",
+                    "w-full flex items-center gap-2.5 rounded-xl px-4 py-3.5 text-sm font-medium transition-all bg-foreground text-background hover:shadow-[0_0_20px_rgba(0,0,0,0.3)] hover:ring-2 hover:ring-primary/50",
                     isRollyActive && "ring-2 ring-primary ring-offset-2 ring-offset-sidebar"
                   )}
                 >
-                  <img src={rollyIcon} alt="ROLLY" className="h-7 w-7 rounded-full shrink-0 invert dark:invert-0" />
+                  <motion.img 
+                    src={rollyIcon} 
+                    alt="ROLLY" 
+                    className="h-7 w-7 rounded-full shrink-0 invert dark:invert-0"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                  />
                   <span>Rolly</span>
                 </button>
               ) : (
@@ -201,11 +208,17 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
                     <button
                       onClick={() => navigate("/rolly")}
                       className={cn(
-                        "flex items-center justify-center rounded-xl p-3 transition-all bg-foreground text-background hover:opacity-90",
+                        "w-full flex items-center justify-center rounded-xl p-3 transition-all bg-foreground text-background hover:shadow-[0_0_20px_rgba(0,0,0,0.3)] hover:ring-2 hover:ring-primary/50",
                         isRollyActive && "ring-2 ring-primary ring-offset-2 ring-offset-sidebar"
                       )}
                     >
-                      <img src={rollyIcon} alt="ROLLY" className="h-7 w-7 rounded-full shrink-0 invert dark:invert-0" />
+                      <motion.img 
+                        src={rollyIcon} 
+                        alt="ROLLY" 
+                        className="h-7 w-7 rounded-full shrink-0 invert dark:invert-0"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                      />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right">Rolly</TooltipContent>
