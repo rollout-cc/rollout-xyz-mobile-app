@@ -27,8 +27,6 @@ const FREE_FEATURES = [
 ];
 
 export function TrialWelcomeDialog({ open, onOpenChange }: TrialWelcomeDialogProps) {
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
-
   const handleStartTrial = () => {
     onOpenChange(false);
   };
