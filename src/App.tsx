@@ -35,6 +35,7 @@ const StaffDetail = React.lazy(() => import("./pages/StaffDetail"));
 const ARList = React.lazy(() => import("./pages/ARList"));
 const Rolly = React.lazy(() => import("./pages/Rolly"));
 const ApproveSplit = React.lazy(() => import("./pages/ApproveSplit"));
+const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
 
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
