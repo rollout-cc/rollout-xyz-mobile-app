@@ -99,6 +99,9 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions", artistId] });
+      queryClient.invalidateQueries({ queryKey: ["finance-transactions", artistId] });
+      queryClient.invalidateQueries({ queryKey: ["budget-expense-transactions", artistId] });
+      queryClient.invalidateQueries({ queryKey: ["sub-budget-transactions", artistId] });
       resetForm();
       toast.success("Transaction added");
       if (isExpense && newBudgetId !== "none") {
