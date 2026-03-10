@@ -186,40 +186,38 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
             {/* Rolly card */}
             <div className="mb-4 w-full">
               {!collapsed ? (
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
                   onClick={() => navigate("/rolly")}
                   className={cn(
-                    "w-full flex items-center gap-2.5 rounded-xl px-4 py-3.5 text-sm font-medium transition-all bg-foreground text-background hover:shadow-[0_0_20px_rgba(0,0,0,0.3)] hover:ring-2 hover:ring-primary/50",
+                    "group w-full flex items-center gap-2.5 rounded-xl px-4 py-3.5 text-sm font-medium transition-all bg-foreground text-background hover:shadow-[0_0_20px_rgba(0,0,0,0.3)] hover:ring-2 hover:ring-primary/50",
                     isRollyActive && "ring-2 ring-primary ring-offset-2 ring-offset-sidebar"
                   )}
                 >
-                  <motion.img 
+                  <img 
                     src={rollyIcon} 
                     alt="ROLLY" 
-                    className="h-7 w-7 rounded-full shrink-0 invert dark:invert-0"
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                    className="h-7 w-7 rounded-full shrink-0 invert dark:invert-0 transition-transform duration-500 ease-linear group-hover:rotate-180"
                   />
                   <span>Rolly</span>
-                </button>
+                </motion.button>
               ) : (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
                       onClick={() => navigate("/rolly")}
                       className={cn(
-                        "w-full flex items-center justify-center rounded-xl p-3 transition-all bg-foreground text-background hover:shadow-[0_0_20px_rgba(0,0,0,0.3)] hover:ring-2 hover:ring-primary/50",
+                        "group w-full flex items-center justify-center rounded-xl p-3 transition-all bg-foreground text-background hover:shadow-[0_0_20px_rgba(0,0,0,0.3)] hover:ring-2 hover:ring-primary/50",
                         isRollyActive && "ring-2 ring-primary ring-offset-2 ring-offset-sidebar"
                       )}
                     >
-                      <motion.img 
+                      <img 
                         src={rollyIcon} 
                         alt="ROLLY" 
-                        className="h-7 w-7 rounded-full shrink-0 invert dark:invert-0"
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                        className="h-7 w-7 rounded-full shrink-0 invert dark:invert-0 transition-transform duration-500 ease-linear group-hover:rotate-180"
                       />
-                    </button>
+                    </motion.button>
                   </TooltipTrigger>
                   <TooltipContent side="right">Rolly</TooltipContent>
                 </Tooltip>
