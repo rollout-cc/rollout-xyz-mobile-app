@@ -191,6 +191,20 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
         }
       }
 
+      // Resolve budget_id from the category/budget selection
+      let resolvedBudgetId: string | null = null;
+      if (itemCategoryId.startsWith("budget:")) {
+        const budgetLabel = itemCategoryId.replace("budget:", "");
+        const matchedBudget = budgets.find((b: any) => b.label === budgetLabel);
+        if (matchedBudget) resolvedBudgetId = matchedBudget.id;
+      } else if (resolvedCategoryId !== "none") {
+        const cat = categories.find((c: any) => c.id === resolvedCategoryId);
+        if (cat) {
+          const matchedBudget = budgets.find((b: any) => b.label === cat.name);
+          if (matchedBudget) resolvedBudgetId = matchedBudget.id;
+        }
+      }
+
       const { error } = await supabase.from("transactions").insert({
         artist_id: artistId,
         amount: finalAmount,
@@ -198,6 +212,7 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
         type: activeTab,
         status: itemStatus,
         category_id: resolvedCategoryId === "none" ? null : resolvedCategoryId,
+        budget_id: resolvedBudgetId,
         initiative_id: itemInitiativeId === "none" ? null : itemInitiativeId,
         sub_budget_id: itemSubBudgetId === "none" ? null : itemSubBudgetId,
         transaction_date: itemDate,
