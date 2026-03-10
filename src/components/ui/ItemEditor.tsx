@@ -56,6 +56,18 @@ export function ItemEditor({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const lastDetectedRef = useRef<string | null>(null);
 
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+
+  // Update dropdown position when active trigger changes
+  useEffect(() => {
+    if (activeTrigger && filteredItems.length > 0 && inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: Math.max(rect.width, 200) });
+    } else {
+      setDropdownPos(null);
+    }
+  }, [activeTrigger, filteredItems.length]);
+
   // Auto-scroll selected item into view
   useEffect(() => {
     if (!dropdownRef.current) return;
