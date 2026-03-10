@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { cn, parseDateFromText } from "@/lib/utils";
 import { format } from "date-fns";
 import { CalendarIcon, X } from "lucide-react";
@@ -54,6 +55,8 @@ export function ItemEditor({
   const [triggerQuery, setTriggerQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const lastDetectedRef = useRef<string | null>(null);
+
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
   // Auto-scroll selected item into view
   useEffect(() => {
@@ -114,6 +117,16 @@ export function ItemEditor({
       item.label.toLowerCase().includes(triggerQuery)
     );
   }, [activeTrigger, triggerQuery]);
+
+  // Update dropdown position when active trigger changes
+  useEffect(() => {
+    if (activeTrigger && filteredItems.length > 0 && inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: Math.max(rect.width, 200) });
+    } else {
+      setDropdownPos(null);
+    }
+  }, [activeTrigger, filteredItems.length]);
 
   const selectItem = useCallback(
     (item: SuggestionItem) => {
@@ -183,12 +196,12 @@ export function ItemEditor({
           <DateChip date={parsedDate} onClear={clearDate} />
         )}
       </div>
-      {activeTrigger && filteredItems.length > 0 && (
+      {activeTrigger && filteredItems.length > 0 && dropdownPos && createPortal(
         <div
           ref={dropdownRef}
-          className="absolute left-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-xl z-50 min-w-[200px] py-1 max-h-[200px] overflow-y-auto overscroll-contain"
+          style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }}
+          className="bg-popover border border-border rounded-lg shadow-xl z-[9999] min-w-[200px] py-1 max-h-[200px] overflow-y-auto overscroll-contain"
           onMouseDown={(e) => {
-            // Prevent input blur when interacting with dropdown, but allow scroll
             e.preventDefault();
           }}
         >
@@ -208,7 +221,8 @@ export function ItemEditor({
               <span>{item.label}</span>
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
