@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -7,7 +6,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Check, Sparkles, Rocket } from "lucide-react";
-import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 
 interface TrialWelcomeDialogProps {
   open: boolean;
