@@ -128,6 +128,7 @@ export function ItemEditor({
     }
   }, [activeTrigger, filteredItems.length]);
 
+  const selectItem = useCallback(
     (item: SuggestionItem) => {
       if (!activeTrigger) return;
       const newValue = activeTrigger.onSelect(item, value);
