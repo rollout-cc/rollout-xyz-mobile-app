@@ -7,10 +7,10 @@ import { useRollyChat, RollyToolAction } from "@/hooks/useRollyChat";
 import { cn } from "@/lib/utils";
 
 const QUICK_ACTIONS = [
-  { label: "Explain recoupment", prompt: "Explain how recoupment works in a record deal with a simple example." },
-  { label: "Plan my release", prompt: "Help me create a release strategy for a new single. What timeline, budget, and marketing steps should I consider?" },
-  { label: "Calculate net income", prompt: "Help me calculate an artist's net income. Walk me through the typical revenue splits and deductions." },
-  { label: "Understand sync licensing", prompt: "What is sync licensing and how can independent artists get sync placements?" },
+  { label: "🗺️ Plan a release", prompt: "Let's plan a release together. Walk me through it step by step — ask me about the artist, timeline, budget, marketing, and anything else you need to build a full plan with tasks, milestones, and budgets." },
+  { label: "🎯 Build a campaign", prompt: "I want to build a campaign for one of my artists. Guide me through it — ask me what kind of campaign, which artist, goals, budget, and timeline. Then set everything up." },
+  { label: "💰 Set up budgets", prompt: "Help me set up budgets for an artist. Ask me which artist, what categories I need, and the amounts. Then create them." },
+  { label: "📋 Weekly planning", prompt: "Let's do a weekly planning session. Ask me about each artist on my roster — what's coming up, what needs to get done, and help me create tasks and milestones for the week." },
 ];
 
 export function RollyChat() {
