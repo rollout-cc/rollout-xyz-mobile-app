@@ -196,12 +196,12 @@ export function ItemEditor({
           <DateChip date={parsedDate} onClear={clearDate} />
         )}
       </div>
-      {activeTrigger && filteredItems.length > 0 && (
+      {activeTrigger && filteredItems.length > 0 && dropdownPos && createPortal(
         <div
           ref={dropdownRef}
-          className="absolute left-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-xl z-50 min-w-[200px] py-1 max-h-[200px] overflow-y-auto overscroll-contain"
+          style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }}
+          className="bg-popover border border-border rounded-lg shadow-xl z-[9999] min-w-[200px] py-1 max-h-[200px] overflow-y-auto overscroll-contain"
           onMouseDown={(e) => {
-            // Prevent input blur when interacting with dropdown, but allow scroll
             e.preventDefault();
           }}
         >
@@ -221,7 +221,8 @@ export function ItemEditor({
               <span>{item.label}</span>
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
