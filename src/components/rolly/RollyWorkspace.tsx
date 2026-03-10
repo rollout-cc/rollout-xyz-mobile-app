@@ -110,7 +110,11 @@ export function RollyWorkspace() {
               <span className="text-xs font-medium">Total Budget</span>
             </div>
             <p className="text-2xl font-bold">
-              {totalBudget > 0 ? `$${(totalBudget / 1000).toFixed(0)}k` : "$0"}
+              {totalBudget >= 1_000_000
+                ? `$${(totalBudget / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`
+                : totalBudget >= 1_000
+                ? `$${(totalBudget / 1_000).toFixed(0)}k`
+                : `$${totalBudget.toLocaleString()}`}
             </p>
           </CardContent>
         </Card>
