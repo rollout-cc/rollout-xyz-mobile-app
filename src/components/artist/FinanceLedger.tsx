@@ -99,6 +99,9 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions", artistId] });
+      queryClient.invalidateQueries({ queryKey: ["finance-transactions", artistId] });
+      queryClient.invalidateQueries({ queryKey: ["budget-expense-transactions", artistId] });
+      queryClient.invalidateQueries({ queryKey: ["sub-budget-transactions", artistId] });
       resetForm();
       toast.success("Transaction added");
       if (isExpense && newBudgetId !== "none") {
@@ -118,7 +121,10 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["transactions", artistId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions", artistId] });
+      queryClient.invalidateQueries({ queryKey: ["finance-transactions", artistId] });
+    },
   });
 
   const deleteTransaction = useMutation({
@@ -126,7 +132,11 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
       const { error } = await supabase.from("transactions").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["transactions", artistId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions", artistId] });
+      queryClient.invalidateQueries({ queryKey: ["finance-transactions", artistId] });
+      queryClient.invalidateQueries({ queryKey: ["budget-expense-transactions", artistId] });
+    },
   });
 
   const resetForm = () => {

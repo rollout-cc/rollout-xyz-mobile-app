@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -7,7 +6,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Check, Sparkles, Rocket } from "lucide-react";
-import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 
 interface TrialWelcomeDialogProps {
   open: boolean;
@@ -29,8 +27,6 @@ const FREE_FEATURES = [
 ];
 
 export function TrialWelcomeDialog({ open, onOpenChange }: TrialWelcomeDialogProps) {
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
-
   const handleStartTrial = () => {
     onOpenChange(false);
   };
@@ -124,8 +120,6 @@ export function TrialWelcomeDialog({ open, onOpenChange }: TrialWelcomeDialogPro
           </div>
         </DialogContent>
       </Dialog>
-
-      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} />
     </>
   );
 }

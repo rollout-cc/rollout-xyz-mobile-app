@@ -40,21 +40,25 @@ export function LinksTab({ artistId }: LinksTabProps) {
   });
 
   const { data: allLinks = [] } = useQuery({
-    queryKey: ["artist_links", artistId],
+    queryKey: ["artist_links", artistId, folders.map((f: any) => f.id)],
     queryFn: async () => {
-      const { data: folderLinks, error: fErr } = await supabase
-        .from("artist_links").select("*")
-        .in("folder_id", folders.map((f: any) => f.id))
-        .order("sort_order", { ascending: true });
+      const folderIds = folders.map((f: any) => f.id);
+      let folderLinks: any[] = [];
+      if (folderIds.length > 0) {
+        const { data, error } = await supabase
+          .from("artist_links").select("*")
+          .in("folder_id", folderIds)
+          .order("sort_order", { ascending: true });
+        if (error) throw error;
+        folderLinks = data || [];
+      }
       const { data: unfiledLinks, error: uErr } = await (supabase as any)
         .from("artist_links").select("*")
         .eq("artist_id", artistId).is("folder_id", null)
         .order("sort_order", { ascending: true });
-      if (fErr) throw fErr;
       if (uErr) throw uErr;
-      return [...(folderLinks || []), ...(unfiledLinks || [])];
+      return [...folderLinks, ...(unfiledLinks || [])];
     },
-    enabled: folders !== undefined,
   });
 
   const unfiledLinks = allLinks.filter((l: any) => !l.folder_id);

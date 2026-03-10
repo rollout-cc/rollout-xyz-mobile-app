@@ -32,17 +32,16 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
 
-    // Use anon-key client with auth header for getClaims (ES256 compatible)
+    // Use anon-key client with auth header for getUser (ES256 compatible)
     const anonClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      logStep("Auth failed, returning default rising plan", { error: claimsError?.message });
+    const { data: { user }, error: userError } = await anonClient.auth.getUser();
+    if (userError || !user) {
+      logStep("Auth failed, returning default rising plan", { error: userError?.message });
       return new Response(JSON.stringify({
         plan: "rising",
         seat_limit: 1,
@@ -55,8 +54,8 @@ serve(async (req) => {
         status: 200,
       });
     }
-    const userId = claimsData.claims.sub;
-    const userEmail = claimsData.claims.email;
+    const userId = user.id;
+    const userEmail = user.email;
     logStep("User authenticated", { userId, email: userEmail });
 
     // Get team_id from request body
