@@ -54,7 +54,7 @@ export function LinksTab({ artistId }: LinksTabProps) {
       if (uErr) throw uErr;
       return [...(folderLinks || []), ...(unfiledLinks || [])];
     },
-    enabled: folders !== undefined,
+    enabled: folders.length > 0 || folders !== undefined,
   });
 
   const unfiledLinks = allLinks.filter((l: any) => !l.folder_id);

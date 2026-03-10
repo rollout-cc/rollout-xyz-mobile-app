@@ -225,7 +225,11 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
       const { error } = await supabase.from("transactions").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["finance-transactions", artistId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["finance-transactions", artistId] });
+      qc.invalidateQueries({ queryKey: ["transactions", artistId] });
+      qc.invalidateQueries({ queryKey: ["budget-expense-transactions", artistId] });
+    },
   });
 
   const handleSoftDelete = useCallback((id: string) => {

@@ -149,26 +149,18 @@ export default function JoinTeam() {
 
   const handleGoogleLogin = async () => {
     localStorage.setItem("pending_invite_token", token || "");
-    const isCustomDomain =
-      !window.location.hostname.includes("lovable.app") &&
-      !window.location.hostname.includes("lovableproject.com");
+    const { error } = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: `${window.location.origin}/join/${token}`,
+    });
+    if (error) toast.error(error.message);
+  };
 
-    if (isCustomDomain) {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/join/${token}`,
-          skipBrowserRedirect: true,
-        },
-      });
-      if (error) { toast.error(error.message); return; }
-      if (data?.url) window.location.href = data.url;
-    } else {
-      const { error } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/join/${token}`,
-      });
-      if (error) toast.error(error.message);
-    }
+  const handleAppleLogin = async () => {
+    localStorage.setItem("pending_invite_token", token || "");
+    const { error } = await lovable.auth.signInWithOAuth("apple", {
+      redirect_uri: `${window.location.origin}/join/${token}`,
+    });
+    if (error) toast.error(error.message);
   };
 
   const handleProfileSubmit = async (e: React.FormEvent) => {

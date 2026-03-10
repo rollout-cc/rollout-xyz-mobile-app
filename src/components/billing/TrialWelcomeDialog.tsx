@@ -120,8 +120,6 @@ export function TrialWelcomeDialog({ open, onOpenChange }: TrialWelcomeDialogPro
           </div>
         </DialogContent>
       </Dialog>
-
-      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} />
     </>
   );
 }

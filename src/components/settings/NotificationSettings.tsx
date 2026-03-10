@@ -171,7 +171,7 @@ export function NotificationSettings() {
         {/* Column headers */}
         <div className="flex items-center justify-end gap-8 pr-2 text-xs font-medium text-muted-foreground mb-2">
           <span>Email</span>
-          <span>SMS</span>
+          <span className="flex items-center gap-1">SMS <span className="text-[10px] text-muted-foreground/60 font-normal">(coming soon)</span></span>
         </div>
 
         {/* Notification cards */}
@@ -192,8 +192,9 @@ export function NotificationSettings() {
                 />
                 {card.smsCol ? (
                   <Switch
-                    checked={(prefs as any)?.[card.smsCol] ?? false}
-                    onCheckedChange={(v) => updatePref.mutate({ key: card.smsCol!, value: v })}
+                    disabled
+                    checked={false}
+                    className="opacity-40"
                   />
                 ) : (
                   <div className="w-[36px]" /> // spacer for alignment
