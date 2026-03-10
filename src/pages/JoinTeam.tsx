@@ -141,6 +141,9 @@ export default function JoinTeam() {
     });
     if (error) {
       toast.error(error.message);
+    } else if (signUpData.user && !signUpData.session) {
+      // User created but email not confirmed yet
+      toast.success("Check your email to verify your account, then come back to this page.");
     } else if (signUpData.user) {
       toast.success("Account created!");
     }
