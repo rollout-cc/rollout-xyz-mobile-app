@@ -288,11 +288,26 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
         }
       }
 
+      // Resolve budget_id from the category/budget selection
+      let resolvedBudgetId: string | null = null;
+      if (editCategoryId.startsWith("budget:")) {
+        const budgetLabel = editCategoryId.replace("budget:", "");
+        const matchedBudget = budgets.find((b: any) => b.label === budgetLabel);
+        if (matchedBudget) resolvedBudgetId = matchedBudget.id;
+      } else if (resolvedCategoryId !== "none") {
+        const cat = categories.find((c: any) => c.id === resolvedCategoryId);
+        if (cat) {
+          const matchedBudget = budgets.find((b: any) => b.label === cat.name);
+          if (matchedBudget) resolvedBudgetId = matchedBudget.id;
+        }
+      }
+
       const { error } = await supabase.from("transactions").update({
         description: editDesc.trim(),
         amount: finalAmount,
         status: editStatus,
         category_id: resolvedCategoryId === "none" ? null : resolvedCategoryId,
+        budget_id: resolvedBudgetId,
         transaction_date: editDate,
       } as any).eq("id", editingId);
       if (error) throw error;
