@@ -196,6 +196,7 @@ export default function Rolly() {
                 planMode={planMode}
                 onPlanModeChange={handlePlanModeToggle}
                 onSendReady={handleSendReady}
+                onPlanMessage={handlePlanMessage}
               />
             ) : (
               workspaceContent
