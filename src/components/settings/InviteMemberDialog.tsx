@@ -90,6 +90,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
           invitee_job_title: jobTitle || null,
           invitee_email: inviteEmail.trim() || null,
           invitee_name: inviteeName.trim() || null,
+          ...permissions,
         })
         .select("token")
         .single();
