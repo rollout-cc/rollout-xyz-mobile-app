@@ -4,16 +4,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+const FINANCE_JOB_TITLES = ["finance", "operations", "accountant", "accounting", "cfo", "controller", "bookkeeper", "business manager"];
+
 interface TeamContextType {
   selectedTeamId: string | null;
   setSelectedTeamId: (id: string) => void;
-  /** Current user's role in the selected team */
   role: string | null;
-  /** Whether the current user is team_owner or manager */
   canManage: boolean;
-  /** Granular permission flags */
   canViewCompany: boolean;
   canViewFinance: boolean;
+  canManageFinance: boolean;
   canViewStaffSalaries: boolean;
   canViewAR: boolean;
   canViewRoster: boolean;
@@ -21,7 +21,6 @@ interface TeamContextType {
   canViewBilling: boolean;
   isArtistRole: boolean;
   isGuestRole: boolean;
-  /** Artist IDs this user is assigned to (for artist/guest roles) */
   assignedArtistIds: string[];
 }
 
