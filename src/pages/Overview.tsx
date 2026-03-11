@@ -657,6 +657,14 @@ export default function Overview() {
       </>
       )}
       <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} feature={upgradeFeature} />
+      <RollyNudge
+        screen="overview"
+        dataSnapshot={{
+          artistCount: artists.length,
+          taskCount: tasks.length,
+          overdueTaskCount: tasks.filter((t: any) => t.status !== "done" && t.due_date && new Date(t.due_date) < new Date()).length,
+        }}
+      />
     </AppLayout>
   );
 }
