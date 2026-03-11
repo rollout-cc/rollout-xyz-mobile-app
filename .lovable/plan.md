@@ -1,112 +1,44 @@
 
 
-# Performance Audit: Speed & Flow Improvements
+# Bug Fixes, Rolly Token Limits, and AI Cost Info
 
-After reviewing the full codebase, here are the bottlenecks and concrete fixes ranked by impact.
+## Critical Bug: Permissions Broken for All Existing Users
 
----
+The recent change to `TeamContext.tsx` reads permission flags directly from the database:
+```
+canViewFinance: !!membershipPerms?.perm_view_finance,
+```
 
-## 1. Waterfall Query Chains (HIGH IMPACT)
+But **every existing `team_memberships` row has all `perm_*` columns set to `false`**, including team owners. This means:
+- Team owners can't see finance, A&R, roster, billing, or edit artists
+- Managers can't see anything either
+- The app is effectively locked down for all existing users
 
-**Problem:** Several pages chain queries sequentially -- each waits for the previous to finish before starting. This creates "waterfall" loading where the page takes 3-4x longer than necessary.
+**Fix:** Restore role-based defaults as the baseline in `TeamContext.tsx`, with stored flags as overrides. The logic should be:
+- `team_owner` always gets all permissions (hardcoded, ignore stored flags)
+- `manager` gets role defaults OR stored flags (whichever is true — union/additive)
+- `artist`/`guest` use stored flags only
 
-**Where it happens:**
-- **Overview.tsx**: Fetches `artists` first, then waits for that result before fetching `budgets`, `transactions`, and `initiatives` (all use `enabled: artists.length > 0`). That's 3 sequential hops.
-- **FinanceContent.tsx**: Same pattern -- `artists` -> `budgets`, `transactions`, `company_expenses`, etc. Plus `staffEmployment` -> `staffProfiles` is another waterfall.
-- **StaffContent.tsx**: `memberships` -> `memberProfiles`, and `artists` -> `transactions`.
+Additionally, run a data migration to set existing team_owner records to all-true so future logic stays clean.
 
-**Fix:** Create a single database function (RPC) that returns all needed data for the Overview and Finance pages in one call. Alternatively, restructure queries to use the team_id directly (budgets, transactions can be fetched via joins or team_id filter) so they all fire in parallel.
+## Rolly Token Limits
 
----
+No usage tracking exists yet. Need to build:
 
-## 2. `useTeamPlan()` Calls an Edge Function Every 60 Seconds (HIGH IMPACT)
+1. **Database**: Create `rolly_usage` table with columns: `team_id`, `month` (text, e.g. "2026-03"), `message_count` (int), unique on (team_id, month)
+2. **Edge Function** (`rolly-chat`): Before processing, check the team's plan. If Rising tier, query `rolly_usage` for current month. If count >= 10, return error. Increment count after successful response.
+3. **Frontend** (`useRollyChat`): Handle the new "limit reached" error with a user-friendly message and upgrade prompt.
+4. **Limits**: Rising = 10 messages/month, Icon = unlimited, Legend = unlimited
 
-**Problem:** `useTeamPlan()` invokes the `check-subscription` edge function (cold-start latency ~200-800ms) on every page load and re-polls every 60s. This is called from at least 8 different components. While React Query deduplicates, the edge function call itself is slow and blocks UI decisions (feature gating).
+## AI Cost via Lovable
 
-**Fix:**
-- Increase `staleTime` to 5 minutes (from 30s) and `refetchInterval` to 5 minutes (from 60s)
-- Cache the result in `localStorage` as a fallback so the first render doesn't block on network
+Regarding your question about LLM costs: The Lovable AI gateway (`ai.gateway.lovable.dev`) is included with your Lovable workspace. Costs are billed through your Lovable subscription/credits — you don't pay per-token to a separate provider. The models used (Gemini Flash for nudges, Gemini 3 Flash Preview for chat) are among the more cost-efficient options. Your users' Rolly usage consumes your Lovable AI credits. If usage scales significantly, you'd monitor credit consumption in your Lovable workspace settings. The 10-message free cap for Rising tier is a good safeguard against runaway costs.
 
----
+## Implementation Steps
 
-## 3. `useTeams()` Called 14+ Times Across Components (MEDIUM IMPACT)
-
-**Problem:** `useTeams()` is called in 14 places. React Query deduplicates the network call, but each call triggers the hook logic and context lookups. More importantly, the `role` check pattern (`teams.find(t => t.id === teamId)?.role`) is repeated everywhere.
-
-**Fix:** Move `role` into `TeamContext` so components just read `const { role } = useSelectedTeam()` instead of re-querying teams and filtering.
-
----
-
-## 4. Duplicate Data Fetching Between Pages (MEDIUM IMPACT)
-
-**Problem:** Overview.tsx, FinanceContent.tsx, and StaffContent.tsx all fetch the same data (artists, transactions, tasks, memberships, profiles) with different query keys (`overview-artists` vs `finance-artists` vs `staff-artists`). This means navigating between tabs re-fetches everything from scratch.
-
-**Fix:** Unify query keys. Use `["artists", teamId]` everywhere instead of `["overview-artists", teamId]`, `["finance-artists", teamId]`, `["staff-artists", teamId]`. This lets React Query share the cache across all views.
-
----
-
-## 5. Heavy `useMemo` Computations on Every Render (MEDIUM IMPACT)
-
-**Problem:** `staffMembers` computation in Overview.tsx has an O(n*m) loop inside it (for each member, it iterates all other members to compute `maxRevenue`). With more staff, this becomes expensive.
-
-**Fix:** Pre-compute `maxRevenue` once outside the map, then pass it in. Single pass instead of quadratic.
-
----
-
-## 6. Missing Prefetching on Navigation (LOW-MEDIUM IMPACT)
-
-**Problem:** When a user clicks an artist card, it navigates to ArtistDetail which then starts fetching from scratch. No data is prefetched on hover or anticipation.
-
-**Fix:** Add `queryClient.prefetchQuery` on artist card hover/mouse-enter for the artist detail data. This makes the transition feel instant.
-
----
-
-## 7. Large Bundle: DnD Library Loaded on Every Page (LOW IMPACT)
-
-**Problem:** `@hello-pangea/dnd` (~45KB gzipped) is imported in Roster.tsx and Overview.tsx. It's lazy-loaded via React.lazy, but it's still a significant chunk for pages that may not need drag-and-drop.
-
-**Fix:** No immediate action needed since pages are already lazy-loaded. Could consider dynamic import of the DnD wrapper only when folders exist.
-
----
-
-## 8. Edge Function Cold Starts (LOW IMPACT, Infrastructure)
-
-**Problem:** `spotify-artist`, `check-subscription`, `scrape-chartmasters` all have cold-start latency. The Spotify artist data is fetched via edge function on every artist detail page load (30min staleTime helps but first visit is slow).
-
-**Fix:** Already mitigated by staleTime. Could add a background sync job instead of on-demand fetching.
-
----
-
-## Implementation Plan (Ordered by Impact)
-
-### Step 1: Unify query keys across Overview/Finance/Staff
-- Change all `["finance-artists", teamId]`, `["overview-artists", teamId]`, `["staff-artists", teamId]` to `["artists-summary", teamId]`
-- Same for transactions, budgets, tasks, memberships, profiles
-- Instant cache sharing = no re-fetch when switching tabs
-
-### Step 2: Remove waterfall queries
-- Fetch budgets and transactions using `team_id` joins instead of waiting for artist IDs
-- Create an RPC function `get_team_finance_summary` that returns artists + budgets + transactions in one call
-
-### Step 3: Optimize useTeamPlan caching
-- Increase staleTime to 5min, refetchInterval to 5min
-- Add localStorage fallback for instant first render
-
-### Step 4: Move role into TeamContext
-- Eliminate 14 redundant `useTeams()` calls for role checking
-
-### Step 5: Fix quadratic staffMembers computation
-- Pre-compute maxRevenue in a single pass
-
-### Step 6: Add prefetching on artist card hover
-- `onMouseEnter` triggers `queryClient.prefetchQuery` for artist detail
-
-### Files to Edit
-1. `src/pages/Overview.tsx` -- unify query keys, remove waterfalls
-2. `src/components/overview/FinanceContent.tsx` -- unify query keys, remove waterfalls
-3. `src/components/overview/StaffContent.tsx` -- unify query keys
-4. `src/hooks/useTeamPlan.ts` -- increase cache times
-5. `src/contexts/TeamContext.tsx` -- add role to context
-6. `src/components/roster/ArtistCard.tsx` -- add prefetch on hover
-7. Database migration -- create RPC function for combined finance data
+1. **Fix TeamContext permissions** — restore role-based defaults as baseline, stored flags as additive overrides
+2. **Data migration** — set all `perm_*` to true for existing `team_owner` memberships, and set role defaults for existing `manager` memberships  
+3. **Create `rolly_usage` table** — track monthly message counts per team
+4. **Update `rolly-chat` edge function** — check plan tier, enforce 10-message limit for Rising, increment usage
+5. **Update frontend** — show limit-reached UI with upgrade prompt in Rolly chat
 
