@@ -53,6 +53,12 @@ export function WorkItemCreator({
   const [parsedDate, setParsedDate] = useState<Date | null>(null);
   const [showDescription, setShowDescription] = useState(false);
 
+  const voice = useVoiceInput({
+    onResult: (text) => {
+      handleTitleChange(title ? title + " " + text : text);
+    },
+  });
+
   const handleSubmit = () => {
     if (!title.trim()) return;
     onSubmit({ title: title.trim(), description, dueDate: parsedDate });
