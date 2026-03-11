@@ -37,6 +37,7 @@ import type { StaffMember } from "@/components/overview/StaffMetricsSection";
 import { useTeamPlan } from "@/hooks/useTeamPlan";
 import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 import { useTour } from "@/contexts/TourContext";
+import { RollyNudge } from "@/components/rolly/RollyNudge";
 
 export default function Overview() {
   const { selectedTeamId: teamId } = useSelectedTeam();
