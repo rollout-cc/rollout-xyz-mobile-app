@@ -98,12 +98,13 @@ export function ObjectiveKpiCard({
     ? "rounded-xl border border-white/[0.14] bg-black/30 backdrop-blur-xl shadow-lg"
     : "rounded-xl border border-border bg-card shadow-sm";
 
-  // Empty state — show picker
+  // Empty state — in banner mode, render nothing to keep the banner clean
   if (!objectiveType) {
+    if (isBanner) return null;
     return (
       <div ref={pickerRef} className={cn(cardBase, "relative")}>
         {showPicker ? (
-          <div className={cn("p-2 min-w-[160px]", isBanner ? "text-white" : "text-foreground")}>
+          <div className={cn("p-2 min-w-[160px]", "text-foreground")}>
             <p className="text-[9px] font-bold uppercase tracking-wider opacity-50 mb-1.5 px-1">
               Select Objective
             </p>
@@ -111,12 +112,7 @@ export function ObjectiveKpiCard({
               <button
                 key={t.value}
                 onClick={() => handleSelectType(t.value)}
-                className={cn(
-                  "flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-xs font-medium transition-colors text-left",
-                  isBanner
-                    ? "hover:bg-white/10"
-                    : "hover:bg-accent"
-                )}
+                className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-xs font-medium transition-colors text-left hover:bg-accent"
               >
                 <t.icon className="h-3 w-3 opacity-60" />
                 {t.label}
@@ -126,11 +122,7 @@ export function ObjectiveKpiCard({
         ) : (
           <button
             onClick={() => setShowPicker(true)}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-2.5",
-              isBanner ? "text-white/40 hover:text-white/70" : "text-muted-foreground hover:text-foreground",
-              "transition-colors text-xs"
-            )}
+            className="flex items-center gap-1.5 px-3 py-2.5 text-muted-foreground hover:text-foreground transition-colors text-xs"
           >
             <Target className="h-3 w-3" />
             <span>Set Goal</span>

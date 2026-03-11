@@ -123,14 +123,15 @@ export function StaffContent() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <div>
+        {/* Title — hidden on mobile since the active tab in the header provides context */}
+        <div className="hidden sm:block">
           <h1 className="text-foreground">Staff</h1>
           <p className="text-sm text-muted-foreground mt-1">Team productivity and performance metrics</p>
         </div>
         {canManage && (
-          <Button onClick={() => setShowInvite(true)}>
-            <UserPlus className="h-4 w-4 mr-1.5" />
-            Add Member
+          <Button onClick={() => setShowInvite(true)} className="sm:ml-auto">
+            <UserPlus className="h-4 w-4 sm:mr-1.5" />
+            <span className="hidden sm:inline">Add Member</span>
           </Button>
         )}
       </div>

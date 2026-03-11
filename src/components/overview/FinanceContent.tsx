@@ -273,19 +273,20 @@ export function FinanceContent() {
   return (
     <div className="space-y-6">
       {/* Header + Date Filter */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-2 sm:gap-3">
+        {/* Title — hidden on mobile since the active tab in the header provides context */}
+        <div className="hidden sm:block">
           <h1 className="text-foreground">Finance</h1>
           <p className="text-sm text-muted-foreground mt-1">Company-wide financial overview</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 rounded-lg border border-border p-0.5">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5 flex-1 sm:flex-none">
             {(["month", "quarter", "ytd", "all"] as DateRange[]).map((r) => (
               <button
                 key={r}
                 onClick={() => setDateRange(r)}
                 className={cn(
-                  "px-3 py-1 rounded-md text-xs font-medium transition-colors capitalize",
+                  "flex-1 sm:flex-none px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium transition-colors capitalize",
                   dateRange === r ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"
                 )}
               >
@@ -293,8 +294,9 @@ export function FinanceContent() {
               </button>
             ))}
           </div>
-          <Button variant="outline" size="sm" onClick={exportCSV}>
-            <Download className="h-3.5 w-3.5 mr-1.5" /> Export CSV
+          <Button variant="outline" size="sm" onClick={exportCSV} className="shrink-0">
+            <Download className="h-3.5 w-3.5 sm:mr-1.5" />
+            <span className="hidden sm:inline">Export CSV</span>
           </Button>
         </div>
       </div>
@@ -347,7 +349,7 @@ export function FinanceContent() {
                     <td className="p-3 flex items-center gap-2">
                       <Avatar className="h-6 w-6">
                         <AvatarImage src={profile?.avatar_url ?? undefined} />
-                        <AvatarFallback className="text-[10px]">{displayName[0]}</AvatarFallback>
+                        <AvatarFallback className="text-[10px]">{(displayName || "?")[0]}</AvatarFallback>
                       </Avatar>
                       {displayName}
                     </td>
@@ -378,9 +380,9 @@ export function FinanceContent() {
       {/* Pending Approvals - Quick Action Section */}
       {(() => {
         const allPending = artistBreakdown.flatMap((artist) =>
-          artist.transactions
+          (artist.transactions || [])
             .filter((t: any) => (t as any).approval_status === "pending")
-            .map((t: any) => ({ ...t, artistName: artist.name, artistAvatar: artist.avatar_url }))
+            .map((t: any) => ({ ...t, artistName: artist?.name ?? "Unknown", artistAvatar: artist?.avatar_url }))
         );
         if (allPending.length === 0) return null;
         return (
@@ -406,7 +408,7 @@ export function FinanceContent() {
                           <div className="flex items-center gap-2">
                             <Avatar className="h-5 w-5">
                               <AvatarImage src={t.artistAvatar ?? undefined} />
-                              <AvatarFallback className="text-[8px]">{t.artistName[0]}</AvatarFallback>
+                              <AvatarFallback className="text-[8px]">{(t.artistName || "?")[0]}</AvatarFallback>
                             </Avatar>
                             <span className="font-medium">{t.artistName}</span>
                           </div>
@@ -452,7 +454,7 @@ export function FinanceContent() {
                     <div className="flex items-center gap-2 min-w-0">
                       <Avatar className="h-5 w-5 shrink-0">
                         <AvatarImage src={t.artistAvatar ?? undefined} />
-                        <AvatarFallback className="text-[8px]">{t.artistName[0]}</AvatarFallback>
+                        <AvatarFallback className="text-[8px]">{(t.artistName || "?")[0]}</AvatarFallback>
                       </Avatar>
                       <span className="font-medium text-sm truncate">{t.artistName}</span>
                     </div>
@@ -510,7 +512,7 @@ export function FinanceContent() {
                   <div className="flex items-center gap-3 min-w-0">
                     <Avatar className="h-8 w-8 shrink-0">
                       <AvatarImage src={artist.avatar_url ?? undefined} />
-                      <AvatarFallback className="text-xs">{artist.name[0]}</AvatarFallback>
+                      <AvatarFallback className="text-xs">{(artist.name || "?")[0]}</AvatarFallback>
                     </Avatar>
                     <span className="font-medium text-sm truncate">{artist.name}</span>
                     {artist.pendingCount > 0 && (

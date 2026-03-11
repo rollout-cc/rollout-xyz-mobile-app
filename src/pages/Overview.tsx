@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { useSelectedTeam } from "@/contexts/TeamContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { DragDropContext, Droppable, type DropResult } from "@hello-pangea/dnd";
 import { Plus, Star, StarOff, Rows3, Columns2, Settings2 } from "lucide-react";
 import { useState } from "react";
@@ -42,6 +43,7 @@ import { RollyNudge } from "@/components/rolly/RollyNudge";
 export default function Overview() {
   const { selectedTeamId: teamId, canManageFinance } = useSelectedTeam();
   const [searchParams] = useSearchParams();
+  const isMobile = useIsMobile();
   const initialTab = searchParams.get("tab") === "finance" ? "finance" : "dashboard";
   const [companyTab, setCompanyTab] = useState<"dashboard" | "agenda" | "staff" | "finance">(initialTab);
   const showBudgetWizard = useShouldShowBudgetWizard(teamId ?? null);
@@ -439,15 +441,35 @@ export default function Overview() {
     setOrder(reordered);
   }, [gridSections, setOrder]);
 
+  // Tab bar rendered in the AppLayout header on mobile
+  const mobileTabBar = (
+    <div className="flex items-center gap-1 px-4 py-2.5" data-tour="overview-tabs">
+      {(["dashboard", "agenda", "staff", "finance"] as const).map((tab) => (
+        <button
+          key={tab}
+          onClick={() => handleCompanyTab(tab)}
+          className={cn(
+            "px-3.5 py-1 rounded-full text-sm font-medium transition-colors capitalize whitespace-nowrap",
+            companyTab === tab
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground"
+          )}
+        >
+          {tab}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
-    <AppLayout title="Company">
+    <AppLayout title="Company" mobileSubnav={mobileTabBar}>
       {/* Gate: budget wizard for owners without budget */}
       {showBudgetWizard && teamId ? (
         <BuildYourCompany teamId={teamId} onComplete={() => refetchTeam()} />
       ) : (
       <>
-      {/* Company tabs */}
-      <div className="flex items-center gap-1 mb-5" data-tour="overview-tabs">
+      {/* Company tabs — desktop only (mobile version lives in the header via mobileSubnav) */}
+      <div className="hidden sm:flex items-center gap-1 mb-5" data-tour="overview-tabs-desktop">
         {(["dashboard", "agenda", "staff", "finance"] as const).map((tab) => (
           <button
             key={tab}
@@ -487,12 +509,12 @@ export default function Overview() {
         );
       })()}
       {/* Welcome */}
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-6 sm:mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-foreground">
             Welcome back, {profile?.full_name?.split(" ")[0] || "there"}
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="hidden sm:block text-sm text-muted-foreground mt-1">
             Here's a snapshot of your company's overall health
           </p>
         </div>
@@ -516,7 +538,8 @@ export default function Overview() {
               </div>
             </SheetContent>
           </Sheet>
-          <div className="flex items-center gap-1 text-xs font-medium">
+          {/* Layout toggle — desktop only; mobile always uses single-column */}
+          <div className="hidden sm:flex items-center gap-1 text-xs font-medium">
             <button
               onClick={() => setLayout("single")}
               className={cn(
@@ -601,7 +624,7 @@ export default function Overview() {
                   {...sectionProps}
                   className={cn(
                     "gap-4",
-                    layout === "two-column"
+                    !isMobile && layout === "two-column"
                       ? "grid grid-cols-1 lg:grid-cols-2"
                       : "flex flex-col"
                   )}

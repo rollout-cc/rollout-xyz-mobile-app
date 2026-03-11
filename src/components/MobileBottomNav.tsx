@@ -35,26 +35,52 @@ export function MobileBottomNav() {
     items.push({ to: "/rolly", icon: null, label: "Rolly", isRolly: true });
   }
 
+  // Split items around the center FAB slot when there are enough items
+  const useSplit = items.length >= 3;
+  const mid = Math.ceil(items.length / 2);
+  const leftItems = useSplit ? items.slice(0, mid) : items;
+  const rightItems = useSplit ? items.slice(mid) : [];
+
+  const renderItem = ({ to, icon: Icon, label, isRolly }: typeof items[number]) => {
+    const active = isActive(to);
+    return (
+      <button
+        key={to}
+        onClick={() => navigate(to)}
+        className={cn(
+          "relative flex flex-col items-center justify-center gap-1 flex-1 h-full min-w-0 transition-colors",
+          active ? "text-primary" : "text-muted-foreground"
+        )}
+      >
+        {isRolly ? (
+          <img src={rollyIcon} alt="Rolly" className="h-6 w-6 rounded-full" />
+        ) : (
+          Icon && <Icon className="h-6 w-6" strokeWidth={active ? 2.25 : 1.75} />
+        )}
+        <span className={cn("text-[11px] leading-none", active ? "font-semibold" : "font-medium")}>
+          {label}
+        </span>
+      </button>
+    );
+  };
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background safe-area-bottom">
-      <div className="flex items-center h-14">
-        {items.map(({ to, icon: Icon, label, isRolly }) => (
-          <button
-            key={to}
-            onClick={() => navigate(to)}
-            className={cn(
-              "flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors",
-              isActive(to) ? "text-primary" : "text-muted-foreground"
-            )}
-          >
-            {isRolly ? (
-              <img src={rollyIcon} alt="Rolly" className="h-5 w-5 rounded-full" />
-            ) : (
-              Icon && <Icon className="h-5 w-5" />
-            )}
-            <span className="text-xs font-medium">{label}</span>
-          </button>
-        ))}
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 backdrop-blur safe-area-bottom">
+      <div className="flex items-center h-16">
+        {useSplit ? (
+          <>
+            <div className="flex flex-1 items-stretch">
+              {leftItems.map(renderItem)}
+            </div>
+            {/* Dead zone for the centered FAB (w-14 = 56px + breathing room) */}
+            <div className="w-[72px] shrink-0" aria-hidden="true" />
+            <div className="flex flex-1 items-stretch">
+              {rightItems.map(renderItem)}
+            </div>
+          </>
+        ) : (
+          leftItems.map(renderItem)
+        )}
       </div>
     </nav>
   );

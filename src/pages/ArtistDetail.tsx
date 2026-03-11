@@ -10,7 +10,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DollarSign, Target, Star, Upload, RefreshCw, Receipt, ArrowLeft, Plus, MoreVertical, CheckCheck } from "lucide-react";
+import { DollarSign, Target, Star, RefreshCw, Receipt, ArrowLeft, MoreVertical, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -29,7 +29,7 @@ import { BannerUpload } from "@/components/artist/BannerUpload";
 import { FinanceTab } from "@/components/artist/FinanceTab";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SplitsTab } from "@/components/artist/SplitsTab";
-import { ObjectiveKpiCard } from "@/components/artist/ObjectiveKpiCard";
+import { ObjectiveKpiCard, OBJECTIVE_TYPES } from "@/components/artist/ObjectiveKpiCard";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import defaultBanner from "@/assets/default-banner.png";
@@ -170,6 +170,40 @@ export default function ArtistDetail() {
     ? `${(listenerStat / 1_000).toFixed(1).replace(/\.0$/, "")}K`
     : String(listenerStat);
 
+  const formatObjectiveNumber = (n: number, unit: string): string => {
+    const prefix = unit === "$" ? "$" : "";
+    if (n >= 1_000_000) return `${prefix}${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+    if (n >= 1_000) return `${prefix}${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
+    return `${prefix}${n.toLocaleString()}`;
+  };
+
+  const getObjectiveSummary = (slot: 1 | 2): string | null => {
+    const typeKey = `objective_${slot}_type` as const;
+    const targetKey = `objective_${slot}_target` as const;
+    const type = (artist as any)[typeKey] as string | null;
+    if (!type) return null;
+    const meta = OBJECTIVE_TYPES.find((t) => t.value === type);
+    const label = meta?.label ?? "Goal";
+    const unit = meta?.unit ?? "";
+    const target = (artist as any)[targetKey] as number | null;
+    const current = getObjectiveCurrentValue(type);
+
+    if (target && current != null) {
+      const progress = Math.min((current / target) * 100, 999);
+      return `${label} · ${Math.round(progress)}% of ${formatObjectiveNumber(target, unit)}`;
+    }
+
+    if (target) {
+      return `${label} · Goal ${formatObjectiveNumber(target, unit)}`;
+    }
+
+    return `${label} · Tracking`;
+  };
+
+  const objectiveSummary1 = getObjectiveSummary(1);
+  const objectiveSummary2 = getObjectiveSummary(2);
+  const hasAnyObjectiveSummary = !!(objectiveSummary1 || objectiveSummary2);
+
   // Resolve current value for an objective type from tracked data
   const getObjectiveCurrentValue = (type: string | null): number | null => {
     if (!type) return null;
@@ -271,32 +305,35 @@ export default function ArtistDetail() {
           </div>
 
           {/* Bottom overlay */}
-          <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 sm:px-6 sm:pb-5">
+          <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 sm:px-6 sm:pb-5 space-y-2.5">
 
-            {/* ── Mobile: avatar above, name + chips on the bottom row ── */}
-            <div className="flex flex-col gap-2 sm:hidden">
-              <Avatar className="h-14 w-14 border-2 border-white/25 shadow-2xl shrink-0">
-                <AvatarImage src={avatarUrl ?? undefined} />
-                <AvatarFallback className="text-lg font-bold">{artist.name[0]}</AvatarFallback>
-              </Avatar>
-              <div className="flex items-end justify-between gap-3">
+            {/* ── Mobile layout ── */}
+            <div className="flex items-end justify-between gap-3 sm:hidden">
+              {/* Left: avatar + identity */}
+              <div className="flex items-end gap-2.5 min-w-0">
+                <Avatar className="h-12 w-12 border-2 border-white/20 shadow-xl shrink-0 mb-0.5">
+                  <AvatarImage src={avatarUrl ?? undefined} />
+                  <AvatarFallback className="text-base font-bold">{artist.name[0]}</AvatarFallback>
+                </Avatar>
                 <div className="min-w-0">
                   <h2 className="text-xl font-bold text-white tracking-tight drop-shadow-lg leading-tight truncate">
                     {artist.name}
                   </h2>
-                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-white/65 mt-0.5">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-white/60 mt-0.5">
                     {artist.genres && artist.genres.length > 0 && (
-                      <span className="flex items-center gap-1">
-                        <Star className="h-2.5 w-2.5 fill-current opacity-70" />
-                        {artist.genres.slice(0, 2).join(", ")}
-                      </span>
+                      <span>{artist.genres.slice(0, 1).join(", ")}</span>
                     )}
                     {listenerStat > 0 && (
-                      <span className="font-medium">{listenerStatAbbr} {listenerLabel}</span>
+                      <span className="font-semibold text-white/75">{listenerStatAbbr} {listenerLabel}</span>
                     )}
                   </div>
                 </div>
-                <div className="flex items-end gap-1.5 shrink-0 flex-wrap justify-end max-w-[60%]">
+              </div>
+
+              {/* Right: stat chips + objectives */}
+              <div className="flex items-end gap-1.5 shrink-0 flex-col">
+                {/* Objectives (only rendered when set) */}
+                <div className="flex items-end gap-1.5">
                   <ObjectiveKpiCard
                     artistId={artist.id}
                     slot={1}
@@ -313,10 +350,13 @@ export default function ArtistDetail() {
                     currentValue={getObjectiveCurrentValue((artist as any).objective_2_type)}
                     variant="banner"
                   />
-                  <div className="rounded-xl border border-white/[0.14] bg-black/30 backdrop-blur-xl shadow-lg px-3 py-2.5 text-right">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/45 mb-1.5 leading-none">Budget</p>
-                    <div className="flex items-center justify-end gap-1">
-                      <DollarSign className="h-3 w-3 text-emerald-400 shrink-0" />
+                </div>
+                {/* Budget + Done unified pill */}
+                <div className="flex items-stretch rounded-xl border border-white/[0.14] bg-black/35 backdrop-blur-xl shadow-lg overflow-hidden">
+                  <div className="px-3 py-2 text-right border-r border-white/[0.10]">
+                    <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-white/40 mb-1 leading-none">Budget</p>
+                    <div className="flex items-center gap-0.5">
+                      <DollarSign className="h-2.5 w-2.5 text-emerald-400 shrink-0" />
                       <span className="text-sm font-bold text-white tracking-tight tabular-nums leading-none">
                         {totalBudget >= 1_000_000
                           ? `${(totalBudget / 1_000_000).toFixed(1)}M`
@@ -326,10 +366,10 @@ export default function ArtistDetail() {
                       </span>
                     </div>
                   </div>
-                  <div className="rounded-xl border border-white/[0.14] bg-black/30 backdrop-blur-xl shadow-lg px-3 py-2.5 text-right">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/45 mb-1.5 leading-none">Done</p>
-                    <div className="flex items-center justify-end gap-1">
-                      <CheckCheck className="h-3 w-3 text-white/50 shrink-0" />
+                  <div className="px-3 py-2 text-right">
+                    <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-white/40 mb-1 leading-none">Done</p>
+                    <div className="flex items-center gap-0.5">
+                      <CheckCheck className="h-2.5 w-2.5 text-white/45 shrink-0" />
                       <span className="text-sm font-bold text-white tracking-tight tabular-nums leading-none">{completedCount}</span>
                     </div>
                   </div>
@@ -337,10 +377,10 @@ export default function ArtistDetail() {
               </div>
             </div>
 
-            {/* ── Desktop: avatar + name left, chips right, all baseline-aligned ── */}
+            {/* ── Desktop layout ── */}
             <div className="hidden sm:flex items-end justify-between gap-4">
               <div className="flex items-end gap-4 min-w-0">
-                <Avatar className="h-20 w-20 lg:h-24 lg:w-24 border-2 border-white/25 shadow-2xl shrink-0">
+                <Avatar className="h-20 w-20 lg:h-24 lg:w-24 border-2 border-white/20 shadow-2xl shrink-0">
                   <AvatarImage src={avatarUrl ?? undefined} />
                   <AvatarFallback className="text-xl font-bold">{artist.name[0]}</AvatarFallback>
                 </Avatar>
@@ -348,20 +388,19 @@ export default function ArtistDetail() {
                   <h2 className="text-2xl lg:text-3xl font-bold text-white tracking-tight truncate drop-shadow-lg leading-tight">
                     {artist.name}
                   </h2>
-                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-sm text-white/70 mt-0.5">
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-sm text-white/65 mt-0.5">
                     {artist.genres && artist.genres.length > 0 && (
-                      <span className="flex items-center gap-1">
-                        <Star className="h-2.5 w-2.5 fill-current opacity-80" />
-                        {artist.genres.slice(0, 2).join(", ")}
-                      </span>
+                      <span>{artist.genres.slice(0, 2).join(", ")}</span>
                     )}
                     {listenerStat > 0 && (
-                      <span className="font-medium">{listenerStat.toLocaleString()} {listenerLabel}</span>
+                      <span className="font-semibold text-white/80">{listenerStat.toLocaleString()} {listenerLabel}</span>
                     )}
                   </div>
                 </div>
               </div>
+
               <div className="shrink-0 flex items-end gap-2">
+                {/* Objectives (only rendered when set) */}
                 <ObjectiveKpiCard
                   artistId={artist.id}
                   slot={1}
@@ -378,28 +417,47 @@ export default function ArtistDetail() {
                   currentValue={getObjectiveCurrentValue((artist as any).objective_2_type)}
                   variant="banner"
                 />
-                <div className="rounded-xl border border-white/[0.14] bg-black/30 backdrop-blur-xl shadow-lg px-3.5 py-3 text-right">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/45 mb-1.5 leading-none">Budget</p>
-                  <div className="flex items-center justify-end gap-1">
-                    <DollarSign className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                    <span className="text-base font-bold text-white tracking-tight tabular-nums leading-none">
-                      {totalBudget >= 1_000_000
-                        ? `${(totalBudget / 1_000_000).toFixed(1)}M`
-                        : totalBudget >= 1_000
-                        ? `${(totalBudget / 1_000).toFixed(0)}K`
-                        : totalBudget.toLocaleString()}
-                    </span>
+                {/* Budget + Done unified pill */}
+                <div className="flex items-stretch rounded-xl border border-white/[0.14] bg-black/35 backdrop-blur-xl shadow-lg overflow-hidden">
+                  <div className="px-3.5 py-3 text-right border-r border-white/[0.10]">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/40 mb-1.5 leading-none">Budget</p>
+                    <div className="flex items-center gap-1">
+                      <DollarSign className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                      <span className="text-base font-bold text-white tracking-tight tabular-nums leading-none">
+                        {totalBudget >= 1_000_000
+                          ? `${(totalBudget / 1_000_000).toFixed(1)}M`
+                          : totalBudget >= 1_000
+                          ? `${(totalBudget / 1_000).toFixed(0)}K`
+                          : totalBudget.toLocaleString()}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="rounded-xl border border-white/[0.14] bg-black/30 backdrop-blur-xl shadow-lg px-3.5 py-3 text-right">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/45 mb-1.5 leading-none">Completed</p>
-                  <div className="flex items-center justify-end gap-1">
-                    <CheckCheck className="h-3.5 w-3.5 text-white/50 shrink-0" />
-                    <span className="text-base font-bold text-white tracking-tight tabular-nums leading-none">{completedCount}</span>
+                  <div className="px-3.5 py-3 text-right">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/40 mb-1.5 leading-none">Done</p>
+                    <div className="flex items-center gap-1">
+                      <CheckCheck className="h-3.5 w-3.5 text-white/45 shrink-0" />
+                      <span className="text-base font-bold text-white tracking-tight tabular-nums leading-none">{completedCount}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+
+            {hasAnyObjectiveSummary && (
+              <button
+                type="button"
+                onClick={() => handleViewChange("objectives")}
+                className="w-full rounded-lg bg-black/30 border border-white/10 backdrop-blur-md px-3 py-1.5 flex items-center gap-2 text-[11px] text-white/80 hover:bg-black/45 transition-colors"
+              >
+                <Target className="h-3.5 w-3.5 text-emerald-300 shrink-0" />
+                <span className="uppercase tracking-[0.18em] text-[9px] text-white/55 shrink-0">
+                  Goals
+                </span>
+                <span className="truncate text-left">
+                  {[objectiveSummary1, objectiveSummary2].filter(Boolean).join("  •  ")}
+                </span>
+              </button>
+            )}
 
           </div>
         </div>
@@ -413,7 +471,7 @@ export default function ArtistDetail() {
                 <button
                   key={tab}
                   onClick={() => handleViewChange(tab)}
-                  className={`h-9 px-3.5 text-sm font-medium capitalize transition-colors ${
+                  className={`h-8 px-3 text-xs sm:h-9 sm:px-3.5 sm:text-sm font-medium capitalize transition-colors ${
                     activeView === tab
                       ? "bg-foreground text-background"
                       : "bg-background text-muted-foreground hover:text-foreground hover:bg-muted/50"

@@ -26,9 +26,11 @@ interface AppLayoutProps {
   title: string;
   actions?: ReactNode;
   onBack?: () => void;
+  /** Optional secondary nav row rendered below the title bar, mobile only. */
+  mobileSubnav?: ReactNode;
 }
 
-export function AppLayout({ children, title, actions, onBack }: AppLayoutProps) {
+export function AppLayout({ children, title, actions, onBack, mobileSubnav }: AppLayoutProps) {
   const { selectedTeamId, setSelectedTeamId } = useSelectedTeam();
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
@@ -62,7 +64,7 @@ export function AppLayout({ children, title, actions, onBack }: AppLayoutProps) 
           {/* Top bar — safe-area-top spacer absorbs the notch/Dynamic Island height on iOS */}
           <header className="flex flex-col border-b border-border">
             <div className="safe-area-top" aria-hidden="true" />
-            <div className="flex h-14 items-center justify-between px-4 sm:px-6">
+            <div className="flex h-14 items-center justify-between px-4 sm:px-6 shrink-0">
               <div className="flex items-center gap-2">
                 {isMobile && onBack && (
                   <button
@@ -76,17 +78,35 @@ export function AppLayout({ children, title, actions, onBack }: AppLayoutProps) 
                 {isMobile && teams.length > 0 ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="flex items-center gap-1.5 rounded-md px-1 py-1 hover:bg-accent transition-colors">
-                        <div className="flex items-center justify-center rounded-md bg-muted text-xs font-semibold h-7 w-7 overflow-hidden shrink-0">
-                          {selectedTeam?.avatar_url ? (
-                            <img src={selectedTeam.avatar_url} alt="" className="h-full w-full object-cover" />
-                          ) : (
-                            selectedTeam?.name?.[0] ?? "?"
-                          )}
-                        </div>
-                        <span className="text-base font-semibold truncate max-w-[140px]">{selectedTeam?.name ?? title}</span>
-                        <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                      </button>
+                      {onBack ? (
+                        /* Subpage: compact icon-only team switcher */
+                        <button
+                          className="flex items-center gap-0.5 rounded-md p-1 hover:bg-accent transition-colors"
+                          aria-label={`Switch team (${selectedTeam?.name ?? ""})`}
+                        >
+                          <div className="flex items-center justify-center rounded-md bg-muted text-xs font-semibold h-7 w-7 overflow-hidden shrink-0">
+                            {selectedTeam?.avatar_url ? (
+                              <img src={selectedTeam.avatar_url} alt="" className="h-full w-full object-cover" />
+                            ) : (
+                              selectedTeam?.name?.[0] ?? "?"
+                            )}
+                          </div>
+                          <ChevronsUpDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                        </button>
+                      ) : (
+                        /* Top-level: full team name + switcher */
+                        <button className="flex items-center gap-1.5 rounded-md px-1 py-1 hover:bg-accent transition-colors">
+                          <div className="flex items-center justify-center rounded-md bg-muted text-xs font-semibold h-7 w-7 overflow-hidden shrink-0">
+                            {selectedTeam?.avatar_url ? (
+                              <img src={selectedTeam.avatar_url} alt="" className="h-full w-full object-cover" />
+                            ) : (
+                              selectedTeam?.name?.[0] ?? "?"
+                            )}
+                          </div>
+                          <span className="text-base font-semibold truncate max-w-[140px]">{selectedTeam?.name ?? title}</span>
+                          <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        </button>
+                      )}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
                       {teams.map((team) => (
@@ -135,6 +155,12 @@ export function AppLayout({ children, title, actions, onBack }: AppLayoutProps) 
                 </DropdownMenu>
               </div>
             </div>
+            {/* Mobile secondary nav row — tab bar, filters, etc. passed in by the page */}
+            {isMobile && mobileSubnav && (
+              <div className="overflow-x-auto scrollbar-hide border-t border-border/50">
+                {mobileSubnav}
+              </div>
+            )}
           </header>
 
           {/* Content — bottom padding clears the fixed nav bar (3.5rem) + home indicator safe area */}

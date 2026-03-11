@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { AppLayout } from "@/components/AppLayout";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { ARContent } from "@/components/ar/ARContent";
 import { useArtists, useCreateArtist, useDeleteArtist } from "@/hooks/useArtists";
 import { useCreateTeam } from "@/hooks/useTeams";
@@ -61,6 +62,7 @@ export default function Roster() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { selectedTeamId } = useSelectedTeam();
+  const isMobile = useIsMobile();
   const { data: artists = [], isLoading } = useArtists(selectedTeamId);
   const { data: folders = [] } = useRosterFolders(selectedTeamId);
   const createArtist = useCreateArtist();
@@ -247,10 +249,10 @@ export default function Roster() {
   // Folder detail view
   if (selectedFolderId && selectedFolder) {
     return (
-      <AppLayout title="Artists">
+      <AppLayout title="Artists" onBack={isMobile ? () => setSelectedFolderId(null) : undefined}>
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedFolderId(null)}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 sm:flex hidden" onClick={() => setSelectedFolderId(null)}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <h2 className="text-lg font-semibold">{selectedFolder.name}</h2>
@@ -292,12 +294,37 @@ export default function Roster() {
     );
   }
 
+  // Tab bar for mobile header (Current Roster / A&R Signings)
+  const mobileRosterSubnav = (
+    <div className="flex items-center gap-1 px-4 py-2.5" data-tour="roster-tabs">
+      <button
+        onClick={() => setActiveTab("roster")}
+        className={cn(
+          "px-3.5 py-1 rounded-full text-sm font-medium transition-colors whitespace-nowrap",
+          activeTab === "roster" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+        )}
+      >
+        Current Roster
+      </button>
+      <button
+        onClick={() => setActiveTab("ar")}
+        className={cn(
+          "px-3.5 py-1 rounded-full text-sm font-medium transition-colors whitespace-nowrap",
+          activeTab === "ar" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+        )}
+      >
+        A&R Signings
+      </button>
+    </div>
+  );
+
   // Main roster view with DnD
   return (
-    <AppLayout title="Artists">
-      {/* Tabs + Sort row */}
-      <div className="flex items-center justify-between gap-2 mb-4">
-        <div className="flex items-center gap-1" data-tour="roster-tabs">
+    <AppLayout title="Artists" mobileSubnav={mobileRosterSubnav}>
+      {/* Tabs + Sort row — desktop layout */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+        {/* Desktop tab bar — hidden on mobile (mobile uses header subnav) */}
+        <div className="hidden sm:flex items-center gap-1" data-tour="roster-tabs-desktop">
           <button
             onClick={() => setActiveTab("roster")}
             className={cn("px-4 py-1.5 rounded-full text-sm font-medium transition-colors",
@@ -315,7 +342,7 @@ export default function Roster() {
             A&R Signings
           </button>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
           {activeTab === "roster" && <span data-tour="roster-sort">{SortSelect}</span>}
           <Button
             variant="outline"
