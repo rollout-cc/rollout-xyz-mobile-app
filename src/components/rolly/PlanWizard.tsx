@@ -580,6 +580,13 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
 
   return (
     <div className="flex flex-col h-full">
+      {/* Initial context banner */}
+      {initialContext && (
+        <div className="mx-6 mt-4 px-4 py-3 rounded-xl bg-primary/10 border border-primary/20">
+          <p className="text-xs font-medium text-primary mb-1">Your brief:</p>
+          <p className="text-sm text-foreground">{initialContext}</p>
+        </div>
+      )}
       {/* Progress bar */}
       <div className="px-6 pt-6 pb-2">
         <div className="flex items-center justify-between mb-2">
