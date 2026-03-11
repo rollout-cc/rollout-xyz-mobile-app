@@ -14,29 +14,55 @@ const CHAPTERS = [
   "Revenue & Deal Strategy",
 ];
 
-function anonymize(text: string): string {
-  let c = text;
-  c = c.replace(/@\w+/g, "");
-  c = c.replace(/\b(donny\s*slater|brian\s*"?z"?\s*zisook|zisook|donny|slater|djbooth)\b/gi, "");
-  c = c.replace(/according to\s+\w+(\s+\w+){0,2}/gi, "");
-  c = c.replace(/\bvia\s+@?\w+/gi, "");
-  c = c.replace(/\b(says|said|wrote|posted by|tweeted by)\s+\w+(\s+\w+)?/gi, "");
-  c = c.replace(/https?:\/\/\S+/g, "");
-  c = c.replace(/\s{2,}/g, " ").trim();
-  return c;
-}
-
-const DEFAULT_HANDLES = [
-  "BrianZisook",
-  "thatdonnyslater",
-  "WorldWideTy",
-  "BarryHefner",
+const DEFAULT_SOURCES = [
+  { url: "https://trapital.co", name: "Trapital" },
+  { url: "https://www.musicbusinessworldwide.com", name: "Music Business Worldwide" },
+  { url: "https://www.hypebot.com", name: "Hypebot" },
+  { url: "https://www.digitalmusicnews.com", name: "Digital Music News" },
+  { url: "https://www.complex.com/music", name: "Complex Music" },
 ];
 
-async function scrapeHandle(firecrawlKey: string, handle: string): Promise<string[]> {
-  const url = `https://x.com/${handle}`;
-  console.log(`Scraping ${url} via Firecrawl...`);
+async function discoverArticles(firecrawlKey: string, siteUrl: string): Promise<string[]> {
+  console.log(`Mapping ${siteUrl} for article URLs...`);
 
+  const response = await fetch("https://api.firecrawl.dev/v1/map", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${firecrawlKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      url: siteUrl,
+      limit: 50,
+      includeSubdomains: false,
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error(`Firecrawl map failed for ${siteUrl}: ${response.status} ${errText}`);
+    return [];
+  }
+
+  const data = await response.json();
+  const links: string[] = data?.links || [];
+
+  // Filter to likely article URLs (not category pages, about pages, etc.)
+  const articleUrls = links.filter((url: string) => {
+    const path = new URL(url).pathname;
+    // Must have a meaningful path depth (likely an article)
+    const segments = path.split("/").filter(Boolean);
+    if (segments.length < 2) return false;
+    // Skip common non-article paths
+    if (/\/(tag|category|author|about|contact|privacy|terms|search|login|signup|page\/\d)/.test(path)) return false;
+    return true;
+  });
+
+  console.log(`${siteUrl}: found ${articleUrls.length} article URLs from ${links.length} total`);
+  return articleUrls.slice(0, 15); // Cap at 15 articles per source
+}
+
+async function scrapeArticle(firecrawlKey: string, url: string): Promise<string> {
   const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
     method: "POST",
     headers: {
@@ -47,60 +73,61 @@ async function scrapeHandle(firecrawlKey: string, handle: string): Promise<strin
       url,
       formats: ["markdown"],
       onlyMainContent: true,
-      waitFor: 3000,
     }),
   });
 
   if (!response.ok) {
-    const errText = await response.text();
-    console.error(`Firecrawl scrape failed for @${handle}: ${response.status} ${errText}`);
-    return [];
+    console.error(`Scrape failed for ${url}: ${response.status}`);
+    await response.text(); // consume body
+    return "";
   }
 
   const data = await response.json();
-  const markdown = data?.data?.markdown || data?.markdown || "";
-
-  if (!markdown || markdown.length < 50) {
-    console.log(`No meaningful content scraped for @${handle}`);
-    return [];
-  }
-
-  // Split markdown into individual tweet-like blocks
-  // Twitter/X pages typically have content separated by line breaks
-  const blocks = markdown
-    .split(/\n{2,}/)
-    .map((b: string) => b.trim())
-    .filter((b: string) => b.length >= 30 && b.length <= 2000);
-
-  console.log(`@${handle}: extracted ${blocks.length} text blocks from scraped content`);
-  return blocks;
+  return data?.data?.markdown || data?.markdown || "";
 }
 
-interface ClassifiedTweet {
+interface ClassifiedChunk {
   index: number;
   relevant: boolean;
   chapter: string;
+  insight: string;
 }
 
-async function classifyTweets(
+async function extractInsights(
   apiKey: string,
-  tweets: string[]
-): Promise<ClassifiedTweet[]> {
-  const prompt = `You are a music industry content classifier. For each numbered text block below, determine:
-1. Is it relevant to the MUSIC INDUSTRY? (artist development, streaming, releases, marketing, A&R, deals, publishing, labels, touring, fan engagement, music business strategy, etc.)
-2. If relevant, which chapter best fits:
-   - "Industry Strategy Insights" (general strategy, market trends)
-   - "Release Strategy Patterns" (releases, rollouts, campaigns, singles, albums)
-   - "Artist Development Tactics" (artist growth, fanbase, talent development)
-   - "Music Business Operations" (team, roster, hiring, operations, management)
-   - "Revenue & Deal Strategy" (revenue, deals, advances, royalties, splits, contracts)
+  articleChunks: string[]
+): Promise<ClassifiedChunk[]> {
+  const prompt = `You are a music industry knowledge extractor. For each numbered article excerpt below, extract ACTIONABLE music industry insights.
 
-Personal opinions, lifestyle posts, relationship advice, food, sports, UI navigation elements, follower counts, and general life commentary are NOT relevant.
+Rules for what counts as a relevant insight:
+- Must be about the MUSIC BUSINESS: artist development, streaming strategy, release rollouts, marketing, A&R, deals, publishing, labels, touring, fan engagement, music business operations, revenue models, etc.
+- Must be ACTIONABLE or EDUCATIONAL — something a music manager or label exec could learn from
+- Must be SPECIFIC — not vague motivational quotes or generic business advice
+- Strip all author attributions and present insights as standalone knowledge
 
-Text blocks:
-${tweets.map((t, i) => `[${i}] ${t}`).join("\n\n")}
+Do NOT include:
+- News about specific events, awards, or chart positions (too time-bound)
+- Celebrity gossip or personal drama
+- Generic business advice that isn't music-specific
+- Vague one-liners like "work hard" or "be authentic"
 
-Return ONLY a JSON array of objects with fields: index (number), relevant (boolean), chapter (string or null if not relevant). No other text.`;
+Assign each insight to a chapter:
+- "Industry Strategy Insights" (market trends, industry shifts, strategic thinking)
+- "Release Strategy Patterns" (releases, rollouts, campaigns, singles, albums, playlisting)
+- "Artist Development Tactics" (artist growth, fanbase building, branding, talent development)
+- "Music Business Operations" (team building, management, hiring, day-to-day operations)
+- "Revenue & Deal Strategy" (revenue streams, deals, advances, royalties, splits, contracts, sync, touring revenue)
+
+Article excerpts:
+${articleChunks.map((t, i) => `[${i}] ${t.substring(0, 3000)}`).join("\n\n---\n\n")}
+
+Return ONLY a JSON array of objects with fields:
+- index (number — which article excerpt)
+- relevant (boolean)
+- chapter (string or null)
+- insight (string — the extracted insight, rewritten as standalone knowledge, 1-3 sentences max)
+
+If an excerpt has multiple insights, create multiple entries with the same index. No other text.`;
 
   const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -109,13 +136,13 @@ Return ONLY a JSON array of objects with fields: index (number), relevant (boole
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "google/gemini-2.5-flash",
       messages: [{ role: "user", content: prompt }],
     }),
   });
 
   if (!resp.ok) {
-    console.error("AI classification failed:", resp.status, await resp.text());
+    console.error("AI extraction failed:", resp.status, await resp.text());
     return [];
   }
 
@@ -131,7 +158,7 @@ Return ONLY a JSON array of objects with fields: index (number), relevant (boole
   try {
     return JSON.parse(jsonMatch[0]);
   } catch (e) {
-    console.error("Failed to parse AI classification:", e);
+    console.error("Failed to parse AI extraction:", e);
     return [];
   }
 }
@@ -159,75 +186,89 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    let handles = DEFAULT_HANDLES;
+    let sources = DEFAULT_SOURCES;
     try {
       const body = await req.json();
-      if (body?.handles?.length) handles = body.handles;
+      if (body?.sources?.length) sources = body.sources;
     } catch { /* No body, use defaults */ }
 
-    console.log(`Scraping handles via Firecrawl: ${handles.join(", ")}`);
+    console.log(`Scraping ${sources.length} music industry publications via Firecrawl`);
 
-    const stats = { total_blocks: 0, unique: 0, relevant: 0, inserted: 0, duplicates: 0 };
+    const stats = { sources_scraped: 0, articles_found: 0, articles_scraped: 0, insights_extracted: 0, inserted: 0 };
     const seen = new Set<string>();
-    const allBlocks: { text: string; anonymized: string }[] = [];
+    const allInserts: { content: string; chapter: string }[] = [];
 
-    // Scrape each handle sequentially (to avoid rate limits)
-    for (const handle of handles) {
-      const blocks = await scrapeHandle(firecrawlKey, handle);
-      stats.total_blocks += blocks.length;
+    for (const source of sources) {
+      console.log(`\n--- Processing ${source.name} (${source.url}) ---`);
+      stats.sources_scraped++;
 
-      for (const text of blocks) {
-        const anonymized = anonymize(text);
-        if (anonymized.length < 30) continue;
+      // Step 1: Discover article URLs
+      const articleUrls = await discoverArticles(firecrawlKey, source.url);
+      stats.articles_found += articleUrls.length;
 
-        const key = anonymized.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 120);
-        if (key.length < 15 || seen.has(key)) { stats.duplicates++; continue; }
-        seen.add(key);
-
-        allBlocks.push({ text, anonymized });
+      if (articleUrls.length === 0) {
+        console.log(`No articles found for ${source.name}, skipping`);
+        continue;
       }
 
-      // Delay between handles
-      if (handles.indexOf(handle) < handles.length - 1) {
-        await new Promise(r => setTimeout(r, 2000));
-      }
-    }
-
-    stats.unique = allBlocks.length;
-    console.log(`${allBlocks.length} unique blocks to classify`);
-
-    // Classify in batches of 20
-    const toInsert: { content: string; chapter: string }[] = [];
-    const BATCH_SIZE = 20;
-
-    for (let i = 0; i < allBlocks.length; i += BATCH_SIZE) {
-      const batch = allBlocks.slice(i, i + BATCH_SIZE);
-      const textsForAI = batch.map(t => t.text);
-
-      console.log(`Classifying batch ${Math.floor(i / BATCH_SIZE) + 1}...`);
-      const classifications = await classifyTweets(lovableApiKey, textsForAI);
-
-      for (const c of classifications) {
-        if (c.relevant && c.chapter && c.index >= 0 && c.index < batch.length) {
-          const chapter = CHAPTERS.includes(c.chapter) ? c.chapter : CHAPTERS[0];
-          toInsert.push({
-            content: batch[c.index].anonymized.substring(0, 5000),
-            chapter,
-          });
-          stats.relevant++;
+      // Step 2: Scrape articles (batch of 5 at a time)
+      const articleContents: string[] = [];
+      for (let i = 0; i < articleUrls.length; i += 5) {
+        const batch = articleUrls.slice(i, i + 5);
+        const results = await Promise.all(
+          batch.map(url => scrapeArticle(firecrawlKey, url))
+        );
+        for (const content of results) {
+          if (content && content.length > 200) {
+            articleContents.push(content);
+            stats.articles_scraped++;
+          }
+        }
+        // Brief delay between batches
+        if (i + 5 < articleUrls.length) {
+          await new Promise(r => setTimeout(r, 1000));
         }
       }
 
-      if (i + BATCH_SIZE < allBlocks.length) {
-        await new Promise(r => setTimeout(r, 1000));
+      console.log(`${source.name}: scraped ${articleContents.length} articles with content`);
+
+      // Step 3: Extract insights via AI (process 3 articles at a time)
+      for (let i = 0; i < articleContents.length; i += 3) {
+        const batch = articleContents.slice(i, i + 3);
+        console.log(`Extracting insights from articles ${i + 1}-${i + batch.length} of ${articleContents.length}...`);
+
+        const insights = await extractInsights(lovableApiKey, batch);
+
+        for (const ins of insights) {
+          if (!ins.relevant || !ins.chapter || !ins.insight) continue;
+          if (ins.insight.length < 40) continue;
+
+          const chapter = CHAPTERS.includes(ins.chapter) ? ins.chapter : CHAPTERS[0];
+          const key = ins.insight.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 120);
+          if (key.length < 20 || seen.has(key)) continue;
+          seen.add(key);
+
+          allInserts.push({
+            content: ins.insight.substring(0, 5000),
+            chapter,
+          });
+          stats.insights_extracted++;
+        }
+
+        if (i + 3 < articleContents.length) {
+          await new Promise(r => setTimeout(r, 1500));
+        }
       }
+
+      // Delay between sources
+      await new Promise(r => setTimeout(r, 2000));
     }
 
-    console.log(`${toInsert.length} relevant music industry insights to insert`);
+    console.log(`\nTotal insights to insert: ${allInserts.length}`);
 
     // Insert in batches of 50
-    for (let i = 0; i < toInsert.length; i += 50) {
-      const batch = toInsert.slice(i, i + 50).map(entry => ({
+    for (let i = 0; i < allInserts.length; i += 50) {
+      const batch = allInserts.slice(i, i + 50).map(entry => ({
         source: "industry_insights",
         chapter: entry.chapter,
         content: entry.content,
@@ -255,17 +296,17 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({
       success: true,
       stats,
-      handles_scraped: handles,
-      sample: toInsert.slice(0, 5).map(u => ({
+      sources_scraped: sources.map(s => s.name),
+      sample: allInserts.slice(0, 10).map(u => ({
         chapter: u.chapter,
-        preview: u.content.substring(0, 200),
+        preview: u.content.substring(0, 250),
       })),
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("scrape-twitter-knowledge error:", message);
+    console.error("scrape-knowledge error:", message);
     return new Response(JSON.stringify({ error: message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
