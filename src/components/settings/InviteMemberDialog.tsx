@@ -203,7 +203,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
               {/* Role */}
               <div className="space-y-2">
                 <Label>Role</Label>
-                <Select value={inviteRole} onValueChange={setInviteRole}>
+                <Select value={inviteRole} onValueChange={(v) => { setInviteRole(v); setPermissions({ ...roleDefaults(v) }); }}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

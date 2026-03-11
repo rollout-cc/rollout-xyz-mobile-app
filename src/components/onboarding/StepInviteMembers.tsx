@@ -254,7 +254,7 @@ export function StepInviteMembers({ teamId, userId, addedArtists }: Props) {
                 <Label className="text-xs mb-1 block">Access Level</Label>
                 <Select
                   value={m.accessLevel}
-                  onValueChange={(v) => updateMember(idx, { accessLevel: v })}
+                  onValueChange={(v) => updateMember(idx, { accessLevel: v, permissions: { ...roleDefaults(v) } })}
                   disabled={!!m.generatedLink}
                 >
                   <SelectTrigger>
