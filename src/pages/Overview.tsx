@@ -46,7 +46,7 @@ export default function Overview() {
   const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const initialTab = searchParams.get("tab") === "finance" ? "finance" : "dashboard";
-  const [companyTab, setCompanyTab] = useState<"dashboard" | "agenda" | "staff" | "finance">(initialTab);
+  const [companyTab, setCompanyTab] = useState<"dashboard" | "agenda" | "staff" | "finance" | "outreach">(initialTab);
   const showBudgetWizard = useShouldShowBudgetWizard(teamId ?? null);
   const { limits } = useTeamPlan();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
