@@ -165,7 +165,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
     setAddToStaff(false);
     setStaffEmploymentType("w2");
     setJobTitle("");
-    setPermissions({ ...defaultPermissions });
+    setPermissions({ ...roleDefaults("manager") });
   };
 
   return (
