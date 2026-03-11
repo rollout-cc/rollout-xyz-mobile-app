@@ -185,39 +185,35 @@ export function PlanWizard({ onComplete, onCancel }: PlanWizardProps) {
 
   const isLastStep = currentStep === visibleSteps.length - 1;
 
+  const stepId = step?.id ?? "";
+
   const handleSingleSelect = (value: string) => {
-    setAnswers((prev) => ({ ...prev, [step.id]: value }));
+    setAnswers((prev) => ({ ...prev, [stepId]: value }));
     setOtherText("");
   };
 
   const handleMultiToggle = (label: string) => {
     setAnswers((prev) => {
-      const current = Array.isArray(prev[step.id]) ? [...(prev[step.id] as string[])] : [];
+      const current = Array.isArray(prev[stepId]) ? [...(prev[stepId] as string[])] : [];
       const idx = current.indexOf(label);
       if (idx >= 0) current.splice(idx, 1);
       else current.push(label);
-      return { ...prev, [step.id]: current };
+      return { ...prev, [stepId]: current };
     });
   };
 
   const handleOtherToggle = () => {
     if (isMulti) {
-      // Remove any non-option value, or add placeholder
       const cleaned = selectedValues.filter((v) => stepOptions.some((o) => o.label === v));
       if (isOtherSelected) {
-        setAnswers((prev) => ({ ...prev, [step.id]: cleaned }));
+        setAnswers((prev) => ({ ...prev, [stepId]: cleaned }));
         setOtherText("");
       } else {
         setOtherText("");
       }
     } else {
-      if (isOtherSelected) {
-        setAnswers((prev) => ({ ...prev, [step.id]: "" }));
-        setOtherText("");
-      } else {
-        setAnswers((prev) => ({ ...prev, [step.id]: "" }));
-        setOtherText("");
-      }
+      setAnswers((prev) => ({ ...prev, [stepId]: "" }));
+      setOtherText("");
     }
   };
 
@@ -226,22 +222,22 @@ export function PlanWizard({ onComplete, onCancel }: PlanWizardProps) {
     if (isMulti) {
       const optionValues = selectedValues.filter((v) => stepOptions.some((o) => o.label === v));
       if (value.trim()) {
-        setAnswers((prev) => ({ ...prev, [step.id]: [...optionValues, value.trim()] }));
+        setAnswers((prev) => ({ ...prev, [stepId]: [...optionValues, value.trim()] }));
       } else {
-        setAnswers((prev) => ({ ...prev, [step.id]: optionValues }));
+        setAnswers((prev) => ({ ...prev, [stepId]: optionValues }));
       }
     } else {
-      setAnswers((prev) => ({ ...prev, [step.id]: value.trim() }));
+      setAnswers((prev) => ({ ...prev, [stepId]: value.trim() }));
     }
   };
 
   const handleNext = () => {
     if (isTextOnly && otherText.trim()) {
-      setAnswers((prev) => ({ ...prev, [step.id]: otherText.trim() }));
+      setAnswers((prev) => ({ ...prev, [stepId]: otherText.trim() }));
     }
     if (isLastStep) {
       const finalAnswers = { ...answers };
-      if (isTextOnly) finalAnswers[step.id] = otherText.trim();
+      if (isTextOnly) finalAnswers[stepId] = otherText.trim();
       onComplete(finalAnswers);
     } else {
       setCurrentStep((s) => s + 1);
@@ -260,8 +256,9 @@ export function PlanWizard({ onComplete, onCancel }: PlanWizardProps) {
 
   // Reset otherText when step changes
   useEffect(() => {
+    if (!step) return;
     if (isTextOnly) {
-      setOtherText(typeof answers[step.id] === "string" ? (answers[step.id] as string) : "");
+      setOtherText(typeof answers[stepId] === "string" ? (answers[stepId] as string) : "");
     } else if (isOtherSelected && !isMulti) {
       setOtherText(selectedValue);
     } else if (isOtherSelected && isMulti) {
@@ -271,6 +268,8 @@ export function PlanWizard({ onComplete, onCancel }: PlanWizardProps) {
       setOtherText("");
     }
   }, [currentStep]);
+
+  if (!step) return null;
 
   const progress = ((currentStep + 1) / visibleSteps.length) * 100;
 
