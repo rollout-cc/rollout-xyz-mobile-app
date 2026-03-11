@@ -164,10 +164,10 @@ export function PlanWizard({ onComplete, onCancel }: PlanWizardProps) {
       : [];
 
   // For project_name step, just show an "Other" input
-  const isTextOnly = step.id === "project_name";
+  const isTextOnly = step?.id === "project_name";
 
-  const currentAnswer = answers[step.id];
-  const isMulti = step.multiSelect;
+  const currentAnswer = step ? answers[step.id] : undefined;
+  const isMulti = step?.multiSelect;
   const selectedValues: string[] = isMulti
     ? (Array.isArray(currentAnswer) ? currentAnswer : [])
     : [];
@@ -183,6 +183,7 @@ export function PlanWizard({ onComplete, onCancel }: PlanWizardProps) {
     ? selectedValues.length > 0
     : !!selectedValue;
 
+  const isLastStep = currentStep === visibleSteps.length - 1;
   const isLastStep = currentStep === visibleSteps.length - 1;
 
   const handleSingleSelect = (value: string) => {
