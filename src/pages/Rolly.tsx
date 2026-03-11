@@ -147,6 +147,7 @@ export default function Rolly() {
 
   const handleWizardCancel = useCallback(() => {
     setWizardActive(false);
+    setWizardContext(null);
     setPlanMode(false);
     if (isMobile) setMobileTab("chat");
   }, [isMobile]);
