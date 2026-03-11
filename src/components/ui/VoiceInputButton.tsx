@@ -40,7 +40,7 @@ export function VoiceInputButton({
         >
           {isListening ? (
             <span className="relative flex items-center justify-center">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-red-500/30 animate-ping" />
+              <span className="absolute inline-flex h-full w-full rounded-full bg-destructive/30 animate-ping" />
               <MicOff className={size === "icon" ? "h-4 w-4" : "h-3.5 w-3.5"} />
             </span>
           ) : (

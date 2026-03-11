@@ -41,9 +41,9 @@ export function useVoiceInput({
     if (recognitionRef.current) return recognitionRef.current;
     if (!isSupported) return null;
 
-    const SpeechRecognition =
-      window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
+    const SpeechRecognitionAPI =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognitionAPI();
     recognition.continuous = continuous;
     recognition.interimResults = true;
     recognition.lang = lang;
