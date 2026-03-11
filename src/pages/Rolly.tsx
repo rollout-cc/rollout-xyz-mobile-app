@@ -153,7 +153,7 @@ export default function Rolly() {
   }, [isMobile]);
 
   const workspaceContent = wizardActive ? (
-    <PlanWizard onComplete={handleWizardComplete} onCancel={handleWizardCancel} />
+    <PlanWizard onComplete={handleWizardComplete} onCancel={handleWizardCancel} initialContext={wizardContext} />
   ) : (
     <RollyWorkspace />
   );
