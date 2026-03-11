@@ -1,112 +1,97 @@
 
 
-# Performance Audit: Speed & Flow Improvements
+# Push Notifications + Twilio SMS Setup
 
-After reviewing the full codebase, here are the bottlenecks and concrete fixes ranked by impact.
+## Current State
+- `@capacitor/push-notifications` is installed and the `usePushNotifications` hook exists but **only logs the device token** — it never saves it to the database
+- No `push_tokens` table exists — tokens have nowhere to go
+- `send-notification` edge function only sends **email** via Resend — no push or SMS channel
+- SMS toggles in NotificationSettings are disabled ("coming soon")
+- iOS `AppDelegate.swift` is missing the required APNs delegate methods for push
+- `profiles` table has a `phone_number` column already — can be used for SMS
 
----
+## What Needs to Be Built
 
-## 1. Waterfall Query Chains (HIGH IMPACT)
+### 1. Database: `push_tokens` table
+```sql
+CREATE TABLE public.push_tokens (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  token text NOT NULL,
+  platform text NOT NULL CHECK (platform IN ('ios', 'android', 'web')),
+  created_at timestamptz DEFAULT now(),
+  UNIQUE (user_id, token)
+);
+ALTER TABLE public.push_tokens ENABLE ROW LEVEL SECURITY;
+-- Users can manage their own tokens
+CREATE POLICY "Users manage own tokens" ON public.push_tokens
+  FOR ALL TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+```
 
-**Problem:** Several pages chain queries sequentially -- each waits for the previous to finish before starting. This creates "waterfall" loading where the page takes 3-4x longer than necessary.
+### 2. Update `usePushNotifications.ts`
+- After receiving the token, **upsert** it into `push_tokens` with `user_id`, `token`, and `platform` (detect via `Capacitor.getPlatform()`)
+- On logout, delete the token from the table
 
-**Where it happens:**
-- **Overview.tsx**: Fetches `artists` first, then waits for that result before fetching `budgets`, `transactions`, and `initiatives` (all use `enabled: artists.length > 0`). That's 3 sequential hops.
-- **FinanceContent.tsx**: Same pattern -- `artists` -> `budgets`, `transactions`, `company_expenses`, etc. Plus `staffEmployment` -> `staffProfiles` is another waterfall.
-- **StaffContent.tsx**: `memberships` -> `memberProfiles`, and `artists` -> `transactions`.
+### 3. iOS Native Setup (`AppDelegate.swift`)
+Add the three required APNs delegate methods so Capacitor's push plugin receives tokens on iOS:
+```swift
+func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
+}
+func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+    NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
+}
+```
 
-**Fix:** Create a single database function (RPC) that returns all needed data for the Overview and Finance pages in one call. Alternatively, restructure queries to use the team_id directly (budgets, transactions can be fetched via joins or team_id filter) so they all fire in parallel.
+### 4. Capacitor config: Add PushNotifications plugin config
+```ts
+plugins: {
+  PushNotifications: {
+    presentationOptions: ["badge", "sound", "alert"],
+  },
+}
+```
 
----
+### 5. Edge Function: `send-push-notification`
+New edge function that:
+- Accepts `{ user_id, title, body, data? }`
+- Queries `push_tokens` for that user
+- Sends via **APNs** (iOS) using the APNs HTTP/2 API with a `.p8` key
+- Sends via **FCM** (Android) using the FCM HTTP v1 API
+- This requires two secrets: `APNS_KEY_P8` (base64-encoded .p8 file), `APNS_KEY_ID`, `APNS_TEAM_ID`, and `FCM_SERVER_KEY`
 
-## 2. `useTeamPlan()` Calls an Edge Function Every 60 Seconds (HIGH IMPACT)
+### 6. Integrate push into `send-notification`
+After sending email, also call `send-push-notification` for the same user so all notification types (task assigned, due soon, etc.) also trigger a push.
 
-**Problem:** `useTeamPlan()` invokes the `check-subscription` edge function (cold-start latency ~200-800ms) on every page load and re-polls every 60s. This is called from at least 8 different components. While React Query deduplicates, the edge function call itself is slow and blocks UI decisions (feature gating).
+### 7. Twilio SMS Setup
+- **New secret needed**: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
+- Add SMS sending logic to `send-notification` edge function — when a user has an SMS preference enabled and a `phone_number` on their profile, send via Twilio REST API
+- Enable the SMS toggles in `NotificationSettings.tsx` (remove the `disabled` prop and "coming soon" label)
 
-**Fix:**
-- Increase `staleTime` to 5 minutes (from 30s) and `refetchInterval` to 5 minutes (from 60s)
-- Cache the result in `localStorage` as a fallback so the first render doesn't block on network
-
----
-
-## 3. `useTeams()` Called 14+ Times Across Components (MEDIUM IMPACT)
-
-**Problem:** `useTeams()` is called in 14 places. React Query deduplicates the network call, but each call triggers the hook logic and context lookups. More importantly, the `role` check pattern (`teams.find(t => t.id === teamId)?.role`) is repeated everywhere.
-
-**Fix:** Move `role` into `TeamContext` so components just read `const { role } = useSelectedTeam()` instead of re-querying teams and filtering.
-
----
-
-## 4. Duplicate Data Fetching Between Pages (MEDIUM IMPACT)
-
-**Problem:** Overview.tsx, FinanceContent.tsx, and StaffContent.tsx all fetch the same data (artists, transactions, tasks, memberships, profiles) with different query keys (`overview-artists` vs `finance-artists` vs `staff-artists`). This means navigating between tabs re-fetches everything from scratch.
-
-**Fix:** Unify query keys. Use `["artists", teamId]` everywhere instead of `["overview-artists", teamId]`, `["finance-artists", teamId]`, `["staff-artists", teamId]`. This lets React Query share the cache across all views.
-
----
-
-## 5. Heavy `useMemo` Computations on Every Render (MEDIUM IMPACT)
-
-**Problem:** `staffMembers` computation in Overview.tsx has an O(n*m) loop inside it (for each member, it iterates all other members to compute `maxRevenue`). With more staff, this becomes expensive.
-
-**Fix:** Pre-compute `maxRevenue` once outside the map, then pass it in. Single pass instead of quadratic.
-
----
-
-## 6. Missing Prefetching on Navigation (LOW-MEDIUM IMPACT)
-
-**Problem:** When a user clicks an artist card, it navigates to ArtistDetail which then starts fetching from scratch. No data is prefetched on hover or anticipation.
-
-**Fix:** Add `queryClient.prefetchQuery` on artist card hover/mouse-enter for the artist detail data. This makes the transition feel instant.
-
----
-
-## 7. Large Bundle: DnD Library Loaded on Every Page (LOW IMPACT)
-
-**Problem:** `@hello-pangea/dnd` (~45KB gzipped) is imported in Roster.tsx and Overview.tsx. It's lazy-loaded via React.lazy, but it's still a significant chunk for pages that may not need drag-and-drop.
-
-**Fix:** No immediate action needed since pages are already lazy-loaded. Could consider dynamic import of the DnD wrapper only when folders exist.
-
----
-
-## 8. Edge Function Cold Starts (LOW IMPACT, Infrastructure)
-
-**Problem:** `spotify-artist`, `check-subscription`, `scrape-chartmasters` all have cold-start latency. The Spotify artist data is fetched via edge function on every artist detail page load (30min staleTime helps but first visit is slow).
-
-**Fix:** Already mitigated by staleTime. Could add a background sync job instead of on-demand fetching.
+### 8. Add `push_notification_email` pref columns
+Add `push_enabled` boolean to `notification_preferences` so users can toggle push on/off globally.
 
 ---
 
-## Implementation Plan (Ordered by Impact)
+## Implementation Order
+1. Create `push_tokens` table + RLS
+2. Update `usePushNotifications.ts` to save tokens
+3. Update `AppDelegate.swift` with APNs delegate methods
+4. Update `capacitor.config.ts` with push plugin options
+5. Request APNs credentials (p8 key, key ID, team ID) — **you'll need to provide these from your Apple Developer account**
+6. Build `send-push-notification` edge function
+7. Wire push into existing `send-notification` flow
+8. Request Twilio credentials (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`)
+9. Add SMS sending to `send-notification`
+10. Enable SMS toggles in UI
 
-### Step 1: Unify query keys across Overview/Finance/Staff
-- Change all `["finance-artists", teamId]`, `["overview-artists", teamId]`, `["staff-artists", teamId]` to `["artists-summary", teamId]`
-- Same for transactions, budgets, tasks, memberships, profiles
-- Instant cache sharing = no re-fetch when switching tabs
+## What You'll Need to Provide
+- **Apple Push Notification key** (.p8 file) from [Apple Developer → Keys](https://developer.apple.com/account/resources/authkeys/list) — plus the Key ID and Team ID
+- **Twilio account** credentials from [twilio.com/console](https://www.twilio.com/console) — Account SID, Auth Token, and a purchased phone number
 
-### Step 2: Remove waterfall queries
-- Fetch budgets and transactions using `team_id` joins instead of waiting for artist IDs
-- Create an RPC function `get_team_finance_summary` that returns artists + budgets + transactions in one call
-
-### Step 3: Optimize useTeamPlan caching
-- Increase staleTime to 5min, refetchInterval to 5min
-- Add localStorage fallback for instant first render
-
-### Step 4: Move role into TeamContext
-- Eliminate 14 redundant `useTeams()` calls for role checking
-
-### Step 5: Fix quadratic staffMembers computation
-- Pre-compute maxRevenue in a single pass
-
-### Step 6: Add prefetching on artist card hover
-- `onMouseEnter` triggers `queryClient.prefetchQuery` for artist detail
-
-### Files to Edit
-1. `src/pages/Overview.tsx` -- unify query keys, remove waterfalls
-2. `src/components/overview/FinanceContent.tsx` -- unify query keys, remove waterfalls
-3. `src/components/overview/StaffContent.tsx` -- unify query keys
-4. `src/hooks/useTeamPlan.ts` -- increase cache times
-5. `src/contexts/TeamContext.tsx` -- add role to context
-6. `src/components/roster/ArtistCard.tsx` -- add prefetch on hover
-7. Database migration -- create RPC function for combined finance data
+## TestFlight Notes
+After implementation, when you `git pull` and run `npx cap sync`, the push notification capability will be active. In Xcode, ensure:
+- **Signing & Capabilities** → add "Push Notifications" capability
+- **Signing & Capabilities** → add "Background Modes" → check "Remote notifications"
+- Use a **real device** (push doesn't work on simulator)
 
