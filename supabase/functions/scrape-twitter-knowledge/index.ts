@@ -180,9 +180,8 @@ Deno.serve(async (req: Request) => {
 
     for (const tweet of tweets) {
       const text = tweet?.full_text || tweet?.text || tweet?.tweetText || "";
-      if (!text || text.length < 60) continue;
+      if (!text || text.length < 20) continue;
 
-      if (!hasKeywords(text)) continue;
       stats.matched++;
 
       const anonymized = anonymize(text);
