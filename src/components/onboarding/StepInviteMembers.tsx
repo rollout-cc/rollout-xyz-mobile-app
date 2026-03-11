@@ -129,6 +129,7 @@ export function StepInviteMembers({ teamId, userId, addedArtists }: Props) {
           staff_salary: m.salary ? parseFloat(m.salary) : null,
           invitee_email: m.email.trim() || null,
           invitee_phone: m.phone.trim() || null,
+          ...m.permissions,
         })
         .select("token")
         .single();
