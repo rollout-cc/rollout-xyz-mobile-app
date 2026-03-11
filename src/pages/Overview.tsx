@@ -512,7 +512,7 @@ export default function Overview() {
                 <SheetTitle>Company Budget</SheetTitle>
               </SheetHeader>
               <div className="mt-4">
-                <CompanyBudgetSection />
+                <CompanyBudgetSection readOnly={!canManageFinance} />
               </div>
             </SheetContent>
           </Sheet>

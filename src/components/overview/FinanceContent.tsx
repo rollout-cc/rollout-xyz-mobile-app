@@ -664,7 +664,7 @@ export function FinanceContent() {
 
       {/* Company Budget */}
       <CollapsibleSection title="Company Budget" defaultOpen>
-        <CompanyBudgetSection />
+        <CompanyBudgetSection readOnly={!canManageFinance} />
       </CollapsibleSection>
     </div>
   );
