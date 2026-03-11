@@ -397,7 +397,7 @@ Deno.serve(async (req) => {
 
     // --- Push Notification ---
     // Fire push notification to the user's devices (fire-and-forget)
-    const userId = payload.user_id || payload._resolved_user_id;
+    const userId = payload.user_id || (payload as any)._resolved_user_id;
     if (userId) {
       try {
         const pushRes = await fetch(
