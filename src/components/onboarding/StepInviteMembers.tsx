@@ -43,6 +43,7 @@ interface MemberEntry {
   selectedArtistIds: string[];
   generatedLink: string | null;
   sent: boolean;
+  permissions: PermissionFlags;
 }
 
 const emptyMember = (): MemberEntry => ({
