@@ -144,6 +144,12 @@ Deno.serve(async (req: Request) => {
     const tweets = await runApifyActor(apifyToken, handles, maxTweets);
     console.log(`Got ${tweets.length} tweets from Apify`);
 
+    // Debug: return raw first 3 tweets in response to diagnose field names
+    const debugRaw = tweets.slice(0, 3).map(t => {
+      const keys = Object.keys(t || {});
+      return { keys, snippet: JSON.stringify(t).substring(0, 500) };
+    });
+
     // Debug: log first 3 raw tweet objects to identify field names
     for (let d = 0; d < Math.min(3, tweets.length); d++) {
       console.log(`RAW TWEET ${d}:`, JSON.stringify(tweets[d]).substring(0, 1500));
