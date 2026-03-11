@@ -423,9 +423,10 @@ const TEXT_ONLY_STEPS = new Set(["project_name", "era_theme", "merch_link", "add
 interface PlanWizardProps {
   onComplete: (answers: PlanAnswers) => void;
   onCancel: () => void;
+  initialContext?: string | null;
 }
 
-export function PlanWizard({ onComplete, onCancel }: PlanWizardProps) {
+export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardProps) {
   const { selectedTeamId } = useSelectedTeam();
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<PlanAnswers>({});
