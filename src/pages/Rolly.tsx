@@ -46,7 +46,7 @@ export default function Rolly() {
             </button>
           </div>
           <div className="flex-1 min-h-0">
-            {mobileTab === "chat" ? <RollyChat /> : <RollyWorkspace />}
+            {mobileTab === "chat" ? <RollyChat prefillPrompt={prefill} onPrefillConsumed={() => setPrefill(null)} /> : <RollyWorkspace />}
           </div>
         </div>
       ) : (
