@@ -400,6 +400,37 @@ Deno.serve(async (req) => {
       });
     }
 
+    // --- Rolly usage limit check ---
+    const usageAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    // Check team plan
+    const { data: subData } = await usageAdmin
+      .from("team_subscriptions")
+      .select("plan")
+      .eq("team_id", team_id)
+      .single();
+    const plan = subData?.plan || "rising";
+    
+    if (plan === "rising") {
+      const currentMonth = new Date().toISOString().slice(0, 7); // "2026-03"
+      const { data: usageRow } = await usageAdmin
+        .from("rolly_usage")
+        .select("message_count")
+        .eq("team_id", team_id)
+        .eq("month", currentMonth)
+        .single();
+      
+      if (usageRow && usageRow.message_count >= 10) {
+        return new Response(JSON.stringify({ error: "rolly_limit_reached", message: "You've used all 10 free Rolly messages this month. Upgrade to Icon for unlimited access." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+    // --- End usage limit check ---
+
     if (conversation_id) {
       const adminClient = createClient(
         Deno.env.get("SUPABASE_URL")!,
