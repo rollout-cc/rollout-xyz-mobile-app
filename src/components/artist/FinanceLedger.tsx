@@ -427,6 +427,35 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
           </div>
         )}
       </div>
+      <ReceiptScanner
+        open={showScanner}
+        onOpenChange={setShowScanner}
+        onConfirm={async (data) => {
+          const insert: any = {
+            artist_id: artistId,
+            description: data.description,
+            amount: -Math.abs(data.amount),
+            transaction_date: data.date,
+            type: "expense",
+          };
+          // Try to match category hint to a budget
+          if (data.categoryHint && budgets.length > 0) {
+            const match = budgets.find((b: any) =>
+              b.label.toLowerCase().includes(data.categoryHint!.toLowerCase())
+            );
+            if (match) insert.budget_id = match.id;
+          }
+          const { error } = await supabase.from("transactions").insert(insert);
+          if (error) {
+            toast.error(error.message);
+          } else {
+            queryClient.invalidateQueries({ queryKey: ["transactions", artistId] });
+            queryClient.invalidateQueries({ queryKey: ["finance-transactions", artistId] });
+            queryClient.invalidateQueries({ queryKey: ["budget-expense-transactions", artistId] });
+            toast.success("Expense added from receipt");
+          }
+        }}
+      />
     </div>
   );
 }

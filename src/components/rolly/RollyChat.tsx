@@ -32,8 +32,24 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
   const setPlanMode = (val: boolean) => onPlanModeChange?.(val);
   const { messages, isLoading, send, stop, clear, lastActions } = useRollyChat(planMode);
   const [input, setInput] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { selectedTeamId } = useSelectedTeam();
+
+  // Fetch artists for receipt → expense linking
+  const { data: artists = [] } = useQuery({
+    queryKey: ["rolly-receipt-artists", selectedTeamId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("artists")
+        .select("id, name")
+        .eq("team_id", selectedTeamId!)
+        .order("name");
+      return data ?? [];
+    },
+    enabled: !!selectedTeamId,
+  });
 
   // Expose send function to parent
   useEffect(() => {
