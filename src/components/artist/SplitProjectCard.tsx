@@ -106,7 +106,7 @@ export function SplitProjectCard({ project, teamId, artistId, onDelete }: Props)
                   </button>
                   {expandedSong === song.id && (
                     <div className="px-3 pb-3">
-                      <SplitSongEditor songId={song.id} teamId={teamId} />
+                      <SplitSongEditor songId={song.id} teamId={teamId} artistId={artistId} />
                     </div>
                   )}
                 </div>
