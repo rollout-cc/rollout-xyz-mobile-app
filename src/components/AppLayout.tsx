@@ -36,7 +36,8 @@ export function AppLayout({ children, title, actions, onBack }: AppLayoutProps) 
   const { data: teams = [] } = useTeams();
   const selectedTeam = teams.find((t) => t.id === selectedTeamId);
   const myRole = selectedTeam?.role;
-  const isOwnerOrManager = myRole === "team_owner" || myRole === "manager";
+  const isOwner = myRole === "team_owner";
+  const isOwnerOrManager = isOwner || myRole === "manager";
   const { isPaid, isTrialing } = useTeamPlan();
   const hasPaidAccess = isPaid || isTrialing;
 
