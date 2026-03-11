@@ -63,7 +63,7 @@ export function RollyChat() {
                 <button
                   key={action.label}
                   onClick={() => send(action.prompt)}
-                  className="text-left p-3 rounded-lg border border-border hover:bg-muted transition-colors text-sm"
+                  className="text-left p-3 rounded-lg border border-border hover:bg-muted transition-colors text-sm opacity-70"
                 >
                   <span className="font-medium">{action.label}</span>
                 </button>
