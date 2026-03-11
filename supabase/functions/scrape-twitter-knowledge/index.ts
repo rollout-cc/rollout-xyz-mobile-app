@@ -42,34 +42,30 @@ const DEFAULT_HANDLES = [
   "BarryHefner",
 ];
 
-async function runApifyActor(apifyToken: string, handles: string[], maxTweets: number): Promise<any[]> {
-  // Using apidojo/tweet-scraper with startUrls format
-  const actorId = "apidojo~tweet-scraper";
+// Scrape one handle using data-slayer/twitter-user-tweets (takes single userId)
+async function scrapeHandle(apifyToken: string, handle: string): Promise<any[]> {
+  const actorId = "data-slayer~twitter-user-tweets";
 
   const startResp = await fetch(
     `https://api.apify.com/v2/acts/${actorId}/runs?token=${apifyToken}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        startUrls: handles.map(h => ({ url: `https://x.com/${h}` })),
-        maxItems: maxTweets,
-        sort: "Latest",
-        tweetLanguage: "en",
-      }),
+      body: JSON.stringify({ userId: handle }),
     }
   );
 
   if (!startResp.ok) {
     const errText = await startResp.text();
-    throw new Error(`Apify start failed [${startResp.status}]: ${errText}`);
+    console.error(`Apify start failed for ${handle}: ${errText}`);
+    return [];
   }
 
   const runData = await startResp.json();
   const runId = runData?.data?.id;
-  if (!runId) throw new Error("No run ID returned from Apify");
+  if (!runId) { console.error(`No run ID for ${handle}`); return []; }
 
-  console.log(`Apify run started: ${runId}`);
+  console.log(`Run started for @${handle}: ${runId}`);
 
   const maxWait = 5 * 60 * 1000;
   const pollInterval = 10_000;
@@ -81,36 +77,31 @@ async function runApifyActor(apifyToken: string, handles: string[], maxTweets: n
     const statusResp = await fetch(
       `https://api.apify.com/v2/actor-runs/${runId}?token=${apifyToken}`
     );
-    if (!statusResp.ok) {
-      await statusResp.text();
-      continue;
-    }
+    if (!statusResp.ok) { await statusResp.text(); continue; }
 
     const statusData = await statusResp.json();
     const status = statusData?.data?.status;
-    console.log(`Run ${runId} status: ${status}`);
+    console.log(`@${handle} run ${runId}: ${status}`);
 
     if (status === "SUCCEEDED") {
       const datasetId = statusData?.data?.defaultDatasetId;
-      if (!datasetId) throw new Error("No dataset ID");
+      if (!datasetId) return [];
 
       const itemsResp = await fetch(
         `https://api.apify.com/v2/datasets/${datasetId}/items?token=${apifyToken}&limit=10000`
       );
-      if (!itemsResp.ok) {
-        const t = await itemsResp.text();
-        throw new Error(`Dataset fetch failed: ${t}`);
-      }
-
+      if (!itemsResp.ok) return [];
       return await itemsResp.json();
     }
 
     if (status === "FAILED" || status === "ABORTED" || status === "TIMED-OUT") {
-      throw new Error(`Apify run ${status}`);
+      console.error(`@${handle} run ${status}`);
+      return [];
     }
   }
 
-  throw new Error("Apify run timed out waiting for completion");
+  console.error(`@${handle} timed out`);
+  return [];
 }
 
 Deno.serve(async (req: Request) => {
@@ -130,51 +121,44 @@ Deno.serve(async (req: Request) => {
     );
 
     let handles = DEFAULT_HANDLES;
-    let maxTweets = 2000;
     try {
       const body = await req.json();
       if (body?.handles?.length) handles = body.handles;
-      if (body?.maxTweets) maxTweets = Math.min(body.maxTweets, 10000);
-    } catch {
-      // No body, use defaults
+    } catch { /* No body, use defaults */ }
+
+    console.log(`Scraping handles: ${handles.join(", ")}`);
+
+    // Scrape all handles (sequentially to avoid Apify concurrency limits on free tier)
+    let allTweets: any[] = [];
+    for (const handle of handles) {
+      const tweets = await scrapeHandle(apifyToken, handle);
+      console.log(`@${handle}: ${tweets.length} tweets`);
+      allTweets = allTweets.concat(tweets);
     }
 
-    console.log(`Scraping ${maxTweets} tweets from: ${handles.join(", ")}`);
+    console.log(`Total tweets from all handles: ${allTweets.length}`);
 
-    const tweets = await runApifyActor(apifyToken, handles, maxTweets);
-    console.log(`Got ${tweets.length} tweets from Apify`);
-
-    // Debug: return raw first 3 tweets in response to diagnose field names
-    const debugRaw = tweets.slice(0, 3).map(t => {
-      const keys = Object.keys(t || {});
-      return { keys, snippet: JSON.stringify(t).substring(0, 500) };
-    });
-
-    // Debug: log first 3 raw tweet objects to identify field names
-    for (let d = 0; d < Math.min(3, tweets.length); d++) {
-      console.log(`RAW TWEET ${d}:`, JSON.stringify(tweets[d]).substring(0, 1500));
+    // Debug: log first 3 raw tweets
+    for (let d = 0; d < Math.min(3, allTweets.length); d++) {
+      console.log(`RAW TWEET ${d} keys:`, Object.keys(allTweets[d] || {}));
+      console.log(`RAW TWEET ${d} text:`, (allTweets[d]?.text || "NONE").substring(0, 200));
+      console.log(`RAW TWEET ${d} author:`, allTweets[d]?.author?.screen_name || "unknown");
     }
 
-    const stats = { total_tweets: tweets.length, matched: 0, inserted: 0, duplicates: 0 };
-
+    const stats = { total_tweets: allTweets.length, matched: 0, inserted: 0, duplicates: 0 };
     const seen = new Set<string>();
     const toInsert: { content: string; chapter: string }[] = [];
 
-    for (const tweet of tweets) {
-      // Try multiple possible field names from different actors
-      const text = tweet?.full_text || tweet?.text || tweet?.tweetText || tweet?.tweet_text || tweet?.content || "";
+    for (const tweet of allTweets) {
+      const text = tweet?.text || tweet?.full_text || "";
       if (!text || text.length < 20) continue;
 
       stats.matched++;
-
       const anonymized = anonymize(text);
       if (anonymized.length < 20) continue;
 
       const key = anonymized.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 120);
-      if (key.length < 15 || seen.has(key)) {
-        stats.duplicates++;
-        continue;
-      }
+      if (key.length < 15 || seen.has(key)) { stats.duplicates++; continue; }
       seen.add(key);
 
       toInsert.push({
@@ -185,7 +169,6 @@ Deno.serve(async (req: Request) => {
 
     console.log(`${toInsert.length} unique insights to insert`);
 
-    // Batch insert (chunks of 50)
     for (let i = 0; i < toInsert.length; i += 50) {
       const batch = toInsert.slice(i, i + 50).map(entry => ({
         source: "industry_insights",
@@ -216,8 +199,7 @@ Deno.serve(async (req: Request) => {
       success: true,
       stats,
       handles_scraped: handles,
-      debug_raw: debugRaw,
-      sample: toInsert.slice(0, 3).map(u => ({
+      sample: toInsert.slice(0, 5).map(u => ({
         chapter: u.chapter,
         preview: u.content.substring(0, 200),
       })),
