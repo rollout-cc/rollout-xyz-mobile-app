@@ -1,5 +1,8 @@
 import { createContext, useContext, useState, useEffect, useMemo, type ReactNode } from "react";
 import { useTeams } from "@/hooks/useTeams";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TeamContextType {
   selectedTeamId: string | null;
@@ -8,6 +11,18 @@ interface TeamContextType {
   role: string | null;
   /** Whether the current user is team_owner or manager */
   canManage: boolean;
+  /** Granular permission flags */
+  canViewCompany: boolean;
+  canViewFinance: boolean;
+  canViewStaffSalaries: boolean;
+  canViewAR: boolean;
+  canViewRoster: boolean;
+  canEditArtists: boolean;
+  canViewBilling: boolean;
+  isArtistRole: boolean;
+  isGuestRole: boolean;
+  /** Artist IDs this user is assigned to (for artist/guest roles) */
+  assignedArtistIds: string[];
 }
 
 const TeamContext = createContext<TeamContextType>({
@@ -15,19 +30,29 @@ const TeamContext = createContext<TeamContextType>({
   setSelectedTeamId: () => {},
   role: null,
   canManage: false,
+  canViewCompany: false,
+  canViewFinance: false,
+  canViewStaffSalaries: false,
+  canViewAR: false,
+  canViewRoster: false,
+  canEditArtists: false,
+  canViewBilling: false,
+  isArtistRole: false,
+  isGuestRole: false,
+  assignedArtistIds: [],
 });
 
 export const useSelectedTeam = () => useContext(TeamContext);
 
 export function TeamProvider({ children }: { children: ReactNode }) {
   const { data: teams = [] } = useTeams();
+  const { user } = useAuth();
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
 
   useEffect(() => {
     if (teams.length > 0 && !selectedTeamId) {
       setSelectedTeamId(teams[0].id);
     }
-    // If selected team no longer exists in list, reset
     if (selectedTeamId && teams.length > 0 && !teams.find((t) => t.id === selectedTeamId)) {
       setSelectedTeamId(teams[0].id);
     }
@@ -38,10 +63,45 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     return teams.find((t) => t.id === selectedTeamId)?.role ?? null;
   }, [teams, selectedTeamId]);
 
+  // Query assigned artist IDs for artist/guest roles
+  const { data: assignedArtistIds = [] } = useQuery({
+    queryKey: ["my-artist-permissions", user?.id, selectedTeamId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("artist_permissions")
+        .select("artist_id")
+        .eq("user_id", user!.id);
+      if (error) throw error;
+      return data.map((p) => p.artist_id);
+    },
+    enabled: !!user && (role === "artist" || role === "guest"),
+  });
+
   const canManage = role === "team_owner" || role === "manager";
+  const isArtistRole = role === "artist";
+  const isGuestRole = role === "guest";
+
+  const permissions = useMemo(() => ({
+    canViewCompany: role === "team_owner" || role === "manager",
+    canViewFinance: role === "team_owner" || role === "manager",
+    canViewStaffSalaries: role === "team_owner",
+    canViewAR: role === "team_owner" || role === "manager",
+    canViewRoster: role === "team_owner" || role === "manager",
+    canEditArtists: role === "team_owner" || role === "manager",
+    canViewBilling: role === "team_owner",
+  }), [role]);
 
   return (
-    <TeamContext.Provider value={{ selectedTeamId, setSelectedTeamId, role, canManage }}>
+    <TeamContext.Provider value={{
+      selectedTeamId,
+      setSelectedTeamId,
+      role,
+      canManage,
+      isArtistRole,
+      isGuestRole,
+      assignedArtistIds,
+      ...permissions,
+    }}>
       {children}
     </TeamContext.Provider>
   );
