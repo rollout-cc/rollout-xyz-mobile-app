@@ -32,6 +32,16 @@ export function RollyFAB() {
     return () => clearTimeout(timer);
   }, [showGreeting]);
 
+  // Listen for nudge CTA events
+  const [prefillPrompt, setPrefillPrompt] = useState<string | null>(null);
+  useEffect(() => {
+    return rollyEvents.onOpenWithPrompt((prompt) => {
+      setPrefillPrompt(prompt);
+      setShowGreeting(false);
+      setIsOpen(true);
+    });
+  }, []);
+
   const handleOpen = () => {
     setShowGreeting(false);
     setIsOpen(!isOpen);
