@@ -200,7 +200,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
             }}
           >
             {/* Rolly card — hidden for guest role */}
-            {!isGuestRole && <div className="mb-4 w-full">
+            {!isGuestRole && <div className={cn("mb-4", collapsed ? "flex justify-center" : "w-full")}>
               {!collapsed ? (
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -213,7 +213,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
                   <img 
                     src={rollyIcon} 
                     alt="ROLLY" 
-                    className="h-7 w-7 rounded-full shrink-0 invert dark:invert-0 transition-transform duration-500 ease-linear group-hover:rotate-180"
+                    className="h-7 w-7 rounded-full shrink-0 object-contain invert dark:invert-0 transition-transform duration-500 ease-linear group-hover:rotate-180"
                   />
                   <span>Rolly</span>
                 </motion.button>
@@ -224,14 +224,14 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
                       whileHover={{ scale: 1.05 }}
                       onClick={() => navigate("/rolly")}
                       className={cn(
-                        "group w-full flex items-center justify-center rounded-xl p-3 transition-all bg-foreground text-background hover:shadow-[0_0_20px_rgba(0,0,0,0.3)] hover:ring-2 hover:ring-primary/50",
+                        "group size-10 flex shrink-0 items-center justify-center rounded-xl transition-all bg-foreground text-background hover:shadow-[0_0_20px_rgba(0,0,0,0.3)] hover:ring-2 hover:ring-primary/50",
                         isRollyActive && "ring-2 ring-primary ring-offset-2 ring-offset-sidebar"
                       )}
                     >
                       <img 
                         src={rollyIcon} 
                         alt="ROLLY" 
-                        className="h-7 w-7 rounded-full shrink-0 invert dark:invert-0 transition-transform duration-500 ease-linear group-hover:rotate-180"
+                        className="h-6 w-6 shrink-0 object-contain invert dark:invert-0 transition-transform duration-500 ease-linear group-hover:rotate-180"
                       />
                     </motion.button>
                   </TooltipTrigger>

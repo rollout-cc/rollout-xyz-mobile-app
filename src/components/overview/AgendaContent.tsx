@@ -259,12 +259,12 @@ export function AgendaContent() {
 
   return (
     <div>
-      {/* Filters — two rows on mobile, single row on desktop */}
+      {/* Filters — two rows on mobile, single row on desktop. All controls use h-9 for consistent height. */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 mb-6">
         {/* Row 1: artist + members */}
         <div className="flex items-center gap-2 min-w-0">
           <Select value={artistId || ""} onValueChange={(v) => setSelectedArtistId(v)}>
-            <SelectTrigger className="flex-1 sm:w-[200px] sm:flex-none">
+            <SelectTrigger className="h-9 flex-1 sm:w-[200px] sm:flex-none text-sm">
               <div className="flex items-center gap-2">
                 {artist && (
                   <Avatar className="h-5 w-5 shrink-0">
@@ -284,7 +284,7 @@ export function AgendaContent() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="shrink-0 gap-1.5 px-3">
+              <Button variant="outline" size="sm" className="shrink-0 gap-1.5 px-3 h-9">
                 <User className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-sm hidden sm:inline truncate max-w-[120px]">
                   {allSelected ? "All Members" : noneSelected ? "No Members" : selectedAssignees.length === 1 ? profileMap[selectedAssignees[0]] || "1 Member" : `${selectedAssignees.length} Members`}
@@ -313,14 +313,14 @@ export function AgendaContent() {
 
         {/* Row 2 on mobile / continues same row on desktop: export + share */}
         {artist && (
-          <div className="flex items-center gap-2 sm:ml-auto">
-            <Button variant="outline" size="sm" className="gap-1.5 flex-1 sm:flex-none" onClick={exportAgenda}>
+          <div className="flex items-center gap-2 sm:ml-auto h-9">
+            <Button variant="outline" size="sm" className="gap-1.5 h-9 flex-1 sm:flex-none" onClick={exportAgenda}>
               <Copy className="h-3.5 w-3.5" />
               <span>Export</span>
             </Button>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5 flex-1 sm:flex-none">
+                <Button variant="outline" size="sm" className="gap-1.5 h-9 flex-1 sm:flex-none">
                   <Share2 className="h-3.5 w-3.5" />
                   <span>Share</span>
                 </Button>

@@ -231,8 +231,8 @@ export default function Roster() {
 
   const SortSelect = (
     <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-      <SelectTrigger className="h-7 min-w-0 w-[110px] sm:w-[130px] gap-1.5 px-2 py-1 text-xs [&>svg]:h-3 [&>svg]:w-3">
-        <ArrowUpDown className="h-2.5 w-2.5 shrink-0" />
+      <SelectTrigger className="h-9 min-w-0 w-[110px] sm:w-[130px] gap-1.5 px-3 text-sm [&>svg]:h-3.5 [&>svg]:w-3.5">
+        <ArrowUpDown className="h-3 w-3 shrink-0" />
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -324,10 +324,10 @@ export default function Roster() {
       {/* Tabs + Sort row — desktop layout */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
         {/* Desktop tab bar — hidden on mobile (mobile uses header subnav) */}
-        <div className="hidden sm:flex items-center gap-1" data-tour="roster-tabs-desktop">
+        <div className="hidden sm:flex items-center gap-1 h-9" data-tour="roster-tabs-desktop">
           <button
             onClick={() => setActiveTab("roster")}
-            className={cn("px-4 py-1.5 rounded-full text-sm font-medium transition-colors",
+            className={cn("h-9 px-4 rounded-full text-sm font-medium transition-colors flex items-center",
               activeTab === "roster" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"
             )}
           >
@@ -335,19 +335,19 @@ export default function Roster() {
           </button>
           <button
             onClick={() => setActiveTab("ar")}
-            className={cn("px-4 py-1.5 rounded-full text-sm font-medium transition-colors",
+            className={cn("h-9 px-4 rounded-full text-sm font-medium transition-colors flex items-center",
               activeTab === "ar" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"
             )}
           >
             A&R Signings
           </button>
         </div>
-        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
+        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end h-9">
           {activeTab === "roster" && <span data-tour="roster-sort">{SortSelect}</span>}
           <Button
             variant="outline"
             size="sm"
-            className="gap-1 hidden sm:inline-flex"
+            className="gap-1 h-9 hidden sm:inline-flex"
             data-tour="add-category-btn"
             onClick={() => {
               setCreatingFolder(true);
@@ -356,7 +356,7 @@ export default function Roster() {
           >
             <FolderPlus className="h-3.5 w-3.5" /> Category
           </Button>
-          <Button onClick={handleOpenAddArtist} size="sm" className="gap-1 hidden sm:inline-flex" data-tour="add-artist-btn">
+          <Button onClick={handleOpenAddArtist} size="sm" className="gap-1 h-9 hidden sm:inline-flex" data-tour="add-artist-btn">
             Add Artist
           </Button>
         </div>

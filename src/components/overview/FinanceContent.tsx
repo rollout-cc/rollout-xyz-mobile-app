@@ -272,21 +272,21 @@ export function FinanceContent() {
 
   return (
     <div className="space-y-6">
-      {/* Header + Date Filter */}
+      {/* Header + Date Filter. All controls use h-9 for consistent height with AgendaContent. */}
       <div className="flex items-center justify-between gap-2 sm:gap-3">
         {/* Title — hidden on mobile since the active tab in the header provides context */}
         <div className="hidden sm:block">
           <h1 className="text-foreground">Finance</h1>
           <p className="text-sm text-muted-foreground mt-1">Company-wide financial overview</p>
         </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5 flex-1 sm:flex-none">
+        <div className="flex items-center gap-2 w-full sm:w-auto h-9">
+          <div className="h-9 flex items-center gap-0.5 rounded-lg border border-border p-0.5 flex-1 sm:flex-none">
             {(["month", "quarter", "ytd", "all"] as DateRange[]).map((r) => (
               <button
                 key={r}
                 onClick={() => setDateRange(r)}
                 className={cn(
-                  "flex-1 sm:flex-none px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium transition-colors capitalize",
+                  "h-full flex-1 sm:flex-none min-w-0 px-2.5 sm:px-3 rounded-md text-xs font-medium transition-colors capitalize flex items-center justify-center",
                   dateRange === r ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"
                 )}
               >
@@ -294,8 +294,8 @@ export function FinanceContent() {
               </button>
             ))}
           </div>
-          <Button variant="outline" size="sm" onClick={exportCSV} className="shrink-0">
-            <Download className="h-3.5 w-3.5 sm:mr-1.5" />
+          <Button variant="outline" size="sm" onClick={exportCSV} className="shrink-0 h-9 gap-1.5">
+            <Download className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Export CSV</span>
           </Button>
         </div>
