@@ -6,8 +6,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const HANDLES = ["thatdonnyslater", "BrianZisook"];
-
 const KEYWORD_FILTER = [
   "rollout", "release", "dsp", "playlist", "publishing", "sync", "licensing",
   "management", "manager", "artist", "label", "deal", "advance", "recoup",
@@ -30,51 +28,73 @@ const ANONYMOUS_CHAPTERS = [
   "Revenue & Deal Strategy",
 ];
 
-// Strip @handles, names, bylines, and attribution phrases
 function anonymizeContent(text: string): string {
   let cleaned = text;
-  // Remove @mentions
   cleaned = cleaned.replace(/@\w+/g, "");
-  // Remove common attribution phrases
-  cleaned = cleaned.replace(/according to\s+\w+(\s+\w+)?/gi, "");
+  cleaned = cleaned.replace(/according to\s+\w+(\s+\w+){0,2}/gi, "");
   cleaned = cleaned.replace(/\b(donny\s*slater|brian\s*zisook|djbooth)\b/gi, "");
   cleaned = cleaned.replace(/\bvia\s+@?\w+/gi, "");
-  cleaned = cleaned.replace(/\b(says|said|wrote|posted by)\s+\w+(\s+\w+)?/gi, "");
-  // Clean up extra whitespace
+  cleaned = cleaned.replace(/\b(says|said|wrote|posted by|tweeted by)\s+\w+(\s+\w+)?/gi, "");
+  cleaned = cleaned.replace(/https?:\/\/\S+/g, "");
   cleaned = cleaned.replace(/\s{2,}/g, " ").trim();
   return cleaned;
 }
 
 function matchesKeywords(text: string): boolean {
   const lower = text.toLowerCase();
-  return KEYWORD_FILTER.some((kw) => lower.includes(kw));
+  let hits = 0;
+  for (const kw of KEYWORD_FILTER) {
+    if (lower.includes(kw)) hits++;
+    if (hits >= 2) return true; // Require 2+ keyword matches for quality
+  }
+  return false;
 }
 
 function pickChapter(text: string): string {
   const lower = text.toLowerCase();
-  if (/release|rollout|campaign|single|album|ep\b/.test(lower)) return ANONYMOUS_CHAPTERS[1];
-  if (/artist|develop|grow|fanbase|audience/.test(lower)) return ANONYMOUS_CHAPTERS[2];
-  if (/revenue|deal|advance|recoup|royalt|split|contract/.test(lower)) return ANONYMOUS_CHAPTERS[4];
-  if (/team|roster|hire|staff|manage|operation/.test(lower)) return ANONYMOUS_CHAPTERS[3];
+  if (/release|rollout|campaign|single|album|ep\b|drop|pre-save/.test(lower)) return ANONYMOUS_CHAPTERS[1];
+  if (/artist|develop|grow|fanbase|audience|talent/.test(lower)) return ANONYMOUS_CHAPTERS[2];
+  if (/revenue|deal|advance|recoup|royalt|split|contract|money|pay/.test(lower)) return ANONYMOUS_CHAPTERS[4];
+  if (/team|roster|hire|staff|manage|operation|company/.test(lower)) return ANONYMOUS_CHAPTERS[3];
   return ANONYMOUS_CHAPTERS[0];
 }
 
-// Extract individual tweet-like blocks from scraped markdown
-function extractTweets(markdown: string): string[] {
-  const tweets: string[] = [];
-  // Split by common tweet separators in scraped X/Twitter content
-  const blocks = markdown.split(/\n{2,}|\n---\n|\n\*{3}\n/);
+function extractInsights(markdown: string): string[] {
+  const insights: string[] = [];
+  const blocks = markdown.split(/\n{2,}/);
   for (const block of blocks) {
-    const cleaned = block.trim();
-    // Filter: must be substantial (>30 chars) and not too long (not a full article)
-    if (cleaned.length > 30 && cleaned.length < 1500) {
-      // Skip navigation/UI elements
-      if (/^(home|explore|search|notifications|messages|premium|profile|more|log in|sign up)/i.test(cleaned)) continue;
-      if (/^(cookie|privacy|terms|©)/i.test(cleaned)) continue;
-      tweets.push(cleaned);
+    const cleaned = block.replace(/^[#*>\-\d.]+\s*/gm, "").trim();
+    if (cleaned.length > 40 && cleaned.length < 2000) {
+      // Skip nav/boilerplate
+      if (/^(home|explore|search|notifications|cookie|privacy|terms|©|subscribe|sign up|log in|menu)/i.test(cleaned)) continue;
+      if (/^\d+\s*(likes?|retweets?|replies|views|followers)/i.test(cleaned)) continue;
+      insights.push(cleaned);
     }
   }
-  return tweets;
+  return insights;
+}
+
+interface SearchConfig {
+  query: string;
+  label: string;
+}
+
+function buildSearchQueries(): SearchConfig[] {
+  return [
+    // Donny Slater content across the web
+    { query: '"Donny Slater" music management strategy', label: "ds-mgmt" },
+    { query: '"Donny Slater" artist development rollout', label: "ds-dev" },
+    { query: '"Donny Slater" music business advice', label: "ds-advice" },
+    { query: '"thatdonnyslater" music industry', label: "ds-twitter" },
+    // Brian Zisook / DJBooth content
+    { query: '"Brian Zisook" music industry strategy', label: "bz-strategy" },
+    { query: '"Brian Zisook" artist development advice', label: "bz-dev" },
+    { query: '"Brian Zisook" DJBooth music business', label: "bz-djbooth" },
+    { query: '"Brian Zisook" streaming revenue labels', label: "bz-revenue" },
+    // Their combined / cross-referenced content
+    { query: '"Donny Slater" OR "Brian Zisook" music manager tips', label: "combined" },
+    { query: '"thatdonnyslater" OR "BrianZisook" release strategy', label: "combined-tw" },
+  ];
 }
 
 Deno.serve(async (req: Request) => {
@@ -88,167 +108,98 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Verify user
-    const anonClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-    const { data: { user }, error: userErr } = await anonClient.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
-    if (userErr || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const queries = buildSearchQueries();
+    const allInsights: string[] = [];
+    const stats = { queries_run: 0, results_found: 0, matched: 0, inserted: 0 };
 
-    const allInserted: string[] = [];
-    const stats: Record<string, { scraped: number; matched: number; inserted: number }> = {};
+    for (const { query, label } of queries) {
+      console.log(`[${label}] Searching: ${query}`);
+      stats.queries_run++;
 
-    for (const handle of HANDLES) {
-      stats[handle] = { scraped: 0, matched: 0, inserted: 0 };
-
-      // Strategy 1: Direct profile scrape with JS rendering
-      console.log(`Scraping profile: ${handle}`);
       try {
-        const profileResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        const resp = await fetch("https://api.firecrawl.dev/v1/search", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${firecrawlKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            url: `https://x.com/${handle}`,
-            formats: ["markdown"],
-            onlyMainContent: true,
-            waitFor: 8000,
-            timeout: 60000,
+            query,
+            limit: 10,
+            scrapeOptions: { formats: ["markdown"] },
           }),
         });
 
-        if (profileResp.ok) {
-          const profileData = await profileResp.json();
-          const markdown = profileData?.data?.markdown || profileData?.markdown || "";
-          if (markdown) {
-            const tweets = extractTweets(markdown);
-            stats[handle].scraped += tweets.length;
-            for (const tweet of tweets) {
-              if (matchesKeywords(tweet)) {
-                stats[handle].matched++;
-                const anonymized = anonymizeContent(tweet);
-                if (anonymized.length > 20) {
-                  allInserted.push(anonymized);
-                }
+        if (!resp.ok) {
+          const errBody = await resp.text();
+          console.warn(`[${label}] Search failed (${resp.status}):`, errBody);
+          continue;
+        }
+
+        const searchData = await resp.json();
+        const results = searchData?.data || [];
+        stats.results_found += results.length;
+        console.log(`[${label}] Got ${results.length} results`);
+
+        for (const item of results) {
+          const md = item.markdown || "";
+          if (!md) continue;
+
+          const blocks = extractInsights(md);
+          for (const block of blocks) {
+            if (matchesKeywords(block)) {
+              stats.matched++;
+              const anonymized = anonymizeContent(block);
+              if (anonymized.length > 30) {
+                allInsights.push(anonymized);
               }
             }
           }
         }
       } catch (e) {
-        console.warn(`Profile scrape failed for ${handle}:`, e);
-      }
-
-      // Strategy 2: Firecrawl search for their indexed tweets
-      const searchQueries = [
-        `site:x.com from:${handle} music business`,
-        `site:x.com from:${handle} artist management strategy`,
-        `site:x.com from:${handle} release rollout`,
-      ];
-
-      for (const query of searchQueries) {
-        console.log(`Searching: ${query}`);
-        try {
-          const searchResp = await fetch("https://api.firecrawl.dev/v1/search", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${firecrawlKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              query,
-              limit: 10,
-              scrapeOptions: { formats: ["markdown"] },
-            }),
-          });
-
-          if (searchResp.ok) {
-            const searchData = await searchResp.json();
-            const results = searchData?.data || [];
-            for (const item of results) {
-              const md = item.markdown || "";
-              if (!md) continue;
-              const tweets = extractTweets(md);
-              stats[handle].scraped += tweets.length;
-              for (const tweet of tweets) {
-                if (matchesKeywords(tweet)) {
-                  stats[handle].matched++;
-                  const anonymized = anonymizeContent(tweet);
-                  if (anonymized.length > 20) {
-                    allInserted.push(anonymized);
-                  }
-                }
-              }
-            }
-          }
-        } catch (e) {
-          console.warn(`Search failed for query "${query}":`, e);
-        }
+        console.warn(`[${label}] Error:`, e);
       }
     }
 
-    // Deduplicate by normalizing
+    // Deduplicate
     const seen = new Set<string>();
     const unique: { content: string; chapter: string }[] = [];
-    for (const content of allInserted) {
-      const key = content.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 80);
+    for (const content of allInsights) {
+      const key = content.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 100);
+      if (key.length < 20) continue;
       if (!seen.has(key)) {
         seen.add(key);
         unique.push({ content, chapter: pickChapter(content) });
       }
     }
 
+    console.log(`Deduped to ${unique.length} unique insights from ${stats.matched} matches`);
+
     // Insert into rolly_knowledge
-    let insertedCount = 0;
     for (const entry of unique) {
       const { error } = await adminClient.from("rolly_knowledge").insert({
         source: "industry_insights",
         chapter: entry.chapter,
-        content: entry.content,
+        content: entry.content.substring(0, 5000),
       });
       if (!error) {
-        insertedCount++;
-        // Update per-handle stats (approximate)
-        for (const handle of HANDLES) {
-          if (stats[handle].matched > stats[handle].inserted) {
-            stats[handle].inserted++;
-            break;
-          }
-        }
+        stats.inserted++;
       } else {
         console.warn("Insert error:", error.message);
       }
     }
 
-    console.log("Scrape complete. Stats:", JSON.stringify(stats));
-    console.log(`Total unique insights inserted: ${insertedCount}`);
+    console.log("Done. Stats:", JSON.stringify(stats));
 
     return new Response(JSON.stringify({
       success: true,
-      total_inserted: insertedCount,
-      total_unique: unique.length,
       stats,
+      sample: unique.slice(0, 3).map(u => ({ chapter: u.chapter, preview: u.content.substring(0, 120) })),
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
