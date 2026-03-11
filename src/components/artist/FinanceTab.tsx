@@ -802,6 +802,14 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
       {pendingDelete && (
         <UndoSnackbar message="Item deleted" onUndo={handleUndoDelete} />
       )}
+      <RollyNudge
+        screen="finance"
+        entityId={artistId}
+        dataSnapshot={{
+          hasRevenue: transactions.some((t: any) => t.type === "revenue"),
+          expenseCount: transactions.filter((t: any) => t.type === "expense").length,
+        }}
+      />
     </div>
   );
 }
