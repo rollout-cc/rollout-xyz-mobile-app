@@ -6,18 +6,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const KEYWORD_FILTER = [
-  "rollout", "release", "dsp", "playlist", "publishing", "sync", "licensing",
-  "management", "manager", "artist", "label", "deal", "advance", "recoup",
-  "strategy", "campaign", "marketing", "streaming", "revenue", "royalt",
-  "tour", "merch", "brand", "distribution", "split", "copyright", "master",
-  "catalog", "a&r", "signing", "budget", "team", "roster", "indie", "major",
-  "radio", "promotion", "fanbase", "audience", "tiktok", "spotify",
-  "apple music", "youtube", "music video", "production", "producer",
-  "songwriter", "contract", "negotiate", "commission", "profit",
-  "business", "invest", "monetize", "growth",
-];
-
 const CHAPTERS = [
   "Industry Strategy Insights",
   "Release Strategy Patterns",
@@ -47,17 +35,6 @@ function pickChapter(text: string): string {
   return CHAPTERS[0];
 }
 
-function hasKeywords(text: string): boolean {
-  const l = text.toLowerCase();
-  let hits = 0;
-  for (const kw of KEYWORD_FILTER) {
-    if (l.includes(kw)) hits++;
-    if (hits >= 2) return true;
-  }
-  return false;
-}
-
-// Default Twitter handles to scrape
 const DEFAULT_HANDLES = [
   "BrianZisook",
   "thatdonnyslater",
@@ -65,37 +42,31 @@ const DEFAULT_HANDLES = [
   "BarryHefner",
 ];
 
-async function runApifyActor(apifyToken: string, handles: string[], maxTweets: number): Promise<any[]> {
-  const actorId = "apidojo~tweet-scraper";
+// Scrape one handle using data-slayer/twitter-user-tweets (takes single userId)
+async function scrapeHandle(apifyToken: string, handle: string): Promise<any[]> {
+  const actorId = "data-slayer~twitter-user-tweets";
 
-  // Start the actor run
   const startResp = await fetch(
     `https://api.apify.com/v2/acts/${actorId}/runs?token=${apifyToken}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        startUrls: handles.map(h => ({ url: `https://x.com/${h}` })),
-        maxItems: maxTweets,
-        sort: "Latest",
-        tweetLanguage: "en",
-        excludeReplies: true,
-      }),
+      body: JSON.stringify({ userId: handle }),
     }
   );
 
   if (!startResp.ok) {
     const errText = await startResp.text();
-    throw new Error(`Apify start failed [${startResp.status}]: ${errText}`);
+    console.error(`Apify start failed for ${handle}: ${errText}`);
+    return [];
   }
 
   const runData = await startResp.json();
   const runId = runData?.data?.id;
-  if (!runId) throw new Error("No run ID returned from Apify");
+  if (!runId) { console.error(`No run ID for ${handle}`); return []; }
 
-  console.log(`Apify run started: ${runId}`);
+  console.log(`Run started for @${handle}: ${runId}`);
 
-  // Poll for completion (max 5 min)
   const maxWait = 5 * 60 * 1000;
   const pollInterval = 10_000;
   const start = Date.now();
@@ -106,37 +77,31 @@ async function runApifyActor(apifyToken: string, handles: string[], maxTweets: n
     const statusResp = await fetch(
       `https://api.apify.com/v2/actor-runs/${runId}?token=${apifyToken}`
     );
-    if (!statusResp.ok) {
-      await statusResp.text();
-      continue;
-    }
+    if (!statusResp.ok) { await statusResp.text(); continue; }
 
     const statusData = await statusResp.json();
     const status = statusData?.data?.status;
-    console.log(`Run ${runId} status: ${status}`);
+    console.log(`@${handle} run ${runId}: ${status}`);
 
     if (status === "SUCCEEDED") {
       const datasetId = statusData?.data?.defaultDatasetId;
-      if (!datasetId) throw new Error("No dataset ID");
+      if (!datasetId) return [];
 
-      // Fetch all items from dataset
       const itemsResp = await fetch(
         `https://api.apify.com/v2/datasets/${datasetId}/items?token=${apifyToken}&limit=10000`
       );
-      if (!itemsResp.ok) {
-        const t = await itemsResp.text();
-        throw new Error(`Dataset fetch failed: ${t}`);
-      }
-
+      if (!itemsResp.ok) return [];
       return await itemsResp.json();
     }
 
     if (status === "FAILED" || status === "ABORTED" || status === "TIMED-OUT") {
-      throw new Error(`Apify run ${status}`);
+      console.error(`@${handle} run ${status}`);
+      return [];
     }
   }
 
-  throw new Error("Apify run timed out waiting for completion");
+  console.error(`@${handle} timed out`);
+  return [];
 }
 
 Deno.serve(async (req: Request) => {
@@ -155,43 +120,45 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Parse optional request body
     let handles = DEFAULT_HANDLES;
-    let maxTweets = 2000;
     try {
       const body = await req.json();
       if (body?.handles?.length) handles = body.handles;
-      if (body?.maxTweets) maxTweets = Math.min(body.maxTweets, 10000);
-    } catch {
-      // No body, use defaults
+    } catch { /* No body, use defaults */ }
+
+    console.log(`Scraping handles: ${handles.join(", ")}`);
+
+    // Scrape all handles (sequentially to avoid Apify concurrency limits on free tier)
+    let allTweets: any[] = [];
+    for (const handle of handles) {
+      const tweets = await scrapeHandle(apifyToken, handle);
+      console.log(`@${handle}: ${tweets.length} tweets`);
+      allTweets = allTweets.concat(tweets);
     }
 
-    console.log(`Scraping ${maxTweets} tweets from: ${handles.join(", ")}`);
+    console.log(`Total tweets from all handles: ${allTweets.length}`);
 
-    // Run Apify actor
-    const tweets = await runApifyActor(apifyToken, handles, maxTweets);
-    console.log(`Got ${tweets.length} tweets from Apify`);
+    // Debug: log first 3 raw tweets
+    for (let d = 0; d < Math.min(3, allTweets.length); d++) {
+      console.log(`RAW TWEET ${d} keys:`, Object.keys(allTweets[d] || {}));
+      console.log(`RAW TWEET ${d} text:`, (allTweets[d]?.text || "NONE").substring(0, 200));
+      console.log(`RAW TWEET ${d} author:`, allTweets[d]?.author?.screen_name || "unknown");
+    }
 
-    const stats = { total_tweets: tweets.length, matched: 0, inserted: 0, duplicates: 0 };
-
-    // Process tweets
+    const stats = { total_tweets: allTweets.length, matched: 0, inserted: 0, duplicates: 0 };
     const seen = new Set<string>();
     const toInsert: { content: string; chapter: string }[] = [];
 
-    for (const tweet of tweets) {
-      const text = tweet?.full_text || tweet?.text || tweet?.tweetText || "";
+    for (const tweet of allTweets) {
+      const text = tweet?.text || tweet?.full_text || "";
       if (!text || text.length < 20) continue;
 
       stats.matched++;
-
       const anonymized = anonymize(text);
-      if (anonymized.length < 40) continue;
+      if (anonymized.length < 20) continue;
 
       const key = anonymized.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 120);
-      if (key.length < 30 || seen.has(key)) {
-        stats.duplicates++;
-        continue;
-      }
+      if (key.length < 15 || seen.has(key)) { stats.duplicates++; continue; }
       seen.add(key);
 
       toInsert.push({
@@ -202,7 +169,6 @@ Deno.serve(async (req: Request) => {
 
     console.log(`${toInsert.length} unique insights to insert`);
 
-    // Batch insert (chunks of 50)
     for (let i = 0; i < toInsert.length; i += 50) {
       const batch = toInsert.slice(i, i + 50).map(entry => ({
         source: "industry_insights",
@@ -210,14 +176,13 @@ Deno.serve(async (req: Request) => {
         content: entry.content,
       }));
 
-      const { error, count } = await adminClient
+      const { error } = await adminClient
         .from("rolly_knowledge")
         .upsert(batch, { onConflict: "content", ignoreDuplicates: true });
 
       if (!error) {
         stats.inserted += batch.length;
       } else {
-        // Fall back to individual inserts on conflict
         for (const row of batch) {
           const { error: singleErr } = await adminClient
             .from("rolly_knowledge")
@@ -234,7 +199,7 @@ Deno.serve(async (req: Request) => {
       success: true,
       stats,
       handles_scraped: handles,
-      sample: toInsert.slice(0, 3).map(u => ({
+      sample: toInsert.slice(0, 5).map(u => ({
         chapter: u.chapter,
         preview: u.content.substring(0, 200),
       })),
