@@ -282,6 +282,8 @@ Deno.serve(async (req) => {
         });
       }
       payload.to_email = userData.user.email;
+      // Preserve user_id for push/SMS before clearing
+      (payload as any)._resolved_user_id = payload.user_id;
       delete payload.user_id;
       delete payload.pref_key;
     }
