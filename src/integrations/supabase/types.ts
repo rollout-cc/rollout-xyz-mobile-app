@@ -727,6 +727,98 @@ export type Database = {
           },
         ]
       }
+      creator_intelligence: {
+        Row: {
+          artist_affinity: string[] | null
+          audience_type: string | null
+          average_views: number | null
+          category: string | null
+          confidence_label: string
+          confidence_score: number
+          contact_info: string | null
+          content_style: string | null
+          created_at: string
+          engagement_rate: number | null
+          follower_count: number | null
+          genre_fit: string[] | null
+          handle: string
+          historical_campaigns: Json | null
+          id: string
+          last_verified_date: string | null
+          median_views: number | null
+          notes: string | null
+          platform: string
+          posting_frequency: string | null
+          rate: string | null
+          search_vector: unknown
+          subcategory: string | null
+          team_id: string | null
+          url: string | null
+        }
+        Insert: {
+          artist_affinity?: string[] | null
+          audience_type?: string | null
+          average_views?: number | null
+          category?: string | null
+          confidence_label?: string
+          confidence_score?: number
+          contact_info?: string | null
+          content_style?: string | null
+          created_at?: string
+          engagement_rate?: number | null
+          follower_count?: number | null
+          genre_fit?: string[] | null
+          handle: string
+          historical_campaigns?: Json | null
+          id?: string
+          last_verified_date?: string | null
+          median_views?: number | null
+          notes?: string | null
+          platform: string
+          posting_frequency?: string | null
+          rate?: string | null
+          search_vector?: unknown
+          subcategory?: string | null
+          team_id?: string | null
+          url?: string | null
+        }
+        Update: {
+          artist_affinity?: string[] | null
+          audience_type?: string | null
+          average_views?: number | null
+          category?: string | null
+          confidence_label?: string
+          confidence_score?: number
+          contact_info?: string | null
+          content_style?: string | null
+          created_at?: string
+          engagement_rate?: number | null
+          follower_count?: number | null
+          genre_fit?: string[] | null
+          handle?: string
+          historical_campaigns?: Json | null
+          id?: string
+          last_verified_date?: string | null
+          median_views?: number | null
+          notes?: string | null
+          platform?: string
+          posting_frequency?: string | null
+          rate?: string | null
+          search_vector?: unknown
+          subcategory?: string | null
+          team_id?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_intelligence_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       education_content: {
         Row: {
           concept_key: string
@@ -2297,6 +2389,40 @@ export type Database = {
       is_team_owner_or_manager: {
         Args: { p_team_id: string }
         Returns: boolean
+      }
+      search_creator_intelligence: {
+        Args: {
+          category_filter?: string
+          genre_filter?: string
+          match_limit?: number
+          min_confidence?: number
+          p_team_id?: string
+          platform_filter?: string
+          search_query?: string
+        }
+        Returns: {
+          artist_affinity: string[]
+          audience_type: string
+          average_views: number
+          category: string
+          confidence_label: string
+          confidence_score: number
+          contact_info: string
+          content_style: string
+          engagement_rate: number
+          follower_count: number
+          genre_fit: string[]
+          handle: string
+          id: string
+          last_verified_date: string
+          median_views: number
+          notes: string
+          platform: string
+          posting_frequency: string
+          rate: string
+          subcategory: string
+          url: string
+        }[]
       }
       search_rolly_knowledge: {
         Args: { match_limit?: number; search_query: string }
