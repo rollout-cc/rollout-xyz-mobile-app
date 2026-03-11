@@ -336,25 +336,27 @@ function CategoryCard({
 
   return (
     <div className="rounded-xl border border-border p-4 group relative">
-      <button
-        onClick={onDelete}
-        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
+      {!readOnly && onDelete && (
+        <button
+          onClick={onDelete}
+          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
       <p className="text-sm font-medium mb-2">{name}</p>
-      {editing ? (
+      {!readOnly && editing ? (
         <div className="mb-2">
           <CurrencyInput
             value={budgetVal}
             onChange={setBudgetVal}
             onBlur={() => {
-              onBudgetChange(parseFloat(budgetVal.replace(/,/g, "")) || 0);
+              onBudgetChange?.(parseFloat(budgetVal.replace(/,/g, "")) || 0);
               setEditing(false);
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                onBudgetChange(parseFloat(budgetVal.replace(/,/g, "")) || 0);
+                onBudgetChange?.(parseFloat(budgetVal.replace(/,/g, "")) || 0);
                 setEditing(false);
               }
             }}
@@ -364,8 +366,9 @@ function CategoryCard({
         </div>
       ) : (
         <button
-          onClick={() => { setBudgetVal(budget.toString()); setEditing(true); }}
-          className="text-lg font-bold hover:text-primary transition-colors"
+          onClick={() => { if (!readOnly) { setBudgetVal(budget.toString()); setEditing(true); } }}
+          className={cn("text-lg font-bold", !readOnly && "hover:text-primary transition-colors")}
+          disabled={readOnly}
         >
           {fmt(budget)}
         </button>
