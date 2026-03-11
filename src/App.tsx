@@ -107,19 +107,19 @@ function AppRoutes() {
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/roster" element={<ProtectedRoute><Roster /></ProtectedRoute>} />
-        <Route path="/overview" element={<ProtectedRoute><Overview /></ProtectedRoute>} />
+        <Route path="/overview" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager"]}><Overview /></RoleGate></ProtectedRoute>} />
         <Route path="/agenda" element={<Navigate to="/overview" replace />} />
-        <Route path="/my-work" element={<ProtectedRoute><MyWork /></ProtectedRoute>} />
-        <Route path="/notes" element={<ProtectedRoute><MyWork /></ProtectedRoute>} />
+        <Route path="/my-work" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager", "artist"]}><MyWork /></RoleGate></ProtectedRoute>} />
+        <Route path="/notes" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager", "artist"]}><MyWork /></RoleGate></ProtectedRoute>} />
         <Route path="/roster/:artistId" element={<ProtectedRoute><ArtistDetail /></ProtectedRoute>} />
         <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
         <Route path="/staff" element={<Navigate to="/overview" replace />} />
-        <Route path="/staff/:memberId" element={<ProtectedRoute><StaffDetail /></ProtectedRoute>} />
-        <Route path="/ar" element={<ProtectedRoute><ARList /></ProtectedRoute>} />
+        <Route path="/staff/:memberId" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager"]}><StaffDetail /></RoleGate></ProtectedRoute>} />
+        <Route path="/ar" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager"]}><ARList /></RoleGate></ProtectedRoute>} />
         <Route path="/ar/:prospectId" element={<Navigate to="/ar" replace />} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-        <Route path="/settings/team" element={<ProtectedRoute><TeamSettings /></ProtectedRoute>} />
-        <Route path="/settings/billing" element={<ProtectedRoute><BillingPage /></ProtectedRoute>} />
+        <Route path="/settings/team" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager"]}><TeamSettings /></RoleGate></ProtectedRoute>} />
+        <Route path="/settings/billing" element={<ProtectedRoute><RoleGate allow={["team_owner"]}><BillingPage /></RoleGate></ProtectedRoute>} />
         <Route path="/shared/member/:token" element={<PublicMemberInfo />} />
         <Route path="/shared/timeline/:token" element={<PublicTimeline />} />
         <Route path="/shared/agenda/:token" element={<PublicAgenda />} />
