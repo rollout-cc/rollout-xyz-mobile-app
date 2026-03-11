@@ -26,15 +26,6 @@ function anonymize(text: string): string {
   return c;
 }
 
-function pickChapter(text: string): string {
-  const l = text.toLowerCase();
-  if (/release|rollout|campaign|single|album|ep\b|drop|pre-save/.test(l)) return CHAPTERS[1];
-  if (/artist|develop|grow|fanbase|audience|talent/.test(l)) return CHAPTERS[2];
-  if (/revenue|deal|advance|recoup|royalt|split|contract|money/.test(l)) return CHAPTERS[4];
-  if (/team|roster|hire|staff|manage|operation|company/.test(l)) return CHAPTERS[3];
-  return CHAPTERS[0];
-}
-
 const DEFAULT_HANDLES = [
   "BrianZisook",
   "thatdonnyslater",
@@ -42,7 +33,6 @@ const DEFAULT_HANDLES = [
   "BarryHefner",
 ];
 
-// Scrape one handle using data-slayer/twitter-user-tweets (takes single userId)
 async function scrapeHandle(apifyToken: string, handle: string): Promise<any[]> {
   const actorId = "data-slayer~twitter-user-tweets";
 
@@ -104,6 +94,67 @@ async function scrapeHandle(apifyToken: string, handle: string): Promise<any[]> 
   return [];
 }
 
+interface ClassifiedTweet {
+  index: number;
+  relevant: boolean;
+  chapter: string;
+}
+
+async function classifyTweets(
+  apiKey: string,
+  tweets: string[]
+): Promise<ClassifiedTweet[]> {
+  const prompt = `You are a music industry content classifier. For each numbered tweet below, determine:
+1. Is it relevant to the MUSIC INDUSTRY? (artist development, streaming, releases, marketing, A&R, deals, publishing, labels, touring, fan engagement, music business strategy, etc.)
+2. If relevant, which chapter best fits:
+   - "Industry Strategy Insights" (general strategy, market trends)
+   - "Release Strategy Patterns" (releases, rollouts, campaigns, singles, albums)
+   - "Artist Development Tactics" (artist growth, fanbase, talent development)
+   - "Music Business Operations" (team, roster, hiring, operations, management)
+   - "Revenue & Deal Strategy" (revenue, deals, advances, royalties, splits, contracts)
+
+Personal opinions, lifestyle posts, relationship advice, food, sports, and general life commentary are NOT relevant.
+
+Tweets:
+${tweets.map((t, i) => `[${i}] ${t}`).join("\n")}
+
+Return ONLY a JSON array of objects with fields: index (number), relevant (boolean), chapter (string or null if not relevant). No other text.`;
+
+  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  if (!resp.ok) {
+    console.error("AI classification failed:", resp.status, await resp.text());
+    return [];
+  }
+
+  const data = await resp.json();
+  const raw = data.choices?.[0]?.message?.content || "";
+
+  // Extract JSON array from response
+  const jsonMatch = raw.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) {
+    console.error("No JSON array in AI response:", raw.substring(0, 300));
+    return [];
+  }
+
+  try {
+    return JSON.parse(jsonMatch[0]);
+  } catch (e) {
+    console.error("Failed to parse AI classification:", e);
+    return [];
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -111,6 +162,13 @@ Deno.serve(async (req: Request) => {
     const apifyToken = Deno.env.get("APIFY_API_TOKEN");
     if (!apifyToken) {
       return new Response(JSON.stringify({ error: "APIFY_API_TOKEN not configured" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!lovableApiKey) {
+      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -128,7 +186,7 @@ Deno.serve(async (req: Request) => {
 
     console.log(`Scraping handles: ${handles.join(", ")}`);
 
-    // Scrape all handles (sequentially to avoid Apify concurrency limits on free tier)
+    // Scrape all handles sequentially
     let allTweets: any[] = [];
     for (const handle of handles) {
       const tweets = await scrapeHandle(apifyToken, handle);
@@ -138,22 +196,16 @@ Deno.serve(async (req: Request) => {
 
     console.log(`Total tweets from all handles: ${allTweets.length}`);
 
-    // Debug: log first 3 raw tweets
-    for (let d = 0; d < Math.min(3, allTweets.length); d++) {
-      console.log(`RAW TWEET ${d} keys:`, Object.keys(allTweets[d] || {}));
-      console.log(`RAW TWEET ${d} text:`, (allTweets[d]?.text || "NONE").substring(0, 200));
-      console.log(`RAW TWEET ${d} author:`, allTweets[d]?.author?.screen_name || "unknown");
-    }
-
-    const stats = { total_tweets: allTweets.length, matched: 0, inserted: 0, duplicates: 0 };
+    const stats = { total_tweets: allTweets.length, matched: 0, relevant: 0, inserted: 0, duplicates: 0 };
     const seen = new Set<string>();
-    const toInsert: { content: string; chapter: string }[] = [];
 
+    // Extract and deduplicate tweet texts
+    const tweetTexts: { text: string; anonymized: string }[] = [];
     for (const tweet of allTweets) {
       const text = tweet?.text || tweet?.full_text || "";
       if (!text || text.length < 20) continue;
-
       stats.matched++;
+
       const anonymized = anonymize(text);
       if (anonymized.length < 20) continue;
 
@@ -161,14 +213,42 @@ Deno.serve(async (req: Request) => {
       if (key.length < 15 || seen.has(key)) { stats.duplicates++; continue; }
       seen.add(key);
 
-      toInsert.push({
-        content: anonymized.substring(0, 5000),
-        chapter: pickChapter(anonymized),
-      });
+      tweetTexts.push({ text, anonymized });
     }
 
-    console.log(`${toInsert.length} unique insights to insert`);
+    console.log(`${tweetTexts.length} unique tweets to classify`);
 
+    // Classify in batches of 20
+    const toInsert: { content: string; chapter: string }[] = [];
+    const BATCH_SIZE = 20;
+
+    for (let i = 0; i < tweetTexts.length; i += BATCH_SIZE) {
+      const batch = tweetTexts.slice(i, i + BATCH_SIZE);
+      const textsForAI = batch.map(t => t.text);
+
+      console.log(`Classifying batch ${Math.floor(i / BATCH_SIZE) + 1}...`);
+      const classifications = await classifyTweets(lovableApiKey, textsForAI);
+
+      for (const c of classifications) {
+        if (c.relevant && c.chapter && c.index >= 0 && c.index < batch.length) {
+          const chapter = CHAPTERS.includes(c.chapter) ? c.chapter : CHAPTERS[0];
+          toInsert.push({
+            content: batch[c.index].anonymized.substring(0, 5000),
+            chapter,
+          });
+          stats.relevant++;
+        }
+      }
+
+      // Small delay between batches to avoid rate limiting
+      if (i + BATCH_SIZE < tweetTexts.length) {
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+
+    console.log(`${toInsert.length} relevant music industry insights to insert`);
+
+    // Insert in batches of 50
     for (let i = 0; i < toInsert.length; i += 50) {
       const batch = toInsert.slice(i, i + 50).map(entry => ({
         source: "industry_insights",
