@@ -1,8 +1,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { useRollyNudge } from "@/hooks/useRollyNudge";
-import { rollyEvents } from "@/lib/rollyEvents";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useNavigate } from "react-router-dom";
 import rollyIcon from "@/assets/rolly-icon.png";
 
 interface Props {
@@ -14,14 +14,13 @@ interface Props {
 export function RollyNudge({ screen, dataSnapshot, entityId }: Props) {
   const { nudge, ctaPrompt, dismissed, dismiss } = useRollyNudge(screen, dataSnapshot, entityId);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   if (!nudge || dismissed) return null;
 
   const handleClick = () => {
-    if (ctaPrompt) {
-      rollyEvents.openWithPrompt(ctaPrompt);
-    }
     dismiss();
+    navigate("/rolly", { state: { prefillPrompt: ctaPrompt || nudge } });
   };
 
   return (
