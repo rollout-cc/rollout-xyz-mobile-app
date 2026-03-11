@@ -84,6 +84,7 @@ export function SplitsTab({ artistId, teamId }: Props) {
           key={project.id}
           project={project}
           teamId={teamId}
+          artistId={artistId}
           onDelete={() => handleDelete(project.id)}
         />
       ))}

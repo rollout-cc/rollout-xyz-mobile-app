@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { RollyChat } from "./RollyChat";
 import { useIsMobile } from "@/hooks/use-mobile";
 import rollyIcon from "@/assets/rolly-icon.png";
+import { rollyEvents } from "@/lib/rollyEvents";
 
 const GREETING_KEY = "rolly-greeted";
 
@@ -30,6 +31,16 @@ export function RollyFAB() {
     const timer = setTimeout(() => setShowGreeting(false), 6000);
     return () => clearTimeout(timer);
   }, [showGreeting]);
+
+  // Listen for nudge CTA events
+  const [prefillPrompt, setPrefillPrompt] = useState<string | null>(null);
+  useEffect(() => {
+    return rollyEvents.onOpenWithPrompt((prompt) => {
+      setPrefillPrompt(prompt);
+      setShowGreeting(false);
+      setIsOpen(true);
+    });
+  }, []);
 
   const handleOpen = () => {
     setShowGreeting(false);
@@ -68,7 +79,7 @@ export function RollyFAB() {
             </div>
             {/* Chat */}
             <div className="flex-1 min-h-0">
-              <RollyChat />
+              <RollyChat prefillPrompt={prefillPrompt} onPrefillConsumed={() => setPrefillPrompt(null)} />
             </div>
           </motion.div>
         )}

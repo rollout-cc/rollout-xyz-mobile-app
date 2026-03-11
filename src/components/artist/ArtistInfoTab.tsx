@@ -14,6 +14,7 @@ import { BrandTagInput } from "@/components/ui/BrandTagInput";
 import { IndustryEntitySelect } from "@/components/ui/IndustryEntitySelect";
 import { useTeamRegion } from "@/hooks/useTeamRegion";
 import { getPROsForRegion } from "@/lib/regionConfig";
+import { RollyNudge } from "@/components/rolly/RollyNudge";
 
 interface ArtistInfoTabProps {
   artist: any;
@@ -23,6 +24,11 @@ export function ArtistInfoTab({ artist }: ArtistInfoTabProps) {
   return (
     <div className="space-y-6 mt-4">
       <MembersSection artistId={artist.id} />
+      <RollyNudge
+        screen="artist-info"
+        entityId={artist.id}
+        dataSnapshot={{}}
+      />
     </div>
   );
 }

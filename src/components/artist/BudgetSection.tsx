@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { RollyNudge } from "@/components/rolly/RollyNudge";
 
 function formatWithCommas(value: string): string {
   if (!value) return "";
@@ -452,6 +453,14 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
           )}
         </div>
       </div>
+      <RollyNudge
+        screen="budget"
+        entityId={artistId}
+        dataSnapshot={{
+          totalBudget: budgets.reduce((s: number, b: any) => s + Number(b.amount), 0),
+          categoryCount: budgets.length,
+        }}
+      />
     </div>
   );
 }

@@ -37,6 +37,7 @@ import type { StaffMember } from "@/components/overview/StaffMetricsSection";
 import { useTeamPlan } from "@/hooks/useTeamPlan";
 import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 import { useTour } from "@/contexts/TourContext";
+import { RollyNudge } from "@/components/rolly/RollyNudge";
 
 export default function Overview() {
   const { selectedTeamId: teamId } = useSelectedTeam();
@@ -656,6 +657,14 @@ export default function Overview() {
       </>
       )}
       <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} feature={upgradeFeature} />
+      <RollyNudge
+        screen="overview"
+        dataSnapshot={{
+          artistCount: artists.length,
+          taskCount: tasks.length,
+          overdueTaskCount: tasks.filter((t: any) => t.status !== "done" && t.due_date && new Date(t.due_date) < new Date()).length,
+        }}
+      />
     </AppLayout>
   );
 }

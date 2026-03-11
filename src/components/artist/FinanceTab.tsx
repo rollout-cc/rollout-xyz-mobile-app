@@ -9,6 +9,7 @@ import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn, parseLocalDate } from "@/lib/utils";
+import { RollyNudge } from "@/components/rolly/RollyNudge";
 
 interface FinanceTabProps {
   artistId: string;
@@ -801,6 +802,14 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
       {pendingDelete && (
         <UndoSnackbar message="Item deleted" onUndo={handleUndoDelete} />
       )}
+      <RollyNudge
+        screen="finance"
+        entityId={artistId}
+        dataSnapshot={{
+          hasRevenue: transactions.some((t: any) => t.type === "revenue"),
+          expenseCount: transactions.filter((t: any) => t.type === "expense").length,
+        }}
+      />
     </div>
   );
 }

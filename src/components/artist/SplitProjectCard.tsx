@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronRight, Plus, Trash2, Music, Send, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Trash2, Music, Send, Loader2, FileDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useSplitSongs, useCreateSplitSong, useDeleteSplitSong } from "@/hooks/useSplits";
+import { useSplitSongs, useCreateSplitSong, useDeleteSplitSong, useSplitEntries } from "@/hooks/useSplits";
 import { SplitSongEditor } from "./SplitSongEditor";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { generateSplitSheetPdf } from "@/lib/splitSheetPdf";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -16,10 +17,11 @@ import {
 interface Props {
   project: any;
   teamId: string;
+  artistId?: string;
   onDelete: () => void;
 }
 
-export function SplitProjectCard({ project, teamId, onDelete }: Props) {
+export function SplitProjectCard({ project, teamId, artistId, onDelete }: Props) {
   const [open, setOpen] = useState(true);
   const { data: songs = [] } = useSplitSongs(project.id);
   const createSong = useCreateSplitSong();
@@ -55,6 +57,25 @@ export function SplitProjectCard({ project, teamId, onDelete }: Props) {
       setSending(false);
       setShowConfirm(false);
     }
+  };
+
+  const handleDownloadPdf = async () => {
+    // Fetch all entries for all songs
+    const songEntries = await Promise.all(
+      songs.map(async (song: any) => {
+        const { data } = await supabase
+          .from("split_entries")
+          .select("*, contributor:split_contributors(*)")
+          .eq("song_id", song.id)
+          .order("created_at");
+        return { title: song.title, entries: data || [] };
+      })
+    );
+    generateSplitSheetPdf({
+      projectName: project.name,
+      projectType: project.project_type,
+      songs: songEntries,
+    });
   };
 
   const typeLabel = project.project_type === "ep" ? "EP" : project.project_type === "album" ? "Album" : "Single";
@@ -104,7 +125,7 @@ export function SplitProjectCard({ project, teamId, onDelete }: Props) {
                   </button>
                   {expandedSong === song.id && (
                     <div className="px-3 pb-3">
-                      <SplitSongEditor songId={song.id} teamId={teamId} />
+                      <SplitSongEditor songId={song.id} teamId={teamId} artistId={artistId} />
                     </div>
                   )}
                 </div>
@@ -124,13 +145,22 @@ export function SplitProjectCard({ project, teamId, onDelete }: Props) {
                 </Button>
               </div>
 
-              {/* Send for Approval */}
+              {/* Actions */}
               {songs.length > 0 && (
-                <div className="pt-2 border-t border-border">
+                <div className="pt-2 border-t border-border flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 flex-1"
+                    onClick={handleDownloadPdf}
+                  >
+                    <FileDown className="h-3.5 w-3.5" />
+                    Download PDF
+                  </Button>
                   <Button
                     size="sm"
                     variant="default"
-                    className="gap-1.5 w-full"
+                    className="gap-1.5 flex-1"
                     onClick={() => setShowConfirm(true)}
                     disabled={sending}
                   >
