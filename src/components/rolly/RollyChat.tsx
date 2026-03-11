@@ -19,6 +19,7 @@ interface RollyChatProps {
   planMode?: boolean;
   onPlanModeChange?: (active: boolean) => void;
   onSendReady?: (sendFn: (msg: string) => void) => void;
+  onPlanMessage?: (msg: string) => void;
 }
 
 export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: externalPlanMode, onPlanModeChange, onSendReady }: RollyChatProps = {}) {
