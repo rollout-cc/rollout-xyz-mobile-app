@@ -30,7 +30,7 @@ const TeamContext = createContext<TeamContextType>({
   role: null,
   canManage: false,
   canViewCompany: false,
-  canViewFinance: false,
+  canManageFinance: false,
   canViewStaffSalaries: false,
   canViewAR: false,
   canViewRoster: false,
