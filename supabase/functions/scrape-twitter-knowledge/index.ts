@@ -84,6 +84,8 @@ function buildSearchQueries(): SearchConfig[] {
     { query: '"Donny Slater" music management artist strategy', label: "ds-mgmt" },
     { query: '"Brian Zisook" DJBooth music business artist development', label: "bz-djbooth" },
     { query: '"Donny Slater" OR "Brian Zisook" release rollout streaming revenue', label: "combined" },
+    { query: '"Donny Slater" rollout manager label deal advice', label: "ds-rollout" },
+    { query: '"Brian Zisook" independent artist streaming playlist marketing', label: "bz-indie" },
   ];
 }
 
