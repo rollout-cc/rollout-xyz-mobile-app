@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -24,11 +25,20 @@ type PlanStep = {
   options: PlanOption[];
   multiSelect?: boolean;
   allowOther?: boolean;
-  /** Only show this step if a condition on previous answers is met */
   showIf?: (answers: PlanAnswers) => boolean;
 };
 
+const hasVertical = (answers: PlanAnswers, v: string) => {
+  const verts = answers.verticals;
+  return Array.isArray(verts) && verts.includes(v);
+};
+
+const notWeekly = (a: PlanAnswers) => a.plan_type !== "Weekly planning";
+const isRolloutOrCampaign = (a: PlanAnswers) =>
+  a.plan_type === "Release rollout" || a.plan_type === "Marketing campaign";
+
 const PLAN_STEPS: PlanStep[] = [
+  // ── CORE ──
   {
     id: "plan_type",
     question: "What are you planning?",
@@ -45,7 +55,7 @@ const PLAN_STEPS: PlanStep[] = [
     id: "artist",
     question: "Which artist is this for?",
     header: "Artist",
-    options: [], // populated dynamically from roster
+    options: [],
     allowOther: true,
   },
   {
@@ -79,7 +89,7 @@ const PLAN_STEPS: PlanStep[] = [
       { label: "Brand awareness", description: "Get the artist's name in front of new audiences" },
     ],
     allowOther: true,
-    showIf: (a) => a.plan_type !== "Weekly planning",
+    showIf: notWeekly,
   },
   {
     id: "verticals",
@@ -93,7 +103,7 @@ const PLAN_STEPS: PlanStep[] = [
       { label: "Sync / Licensing", description: "Film, TV, brand placements" },
     ],
     allowOther: true,
-    showIf: (a) => a.plan_type === "Release rollout" || a.plan_type === "Marketing campaign",
+    showIf: isRolloutOrCampaign,
   },
   {
     id: "timeline",
@@ -106,7 +116,7 @@ const PLAN_STEPS: PlanStep[] = [
       { label: "6 months", description: "Extended rollout with pre-release buildup" },
     ],
     allowOther: true,
-    showIf: (a) => a.plan_type !== "Weekly planning",
+    showIf: notWeekly,
   },
   {
     id: "budget",
@@ -119,9 +129,296 @@ const PLAN_STEPS: PlanStep[] = [
       { label: "$15,000+", description: "Full-scale operation" },
     ],
     allowOther: true,
-    showIf: (a) => a.plan_type !== "Weekly planning",
+    showIf: notWeekly,
+  },
+
+  // ── NARRATIVE & IDENTITY ──
+  {
+    id: "era_theme",
+    question: "What's the story or theme of this era?",
+    header: "Narrative",
+    options: [],
+    showIf: notWeekly,
+  },
+  {
+    id: "visual_direction",
+    question: "What's the visual direction?",
+    header: "Visual DNA",
+    options: [
+      { label: "Dark / moody", description: "Cinematic, noir, heavy contrast" },
+      { label: "Bright / colorful", description: "Bold palettes, high energy" },
+      { label: "Minimal / clean", description: "Stripped-back, whitespace-driven" },
+      { label: "Luxury / editorial", description: "High-fashion, glossy, editorial" },
+    ],
+    allowOther: true,
+    showIf: notWeekly,
+  },
+
+  // ── MUSIC / DISTRIBUTION ──
+  {
+    id: "music_ready",
+    question: "Is the music done?",
+    header: "Music status",
+    options: [
+      { label: "Yes", description: "Final masters in hand" },
+      { label: "Almost", description: "Mixing/mastering in progress" },
+      { label: "Still recording", description: "Not yet finished" },
+    ],
+    showIf: (a) => hasVertical(a, "Music / Streaming"),
+  },
+  {
+    id: "distributor",
+    question: "Do you have a distributor locked in?",
+    header: "Distribution",
+    options: [
+      { label: "Yes", description: "Distribution deal or platform set up" },
+      { label: "Looking", description: "Evaluating options" },
+      { label: "Self-distributing", description: "Using DistroKid, TuneCore, etc." },
+    ],
+    showIf: (a) => hasVertical(a, "Music / Streaming"),
+  },
+  {
+    id: "playlist_strategy",
+    question: "What's your playlist strategy?",
+    header: "Playlisting",
+    multiSelect: true,
+    options: [
+      { label: "Organic pitching", description: "Spotify for Artists, Apple Connect" },
+      { label: "Paid playlist", description: "Playlist push services" },
+      { label: "Editorial push", description: "PR-driven editorial placements" },
+      { label: "Influencer seeding", description: "Get tastemakers playing it" },
+    ],
+    allowOther: true,
+    showIf: (a) => hasVertical(a, "Music / Streaming"),
+  },
+  {
+    id: "radio_plans",
+    question: "Any radio plans?",
+    header: "Radio",
+    options: [
+      { label: "Yes - indie radio", description: "College, community, online stations" },
+      { label: "Yes - major radio promo", description: "Full promo campaign" },
+      { label: "No radio", description: "Focusing on streaming & digital" },
+      { label: "Not sure", description: "Need guidance" },
+    ],
+    showIf: (a) => hasVertical(a, "Music / Streaming"),
+  },
+
+  // ── MERCH / CLOTHING ──
+  {
+    id: "merch_designs",
+    question: "Do you have merch designs ready?",
+    header: "Merch designs",
+    options: [
+      { label: "Yes", description: "Designs are finalized" },
+      { label: "In progress", description: "Working with a designer" },
+      { label: "No - need help", description: "Haven't started yet" },
+    ],
+    showIf: (a) => hasVertical(a, "Merch / Clothing"),
+  },
+  {
+    id: "merch_fulfillment",
+    question: "How will merch be fulfilled?",
+    header: "Fulfillment",
+    options: [
+      { label: "In-house", description: "Packing and shipping yourself" },
+      { label: "Drop shipping", description: "Third-party handles everything" },
+      { label: "Print-on-demand", description: "Items printed as ordered" },
+      { label: "Manufacturing partner", description: "Bulk production runs" },
+    ],
+    allowOther: true,
+    showIf: (a) => hasVertical(a, "Merch / Clothing"),
+  },
+  {
+    id: "merch_link",
+    question: "Drop the link to designs or store",
+    header: "Merch link",
+    options: [],
+    showIf: (a) => hasVertical(a, "Merch / Clothing") && a.merch_designs !== "No - need help",
+  },
+  {
+    id: "merch_drop_strategy",
+    question: "Limited drops or ongoing collection?",
+    header: "Drop strategy",
+    options: [
+      { label: "Limited drops", description: "Scarcity-driven, timed releases" },
+      { label: "Ongoing store", description: "Always-available collection" },
+      { label: "Both", description: "Core collection + limited exclusives" },
+    ],
+    showIf: (a) => hasVertical(a, "Merch / Clothing"),
+  },
+
+  // ── TOURING / LIVE ──
+  {
+    id: "live_type",
+    question: "What live events are planned?",
+    header: "Live events",
+    multiSelect: true,
+    options: [
+      { label: "Headline shows", description: "Own ticketed events" },
+      { label: "Pop-ups / listening events", description: "Intimate, experiential moments" },
+      { label: "Festival slots", description: "Festival bookings" },
+      { label: "College circuit", description: "University shows" },
+    ],
+    allowOther: true,
+    showIf: (a) => hasVertical(a, "Touring / Live"),
+  },
+  {
+    id: "booking_agent",
+    question: "Do you have a booking agent?",
+    header: "Booking",
+    options: [
+      { label: "Yes", description: "Agent is handling bookings" },
+      { label: "No", description: "Self-booking" },
+      { label: "Looking", description: "In conversations" },
+    ],
+    showIf: (a) => hasVertical(a, "Touring / Live"),
+  },
+
+  // ── SYNC / LICENSING ──
+  {
+    id: "sync_cleared",
+    question: "Is the music cleared for sync?",
+    header: "Sync clearance",
+    options: [
+      { label: "Yes", description: "Masters & publishing cleared" },
+      { label: "Partially", description: "Some tracks cleared" },
+      { label: "No", description: "Need to work on clearances" },
+    ],
+    showIf: (a) => hasVertical(a, "Sync / Licensing"),
+  },
+  {
+    id: "sync_pitches",
+    question: "Any active sync pitches or placements?",
+    header: "Sync pitches",
+    options: [
+      { label: "Yes", description: "Active placements in pipeline" },
+      { label: "No", description: "Nothing active yet" },
+      { label: "Working on it", description: "Building relationships" },
+    ],
+    showIf: (a) => hasVertical(a, "Sync / Licensing"),
+  },
+
+  // ── CONTENT STRATEGY ──
+  {
+    id: "content_types",
+    question: "What content is planned?",
+    header: "Content",
+    multiSelect: true,
+    options: [
+      { label: "Music video", description: "Full production video" },
+      { label: "Visualizers", description: "Lyric videos, animated visuals" },
+      { label: "Behind-the-scenes", description: "Studio sessions, process content" },
+      { label: "Short film / documentary", description: "Long-form narrative content" },
+    ],
+    allowOther: true,
+    showIf: notWeekly,
+  },
+  {
+    id: "content_team",
+    question: "Who's handling content creation?",
+    header: "Content team",
+    options: [
+      { label: "In-house team", description: "Internal team handles it" },
+      { label: "Freelancers", description: "Contracted creators" },
+      { label: "Need to hire", description: "Looking for talent" },
+      { label: "Not sure", description: "Need guidance" },
+    ],
+    showIf: notWeekly,
+  },
+
+  // ── PR & PRESS ──
+  {
+    id: "has_publicist",
+    question: "Does the artist have a publicist?",
+    header: "PR",
+    options: [
+      { label: "Yes", description: "Publicist is on the team" },
+      { label: "No", description: "No publicist currently" },
+      { label: "Looking for one", description: "Searching for the right fit" },
+    ],
+    showIf: notWeekly,
+  },
+  {
+    id: "publicist_invited",
+    question: "Have they been invited to Rollout?",
+    header: "PR access",
+    options: [
+      { label: "Yes", description: "Already a team member" },
+      { label: "Not yet", description: "We'll create a task to invite them" },
+    ],
+    showIf: (a) => notWeekly(a) && a.has_publicist === "Yes",
+  },
+  {
+    id: "press_targets",
+    question: "Any press targets?",
+    header: "Press",
+    multiSelect: true,
+    options: [
+      { label: "Blogs / online", description: "Music blogs, online publications" },
+      { label: "Print magazines", description: "Physical print features" },
+      { label: "Podcasts", description: "Podcast interviews & features" },
+      { label: "TV / radio interviews", description: "Broadcast media" },
+    ],
+    allowOther: true,
+    showIf: notWeekly,
+  },
+
+  // ── TEAM GAPS ──
+  {
+    id: "team_roles",
+    question: "Who else is working on this?",
+    header: "Extended team",
+    multiSelect: true,
+    options: [
+      { label: "Photographer", description: "Shoot coverage & press photos" },
+      { label: "Videographer", description: "Video production" },
+      { label: "Stylist", description: "Wardrobe & image direction" },
+      { label: "Designer", description: "Graphics, merch design, branding" },
+    ],
+    allowOther: true,
+    showIf: notWeekly,
+  },
+  {
+    id: "team_invited",
+    question: "Have these team members been invited to Rollout?",
+    header: "Team access",
+    options: [
+      { label: "Yes", description: "All onboarded" },
+      { label: "Not yet", description: "We'll create tasks to invite them" },
+    ],
+    showIf: (a) => {
+      const roles = a.team_roles;
+      return notWeekly(a) && Array.isArray(roles) && roles.length > 0;
+    },
+  },
+
+  // ── SEEDING STRATEGY ──
+  {
+    id: "seeding_strategy",
+    question: "How do you want to build anticipation?",
+    header: "Seeding",
+    multiSelect: true,
+    options: [
+      { label: "Cryptic teasers", description: "Mystery posts, coded imagery" },
+      { label: "Studio snippets", description: "IG Live, TikTok previews" },
+      { label: "Influencer seeding", description: "Get tastemakers buzzing early" },
+      { label: "Lore drops", description: "World-building, narrative ARG" },
+    ],
+    allowOther: true,
+    showIf: notWeekly,
+  },
+
+  // ── WRAP-UP ──
+  {
+    id: "additional_context",
+    question: "Anything else ROLLY should know?",
+    header: "Final notes",
+    options: [],
   },
 ];
+
+const TEXT_ONLY_STEPS = new Set(["project_name", "era_theme", "merch_link", "additional_context"]);
 
 interface PlanWizardProps {
   onComplete: (answers: PlanAnswers) => void;
@@ -163,8 +460,7 @@ export function PlanWizard({ onComplete, onCancel }: PlanWizardProps) {
         : step.options
       : [];
 
-  // For project_name step, just show an "Other" input
-  const isTextOnly = step?.id === "project_name";
+  const isTextOnly = step ? TEXT_ONLY_STEPS.has(step.id) : false;
 
   const currentAnswer = step ? answers[step.id] : undefined;
   const isMulti = step?.multiSelect;
@@ -178,7 +474,7 @@ export function PlanWizard({ onComplete, onCancel }: PlanWizardProps) {
     : !!selectedValue && !stepOptions.some((o) => o.label === selectedValue);
 
   const canProceed = isTextOnly
-    ? !!otherText.trim()
+    ? step?.id === "additional_context" || !!otherText.trim() // additional_context is optional
     : isMulti
     ? selectedValues.length > 0
     : !!selectedValue;
@@ -186,6 +482,13 @@ export function PlanWizard({ onComplete, onCancel }: PlanWizardProps) {
   const isLastStep = currentStep === visibleSteps.length - 1;
 
   const stepId = step?.id ?? "";
+
+  const textPlaceholders: Record<string, string> = {
+    project_name: "Enter project name...",
+    era_theme: "Describe the story, mood, or concept behind this era...",
+    merch_link: "Paste a URL to designs, lookbook, or store...",
+    additional_context: "Any extra details, constraints, or ideas... (optional)",
+  };
 
   const handleSingleSelect = (value: string) => {
     setAnswers((prev) => ({ ...prev, [stepId]: value }));
@@ -272,6 +575,7 @@ export function PlanWizard({ onComplete, onCancel }: PlanWizardProps) {
   if (!step) return null;
 
   const progress = ((currentStep + 1) / visibleSteps.length) * 100;
+  const useTextarea = stepId === "era_theme" || stepId === "additional_context";
 
   return (
     <div className="flex flex-col h-full">
@@ -300,16 +604,26 @@ export function PlanWizard({ onComplete, onCancel }: PlanWizardProps) {
 
         {isTextOnly ? (
           <div className="space-y-2">
-            <Input
-              value={otherText}
-              onChange={(e) => setOtherText(e.target.value)}
-              placeholder="Enter project name..."
-              className="text-base"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && otherText.trim()) handleNext();
-              }}
-            />
+            {useTextarea ? (
+              <Textarea
+                value={otherText}
+                onChange={(e) => setOtherText(e.target.value)}
+                placeholder={textPlaceholders[stepId] || "Type your answer..."}
+                className="text-base min-h-[120px]"
+                autoFocus
+              />
+            ) : (
+              <Input
+                value={otherText}
+                onChange={(e) => setOtherText(e.target.value)}
+                placeholder={textPlaceholders[stepId] || "Type your answer..."}
+                className="text-base"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && canProceed) handleNext();
+                }}
+              />
+            )}
           </div>
         ) : isMulti ? (
           <div className="space-y-2">

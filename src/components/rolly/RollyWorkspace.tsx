@@ -1,11 +1,9 @@
-import { useState } from "react";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { CheckCircle2, Circle, Clock, DollarSign, ListTodo, TrendingUp, Users } from "lucide-react";
+import { CalendarRange, Circle, Clock, DollarSign, Link as LinkIcon, ListTodo, Receipt, TrendingUp, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -43,11 +41,12 @@ export function RollyWorkspace() {
     enabled: !!selectedTeamId,
   });
 
+  const artistIds = artists.map((a) => a.id);
+
   // Fetch budgets
   const { data: budgets = [] } = useQuery({
     queryKey: ["rolly-workspace-budgets", selectedTeamId],
     queryFn: async () => {
-      const artistIds = artists.map((a) => a.id);
       if (artistIds.length === 0) return [];
       const { data } = await supabase
         .from("budgets")
@@ -56,12 +55,68 @@ export function RollyWorkspace() {
         .order("created_at", { ascending: false });
       return data ?? [];
     },
-    enabled: artists.length > 0,
+    enabled: artistIds.length > 0,
+  });
+
+  // Fetch initiatives (release plans / campaigns)
+  const { data: initiatives = [] } = useQuery({
+    queryKey: ["rolly-workspace-initiatives", selectedTeamId],
+    queryFn: async () => {
+      if (artistIds.length === 0) return [];
+      const { data } = await supabase
+        .from("initiatives")
+        .select("*, artists(name)")
+        .in("artist_id", artistIds)
+        .eq("is_archived", false)
+        .order("start_date", { ascending: true, nullsFirst: false });
+      return data ?? [];
+    },
+    enabled: artistIds.length > 0,
+  });
+
+  // Fetch recent expenses (transactions with type = 'expense')
+  const { data: expenses = [] } = useQuery({
+    queryKey: ["rolly-workspace-expenses", selectedTeamId],
+    queryFn: async () => {
+      if (artistIds.length === 0) return [];
+      const { data } = await supabase
+        .from("transactions")
+        .select("*, artists(name)")
+        .in("artist_id", artistIds)
+        .eq("type", "expense")
+        .order("created_at", { ascending: false })
+        .limit(10);
+      return data ?? [];
+    },
+    enabled: artistIds.length > 0,
+  });
+
+  // Fetch recent links
+  const { data: links = [] } = useQuery({
+    queryKey: ["rolly-workspace-links", selectedTeamId],
+    queryFn: async () => {
+      if (artistIds.length === 0) return [];
+      const { data } = await supabase
+        .from("artist_links")
+        .select("*, artists(name)")
+        .in("artist_id", artistIds)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      return data ?? [];
+    },
+    enabled: artistIds.length > 0,
   });
 
   const myTasks = tasks.filter((t: any) => t.assigned_to === user?.id);
   const overdueTasks = myTasks.filter((t: any) => t.due_date && new Date(t.due_date) < new Date());
   const totalBudget = budgets.reduce((sum: number, b: any) => sum + Number(b.amount || 0), 0);
+  const totalExpenses = expenses.reduce((sum: number, e: any) => sum + Math.abs(Number(e.amount || 0)), 0);
+
+  const formatCurrency = (val: number) => {
+    if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+    if (val >= 1_000) return `$${(val / 1_000).toFixed(0)}k`;
+    return `$${val.toLocaleString()}`;
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">
@@ -97,10 +152,10 @@ export function RollyWorkspace() {
         <Card className="bg-card">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <Users className="h-4 w-4" />
-              <span className="text-xs font-medium">Artists</span>
+              <CalendarRange className="h-4 w-4" />
+              <span className="text-xs font-medium">Campaigns</span>
             </div>
-            <p className="text-2xl font-bold">{artists.length}</p>
+            <p className="text-2xl font-bold">{initiatives.length}</p>
           </CardContent>
         </Card>
         <Card className="bg-card">
@@ -109,13 +164,7 @@ export function RollyWorkspace() {
               <DollarSign className="h-4 w-4" />
               <span className="text-xs font-medium">Total Budget</span>
             </div>
-            <p className="text-2xl font-bold">
-              {totalBudget >= 1_000_000
-                ? `$${(totalBudget / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`
-                : totalBudget >= 1_000
-                ? `$${(totalBudget / 1_000).toFixed(0)}k`
-                : `$${totalBudget.toLocaleString()}`}
-            </p>
+            <p className="text-2xl font-bold">{formatCurrency(totalBudget)}</p>
           </CardContent>
         </Card>
       </div>
@@ -156,6 +205,121 @@ export function RollyWorkspace() {
                           {format(new Date(task.due_date), "MMM d")}
                         </span>
                       )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Release Plans / Campaigns */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CalendarRange className="h-4 w-4" />
+            Release Plans
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {initiatives.length === 0 ? (
+            <p className="px-6 pb-4 text-sm text-muted-foreground">
+              No active release plans. Ask Rolly to build one.
+            </p>
+          ) : (
+            <div className="divide-y divide-border">
+              {initiatives.slice(0, 8).map((init: any) => (
+                <div key={init.id} className="flex items-center justify-between px-6 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{init.name}</p>
+                    <span className="text-xs text-muted-foreground">{init.artists?.name}</span>
+                  </div>
+                  {(init.start_date || init.end_date) && (
+                    <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                      {init.start_date && format(new Date(init.start_date), "MMM d")}
+                      {init.start_date && init.end_date && " – "}
+                      {init.end_date && format(new Date(init.end_date), "MMM d")}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Recent Expenses */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Receipt className="h-4 w-4" />
+            Recent Expenses
+            {totalExpenses > 0 && (
+              <span className="ml-auto text-xs font-normal text-muted-foreground">
+                {formatCurrency(totalExpenses)} total
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {expenses.length === 0 ? (
+            <p className="px-6 pb-4 text-sm text-muted-foreground">
+              No recent expenses logged.
+            </p>
+          ) : (
+            <div className="divide-y divide-border">
+              {expenses.map((exp: any) => (
+                <div key={exp.id} className="flex items-center justify-between px-6 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{exp.description || "Expense"}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {exp.artists?.name && (
+                        <span className="text-xs text-muted-foreground">{exp.artists.name}</span>
+                      )}
+                      {exp.created_at && (
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(exp.created_at), "MMM d")}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-sm font-semibold tabular-nums text-destructive shrink-0 ml-2">
+                    -${Math.abs(Number(exp.amount || 0)).toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Links */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <LinkIcon className="h-4 w-4" />
+            Recent Links
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {links.length === 0 ? (
+            <p className="px-6 pb-4 text-sm text-muted-foreground">
+              No links saved yet.
+            </p>
+          ) : (
+            <div className="divide-y divide-border">
+              {links.map((link: any) => (
+                <div key={link.id} className="flex items-center gap-3 px-6 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{link.title}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {link.artists?.name && (
+                        <span className="text-xs text-muted-foreground">{link.artists.name}</span>
+                      )}
+                      <span className="text-xs text-muted-foreground truncate max-w-[200px]">
+                        {link.url?.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]}
+                      </span>
                     </div>
                   </div>
                 </div>
