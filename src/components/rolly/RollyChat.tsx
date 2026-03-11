@@ -19,9 +19,10 @@ interface RollyChatProps {
   planMode?: boolean;
   onPlanModeChange?: (active: boolean) => void;
   onSendReady?: (sendFn: (msg: string) => void) => void;
+  onPlanMessage?: (msg: string) => void;
 }
 
-export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: externalPlanMode, onPlanModeChange, onSendReady }: RollyChatProps = {}) {
+export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: externalPlanMode, onPlanModeChange, onSendReady, onPlanMessage }: RollyChatProps = {}) {
   const planMode = externalPlanMode ?? false;
   const setPlanMode = (val: boolean) => onPlanModeChange?.(val);
   const { messages, isLoading, send, stop, clear, lastActions } = useRollyChat(planMode);
@@ -54,8 +55,13 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
     const text = input.trim();
     if (!text || isLoading) return;
     setInput("");
-    send(text);
     if (textareaRef.current) textareaRef.current.style.height = "auto";
+    // In plan mode, route the first message to the wizard instead of chat
+    if (planMode && onPlanMessage) {
+      onPlanMessage(text);
+      return;
+    }
+    send(text);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

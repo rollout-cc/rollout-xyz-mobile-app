@@ -9,8 +9,11 @@ import { cn } from "@/lib/utils";
 import { MessageSquare, LayoutGrid } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
-function compilePlanPrompt(answers: PlanAnswers): string {
+function compilePlanPrompt(answers: PlanAnswers, initialContext?: string | null): string {
   const parts: string[] = ["[PLAN MODE] Here are my answers from the planning wizard. Generate a detailed plan with tasks, milestones, and budgets based on these inputs:\n"];
+  if (initialContext) {
+    parts.push(`**Original brief:** "${initialContext}"\n`);
+  }
 
   const str = (key: string) => (typeof answers[key] === "string" ? answers[key] : "");
   const arr = (key: string) => (Array.isArray(answers[key]) ? (answers[key] as string[]).join(", ") : str(key));
@@ -111,6 +114,7 @@ export default function Rolly() {
   const [prefill, setPrefill] = useState<string | null>(prefillPrompt);
   const [planMode, setPlanMode] = useState(false);
   const [wizardActive, setWizardActive] = useState(false);
+  const [wizardContext, setWizardContext] = useState<string | null>(null);
   const [sendFn, setSendFn] = useState<((msg: string) => void) | null>(null);
   const handleSendReady = useCallback((fn: (msg: string) => void) => {
     setSendFn(() => fn);
@@ -119,32 +123,40 @@ export default function Rolly() {
   const handlePlanModeToggle = useCallback((active: boolean) => {
     setPlanMode(active);
     if (active) {
-      setWizardActive(true);
-      if (isMobile) setMobileTab("workspace");
+      // Don't activate wizard yet — wait for the user's first message
     } else {
       setWizardActive(false);
+      setWizardContext(null);
     }
+  }, []);
+
+  const handlePlanMessage = useCallback((msg: string) => {
+    setWizardContext(msg);
+    setWizardActive(true);
+    if (isMobile) setMobileTab("workspace");
   }, [isMobile]);
 
   const handleWizardComplete = useCallback((answers: PlanAnswers) => {
-    const prompt = compilePlanPrompt(answers);
+    const prompt = compilePlanPrompt(answers, wizardContext);
     setWizardActive(false);
+    setWizardContext(null);
     if (isMobile) setMobileTab("chat");
     if (sendFn) {
       sendFn(prompt);
     } else {
       setPrefill(prompt);
     }
-  }, [sendFn, isMobile]);
+  }, [sendFn, isMobile, wizardContext]);
 
   const handleWizardCancel = useCallback(() => {
     setWizardActive(false);
+    setWizardContext(null);
     setPlanMode(false);
     if (isMobile) setMobileTab("chat");
   }, [isMobile]);
 
   const workspaceContent = wizardActive ? (
-    <PlanWizard onComplete={handleWizardComplete} onCancel={handleWizardCancel} />
+    <PlanWizard onComplete={handleWizardComplete} onCancel={handleWizardCancel} initialContext={wizardContext} />
   ) : (
     <RollyWorkspace />
   );
@@ -187,6 +199,7 @@ export default function Rolly() {
                 planMode={planMode}
                 onPlanModeChange={handlePlanModeToggle}
                 onSendReady={handleSendReady}
+                onPlanMessage={handlePlanMessage}
               />
             ) : (
               workspaceContent
@@ -202,6 +215,7 @@ export default function Rolly() {
               planMode={planMode}
               onPlanModeChange={handlePlanModeToggle}
               onSendReady={handleSendReady}
+              onPlanMessage={handlePlanMessage}
             />
           </div>
           <div className="flex-1 overflow-y-auto min-w-0">
