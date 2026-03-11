@@ -29,7 +29,7 @@ const CHAPTERS = [
 function anonymize(text: string): string {
   let c = text;
   c = c.replace(/@\w+/g, "");
-  c = c.replace(/\b(donny\s*slater|brian\s*zisook|djbooth)\b/gi, "");
+  c = c.replace(/\b(donny\s*slater|brian\s*"?z"?\s*zisook|zisook|donny|slater|djbooth)\b/gi, "");
   c = c.replace(/according to\s+\w+(\s+\w+){0,2}/gi, "");
   c = c.replace(/\bvia\s+@?\w+/gi, "");
   c = c.replace(/\b(says|said|wrote|posted by|tweeted by)\s+\w+(\s+\w+)?/gi, "");
