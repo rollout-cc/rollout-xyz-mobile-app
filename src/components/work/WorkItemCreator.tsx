@@ -4,6 +4,8 @@ import { ItemEditor } from "@/components/ui/ItemEditor";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useVoiceInput } from "@/hooks/useVoiceInput";
+import { VoiceInputButton } from "@/components/ui/VoiceInputButton";
 
 interface SuggestionItem {
   id: string;
@@ -50,6 +52,12 @@ export function WorkItemCreator({
   const [description, setDescription] = useState("");
   const [parsedDate, setParsedDate] = useState<Date | null>(null);
   const [showDescription, setShowDescription] = useState(false);
+
+  const voice = useVoiceInput({
+    onResult: (text) => {
+      handleTitleChange(title ? title + " " + text : text);
+    },
+  });
 
   const handleSubmit = () => {
     if (!title.trim()) return;
@@ -160,6 +168,13 @@ export function WorkItemCreator({
       {metadataPills}
 
       <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/40">
+        <VoiceInputButton
+          isListening={voice.isListening}
+          isSupported={voice.isSupported}
+          onClick={voice.toggleListening}
+          size="sm"
+        />
+        <div className="flex-1" />
         <Button variant="ghost" size="sm" onClick={handleCancel}>Cancel</Button>
         <Button size="sm" onClick={handleSubmit} disabled={!title.trim()} className="gap-1">
           Save

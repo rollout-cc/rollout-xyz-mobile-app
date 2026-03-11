@@ -10,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useVoiceInput } from "@/hooks/useVoiceInput";
+import { VoiceInputButton } from "@/components/ui/VoiceInputButton";
 
 const QUICK_ACTIONS = [
   { label: "Plan a release", prompt: "Let's plan a release together. Walk me through it step by step — ask me about the artist, timeline, budget, marketing, and anything else you need to build a full plan with tasks, milestones, and budgets." },
@@ -35,6 +37,12 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
   const [showScanner, setShowScanner] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const voice = useVoiceInput({
+    onResult: (text) => {
+      setInput((prev) => (prev ? prev + " " + text : text));
+    },
+  });
   const { selectedTeamId } = useSelectedTeam();
 
   // Fetch artists for receipt → expense linking
@@ -201,6 +209,11 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
             placeholder={planMode ? "Describe what you want to plan..." : "Ask ROLLY anything..."}
             className="min-h-[40px] max-h-[160px] resize-none rounded-xl py-2.5"
             rows={1}
+          />
+          <VoiceInputButton
+            isListening={voice.isListening}
+            isSupported={voice.isSupported}
+            onClick={voice.toggleListening}
           />
           <Button
             size="icon"
