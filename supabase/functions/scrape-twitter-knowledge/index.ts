@@ -6,18 +6,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const KEYWORD_FILTER = [
-  "rollout", "release", "dsp", "playlist", "publishing", "sync", "licensing",
-  "management", "manager", "artist", "label", "deal", "advance", "recoup",
-  "strategy", "campaign", "marketing", "streaming", "revenue", "royalt",
-  "tour", "merch", "brand", "distribution", "split", "copyright", "master",
-  "catalog", "a&r", "signing", "budget", "team", "roster", "indie", "major",
-  "radio", "promotion", "fanbase", "audience", "tiktok", "spotify",
-  "apple music", "youtube", "music video", "production", "producer",
-  "songwriter", "contract", "negotiate", "commission", "profit",
-  "business", "invest", "monetize", "growth",
-];
-
 const CHAPTERS = [
   "Industry Strategy Insights",
   "Release Strategy Patterns",
@@ -47,17 +35,6 @@ function pickChapter(text: string): string {
   return CHAPTERS[0];
 }
 
-function hasKeywords(text: string): boolean {
-  const l = text.toLowerCase();
-  let hits = 0;
-  for (const kw of KEYWORD_FILTER) {
-    if (l.includes(kw)) hits++;
-    if (hits >= 2) return true;
-  }
-  return false;
-}
-
-// Default Twitter handles to scrape
 const DEFAULT_HANDLES = [
   "BrianZisook",
   "thatdonnyslater",
@@ -66,20 +43,19 @@ const DEFAULT_HANDLES = [
 ];
 
 async function runApifyActor(apifyToken: string, handles: string[], maxTweets: number): Promise<any[]> {
-  const actorId = "apidojo~tweet-scraper";
+  // Using data-slayer/twitter-user-tweets — no login required
+  const actorId = "data-slayer~twitter-user-tweets";
 
-  // Start the actor run
   const startResp = await fetch(
     `https://api.apify.com/v2/acts/${actorId}/runs?token=${apifyToken}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        startUrls: handles.map(h => ({ url: `https://x.com/${h}` })),
-        maxItems: maxTweets,
-        sort: "Latest",
-        tweetLanguage: "en",
-        excludeReplies: true,
+        handles: handles,
+        tweetsDesired: maxTweets,
+        addUserInfo: false,
+        proxyConfig: { useApifyProxy: true },
       }),
     }
   );
@@ -95,7 +71,6 @@ async function runApifyActor(apifyToken: string, handles: string[], maxTweets: n
 
   console.log(`Apify run started: ${runId}`);
 
-  // Poll for completion (max 5 min)
   const maxWait = 5 * 60 * 1000;
   const pollInterval = 10_000;
   const start = Date.now();
@@ -119,7 +94,6 @@ async function runApifyActor(apifyToken: string, handles: string[], maxTweets: n
       const datasetId = statusData?.data?.defaultDatasetId;
       if (!datasetId) throw new Error("No dataset ID");
 
-      // Fetch all items from dataset
       const itemsResp = await fetch(
         `https://api.apify.com/v2/datasets/${datasetId}/items?token=${apifyToken}&limit=10000`
       );
@@ -155,7 +129,6 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Parse optional request body
     let handles = DEFAULT_HANDLES;
     let maxTweets = 2000;
     try {
@@ -168,31 +141,31 @@ Deno.serve(async (req: Request) => {
 
     console.log(`Scraping ${maxTweets} tweets from: ${handles.join(", ")}`);
 
-    // Run Apify actor
     const tweets = await runApifyActor(apifyToken, handles, maxTweets);
     console.log(`Got ${tweets.length} tweets from Apify`);
-    // Debug: log first 3 raw tweet objects to see available fields
+
+    // Debug: log first 3 raw tweet objects to identify field names
     for (let d = 0; d < Math.min(3, tweets.length); d++) {
-      console.log(`RAW TWEET ${d}:`, JSON.stringify(tweets[d]).substring(0, 1000));
+      console.log(`RAW TWEET ${d}:`, JSON.stringify(tweets[d]).substring(0, 1500));
     }
 
     const stats = { total_tweets: tweets.length, matched: 0, inserted: 0, duplicates: 0 };
 
-    // Process tweets
     const seen = new Set<string>();
     const toInsert: { content: string; chapter: string }[] = [];
 
     for (const tweet of tweets) {
-      const text = tweet?.full_text || tweet?.text || tweet?.tweetText || "";
+      // Try multiple possible field names from different actors
+      const text = tweet?.full_text || tweet?.text || tweet?.tweetText || tweet?.tweet_text || tweet?.content || "";
       if (!text || text.length < 20) continue;
 
       stats.matched++;
 
       const anonymized = anonymize(text);
-      if (anonymized.length < 40) continue;
+      if (anonymized.length < 20) continue;
 
       const key = anonymized.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 120);
-      if (key.length < 30 || seen.has(key)) {
+      if (key.length < 15 || seen.has(key)) {
         stats.duplicates++;
         continue;
       }
@@ -214,14 +187,13 @@ Deno.serve(async (req: Request) => {
         content: entry.content,
       }));
 
-      const { error, count } = await adminClient
+      const { error } = await adminClient
         .from("rolly_knowledge")
         .upsert(batch, { onConflict: "content", ignoreDuplicates: true });
 
       if (!error) {
         stats.inserted += batch.length;
       } else {
-        // Fall back to individual inserts on conflict
         for (const row of batch) {
           const { error: singleErr } = await adminClient
             .from("rolly_knowledge")
