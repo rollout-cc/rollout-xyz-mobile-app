@@ -1,10 +1,15 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Square, Trash2, Sparkles, CheckCircle2, AlertCircle, ClipboardList } from "lucide-react";
+import { Send, Square, Trash2, Sparkles, CheckCircle2, AlertCircle, ClipboardList, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { RollyMessage } from "./RollyMessage";
 import { useRollyChat, RollyToolAction } from "@/hooks/useRollyChat";
 import { cn } from "@/lib/utils";
+import { ReceiptScanner } from "@/components/finance/ReceiptScanner";
+import { supabase } from "@/integrations/supabase/client";
+import { useSelectedTeam } from "@/contexts/TeamContext";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 const QUICK_ACTIONS = [
   { label: "Plan a release", prompt: "Let's plan a release together. Walk me through it step by step — ask me about the artist, timeline, budget, marketing, and anything else you need to build a full plan with tasks, milestones, and budgets." },
