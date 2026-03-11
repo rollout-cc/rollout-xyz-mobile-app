@@ -33,65 +33,47 @@ const DEFAULT_HANDLES = [
   "BarryHefner",
 ];
 
-async function scrapeHandle(apifyToken: string, handle: string): Promise<any[]> {
-  const actorId = "data-slayer~twitter-user-tweets";
+async function scrapeHandle(firecrawlKey: string, handle: string): Promise<string[]> {
+  const url = `https://x.com/${handle}`;
+  console.log(`Scraping ${url} via Firecrawl...`);
 
-  const startResp = await fetch(
-    `https://api.apify.com/v2/acts/${actorId}/runs?token=${apifyToken}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: handle }),
-    }
-  );
+  const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${firecrawlKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      url,
+      formats: ["markdown"],
+      onlyMainContent: true,
+      waitFor: 3000,
+    }),
+  });
 
-  if (!startResp.ok) {
-    const errText = await startResp.text();
-    console.error(`Apify start failed for ${handle}: ${errText}`);
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error(`Firecrawl scrape failed for @${handle}: ${response.status} ${errText}`);
     return [];
   }
 
-  const runData = await startResp.json();
-  const runId = runData?.data?.id;
-  if (!runId) { console.error(`No run ID for ${handle}`); return []; }
+  const data = await response.json();
+  const markdown = data?.data?.markdown || data?.markdown || "";
 
-  console.log(`Run started for @${handle}: ${runId}`);
-
-  const maxWait = 5 * 60 * 1000;
-  const pollInterval = 10_000;
-  const start = Date.now();
-
-  while (Date.now() - start < maxWait) {
-    await new Promise(r => setTimeout(r, pollInterval));
-
-    const statusResp = await fetch(
-      `https://api.apify.com/v2/actor-runs/${runId}?token=${apifyToken}`
-    );
-    if (!statusResp.ok) { await statusResp.text(); continue; }
-
-    const statusData = await statusResp.json();
-    const status = statusData?.data?.status;
-    console.log(`@${handle} run ${runId}: ${status}`);
-
-    if (status === "SUCCEEDED") {
-      const datasetId = statusData?.data?.defaultDatasetId;
-      if (!datasetId) return [];
-
-      const itemsResp = await fetch(
-        `https://api.apify.com/v2/datasets/${datasetId}/items?token=${apifyToken}&limit=10000`
-      );
-      if (!itemsResp.ok) return [];
-      return await itemsResp.json();
-    }
-
-    if (status === "FAILED" || status === "ABORTED" || status === "TIMED-OUT") {
-      console.error(`@${handle} run ${status}`);
-      return [];
-    }
+  if (!markdown || markdown.length < 50) {
+    console.log(`No meaningful content scraped for @${handle}`);
+    return [];
   }
 
-  console.error(`@${handle} timed out`);
-  return [];
+  // Split markdown into individual tweet-like blocks
+  // Twitter/X pages typically have content separated by line breaks
+  const blocks = markdown
+    .split(/\n{2,}/)
+    .map((b: string) => b.trim())
+    .filter((b: string) => b.length >= 30 && b.length <= 2000);
+
+  console.log(`@${handle}: extracted ${blocks.length} text blocks from scraped content`);
+  return blocks;
 }
 
 interface ClassifiedTweet {
@@ -104,7 +86,7 @@ async function classifyTweets(
   apiKey: string,
   tweets: string[]
 ): Promise<ClassifiedTweet[]> {
-  const prompt = `You are a music industry content classifier. For each numbered tweet below, determine:
+  const prompt = `You are a music industry content classifier. For each numbered text block below, determine:
 1. Is it relevant to the MUSIC INDUSTRY? (artist development, streaming, releases, marketing, A&R, deals, publishing, labels, touring, fan engagement, music business strategy, etc.)
 2. If relevant, which chapter best fits:
    - "Industry Strategy Insights" (general strategy, market trends)
@@ -113,10 +95,10 @@ async function classifyTweets(
    - "Music Business Operations" (team, roster, hiring, operations, management)
    - "Revenue & Deal Strategy" (revenue, deals, advances, royalties, splits, contracts)
 
-Personal opinions, lifestyle posts, relationship advice, food, sports, and general life commentary are NOT relevant.
+Personal opinions, lifestyle posts, relationship advice, food, sports, UI navigation elements, follower counts, and general life commentary are NOT relevant.
 
-Tweets:
-${tweets.map((t, i) => `[${i}] ${t}`).join("\n")}
+Text blocks:
+${tweets.map((t, i) => `[${i}] ${t}`).join("\n\n")}
 
 Return ONLY a JSON array of objects with fields: index (number), relevant (boolean), chapter (string or null if not relevant). No other text.`;
 
@@ -140,7 +122,6 @@ Return ONLY a JSON array of objects with fields: index (number), relevant (boole
   const data = await resp.json();
   const raw = data.choices?.[0]?.message?.content || "";
 
-  // Extract JSON array from response
   const jsonMatch = raw.match(/\[[\s\S]*\]/);
   if (!jsonMatch) {
     console.error("No JSON array in AI response:", raw.substring(0, 300));
@@ -159,9 +140,9 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const apifyToken = Deno.env.get("APIFY_API_TOKEN");
-    if (!apifyToken) {
-      return new Response(JSON.stringify({ error: "APIFY_API_TOKEN not configured" }), {
+    const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
+    if (!firecrawlKey) {
+      return new Response(JSON.stringify({ error: "FIRECRAWL_API_KEY not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -184,46 +165,43 @@ Deno.serve(async (req: Request) => {
       if (body?.handles?.length) handles = body.handles;
     } catch { /* No body, use defaults */ }
 
-    console.log(`Scraping handles: ${handles.join(", ")}`);
+    console.log(`Scraping handles via Firecrawl: ${handles.join(", ")}`);
 
-    // Scrape all handles sequentially
-    let allTweets: any[] = [];
-    for (const handle of handles) {
-      const tweets = await scrapeHandle(apifyToken, handle);
-      console.log(`@${handle}: ${tweets.length} tweets`);
-      allTweets = allTweets.concat(tweets);
-    }
-
-    console.log(`Total tweets from all handles: ${allTweets.length}`);
-
-    const stats = { total_tweets: allTweets.length, matched: 0, relevant: 0, inserted: 0, duplicates: 0 };
+    const stats = { total_blocks: 0, unique: 0, relevant: 0, inserted: 0, duplicates: 0 };
     const seen = new Set<string>();
+    const allBlocks: { text: string; anonymized: string }[] = [];
 
-    // Extract and deduplicate tweet texts
-    const tweetTexts: { text: string; anonymized: string }[] = [];
-    for (const tweet of allTweets) {
-      const text = tweet?.text || tweet?.full_text || "";
-      if (!text || text.length < 20) continue;
-      stats.matched++;
+    // Scrape each handle sequentially (to avoid rate limits)
+    for (const handle of handles) {
+      const blocks = await scrapeHandle(firecrawlKey, handle);
+      stats.total_blocks += blocks.length;
 
-      const anonymized = anonymize(text);
-      if (anonymized.length < 20) continue;
+      for (const text of blocks) {
+        const anonymized = anonymize(text);
+        if (anonymized.length < 30) continue;
 
-      const key = anonymized.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 120);
-      if (key.length < 15 || seen.has(key)) { stats.duplicates++; continue; }
-      seen.add(key);
+        const key = anonymized.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 120);
+        if (key.length < 15 || seen.has(key)) { stats.duplicates++; continue; }
+        seen.add(key);
 
-      tweetTexts.push({ text, anonymized });
+        allBlocks.push({ text, anonymized });
+      }
+
+      // Delay between handles
+      if (handles.indexOf(handle) < handles.length - 1) {
+        await new Promise(r => setTimeout(r, 2000));
+      }
     }
 
-    console.log(`${tweetTexts.length} unique tweets to classify`);
+    stats.unique = allBlocks.length;
+    console.log(`${allBlocks.length} unique blocks to classify`);
 
     // Classify in batches of 20
     const toInsert: { content: string; chapter: string }[] = [];
     const BATCH_SIZE = 20;
 
-    for (let i = 0; i < tweetTexts.length; i += BATCH_SIZE) {
-      const batch = tweetTexts.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < allBlocks.length; i += BATCH_SIZE) {
+      const batch = allBlocks.slice(i, i + BATCH_SIZE);
       const textsForAI = batch.map(t => t.text);
 
       console.log(`Classifying batch ${Math.floor(i / BATCH_SIZE) + 1}...`);
@@ -240,8 +218,7 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      // Small delay between batches to avoid rate limiting
-      if (i + BATCH_SIZE < tweetTexts.length) {
+      if (i + BATCH_SIZE < allBlocks.length) {
         await new Promise(r => setTimeout(r, 1000));
       }
     }
