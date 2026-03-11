@@ -869,6 +869,13 @@ export type Database = {
           invitee_job_title: string | null
           invitee_name: string | null
           invitee_phone: string | null
+          perm_edit_artists: boolean
+          perm_manage_finance: boolean
+          perm_view_ar: boolean
+          perm_view_billing: boolean
+          perm_view_finance: boolean
+          perm_view_roster: boolean
+          perm_view_staff_salaries: boolean
           role: Database["public"]["Enums"]["app_role"]
           staff_employment_type: string | null
           staff_salary: number | null
@@ -887,6 +894,13 @@ export type Database = {
           invitee_job_title?: string | null
           invitee_name?: string | null
           invitee_phone?: string | null
+          perm_edit_artists?: boolean
+          perm_manage_finance?: boolean
+          perm_view_ar?: boolean
+          perm_view_billing?: boolean
+          perm_view_finance?: boolean
+          perm_view_roster?: boolean
+          perm_view_staff_salaries?: boolean
           role?: Database["public"]["Enums"]["app_role"]
           staff_employment_type?: string | null
           staff_salary?: number | null
@@ -905,6 +919,13 @@ export type Database = {
           invitee_job_title?: string | null
           invitee_name?: string | null
           invitee_phone?: string | null
+          perm_edit_artists?: boolean
+          perm_manage_finance?: boolean
+          perm_view_ar?: boolean
+          perm_view_billing?: boolean
+          perm_view_finance?: boolean
+          perm_view_roster?: boolean
+          perm_view_staff_salaries?: boolean
           role?: Database["public"]["Enums"]["app_role"]
           staff_employment_type?: string | null
           staff_salary?: number | null
@@ -1880,6 +1901,13 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          perm_edit_artists: boolean
+          perm_manage_finance: boolean
+          perm_view_ar: boolean
+          perm_view_billing: boolean
+          perm_view_finance: boolean
+          perm_view_roster: boolean
+          perm_view_staff_salaries: boolean
           role: Database["public"]["Enums"]["app_role"]
           team_id: string
           user_id: string
@@ -1887,6 +1915,13 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          perm_edit_artists?: boolean
+          perm_manage_finance?: boolean
+          perm_view_ar?: boolean
+          perm_view_billing?: boolean
+          perm_view_finance?: boolean
+          perm_view_roster?: boolean
+          perm_view_staff_salaries?: boolean
           role?: Database["public"]["Enums"]["app_role"]
           team_id: string
           user_id: string
@@ -1894,6 +1929,13 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          perm_edit_artists?: boolean
+          perm_manage_finance?: boolean
+          perm_view_ar?: boolean
+          perm_view_billing?: boolean
+          perm_view_finance?: boolean
+          perm_view_roster?: boolean
+          perm_view_staff_salaries?: boolean
           role?: Database["public"]["Enums"]["app_role"]
           team_id?: string
           user_id?: string

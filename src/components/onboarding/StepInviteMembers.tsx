@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { OnboardingArtist } from "./CompanyOnboardingWizard";
+import { PermissionToggles, defaultPermissions, type PermissionFlags } from "@/components/settings/PermissionToggles";
 
 const JOB_TITLES = [
   "A&R",
@@ -42,6 +43,7 @@ interface MemberEntry {
   selectedArtistIds: string[];
   generatedLink: string | null;
   sent: boolean;
+  permissions: PermissionFlags;
 }
 
 const emptyMember = (): MemberEntry => ({
@@ -57,6 +59,7 @@ const emptyMember = (): MemberEntry => ({
   selectedArtistIds: [],
   generatedLink: null,
   sent: false,
+  permissions: { ...defaultPermissions },
 });
 
 interface Props {
@@ -126,6 +129,7 @@ export function StepInviteMembers({ teamId, userId, addedArtists }: Props) {
           staff_salary: m.salary ? parseFloat(m.salary) : null,
           invitee_email: m.email.trim() || null,
           invitee_phone: m.phone.trim() || null,
+          ...m.permissions,
         })
         .select("token")
         .single();
@@ -313,6 +317,14 @@ export function StepInviteMembers({ teamId, userId, addedArtists }: Props) {
                 )}
               </div>
             )}
+
+            {/* Permission toggles */}
+            <PermissionToggles
+              role={m.accessLevel}
+              permissions={m.permissions}
+              onChange={(perms) => updateMember(idx, { permissions: perms })}
+              disabled={!!m.generatedLink}
+            />
 
             {/* Employment + salary (optional) */}
             <div className="grid grid-cols-2 gap-3">

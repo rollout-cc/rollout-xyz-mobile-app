@@ -94,10 +94,21 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Create team membership
+    // Create team membership with permission flags from invite
     const { error: memberError } = await supabaseAdmin
       .from("team_memberships")
-      .insert({ user_id: user.id, team_id: invite.team_id, role: invite.role });
+      .insert({
+        user_id: user.id,
+        team_id: invite.team_id,
+        role: invite.role,
+        perm_view_finance: invite.perm_view_finance ?? false,
+        perm_manage_finance: invite.perm_manage_finance ?? false,
+        perm_view_staff_salaries: invite.perm_view_staff_salaries ?? false,
+        perm_view_ar: invite.perm_view_ar ?? false,
+        perm_view_roster: invite.perm_view_roster ?? false,
+        perm_edit_artists: invite.perm_edit_artists ?? false,
+        perm_view_billing: invite.perm_view_billing ?? false,
+      });
 
     if (memberError) throw memberError;
 

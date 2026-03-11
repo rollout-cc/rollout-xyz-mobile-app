@@ -28,6 +28,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Copy, Check, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { PermissionToggles, defaultPermissions, type PermissionFlags } from "@/components/settings/PermissionToggles";
 
 const roleLabelMap: Record<string, string> = {
   team_owner: "Team Owner",
@@ -72,6 +73,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [permissions, setPermissions] = useState<PermissionFlags>({ ...defaultPermissions });
 
   const hasEmail = inviteEmail.trim().length > 0;
 
@@ -88,6 +90,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
           invitee_job_title: jobTitle || null,
           invitee_email: inviteEmail.trim() || null,
           invitee_name: inviteeName.trim() || null,
+          ...permissions,
         })
         .select("token")
         .single();
@@ -162,6 +165,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
     setAddToStaff(false);
     setStaffEmploymentType("w2");
     setJobTitle("");
+    setPermissions({ ...defaultPermissions });
   };
 
   return (
@@ -223,6 +227,13 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
                 <Label>Job Title</Label>
                 <JobTitleSelect value={jobTitle} onChange={setJobTitle} />
               </div>
+
+              {/* Permission toggles */}
+              <PermissionToggles
+                role={inviteRole}
+                permissions={permissions}
+                onChange={setPermissions}
+              />
 
               {/* Add to Staff toggle */}
               <div className="space-y-3 rounded-lg border border-border p-3">
