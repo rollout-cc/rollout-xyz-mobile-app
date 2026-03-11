@@ -134,7 +134,7 @@ export default function Rolly() {
   }, [isMobile]);
 
   const handleWizardComplete = useCallback((answers: PlanAnswers) => {
-    const prompt = compilePlanPrompt(answers);
+    const prompt = compilePlanPrompt(answers, wizardContext);
     setWizardActive(false);
     setWizardContext(null);
     if (isMobile) setMobileTab("chat");
@@ -143,7 +143,7 @@ export default function Rolly() {
     } else {
       setPrefill(prompt);
     }
-  }, [sendFn, isMobile]);
+  }, [sendFn, isMobile, wizardContext]);
 
   const handleWizardCancel = useCallback(() => {
     setWizardActive(false);
