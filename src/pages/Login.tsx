@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ChevronRight } from "lucide-react";
 import rolloutLogo from "@/assets/rollout-logo.png";
+import { Capacitor } from "@capacitor/core";
+import { Keyboard } from "@capacitor/keyboard";
 
 export default function Login() {
   const [searchParams] = useSearchParams();
@@ -69,6 +71,17 @@ export default function Login() {
     if (error) toast.error(error.message);
     else toast.success("Password reset email sent!");
   };
+
+  // On iOS, the Capacitor Keyboard plugin + scrollEnabled:false can prevent the
+  // keyboard from appearing when focusing inputs. Enabling WebView scroll for
+  // this screen restores native behavior so tap-to-focus shows the keyboard.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "ios") return;
+    Keyboard.setScroll({ isDisabled: false });
+    return () => {
+      Keyboard.setScroll({ isDisabled: true });
+    };
+  }, []);
 
   return (
     // h-dvh = dynamic viewport height: adjusts when the iOS keyboard appears,
