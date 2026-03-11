@@ -59,6 +59,7 @@ const emptyMember = (): MemberEntry => ({
   selectedArtistIds: [],
   generatedLink: null,
   sent: false,
+  permissions: { ...defaultPermissions },
 });
 
 interface Props {
