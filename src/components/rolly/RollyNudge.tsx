@@ -31,15 +31,15 @@ export function RollyNudge({ screen, dataSnapshot, entityId }: Props) {
         animate={{ opacity: 1, x: 0, scale: 1 }}
         exit={{ opacity: 0, x: -20, scale: 0.95 }}
         transition={{ duration: 0.25, ease: "easeOut" }}
-        className={`fixed z-[55] flex items-center gap-2.5 px-3.5 py-2.5 rounded-full bg-card border border-border shadow-lg cursor-pointer hover:shadow-xl transition-shadow max-w-[320px] ${
+        className={`fixed z-[55] flex items-center gap-2.5 px-3.5 py-2.5 rounded-full bg-card border border-border shadow-lg cursor-pointer hover:shadow-xl transition-shadow max-w-[360px] ${
           isMobile
             ? "bottom-[calc(env(safe-area-inset-bottom)+74px)] left-3 right-20"
-            : "bottom-6 left-[calc(var(--sidebar-width,16rem)+1rem)]"
+            : "bottom-12 left-[calc(var(--sidebar-width,16rem)+1rem)]"
         }`}
         onClick={handleClick}
       >
         <img src={rollyIcon} alt="" className="h-6 w-6 rounded-full shrink-0" />
-        <span className="text-xs text-foreground leading-snug line-clamp-2 flex-1">{nudge}</span>
+        <span className="text-sm text-foreground leading-snug line-clamp-2 flex-1">{nudge}</span>
         <button
           onClick={(e) => {
             e.stopPropagation();
