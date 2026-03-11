@@ -168,6 +168,13 @@ export function WorkItemCreator({
       {metadataPills}
 
       <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/40">
+        <VoiceInputButton
+          isListening={voice.isListening}
+          isSupported={voice.isSupported}
+          onClick={voice.toggleListening}
+          size="sm"
+        />
+        <div className="flex-1" />
         <Button variant="ghost" size="sm" onClick={handleCancel}>Cancel</Button>
         <Button size="sm" onClick={handleSubmit} disabled={!title.trim()} className="gap-1">
           Save
