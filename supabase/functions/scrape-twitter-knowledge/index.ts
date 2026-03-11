@@ -43,8 +43,8 @@ const DEFAULT_HANDLES = [
 ];
 
 async function runApifyActor(apifyToken: string, handles: string[], maxTweets: number): Promise<any[]> {
-  // Using data-slayer/twitter-user-tweets — no login required
-  const actorId = "data-slayer~twitter-user-tweets";
+  // Using apidojo/tweet-scraper with startUrls format
+  const actorId = "apidojo~tweet-scraper";
 
   const startResp = await fetch(
     `https://api.apify.com/v2/acts/${actorId}/runs?token=${apifyToken}`,
@@ -53,9 +53,9 @@ async function runApifyActor(apifyToken: string, handles: string[], maxTweets: n
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         startUrls: handles.map(h => ({ url: `https://x.com/${h}` })),
-        tweetsDesired: maxTweets,
-        addUserInfo: false,
-        proxyConfig: { useApifyProxy: true },
+        maxItems: maxTweets,
+        sort: "Latest",
+        tweetLanguage: "en",
       }),
     }
   );
