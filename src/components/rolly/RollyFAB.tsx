@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { RollyChat } from "./RollyChat";
 import { useIsMobile } from "@/hooks/use-mobile";
 import rollyIcon from "@/assets/rolly-icon.png";
+import { rollyEvents } from "@/lib/rollyEvents";
 
 const GREETING_KEY = "rolly-greeted";
 
