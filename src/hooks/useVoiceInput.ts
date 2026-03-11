@@ -28,7 +28,7 @@ export function useVoiceInput({
 }: UseVoiceInputOptions = {}): UseVoiceInputReturn {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
   const callbacksRef = useRef({ onInterim, onResult });
 
   callbacksRef.current = { onInterim, onResult };
