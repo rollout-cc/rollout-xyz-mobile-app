@@ -216,6 +216,7 @@ Deno.serve(async (req: Request) => {
       success: true,
       stats,
       handles_scraped: handles,
+      debug_raw: debugRaw,
       sample: toInsert.slice(0, 3).map(u => ({
         chapter: u.chapter,
         preview: u.content.substring(0, 200),
