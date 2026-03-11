@@ -19,8 +19,12 @@ export function RollyNudge({ screen, dataSnapshot, entityId }: Props) {
   if (!nudge || dismissed) return null;
 
   const handleClick = () => {
+    const prompt = ctaPrompt || nudge;
     dismiss();
-    navigate("/rolly", { state: { prefillPrompt: ctaPrompt || nudge } });
+    // Navigate after a tick to ensure dismiss doesn't unmount before navigate fires
+    setTimeout(() => {
+      navigate("/rolly", { state: { prefillPrompt: prompt } });
+    }, 0);
   };
 
   return (
