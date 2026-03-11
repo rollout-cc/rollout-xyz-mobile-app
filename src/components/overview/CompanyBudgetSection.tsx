@@ -267,16 +267,17 @@ export function CompanyBudgetSection({ readOnly = false }: CompanyBudgetSectionP
               const pct = budget > 0 ? Math.min(Math.round((spent / budget) * 100), 100) : 0;
 
               return (
-                <CategoryCard
-                  key={cat.id}
-                  name={cat.name}
-                  budget={budget}
-                  spent={spent}
-                  pct={pct}
-                  onBudgetChange={(val) => updateCategoryBudget.mutate({ id: cat.id, annual_budget: val })}
-                  onDelete={() => deleteCategory.mutate(cat.id)}
-                  fmt={fmt}
-                />
+                  <CategoryCard
+                    key={cat.id}
+                    name={cat.name}
+                    budget={budget}
+                    spent={spent}
+                    pct={pct}
+                    onBudgetChange={readOnly ? undefined : (val) => updateCategoryBudget.mutate({ id: cat.id, annual_budget: val })}
+                    onDelete={readOnly ? undefined : () => deleteCategory.mutate(cat.id)}
+                    fmt={fmt}
+                    readOnly={readOnly}
+                  />
               );
             })}
           </div>
