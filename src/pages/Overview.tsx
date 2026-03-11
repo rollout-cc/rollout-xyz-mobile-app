@@ -39,6 +39,7 @@ import { useTeamPlan } from "@/hooks/useTeamPlan";
 import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 import { useTour } from "@/contexts/TourContext";
 import { RollyNudge } from "@/components/rolly/RollyNudge";
+import { MarketingOutreach } from "@/components/outreach/MarketingOutreach";
 
 export default function Overview() {
   const { selectedTeamId: teamId, canManageFinance } = useSelectedTeam();
