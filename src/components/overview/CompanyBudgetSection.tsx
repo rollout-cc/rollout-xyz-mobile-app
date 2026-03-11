@@ -209,7 +209,7 @@ export function CompanyBudgetSection({ readOnly = false }: CompanyBudgetSectionP
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="rounded-xl border border-border p-3">
           <p className="text-xs text-muted-foreground">Annual Budget</p>
-          {editingBudget ? (
+          {!readOnly && editingBudget ? (
             <CurrencyInput
               value={budgetInput}
               onChange={setBudgetInput}
@@ -220,8 +220,9 @@ export function CompanyBudgetSection({ readOnly = false }: CompanyBudgetSectionP
             />
           ) : (
             <button
-              onClick={() => { setBudgetInput(annualBudget.toString()); setEditingBudget(true); }}
-              className="text-lg font-bold mt-1 hover:text-primary transition-colors text-left w-full"
+              onClick={() => { if (!readOnly) { setBudgetInput(annualBudget.toString()); setEditingBudget(true); } }}
+              className={cn("text-lg font-bold mt-1 text-left w-full", !readOnly && "hover:text-primary transition-colors")}
+              disabled={readOnly}
             >
               <span className="sm:hidden">{abbr(annualBudget)}</span>
               <span className="hidden sm:inline">{fmt(annualBudget)}</span>
