@@ -445,7 +445,7 @@ export default function Overview() {
   // Tab bar rendered in the AppLayout header on mobile
   const mobileTabBar = (
     <div className="flex items-center gap-1 px-4 py-2.5" data-tour="overview-tabs">
-      {(["dashboard", "agenda", "staff", "finance"] as const).map((tab) => (
+      {(["dashboard", "agenda", "staff", "finance", "outreach"] as const).map((tab) => (
         <button
           key={tab}
           onClick={() => handleCompanyTab(tab)}
