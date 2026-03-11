@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { OnboardingArtist } from "./CompanyOnboardingWizard";
-import { PermissionToggles, defaultPermissions, type PermissionFlags } from "@/components/settings/PermissionToggles";
+import { PermissionToggles, defaultPermissions, roleDefaults, type PermissionFlags } from "@/components/settings/PermissionToggles";
 
 const JOB_TITLES = [
   "A&R",
@@ -59,7 +59,7 @@ const emptyMember = (): MemberEntry => ({
   selectedArtistIds: [],
   generatedLink: null,
   sent: false,
-  permissions: { ...defaultPermissions },
+  permissions: { ...roleDefaults("manager") },
 });
 
 interface Props {
@@ -254,7 +254,7 @@ export function StepInviteMembers({ teamId, userId, addedArtists }: Props) {
                 <Label className="text-xs mb-1 block">Access Level</Label>
                 <Select
                   value={m.accessLevel}
-                  onValueChange={(v) => updateMember(idx, { accessLevel: v })}
+                  onValueChange={(v) => updateMember(idx, { accessLevel: v, permissions: { ...roleDefaults(v) } })}
                   disabled={!!m.generatedLink}
                 >
                   <SelectTrigger>

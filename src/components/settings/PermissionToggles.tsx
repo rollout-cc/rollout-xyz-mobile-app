@@ -67,38 +67,32 @@ interface Props {
 }
 
 export function PermissionToggles({ role, permissions, onChange, disabled }: Props) {
-  const defaults = roleDefaults(role);
-
   return (
     <div className="space-y-2">
       <Label className="text-xs font-medium">Permissions</Label>
       <p className="text-[11px] text-muted-foreground mb-2">
-        Toggles grant additional access beyond the role's defaults.
+        Control what this member can access. Role defaults are pre-set but can be changed.
       </p>
       <div className="space-y-1.5">
-        {PERM_ITEMS.map(({ key, label, description }) => {
-          const isDefault = defaults[key];
-          const isGranted = isDefault || permissions[key];
-          return (
-            <div
-              key={key}
-              className="flex items-center justify-between rounded-md border border-border px-3 py-2"
-            >
-              <div className="min-w-0">
-                <p className="text-xs font-medium leading-tight">{label}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">{description}</p>
-              </div>
-              <Switch
-                checked={isGranted}
-                disabled={disabled || isDefault}
-                onCheckedChange={(checked) =>
-                  onChange({ ...permissions, [key]: checked })
-                }
-                className="shrink-0 ml-3"
-              />
+        {PERM_ITEMS.map(({ key, label, description }) => (
+          <div
+            key={key}
+            className="flex items-center justify-between rounded-md border border-border px-3 py-2"
+          >
+            <div className="min-w-0">
+              <p className="text-xs font-medium leading-tight">{label}</p>
+              <p className="text-[10px] text-muted-foreground leading-tight">{description}</p>
             </div>
-          );
-        })}
+            <Switch
+              checked={permissions[key]}
+              disabled={disabled}
+              onCheckedChange={(checked) =>
+                onChange({ ...permissions, [key]: checked })
+              }
+              className="shrink-0 ml-3"
+            />
+          </div>
+        ))}
       </div>
     </div>
   );

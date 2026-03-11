@@ -28,7 +28,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Copy, Check, Mail } from "lucide-react";
 import { toast } from "sonner";
-import { PermissionToggles, defaultPermissions, type PermissionFlags } from "@/components/settings/PermissionToggles";
+import { PermissionToggles, defaultPermissions, roleDefaults, type PermissionFlags } from "@/components/settings/PermissionToggles";
 
 const roleLabelMap: Record<string, string> = {
   team_owner: "Team Owner",
@@ -73,7 +73,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [permissions, setPermissions] = useState<PermissionFlags>({ ...defaultPermissions });
+  const [permissions, setPermissions] = useState<PermissionFlags>({ ...roleDefaults("manager") });
 
   const hasEmail = inviteEmail.trim().length > 0;
 
@@ -165,7 +165,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
     setAddToStaff(false);
     setStaffEmploymentType("w2");
     setJobTitle("");
-    setPermissions({ ...defaultPermissions });
+    setPermissions({ ...roleDefaults("manager") });
   };
 
   return (
@@ -203,7 +203,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
               {/* Role */}
               <div className="space-y-2">
                 <Label>Role</Label>
-                <Select value={inviteRole} onValueChange={setInviteRole}>
+                <Select value={inviteRole} onValueChange={(v) => { setInviteRole(v); setPermissions({ ...roleDefaults(v) }); }}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
