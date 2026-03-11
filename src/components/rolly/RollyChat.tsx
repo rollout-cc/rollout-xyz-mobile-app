@@ -210,6 +210,11 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
             className="min-h-[40px] max-h-[160px] resize-none rounded-xl py-2.5"
             rows={1}
           />
+          <VoiceInputButton
+            isListening={voice.isListening}
+            isSupported={voice.isSupported}
+            onClick={voice.toggleListening}
+          />
           <Button
             size="icon"
             variant="ghost"

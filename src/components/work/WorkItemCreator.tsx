@@ -4,6 +4,8 @@ import { ItemEditor } from "@/components/ui/ItemEditor";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useVoiceInput } from "@/hooks/useVoiceInput";
+import { VoiceInputButton } from "@/components/ui/VoiceInputButton";
 
 interface SuggestionItem {
   id: string;
