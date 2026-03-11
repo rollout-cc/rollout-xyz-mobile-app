@@ -228,6 +228,13 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
                 <JobTitleSelect value={jobTitle} onChange={setJobTitle} />
               </div>
 
+              {/* Permission toggles */}
+              <PermissionToggles
+                role={inviteRole}
+                permissions={permissions}
+                onChange={setPermissions}
+              />
+
               {/* Add to Staff toggle */}
               <div className="space-y-3 rounded-lg border border-border p-3">
                 <div className="flex items-center justify-between">

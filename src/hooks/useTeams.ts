@@ -10,7 +10,7 @@ export function useTeams() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("team_memberships")
-        .select("team_id, role, teams(id, name, avatar_url)")
+        .select("team_id, role, perm_view_finance, perm_manage_finance, perm_view_staff_salaries, perm_view_ar, perm_view_roster, perm_edit_artists, perm_view_billing, teams(id, name, avatar_url)")
         .eq("user_id", user!.id);
       if (error) throw error;
       return data.map((tm: any) => ({
@@ -18,6 +18,13 @@ export function useTeams() {
         name: tm.teams.name,
         avatar_url: tm.teams.avatar_url,
         role: tm.role,
+        perm_view_finance: tm.perm_view_finance ?? false,
+        perm_manage_finance: tm.perm_manage_finance ?? false,
+        perm_view_staff_salaries: tm.perm_view_staff_salaries ?? false,
+        perm_view_ar: tm.perm_view_ar ?? false,
+        perm_view_roster: tm.perm_view_roster ?? false,
+        perm_edit_artists: tm.perm_edit_artists ?? false,
+        perm_view_billing: tm.perm_view_billing ?? false,
       }));
     },
     enabled: !!user,

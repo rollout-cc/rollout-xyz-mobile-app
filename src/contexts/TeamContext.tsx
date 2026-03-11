@@ -96,22 +96,33 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const isArtistRole = role === "artist";
   const isGuestRole = role === "guest";
 
+  // Get stored permission flags from the membership
+  const membershipPerms = useMemo(() => {
+    if (!selectedTeamId || teams.length === 0) return null;
+    return teams.find((t) => t.id === selectedTeamId) ?? null;
+  }, [teams, selectedTeamId]);
+
   const isFinanceJobTitle = useMemo(() => {
     if (!profile?.job_role) return false;
     const lower = profile.job_role.toLowerCase();
     return FINANCE_JOB_TITLES.some((t) => lower.includes(t));
   }, [profile?.job_role]);
 
-  const permissions = useMemo(() => ({
-    canViewCompany: role === "team_owner" || role === "manager",
-    canViewFinance: role === "team_owner" || role === "manager",
-    canManageFinance: role === "team_owner" || (canManage && isFinanceJobTitle),
-    canViewStaffSalaries: role === "team_owner",
-    canViewAR: role === "team_owner" || role === "manager",
-    canViewRoster: role === "team_owner" || role === "manager",
-    canEditArtists: role === "team_owner" || role === "manager",
-    canViewBilling: role === "team_owner",
-  }), [role, canManage, isFinanceJobTitle]);
+  // Role defaults + additive stored permissions + finance job title detection
+  const permissions = useMemo(() => {
+    const isOwner = role === "team_owner";
+    const isManager = role === "manager";
+    return {
+      canViewCompany: isOwner || isManager,
+      canViewFinance: isOwner || isManager || !!membershipPerms?.perm_view_finance,
+      canManageFinance: isOwner || (isManager && isFinanceJobTitle) || !!membershipPerms?.perm_manage_finance,
+      canViewStaffSalaries: isOwner || !!membershipPerms?.perm_view_staff_salaries,
+      canViewAR: isOwner || isManager || !!membershipPerms?.perm_view_ar,
+      canViewRoster: isOwner || isManager || !!membershipPerms?.perm_view_roster,
+      canEditArtists: isOwner || isManager || !!membershipPerms?.perm_edit_artists,
+      canViewBilling: isOwner || !!membershipPerms?.perm_view_billing,
+    };
+  }, [role, membershipPerms, isFinanceJobTitle]);
 
   return (
     <TeamContext.Provider value={{
