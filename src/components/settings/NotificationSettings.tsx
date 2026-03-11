@@ -76,7 +76,8 @@ type PrefKey =
   | "budget_alert_email"
   | "new_artist_email"
   | "daily_checkin_email"
-  | "weekly_summary_email";
+  | "weekly_summary_email"
+  | "push_enabled";
 
 const TIME_OPTIONS = Array.from({ length: 24 }, (_, i) => {
   const hour = i;
