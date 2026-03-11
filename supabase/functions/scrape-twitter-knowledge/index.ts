@@ -57,36 +57,92 @@ function hasKeywords(text: string): boolean {
   return false;
 }
 
-// Extract meaningful paragraphs from article markdown
-function extractParagraphs(markdown: string): string[] {
-  const paragraphs: string[] = [];
-  // Split into paragraphs
-  const blocks = markdown.split(/\n{2,}/);
-  for (const block of blocks) {
-    // Remove markdown formatting but keep text
-    const cleaned = block
-      .replace(/^[#*>\-\d.]+\s*/gm, "")
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // markdown links -> text
-      .replace(/[*_~`]/g, "")
-      .trim();
+// Default Twitter handles to scrape
+const DEFAULT_HANDLES = [
+  "donny_slater",
+  "brianzisook",
+];
 
-    // Must be substantial prose (not nav, not too short, not too long)
-    if (cleaned.length < 60 || cleaned.length > 3000) continue;
-    if (/^(home|menu|subscribe|sign up|log in|cookie|privacy|share|follow|©)/i.test(cleaned)) continue;
-    if (/^\d+\s*(likes?|views|comments|shares|min read)/i.test(cleaned)) continue;
+async function runApifyActor(apifyToken: string, handles: string[], maxTweets: number): Promise<any[]> {
+  const actorId = "apidojo~tweet-scraper";
 
-    paragraphs.push(cleaned);
+  // Start the actor run
+  const startResp = await fetch(
+    `https://api.apify.com/v2/acts/${actorId}/runs?token=${apifyToken}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        startUrls: handles.map(h => ({ url: `https://twitter.com/${h}` })),
+        maxItems: maxTweets,
+        sort: "Latest",
+        tweetLanguage: "en",
+      }),
+    }
+  );
+
+  if (!startResp.ok) {
+    const errText = await startResp.text();
+    throw new Error(`Apify start failed [${startResp.status}]: ${errText}`);
   }
-  return paragraphs;
+
+  const runData = await startResp.json();
+  const runId = runData?.data?.id;
+  if (!runId) throw new Error("No run ID returned from Apify");
+
+  console.log(`Apify run started: ${runId}`);
+
+  // Poll for completion (max 5 min)
+  const maxWait = 5 * 60 * 1000;
+  const pollInterval = 10_000;
+  const start = Date.now();
+
+  while (Date.now() - start < maxWait) {
+    await new Promise(r => setTimeout(r, pollInterval));
+
+    const statusResp = await fetch(
+      `https://api.apify.com/v2/actor-runs/${runId}?token=${apifyToken}`
+    );
+    if (!statusResp.ok) {
+      await statusResp.text();
+      continue;
+    }
+
+    const statusData = await statusResp.json();
+    const status = statusData?.data?.status;
+    console.log(`Run ${runId} status: ${status}`);
+
+    if (status === "SUCCEEDED") {
+      const datasetId = statusData?.data?.defaultDatasetId;
+      if (!datasetId) throw new Error("No dataset ID");
+
+      // Fetch all items from dataset
+      const itemsResp = await fetch(
+        `https://api.apify.com/v2/datasets/${datasetId}/items?token=${apifyToken}&limit=10000`
+      );
+      if (!itemsResp.ok) {
+        const t = await itemsResp.text();
+        throw new Error(`Dataset fetch failed: ${t}`);
+      }
+
+      return await itemsResp.json();
+    }
+
+    if (status === "FAILED" || status === "ABORTED" || status === "TIMED-OUT") {
+      throw new Error(`Apify run ${status}`);
+    }
+  }
+
+  throw new Error("Apify run timed out waiting for completion");
 }
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
-    if (!firecrawlKey) {
-      return new Response(JSON.stringify({ error: "FIRECRAWL_API_KEY not configured" }), {
+    const apifyToken = Deno.env.get("APIFY_API_TOKEN");
+    if (!apifyToken) {
+      return new Response(JSON.stringify({ error: "APIFY_API_TOKEN not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -96,116 +152,78 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Step 1: Search for articles featuring their insights
-    const searchQueries = [
-      '"Donny Slater" music management strategy advice',
-      '"Brian Zisook" DJBooth music business independent artist',
-      '"Donny Slater" rollout release campaign label',
-    ];
-
-    const articleUrls: string[] = [];
-    const stats = { searches: 0, urls_found: 0, paragraphs_scraped: 0, matched: 0, inserted: 0 };
-
-    for (const query of searchQueries) {
-      console.log(`Searching: ${query}`);
-      stats.searches++;
-      try {
-        const resp = await fetch("https://api.firecrawl.dev/v1/search", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${firecrawlKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ query, limit: 5 }),
-        });
-        if (resp.ok) {
-          const data = await resp.json();
-          const results = data?.data || [];
-          for (const r of results) {
-            if (r.url && !r.url.includes("x.com") && !r.url.includes("twitter.com")) {
-              articleUrls.push(r.url);
-            }
-          }
-        } else {
-          await resp.text();
-        }
-      } catch (e) {
-        console.warn("Search error:", e);
-      }
+    // Parse optional request body
+    let handles = DEFAULT_HANDLES;
+    let maxTweets = 2000;
+    try {
+      const body = await req.json();
+      if (body?.handles?.length) handles = body.handles;
+      if (body?.maxTweets) maxTweets = Math.min(body.maxTweets, 10000);
+    } catch {
+      // No body, use defaults
     }
 
-    // Deduplicate URLs
-    const uniqueUrls = [...new Set(articleUrls)].slice(0, 5); // Cap at 5 to avoid timeout
-    stats.urls_found = uniqueUrls.length;
-    console.log(`Found ${uniqueUrls.length} article URLs to scrape`);
+    console.log(`Scraping ${maxTweets} tweets from: ${handles.join(", ")}`);
 
-    // Step 2: Scrape each article for full content
-    const allInsights: string[] = [];
+    // Run Apify actor
+    const tweets = await runApifyActor(apifyToken, handles, maxTweets);
+    console.log(`Got ${tweets.length} tweets from Apify`);
 
-    for (const url of uniqueUrls) {
-      console.log(`Scraping article: ${url}`);
-      try {
-        const resp = await fetch("https://api.firecrawl.dev/v1/scrape", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${firecrawlKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            url,
-            formats: ["markdown"],
-            onlyMainContent: true,
-            timeout: 30000,
-          }),
-        });
+    const stats = { total_tweets: tweets.length, matched: 0, inserted: 0, duplicates: 0 };
 
-        if (!resp.ok) {
-          await resp.text();
-          continue;
-        }
-
-        const data = await resp.json();
-        const markdown = data?.data?.markdown || data?.markdown || "";
-        if (!markdown) continue;
-
-        const paragraphs = extractParagraphs(markdown);
-        stats.paragraphs_scraped += paragraphs.length;
-
-        for (const p of paragraphs) {
-          if (hasKeywords(p)) {
-            stats.matched++;
-            const anonymized = anonymize(p);
-            if (anonymized.length > 40) {
-              allInsights.push(anonymized);
-            }
-          }
-        }
-      } catch (e) {
-        console.warn(`Scrape error for ${url}:`, e);
-      }
-    }
-
-    // Deduplicate
+    // Process tweets
     const seen = new Set<string>();
-    const unique: { content: string; chapter: string }[] = [];
-    for (const content of allInsights) {
-      const key = content.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 120);
-      if (key.length < 30 || seen.has(key)) continue;
+    const toInsert: { content: string; chapter: string }[] = [];
+
+    for (const tweet of tweets) {
+      const text = tweet?.full_text || tweet?.text || tweet?.tweetText || "";
+      if (!text || text.length < 60) continue;
+
+      if (!hasKeywords(text)) continue;
+      stats.matched++;
+
+      const anonymized = anonymize(text);
+      if (anonymized.length < 40) continue;
+
+      const key = anonymized.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 120);
+      if (key.length < 30 || seen.has(key)) {
+        stats.duplicates++;
+        continue;
+      }
       seen.add(key);
-      unique.push({ content: content.substring(0, 5000), chapter: pickChapter(content) });
+
+      toInsert.push({
+        content: anonymized.substring(0, 5000),
+        chapter: pickChapter(anonymized),
+      });
     }
 
-    console.log(`${unique.length} unique insights from ${stats.matched} matches`);
+    console.log(`${toInsert.length} unique insights to insert`);
 
-    // Insert
-    for (const entry of unique) {
-      const { error } = await adminClient.from("rolly_knowledge").insert({
+    // Batch insert (chunks of 50)
+    for (let i = 0; i < toInsert.length; i += 50) {
+      const batch = toInsert.slice(i, i + 50).map(entry => ({
         source: "industry_insights",
         chapter: entry.chapter,
         content: entry.content,
-      });
-      if (!error) stats.inserted++;
-      else console.warn("Insert error:", error.message);
+      }));
+
+      const { error, count } = await adminClient
+        .from("rolly_knowledge")
+        .upsert(batch, { onConflict: "content", ignoreDuplicates: true });
+
+      if (!error) {
+        stats.inserted += batch.length;
+      } else {
+        // Fall back to individual inserts on conflict
+        for (const row of batch) {
+          const { error: singleErr } = await adminClient
+            .from("rolly_knowledge")
+            .insert(row);
+          if (!singleErr) stats.inserted++;
+          else console.warn("Insert error:", singleErr.message);
+        }
+      }
     }
 
     console.log("Done:", JSON.stringify(stats));
@@ -213,8 +231,8 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({
       success: true,
       stats,
-      urls_scraped: uniqueUrls,
-      sample: unique.slice(0, 3).map(u => ({
+      handles_scraped: handles,
+      sample: toInsert.slice(0, 3).map(u => ({
         chapter: u.chapter,
         preview: u.content.substring(0, 200),
       })),
