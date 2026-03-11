@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useEffect } from "react";
+import { useMemo, useCallback, useEffect, lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { cn, formatLocalDate } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
