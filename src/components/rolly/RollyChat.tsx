@@ -55,8 +55,13 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
     const text = input.trim();
     if (!text || isLoading) return;
     setInput("");
-    send(text);
     if (textareaRef.current) textareaRef.current.style.height = "auto";
+    // In plan mode, route the first message to the wizard instead of chat
+    if (planMode && onPlanMessage) {
+      onPlanMessage(text);
+      return;
+    }
+    send(text);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
