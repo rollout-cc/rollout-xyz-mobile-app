@@ -77,19 +77,41 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     enabled: !!user && (role === "artist" || role === "guest"),
   });
 
+  // Fetch user's job_role for finance permission detection
+  const { data: profile } = useQuery({
+    queryKey: ["my-profile-role", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("job_role")
+        .eq("id", user!.id)
+        .single();
+      return data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+  });
+
   const canManage = role === "team_owner" || role === "manager";
   const isArtistRole = role === "artist";
   const isGuestRole = role === "guest";
 
+  const isFinanceJobTitle = useMemo(() => {
+    if (!profile?.job_role) return false;
+    const lower = profile.job_role.toLowerCase();
+    return FINANCE_JOB_TITLES.some((t) => lower.includes(t));
+  }, [profile?.job_role]);
+
   const permissions = useMemo(() => ({
     canViewCompany: role === "team_owner" || role === "manager",
     canViewFinance: role === "team_owner" || role === "manager",
+    canManageFinance: role === "team_owner" || (canManage && isFinanceJobTitle),
     canViewStaffSalaries: role === "team_owner",
     canViewAR: role === "team_owner" || role === "manager",
     canViewRoster: role === "team_owner" || role === "manager",
     canEditArtists: role === "team_owner" || role === "manager",
     canViewBilling: role === "team_owner",
-  }), [role]);
+  }), [role, canManage, isFinanceJobTitle]);
 
   return (
     <TeamContext.Provider value={{
