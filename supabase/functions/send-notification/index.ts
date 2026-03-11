@@ -241,6 +241,74 @@ function buildHtml(p: NotificationPayload): string {
 </html>`;
 }
 
+// SMS notification type to pref column mapping
+const SMS_PREF_MAP: Record<string, string> = {
+  task_assigned: "task_assigned_sms",
+  task_due_soon: "task_due_soon_sms",
+  task_overdue: "task_overdue_sms",
+  milestone_approaching: "milestone_sms",
+};
+
+async function sendSmsIfEnabled(
+  adminClient: any,
+  userId: string,
+  notifType: string,
+  messageText: string
+) {
+  const smsCol = SMS_PREF_MAP[notifType];
+  if (!smsCol) return; // No SMS support for this notification type
+
+  // Check SMS preference
+  const { data: pref } = await adminClient
+    .from("notification_preferences")
+    .select(smsCol)
+    .eq("user_id", userId)
+    .single();
+
+  if (!pref || !(pref as any)[smsCol]) return;
+
+  // Get user's phone number from profile
+  const { data: profile } = await adminClient
+    .from("profiles")
+    .select("phone_number")
+    .eq("id", userId)
+    .single();
+
+  if (!profile?.phone_number) return;
+
+  const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
+  const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+  const fromNumber = Deno.env.get("TWILIO_PHONE_NUMBER");
+
+  if (!accountSid || !authToken || !fromNumber) {
+    console.warn("[SMS] Twilio credentials not configured, skipping");
+    return;
+  }
+
+  const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+  const credentials = btoa(`${accountSid}:${authToken}`);
+
+  const res = await fetch(twilioUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${credentials}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      To: profile.phone_number,
+      From: fromNumber,
+      Body: `Rollout: ${messageText}`,
+    }).toString(),
+  });
+
+  const result = await res.json();
+  if (res.ok) {
+    console.log("[SMS] Sent:", result.sid);
+  } else {
+    console.error("[SMS] Twilio error:", result);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
