@@ -8,7 +8,7 @@ export type RollyToolAction = { tool: string; success: boolean; message: string;
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rolly-chat`;
 
-export function useRollyChat() {
+export function useRollyChat(planMode: boolean = false) {
   const [messages, setMessages] = useState<RollyMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [lastActions, setLastActions] = useState<RollyToolAction[]>([]);
@@ -17,9 +17,14 @@ export function useRollyChat() {
   const queryClient = useQueryClient();
 
   const send = useCallback(async (input: string) => {
-    const userMsg: RollyMessage = { role: "user", content: input };
+    // Prefix with plan mode hint if active (hidden from display)
+    const contentForApi = planMode ? `[PLAN MODE] ${input}` : input;
+    const userMsg: RollyMessage = { role: "user", content: contentForApi };
+    // Display version without the prefix
+    const displayMsg: RollyMessage = { role: "user", content: input };
+    
     const updatedMessages = [...messages, userMsg];
-    setMessages(updatedMessages);
+    setMessages(prev => [...prev, displayMsg]);
     setIsLoading(true);
     setLastActions([]);
 
@@ -81,10 +86,8 @@ export function useRollyChat() {
           try {
             const parsed = JSON.parse(jsonStr);
 
-            // Handle tool actions event
             if (parsed.type === "tool_actions") {
               setLastActions(parsed.actions);
-              // Invalidate workspace queries to refresh data
               queryClient.invalidateQueries({ queryKey: ["rolly-workspace-tasks"] });
               queryClient.invalidateQueries({ queryKey: ["rolly-workspace-artists"] });
               queryClient.invalidateQueries({ queryKey: ["rolly-workspace-budgets"] });
@@ -152,7 +155,7 @@ export function useRollyChat() {
       setIsLoading(false);
       abortRef.current = null;
     }
-  }, [messages, selectedTeamId, queryClient]);
+  }, [messages, selectedTeamId, queryClient, planMode]);
 
   const stop = useCallback(() => {
     abortRef.current?.abort();

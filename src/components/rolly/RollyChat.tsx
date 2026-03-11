@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Square, Trash2, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
+import { Send, Square, Trash2, Sparkles, CheckCircle2, AlertCircle, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { RollyMessage } from "./RollyMessage";
@@ -14,7 +14,8 @@ const QUICK_ACTIONS = [
 ];
 
 export function RollyChat() {
-  const { messages, isLoading, send, stop, clear, lastActions } = useRollyChat();
+  const [planMode, setPlanMode] = useState(false);
+  const { messages, isLoading, send, stop, clear, lastActions } = useRollyChat(planMode);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -30,7 +31,6 @@ export function RollyChat() {
     if (!text || isLoading) return;
     setInput("");
     send(text);
-    // Reset textarea height
     if (textareaRef.current) textareaRef.current.style.height = "auto";
   };
 
@@ -125,6 +125,13 @@ export function RollyChat() {
 
       {/* Input area */}
       <div className="border-t border-border px-4 py-3 bg-background">
+        {/* Plan mode banner */}
+        {planMode && (
+          <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium max-w-3xl mx-auto">
+            <ClipboardList className="h-3.5 w-3.5 shrink-0" />
+            Plan Mode — Rolly will guide you step by step
+          </div>
+        )}
         <div className="flex items-end gap-2 max-w-3xl mx-auto">
           {messages.length > 0 && (
             <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-muted-foreground" onClick={clear} title="Clear chat">
@@ -136,15 +143,23 @@ export function RollyChat() {
             value={input}
             onChange={(e) => {
               setInput(e.target.value);
-              // Auto-resize
               e.target.style.height = "auto";
               e.target.style.height = Math.min(e.target.scrollHeight, 160) + "px";
             }}
             onKeyDown={handleKeyDown}
-            placeholder="Ask ROLLY anything about the music business..."
+            placeholder={planMode ? "Describe what you want to plan..." : "Ask ROLLY anything about the music business..."}
             className="min-h-[40px] max-h-[160px] resize-none rounded-xl py-2.5"
             rows={1}
           />
+          <Button
+            size="icon"
+            variant={planMode ? "default" : "ghost"}
+            className={cn("h-9 w-9 shrink-0", !planMode && "text-muted-foreground")}
+            onClick={() => setPlanMode(!planMode)}
+            title={planMode ? "Exit Plan Mode" : "Enter Plan Mode"}
+          >
+            <ClipboardList className="h-4 w-4" />
+          </Button>
           {isLoading ? (
             <Button size="icon" variant="outline" className="h-9 w-9 shrink-0" onClick={stop}>
               <Square className="h-4 w-4" />
