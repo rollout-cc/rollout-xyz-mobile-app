@@ -41,8 +41,8 @@ export default function Rolly() {
     if (isMobile) setMobileTab("workspace");
   }, [isMobile]);
 
-  const handleWizardComplete = useCallback((answers: PlanAnswers) => {
-    const prompt = compilePlanPrompt(answers, wizardContext);
+  const handleWizardComplete = useCallback((summaryPrompt: string) => {
+    const prompt = `[PLAN MODE] ${summaryPrompt}`;
     setWizardActive(false);
     setWizardContext(null);
     if (isMobile) setMobileTab("chat");
@@ -51,7 +51,7 @@ export default function Rolly() {
     } else {
       setPrefill(prompt);
     }
-  }, [sendFn, isMobile, wizardContext]);
+  }, [sendFn, isMobile]);
 
   const handleWizardCancel = useCallback(() => {
     setWizardActive(false);
