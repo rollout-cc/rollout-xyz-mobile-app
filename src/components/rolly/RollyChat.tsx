@@ -10,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useVoiceInput } from "@/hooks/useVoiceInput";
+import { VoiceInputButton } from "@/components/ui/VoiceInputButton";
 
 const QUICK_ACTIONS = [
   { label: "Plan a release", prompt: "Let's plan a release together. Walk me through it step by step — ask me about the artist, timeline, budget, marketing, and anything else you need to build a full plan with tasks, milestones, and budgets." },
