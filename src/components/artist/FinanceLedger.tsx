@@ -27,6 +27,7 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
   const [isExpense, setIsExpense] = useState(true);
   const [newRevenueCategory, setNewRevenueCategory] = useState<string>("none");
   const [newRevenueSource, setNewRevenueSource] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
 
   // Fetch transactions
   const { data: transactions = [] } = useQuery({
