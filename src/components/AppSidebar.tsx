@@ -238,7 +238,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
                   <TooltipContent side="right">Rolly</TooltipContent>
                 </Tooltip>
               )}
-            </div>
+            </div>}
 
             {/* Collapse toggle */}
             <Tooltip>
