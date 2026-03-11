@@ -41,6 +41,9 @@ export default function Rolly() {
   const [planMode, setPlanMode] = useState(false);
   const [wizardActive, setWizardActive] = useState(false);
   const [sendFn, setSendFn] = useState<((msg: string) => void) | null>(null);
+  const handleSendReady = useCallback((fn: (msg: string) => void) => {
+    setSendFn(() => fn);
+  }, []);
 
   const handlePlanModeToggle = useCallback((active: boolean) => {
     setPlanMode(active);
