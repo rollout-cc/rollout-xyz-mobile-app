@@ -18,12 +18,11 @@ const config: CapacitorConfig = {
   },
   plugins: {
     Keyboard: {
-      // Resize the <body> element when the keyboard shows/hides so that
-      // the layout adjusts without relying on the native WKWebView scroll
-      // (which is disabled above). This fixes the keyboard not appearing
-      // when scrollEnabled is false.
       resize: 'body',
       resizeOnFullScreen: true,
+    },
+    PushNotifications: {
+      presentationOptions: ['badge', 'sound', 'alert'],
     },
   },
 };
