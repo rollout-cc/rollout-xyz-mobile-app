@@ -7,6 +7,7 @@ import rolloutLogo from "@/assets/rollout-logo.png";
 import rolloutFlag from "@/assets/rollout-flag.svg";
 import rollyIcon from "@/assets/rolly-icon.png";
 import { NavLink } from "@/components/NavLink";
+import { useSelectedTeam } from "@/contexts/TeamContext";
 import {
   Sidebar,
   SidebarContent,
@@ -51,6 +52,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const isRollyActive = location.pathname === "/rolly";
+  const { isArtistRole, isGuestRole, assignedArtistIds } = useSelectedTeam();
 
   const selectedTeam = teams.find((t) => t.id === selectedTeamId);
 
@@ -67,11 +69,25 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
     }
   };
 
-  const navItems = [
-    { to: "/overview", icon: Building2, label: "Company", tourId: "nav-company" },
-    { to: "/roster", icon: LayoutGrid, label: "Artists", tourId: "nav-artists" },
-    { to: "/my-work", icon: CheckCheck, label: "My Work", tourId: "nav-mywork" },
-  ];
+  const navItems = (() => {
+    if (isArtistRole) {
+      const artistHome = assignedArtistIds.length > 0 ? `/roster/${assignedArtistIds[0]}` : "/roster";
+      return [
+        { to: artistHome, icon: Building2, label: "My Artist", tourId: "nav-artists" },
+        { to: "/my-work", icon: CheckCheck, label: "My Work", tourId: "nav-mywork" },
+      ];
+    }
+    if (isGuestRole) {
+      return [
+        { to: "/roster", icon: LayoutGrid, label: "Artists", tourId: "nav-artists" },
+      ];
+    }
+    return [
+      { to: "/overview", icon: Building2, label: "Company", tourId: "nav-company" },
+      { to: "/roster", icon: LayoutGrid, label: "Artists", tourId: "nav-artists" },
+      { to: "/my-work", icon: CheckCheck, label: "My Work", tourId: "nav-mywork" },
+    ];
+  })();
 
   return (
     <>
@@ -183,8 +199,8 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
               padding: collapsed ? "12px 8px" : "12px",
             }}
           >
-            {/* Rolly card */}
-            <div className="mb-4 w-full">
+            {/* Rolly card — hidden for guest role */}
+            {!isGuestRole && <div className="mb-4 w-full">
               {!collapsed ? (
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -222,7 +238,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
                   <TooltipContent side="right">Rolly</TooltipContent>
                 </Tooltip>
               )}
-            </div>
+            </div>}
 
             {/* Collapse toggle */}
             <Tooltip>
