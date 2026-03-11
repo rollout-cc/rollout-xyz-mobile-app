@@ -3,6 +3,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
+import { MobileFAB } from "@/components/MobileFAB";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTeams } from "@/hooks/useTeams";
@@ -35,7 +36,8 @@ export function AppLayout({ children, title, actions, onBack }: AppLayoutProps) 
   const { data: teams = [] } = useTeams();
   const selectedTeam = teams.find((t) => t.id === selectedTeamId);
   const myRole = selectedTeam?.role;
-  const isOwnerOrManager = myRole === "team_owner" || myRole === "manager";
+  const isOwner = myRole === "team_owner";
+  const isOwnerOrManager = isOwner || myRole === "manager";
   const { isPaid, isTrialing } = useTeamPlan();
   const hasPaidAccess = isPaid || isTrialing;
 
@@ -116,14 +118,14 @@ export function AppLayout({ children, title, actions, onBack }: AppLayoutProps) 
                       Profile Settings
                     </DropdownMenuItem>
                     {isOwnerOrManager && hasPaidAccess && (
-                      <>
-                        <DropdownMenuItem onClick={() => navigate("/settings/team")}>
-                          Team Settings
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate("/settings/billing")}>
-                          Billing
-                        </DropdownMenuItem>
-                      </>
+                      <DropdownMenuItem onClick={() => navigate("/settings/team")}>
+                        Team Settings
+                      </DropdownMenuItem>
+                    )}
+                    {isOwner && (
+                      <DropdownMenuItem onClick={() => navigate("/settings/billing")}>
+                        Billing
+                      </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={signOut}>
@@ -142,8 +144,7 @@ export function AppLayout({ children, title, actions, onBack }: AppLayoutProps) 
         </div>
 
         {isMobile && <MobileBottomNav />}
-        
-        
+        {isMobile && <MobileFAB />}
       </div>
     </SidebarProvider>
   );
