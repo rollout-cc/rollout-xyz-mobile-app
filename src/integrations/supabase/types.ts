@@ -1527,6 +1527,7 @@ export type Database = {
           phone: string | null
           pro_affiliation: string | null
           pub_ipi_number: string | null
+          publisher_name: string | null
           team_id: string
         }
         Insert: {
@@ -1538,6 +1539,7 @@ export type Database = {
           phone?: string | null
           pro_affiliation?: string | null
           pub_ipi_number?: string | null
+          publisher_name?: string | null
           team_id: string
         }
         Update: {
@@ -1549,6 +1551,7 @@ export type Database = {
           phone?: string | null
           pro_affiliation?: string | null
           pub_ipi_number?: string | null
+          publisher_name?: string | null
           team_id?: string
         }
         Relationships: [
@@ -1572,6 +1575,7 @@ export type Database = {
           master_pct: number | null
           producer_pct: number | null
           project_approval_token: string | null
+          publisher_pct: number | null
           role: string
           song_id: string
           writer_pct: number | null
@@ -1586,6 +1590,7 @@ export type Database = {
           master_pct?: number | null
           producer_pct?: number | null
           project_approval_token?: string | null
+          publisher_pct?: number | null
           role?: string
           song_id: string
           writer_pct?: number | null
@@ -1600,6 +1605,7 @@ export type Database = {
           master_pct?: number | null
           producer_pct?: number | null
           project_approval_token?: string | null
+          publisher_pct?: number | null
           role?: string
           song_id?: string
           writer_pct?: number | null
