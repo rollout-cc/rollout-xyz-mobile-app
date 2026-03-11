@@ -108,14 +108,44 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     return FINANCE_JOB_TITLES.some((t) => lower.includes(t));
   }, [profile?.job_role]);
 
-  // Use stored permission flags directly — they represent the full permission state
+  // Role-based defaults as baseline; stored flags as overrides
   const permissions = useMemo(() => {
     const isOwner = role === "team_owner";
     const isManager = role === "manager";
+
+    // Team owners always get everything
+    if (isOwner) {
+      return {
+        canViewCompany: true,
+        canViewFinance: true,
+        canManageFinance: true,
+        canViewStaffSalaries: true,
+        canViewAR: true,
+        canViewRoster: true,
+        canEditArtists: true,
+        canViewBilling: true,
+      };
+    }
+
+    // Managers: role defaults OR stored flags (union/additive)
+    if (isManager) {
+      return {
+        canViewCompany: true,
+        canViewFinance: true || !!membershipPerms?.perm_view_finance,
+        canManageFinance: !!membershipPerms?.perm_manage_finance || isFinanceJobTitle,
+        canViewStaffSalaries: !!membershipPerms?.perm_view_staff_salaries,
+        canViewAR: true || !!membershipPerms?.perm_view_ar,
+        canViewRoster: true || !!membershipPerms?.perm_view_roster,
+        canEditArtists: true || !!membershipPerms?.perm_edit_artists,
+        canViewBilling: !!membershipPerms?.perm_view_billing,
+      };
+    }
+
+    // Artist/Guest: stored flags only
     return {
-      canViewCompany: isOwner || isManager,
+      canViewCompany: false,
       canViewFinance: !!membershipPerms?.perm_view_finance,
-      canManageFinance: !!membershipPerms?.perm_manage_finance || (isManager && isFinanceJobTitle),
+      canManageFinance: !!membershipPerms?.perm_manage_finance,
       canViewStaffSalaries: !!membershipPerms?.perm_view_staff_salaries,
       canViewAR: !!membershipPerms?.perm_view_ar,
       canViewRoster: !!membershipPerms?.perm_view_roster,

@@ -606,6 +606,17 @@ Deno.serve(async (req) => {
       },
     });
 
+    // Increment usage for Rising tier after successful response
+    if (plan === "rising") {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      await usageAdmin.from("rolly_usage").upsert(
+        { team_id, month: currentMonth, message_count: 1 },
+        { onConflict: "team_id,month" }
+      );
+      // Increment the count
+      await usageAdmin.rpc("increment_rolly_usage", { p_team_id: team_id, p_month: currentMonth });
+    }
+
     return new Response(readable, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
