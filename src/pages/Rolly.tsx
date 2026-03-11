@@ -136,6 +136,7 @@ export default function Rolly() {
   const handleWizardComplete = useCallback((answers: PlanAnswers) => {
     const prompt = compilePlanPrompt(answers);
     setWizardActive(false);
+    setWizardContext(null);
     if (isMobile) setMobileTab("chat");
     if (sendFn) {
       sendFn(prompt);
