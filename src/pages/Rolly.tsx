@@ -9,8 +9,11 @@ import { cn } from "@/lib/utils";
 import { MessageSquare, LayoutGrid } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
-function compilePlanPrompt(answers: PlanAnswers): string {
+function compilePlanPrompt(answers: PlanAnswers, initialContext?: string | null): string {
   const parts: string[] = ["[PLAN MODE] Here are my answers from the planning wizard. Generate a detailed plan with tasks, milestones, and budgets based on these inputs:\n"];
+  if (initialContext) {
+    parts.push(`**Original brief:** "${initialContext}"\n`);
+  }
 
   const str = (key: string) => (typeof answers[key] === "string" ? answers[key] : "");
   const arr = (key: string) => (Array.isArray(answers[key]) ? (answers[key] as string[]).join(", ") : str(key));
