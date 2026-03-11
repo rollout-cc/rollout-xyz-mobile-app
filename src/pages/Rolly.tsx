@@ -117,7 +117,7 @@ export default function Rolly() {
                 onPrefillConsumed={() => setPrefill(null)}
                 planMode={planMode}
                 onPlanModeChange={handlePlanModeToggle}
-                onSendReady={setSendFn}
+                onSendReady={handleSendReady}
               />
             ) : (
               workspaceContent
