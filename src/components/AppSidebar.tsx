@@ -199,8 +199,8 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
               padding: collapsed ? "12px 8px" : "12px",
             }}
           >
-            {/* Rolly card */}
-            <div className="mb-4 w-full">
+            {/* Rolly card — hidden for guest role */}
+            {!isGuestRole && <div className="mb-4 w-full">
               {!collapsed ? (
                 <motion.button
                   whileHover={{ scale: 1.02 }}
