@@ -5,10 +5,14 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { MessageSquare, LayoutGrid } from "lucide-react";
+import { useLocation } from "react-router-dom";
 
 export default function Rolly() {
   const isMobile = useIsMobile();
   const [mobileTab, setMobileTab] = useState<"chat" | "workspace">("chat");
+  const location = useLocation();
+  const prefillPrompt = (location.state as any)?.prefillPrompt || null;
+  const [prefill, setPrefill] = useState<string | null>(prefillPrompt);
 
   return (
     <AppLayout title="ROLLY">
