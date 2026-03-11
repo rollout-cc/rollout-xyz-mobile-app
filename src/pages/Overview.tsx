@@ -40,7 +40,7 @@ import { useTour } from "@/contexts/TourContext";
 import { RollyNudge } from "@/components/rolly/RollyNudge";
 
 export default function Overview() {
-  const { selectedTeamId: teamId } = useSelectedTeam();
+  const { selectedTeamId: teamId, canManageFinance } = useSelectedTeam();
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") === "finance" ? "finance" : "dashboard";
   const [companyTab, setCompanyTab] = useState<"dashboard" | "agenda" | "staff" | "finance">(initialTab);
