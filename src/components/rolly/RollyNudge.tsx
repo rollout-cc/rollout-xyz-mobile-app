@@ -19,10 +19,8 @@ export function RollyNudge({ screen, dataSnapshot, entityId }: Props) {
   if (!nudge || dismissed) return null;
 
   const handleClick = () => {
-    if (ctaPrompt) {
-      rollyEvents.openWithPrompt(ctaPrompt);
-    }
     dismiss();
+    navigate("/rolly", { state: { prefillPrompt: ctaPrompt || nudge } });
   };
 
   return (
