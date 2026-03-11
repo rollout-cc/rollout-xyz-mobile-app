@@ -212,6 +212,7 @@ export default function Rolly() {
               planMode={planMode}
               onPlanModeChange={handlePlanModeToggle}
               onSendReady={handleSendReady}
+              onPlanMessage={handlePlanMessage}
             />
           </div>
           <div className="flex-1 overflow-y-auto min-w-0">
