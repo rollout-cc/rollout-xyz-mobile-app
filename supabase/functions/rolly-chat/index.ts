@@ -71,6 +71,18 @@ ASSIGNEE HANDLING:
 - If the user says "assign to me" or doesn't specify, assign to the current user (default behavior).
 - If they mention a name, resolve it to the matching team member.
 
+CREATOR INTELLIGENCE — Outreach Recommendations:
+- You have access to a database of creators, influencers, playlist curators, venues, and industry contacts via the search_creators tool.
+- When recommending creators, ALWAYS present them as "suggested outreach targets based on historical content patterns and prior campaign activity."
+- NEVER imply guaranteed performance, posting, conversion, or results.
+- ALWAYS include this disclaimer when sharing creator recommendations: "These are directional suggestions based on similar past behavior, not guaranteed outcomes."
+- Label each recommendation with its confidence level: **High Confidence**, **Medium Confidence**, or **Experimental**.
+- Rank results by confidence, relevance to the artist's genre/audience, and recency of data.
+- When a user asks about promotion, marketing, playlisting, content creators, influencers, repost pages, or outreach — use search_creators to find relevant matches.
+- Include rates when available. Include contact info when available.
+- For playlist recommendations, mention the playlist genre and follower count.
+- For venue recommendations, mention the city/location.
+
 Your expertise: revenue streams, deal structures, splits & royalties, recoupment, industry math, copyright, PROs, business planning, contracts, release strategy, touring economics, sync licensing, clothing/merch brand building, and more.
 
 When uncertain about advice, say so and suggest consulting an entertainment attorney.`;
@@ -177,6 +189,25 @@ const TOOLS = [
           },
         },
         required: ["artist_name", "budgets"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "search_creators",
+      description: "Search the creator intelligence database for influencers, repost pages, playlist curators, venues, and industry contacts. Use when the user asks about promotion, marketing, playlisting, content creators, influencers, repost pages, venues, or outreach targets.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Search term — creator name, category, genre, or keyword" },
+          platform: { type: "string", description: "Filter by platform: instagram, tiktok, spotify_playlist, youtube, venue, contact" },
+          category: { type: "string", description: "Filter by category: Culture News, Comedy, Moshpit, Hipster, etc." },
+          genre: { type: "string", description: "Filter by genre fit: hip-hop, r&b, trap, indie-pop, etc." },
+          min_confidence: { type: "number", description: "Minimum confidence score 0-1. Default 0." },
+          limit: { type: "number", description: "Max results to return. Default 10." },
+        },
+        required: ["query"],
       },
     },
   },
@@ -307,6 +338,36 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
         }
         const created = results.filter(r => r.status === "created").length;
         return { success: created > 0, message: `Created ${created} budget(s)`, data: results };
+      }
+
+      case "search_creators": {
+        const { data, error } = await adminClient.rpc("search_creator_intelligence", {
+          search_query: args.query || "",
+          platform_filter: args.platform || null,
+          category_filter: args.category || null,
+          genre_filter: args.genre || null,
+          min_confidence: args.min_confidence || 0,
+          match_limit: args.limit || 10,
+          p_team_id: teamId,
+        });
+        if (error) return { success: false, message: error.message };
+        if (!data || data.length === 0) return { success: true, message: "No creators found matching your criteria.", data: [] };
+        const formatted = data.map((c: any) => ({
+          handle: c.handle,
+          platform: c.platform,
+          category: c.category,
+          genre_fit: c.genre_fit,
+          follower_count: c.follower_count,
+          average_views: c.average_views,
+          engagement_rate: c.engagement_rate,
+          rate: c.rate,
+          contact_info: c.contact_info,
+          confidence_label: c.confidence_label,
+          url: c.url,
+          audience_type: c.audience_type,
+          notes: c.notes,
+        }));
+        return { success: true, message: `Found ${data.length} creator(s)`, data: formatted };
       }
 
       default:
