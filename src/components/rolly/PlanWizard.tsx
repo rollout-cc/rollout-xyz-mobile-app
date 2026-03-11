@@ -154,13 +154,14 @@ export function PlanWizard({ onComplete, onCancel }: PlanWizardProps) {
   );
 
   const step = visibleSteps[currentStep];
-  if (!step) return null;
 
   // Dynamically inject artist options
-  const stepOptions =
-    step.id === "artist"
-      ? artists.map((a) => ({ label: a.name }))
-      : step.options;
+  const stepOptions: PlanOption[] =
+    step
+      ? step.id === "artist"
+        ? artists.map((a) => ({ label: a.name }))
+        : step.options
+      : [];
 
   // For project_name step, just show an "Other" input
   const isTextOnly = step.id === "project_name";
