@@ -69,11 +69,25 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
     }
   };
 
-  const navItems = [
-    { to: "/overview", icon: Building2, label: "Company", tourId: "nav-company" },
-    { to: "/roster", icon: LayoutGrid, label: "Artists", tourId: "nav-artists" },
-    { to: "/my-work", icon: CheckCheck, label: "My Work", tourId: "nav-mywork" },
-  ];
+  const navItems = (() => {
+    if (isArtistRole) {
+      const artistHome = assignedArtistIds.length > 0 ? `/roster/${assignedArtistIds[0]}` : "/roster";
+      return [
+        { to: artistHome, icon: Building2, label: "My Artist", tourId: "nav-artists" },
+        { to: "/my-work", icon: CheckCheck, label: "My Work", tourId: "nav-mywork" },
+      ];
+    }
+    if (isGuestRole) {
+      return [
+        { to: "/roster", icon: LayoutGrid, label: "Artists", tourId: "nav-artists" },
+      ];
+    }
+    return [
+      { to: "/overview", icon: Building2, label: "Company", tourId: "nav-company" },
+      { to: "/roster", icon: LayoutGrid, label: "Artists", tourId: "nav-artists" },
+      { to: "/my-work", icon: CheckCheck, label: "My Work", tourId: "nav-mywork" },
+    ];
+  })();
 
   return (
     <>
