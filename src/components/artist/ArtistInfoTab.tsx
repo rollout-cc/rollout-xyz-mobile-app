@@ -14,6 +14,7 @@ import { BrandTagInput } from "@/components/ui/BrandTagInput";
 import { IndustryEntitySelect } from "@/components/ui/IndustryEntitySelect";
 import { useTeamRegion } from "@/hooks/useTeamRegion";
 import { getPROsForRegion } from "@/lib/regionConfig";
+import { RollyNudge } from "@/components/rolly/RollyNudge";
 
 interface ArtistInfoTabProps {
   artist: any;
