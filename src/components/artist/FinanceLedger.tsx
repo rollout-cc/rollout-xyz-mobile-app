@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
-import { Plus, Trash2, Receipt, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Plus, Trash2, Receipt, ArrowUpRight, ArrowDownRight, Camera } from "lucide-react";
+import { ReceiptScanner } from "@/components/finance/ReceiptScanner";
 import { toast } from "sonner";
 import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
   const [isExpense, setIsExpense] = useState(true);
   const [newRevenueCategory, setNewRevenueCategory] = useState<string>("none");
   const [newRevenueSource, setNewRevenueSource] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
 
   // Fetch transactions
   const { data: transactions = [] } = useQuery({
@@ -180,14 +182,25 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
           <Receipt className="h-4 w-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">Finance Ledger</h3>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 gap-1 text-sm"
-          onClick={() => setShowAdd(!showAdd)}
-        >
-          <Plus className="h-3.5 w-3.5" /> Add
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1 text-sm"
+            onClick={() => setShowScanner(true)}
+            title="Scan receipt"
+          >
+            <Camera className="h-3.5 w-3.5" /> Scan
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1 text-sm"
+            onClick={() => setShowAdd(!showAdd)}
+          >
+            <Plus className="h-3.5 w-3.5" /> Add
+          </Button>
+        </div>
       </div>
 
       {/* Summary bar */}
@@ -414,6 +427,35 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
           </div>
         )}
       </div>
+      <ReceiptScanner
+        open={showScanner}
+        onOpenChange={setShowScanner}
+        onConfirm={async (data) => {
+          const insert: any = {
+            artist_id: artistId,
+            description: data.description,
+            amount: -Math.abs(data.amount),
+            transaction_date: data.date,
+            type: "expense",
+          };
+          // Try to match category hint to a budget
+          if (data.categoryHint && budgets.length > 0) {
+            const match = budgets.find((b: any) =>
+              b.label.toLowerCase().includes(data.categoryHint!.toLowerCase())
+            );
+            if (match) insert.budget_id = match.id;
+          }
+          const { error } = await supabase.from("transactions").insert(insert);
+          if (error) {
+            toast.error(error.message);
+          } else {
+            queryClient.invalidateQueries({ queryKey: ["transactions", artistId] });
+            queryClient.invalidateQueries({ queryKey: ["finance-transactions", artistId] });
+            queryClient.invalidateQueries({ queryKey: ["budget-expense-transactions", artistId] });
+            toast.success("Expense added from receipt");
+          }
+        }}
+      />
     </div>
   );
 }

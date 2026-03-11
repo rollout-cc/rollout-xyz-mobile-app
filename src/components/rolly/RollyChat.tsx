@@ -1,10 +1,15 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Square, Trash2, Sparkles, CheckCircle2, AlertCircle, ClipboardList } from "lucide-react";
+import { Send, Square, Trash2, Sparkles, CheckCircle2, AlertCircle, ClipboardList, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { RollyMessage } from "./RollyMessage";
 import { useRollyChat, RollyToolAction } from "@/hooks/useRollyChat";
 import { cn } from "@/lib/utils";
+import { ReceiptScanner } from "@/components/finance/ReceiptScanner";
+import { supabase } from "@/integrations/supabase/client";
+import { useSelectedTeam } from "@/contexts/TeamContext";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 const QUICK_ACTIONS = [
   { label: "Plan a release", prompt: "Let's plan a release together. Walk me through it step by step — ask me about the artist, timeline, budget, marketing, and anything else you need to build a full plan with tasks, milestones, and budgets." },
@@ -27,8 +32,24 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
   const setPlanMode = (val: boolean) => onPlanModeChange?.(val);
   const { messages, isLoading, send, stop, clear, lastActions } = useRollyChat(planMode);
   const [input, setInput] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { selectedTeamId } = useSelectedTeam();
+
+  // Fetch artists for receipt → expense linking
+  const { data: artists = [] } = useQuery({
+    queryKey: ["rolly-receipt-artists", selectedTeamId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("artists")
+        .select("id, name")
+        .eq("team_id", selectedTeamId!)
+        .order("name");
+      return data ?? [];
+    },
+    enabled: !!selectedTeamId,
+  });
 
   // Expose send function to parent
   useEffect(() => {
@@ -183,6 +204,15 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
           />
           <Button
             size="icon"
+            variant="ghost"
+            className="h-9 w-9 shrink-0 text-muted-foreground"
+            onClick={() => setShowScanner(true)}
+            title="Scan receipt"
+          >
+            <Camera className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
             variant={planMode ? "default" : "ghost"}
             className={cn("h-9 w-9 shrink-0", !planMode && "text-muted-foreground")}
             onClick={() => setPlanMode(!planMode)}
@@ -201,6 +231,33 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
           )}
         </div>
       </div>
+
+      <ReceiptScanner
+        open={showScanner}
+        onOpenChange={setShowScanner}
+        onConfirm={async (data) => {
+          // If there's only one artist, auto-assign; otherwise tell user
+          if (artists.length === 0) {
+            toast.error("Add an artist first to log expenses");
+            return;
+          }
+          const artistId = artists.length === 1 ? artists[0].id : artists[0].id;
+          const insert: any = {
+            artist_id: artistId,
+            description: data.description,
+            amount: -Math.abs(data.amount),
+            transaction_date: data.date,
+            type: "expense",
+          };
+          const { error } = await supabase.from("transactions").insert(insert);
+          if (error) {
+            toast.error(error.message);
+          } else {
+            toast.success(`Expense added: $${data.amount.toFixed(2)} — ${data.description}`);
+            send(`I just logged a $${data.amount.toFixed(2)} expense for "${data.description}" from a receipt scan. Any thoughts on categorization or budgeting?`);
+          }
+        }}
+      />
     </div>
   );
 }
