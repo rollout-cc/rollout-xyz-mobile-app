@@ -59,6 +59,25 @@ export function SplitProjectCard({ project, teamId, artistId, onDelete }: Props)
     }
   };
 
+  const handleDownloadPdf = async () => {
+    // Fetch all entries for all songs
+    const songEntries = await Promise.all(
+      songs.map(async (song: any) => {
+        const { data } = await supabase
+          .from("split_entries")
+          .select("*, contributor:split_contributors(*)")
+          .eq("song_id", song.id)
+          .order("created_at");
+        return { title: song.title, entries: data || [] };
+      })
+    );
+    generateSplitSheetPdf({
+      projectName: project.name,
+      projectType: project.project_type,
+      songs: songEntries,
+    });
+  };
+
   const typeLabel = project.project_type === "ep" ? "EP" : project.project_type === "album" ? "Album" : "Single";
 
   return (
