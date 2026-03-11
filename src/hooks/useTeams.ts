@@ -45,10 +45,21 @@ export function useCreateTeam() {
         .single();
       if (teamError) throw teamError;
 
-      // Add creator as team_owner
+      // Add creator as team_owner with all permissions enabled
       const { error: memberError } = await supabase
         .from("team_memberships")
-        .insert({ user_id: user!.id, team_id: team.id, role: "team_owner" });
+        .insert({
+          user_id: user!.id,
+          team_id: team.id,
+          role: "team_owner",
+          perm_view_finance: true,
+          perm_manage_finance: true,
+          perm_view_staff_salaries: true,
+          perm_view_ar: true,
+          perm_view_roster: true,
+          perm_edit_artists: true,
+          perm_view_billing: true,
+        });
       if (memberError) throw memberError;
 
       return team;

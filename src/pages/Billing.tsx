@@ -31,7 +31,8 @@ export default function Billing() {
     }
   }, [searchParams, refetchPlan]);
 
-  if (!isOwnerOrManager || !hasPaidAccess) {
+  // Owners can always access billing (to upgrade); managers need paid access
+  if (!isOwnerOrManager || (myRole !== "team_owner" && !hasPaidAccess)) {
     return <Navigate to="/settings" replace />;
   }
 

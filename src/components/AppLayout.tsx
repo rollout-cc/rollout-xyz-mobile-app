@@ -118,14 +118,14 @@ export function AppLayout({ children, title, actions, onBack }: AppLayoutProps) 
                       Profile Settings
                     </DropdownMenuItem>
                     {isOwnerOrManager && hasPaidAccess && (
-                      <>
-                        <DropdownMenuItem onClick={() => navigate("/settings/team")}>
-                          Team Settings
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate("/settings/billing")}>
-                          Billing
-                        </DropdownMenuItem>
-                      </>
+                      <DropdownMenuItem onClick={() => navigate("/settings/team")}>
+                        Team Settings
+                      </DropdownMenuItem>
+                    )}
+                    {isOwner && (
+                      <DropdownMenuItem onClick={() => navigate("/settings/billing")}>
+                        Billing
+                      </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={signOut}>
