@@ -243,7 +243,7 @@ export function CompanyBudgetSection({ readOnly = false }: CompanyBudgetSectionP
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-semibold">Budget Categories</h3>
-          {availableCategories.length > 0 && (
+          {!readOnly && availableCategories.length > 0 && (
             <Select onValueChange={handleAddCategory}>
               <SelectTrigger className="w-[180px] h-7 text-xs">
                 <SelectValue placeholder="Add category…" />
