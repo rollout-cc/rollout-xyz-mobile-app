@@ -182,14 +182,25 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
           <Receipt className="h-4 w-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">Finance Ledger</h3>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 gap-1 text-sm"
-          onClick={() => setShowAdd(!showAdd)}
-        >
-          <Plus className="h-3.5 w-3.5" /> Add
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1 text-sm"
+            onClick={() => setShowScanner(true)}
+            title="Scan receipt"
+          >
+            <Camera className="h-3.5 w-3.5" /> Scan
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1 text-sm"
+            onClick={() => setShowAdd(!showAdd)}
+          >
+            <Plus className="h-3.5 w-3.5" /> Add
+          </Button>
+        </div>
       </div>
 
       {/* Summary bar */}
