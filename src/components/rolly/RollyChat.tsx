@@ -22,7 +22,7 @@ interface RollyChatProps {
   onPlanMessage?: (msg: string) => void;
 }
 
-export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: externalPlanMode, onPlanModeChange, onSendReady }: RollyChatProps = {}) {
+export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: externalPlanMode, onPlanModeChange, onSendReady, onPlanMessage }: RollyChatProps = {}) {
   const planMode = externalPlanMode ?? false;
   const setPlanMode = (val: boolean) => onPlanModeChange?.(val);
   const { messages, isLoading, send, stop, clear, lastActions } = useRollyChat(planMode);
