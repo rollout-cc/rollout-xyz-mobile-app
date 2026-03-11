@@ -53,6 +53,11 @@ export function useRollyChat(planMode: boolean = false) {
 
       if (!resp.ok) {
         const errData = await resp.json().catch(() => ({}));
+        if (errData.error === "rolly_limit_reached") {
+          setMessages(prev => [...prev, { role: "assistant", content: "🔒 You've used all 10 free Rolly messages this month. Upgrade to **Icon** for unlimited access to Rolly." }]);
+          setIsLoading(false);
+          return;
+        }
         const errMsg = errData.error || `Error ${resp.status}`;
         setMessages(prev => [...prev, { role: "assistant", content: `⚠️ ${errMsg}` }]);
         setIsLoading(false);

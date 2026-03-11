@@ -2286,6 +2286,10 @@ export type Database = {
         Returns: boolean
       }
       has_note_share: { Args: { p_note_id: string }; Returns: boolean }
+      increment_rolly_usage: {
+        Args: { p_month: string; p_team_id: string }
+        Returns: undefined
+      }
       is_link_folder_public: { Args: { p_folder_id: string }; Returns: boolean }
       is_member_info_public: { Args: { p_member_id: string }; Returns: boolean }
       is_note_owner: { Args: { p_note_id: string }; Returns: boolean }
