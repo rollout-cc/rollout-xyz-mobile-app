@@ -73,7 +73,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [permissions, setPermissions] = useState<PermissionFlags>({ ...defaultPermissions });
+  const [permissions, setPermissions] = useState<PermissionFlags>({ ...roleDefaults("manager") });
 
   const hasEmail = inviteEmail.trim().length > 0;
 

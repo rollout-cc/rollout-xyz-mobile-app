@@ -108,19 +108,19 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     return FINANCE_JOB_TITLES.some((t) => lower.includes(t));
   }, [profile?.job_role]);
 
-  // Role defaults + additive stored permissions + finance job title detection
+  // Use stored permission flags directly — they represent the full permission state
   const permissions = useMemo(() => {
     const isOwner = role === "team_owner";
     const isManager = role === "manager";
     return {
       canViewCompany: isOwner || isManager,
-      canViewFinance: isOwner || isManager || !!membershipPerms?.perm_view_finance,
-      canManageFinance: isOwner || (isManager && isFinanceJobTitle) || !!membershipPerms?.perm_manage_finance,
-      canViewStaffSalaries: isOwner || !!membershipPerms?.perm_view_staff_salaries,
-      canViewAR: isOwner || isManager || !!membershipPerms?.perm_view_ar,
-      canViewRoster: isOwner || isManager || !!membershipPerms?.perm_view_roster,
-      canEditArtists: isOwner || isManager || !!membershipPerms?.perm_edit_artists,
-      canViewBilling: isOwner || !!membershipPerms?.perm_view_billing,
+      canViewFinance: !!membershipPerms?.perm_view_finance,
+      canManageFinance: !!membershipPerms?.perm_manage_finance || (isManager && isFinanceJobTitle),
+      canViewStaffSalaries: !!membershipPerms?.perm_view_staff_salaries,
+      canViewAR: !!membershipPerms?.perm_view_ar,
+      canViewRoster: !!membershipPerms?.perm_view_roster,
+      canEditArtists: !!membershipPerms?.perm_edit_artists,
+      canViewBilling: !!membershipPerms?.perm_view_billing,
     };
   }, [role, membershipPerms, isFinanceJobTitle]);
 
