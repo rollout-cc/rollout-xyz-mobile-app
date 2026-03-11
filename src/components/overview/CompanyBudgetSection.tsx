@@ -25,7 +25,11 @@ const DEFAULT_CATEGORIES = [
   "Staff Payroll",
 ];
 
-export function CompanyBudgetSection() {
+interface CompanyBudgetSectionProps {
+  readOnly?: boolean;
+}
+
+export function CompanyBudgetSection({ readOnly = false }: CompanyBudgetSectionProps) {
   const { selectedTeamId: teamId } = useSelectedTeam();
   const queryClient = useQueryClient();
   const [editingBudget, setEditingBudget] = useState(false);
