@@ -79,7 +79,7 @@ export function RollyFAB() {
             </div>
             {/* Chat */}
             <div className="flex-1 min-h-0">
-              <RollyChat />
+              <RollyChat prefillPrompt={prefillPrompt} onPrefillConsumed={() => setPrefillPrompt(null)} />
             </div>
           </motion.div>
         )}
