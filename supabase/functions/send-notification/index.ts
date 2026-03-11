@@ -325,6 +325,43 @@ Deno.serve(async (req) => {
 
     console.log("Notification email sent:", resendData.id, payload.type);
 
+    // --- Push Notification ---
+    // Fire push notification to the user's devices (fire-and-forget)
+    const userId = payload.user_id || payload._resolved_user_id;
+    if (userId) {
+      try {
+        const pushRes = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push-notification`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+            },
+            body: JSON.stringify({
+              user_id: userId,
+              title: subject,
+              body: payload.task_title || payload.milestone_title || payload.new_artist_name || payload.budget_label || "",
+              data: { type: payload.type },
+            }),
+          }
+        );
+        const pushData = await pushRes.json();
+        console.log("[Push] Sent alongside email:", pushData);
+      } catch (pushErr) {
+        console.warn("[Push] Failed (non-blocking):", pushErr);
+      }
+    }
+
+    // --- SMS via Twilio ---
+    if (userId) {
+      try {
+        await sendSmsIfEnabled(adminClient, userId, payload.type, subject);
+      } catch (smsErr) {
+        console.warn("[SMS] Failed (non-blocking):", smsErr);
+      }
+    }
+
     return new Response(
       JSON.stringify({ success: true, email_id: resendData.id }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
