@@ -75,10 +75,11 @@ async function runApifyActor(apifyToken: string, handles: string[], maxTweets: n
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        startUrls: handles.map(h => ({ url: `https://twitter.com/${h}` })),
+        startUrls: handles.map(h => ({ url: `https://x.com/${h}` })),
         maxItems: maxTweets,
         sort: "Latest",
         tweetLanguage: "en",
+        excludeReplies: true,
       }),
     }
   );
