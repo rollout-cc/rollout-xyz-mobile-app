@@ -120,11 +120,17 @@ export default function Rolly() {
   const handlePlanModeToggle = useCallback((active: boolean) => {
     setPlanMode(active);
     if (active) {
-      setWizardActive(true);
-      if (isMobile) setMobileTab("workspace");
+      // Don't activate wizard yet — wait for the user's first message
     } else {
       setWizardActive(false);
+      setWizardContext(null);
     }
+  }, []);
+
+  const handlePlanMessage = useCallback((msg: string) => {
+    setWizardContext(msg);
+    setWizardActive(true);
+    if (isMobile) setMobileTab("workspace");
   }, [isMobile]);
 
   const handleWizardComplete = useCallback((answers: PlanAnswers) => {
