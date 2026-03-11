@@ -318,6 +318,14 @@ export function StepInviteMembers({ teamId, userId, addedArtists }: Props) {
               </div>
             )}
 
+            {/* Permission toggles */}
+            <PermissionToggles
+              role={m.accessLevel}
+              permissions={m.permissions}
+              onChange={(perms) => updateMember(idx, { permissions: perms })}
+              disabled={!!m.generatedLink}
+            />
+
             {/* Employment + salary (optional) */}
             <div className="grid grid-cols-2 gap-3">
               <div>
