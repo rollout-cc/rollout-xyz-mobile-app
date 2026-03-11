@@ -16,19 +16,36 @@ Your style:
 - Never dump everything you know. Less is more.
 
 PLANNING MODE — Guided Conversations:
-- When the user wants to PLAN something (release, campaign, budget setup, weekly planning, onboarding an artist, etc.), switch into guided mode.
+- When the user's message starts with [PLAN MODE] or they ask to PLAN something (release, campaign, budget, weekly planning, onboarding, rollout, etc.), switch into guided planning mode.
 - In guided mode, ask ONE focused question at a time. Wait for the answer before asking the next.
-- Follow a logical flow. For example, for a release plan:
-  1. Which artist?
-  2. What type of release (single, EP, album)?
-  3. What's the target release date?
-  4. What's the budget?
-  5. What marketing channels?
-  6. Any collaborators or features?
-- After gathering enough info (usually 3-6 questions), summarize what you'll create and then execute ALL actions at once using your tools (tasks, milestones, budgets, expenses, split projects).
+- Follow the ROLLOUT PLANNING FRAMEWORK below when planning a release or rollout.
+- After gathering enough info (usually 5-10 questions across sections), summarize what you'll create and then execute ALL actions at once using your tools (tasks, milestones, budgets, expenses, split projects).
 - Present a recap of everything created, then ask "Anything you'd like to adjust?"
-- If the user goes off-topic mid-plan, answer their question briefly, then gently steer back: "Now back to your release plan — [next question]"
+- If the user goes off-topic mid-plan, answer briefly, then steer back: "Now back to your plan — [next question]"
 - You can infer reasonable defaults. Don't ask about things you can guess.
+
+ROLLOUT PLANNING FRAMEWORK:
+When planning a release or rollout, walk through these sections one question at a time:
+
+1. ARTIST & NARRATIVE — Which artist? What's the story, angle, or theme of this project? What's the "myth" or persona moment?
+2. RELEASE TYPE — Single, EP, or Album? Project name? How many tracks?
+3. GOALS — What does success look like? Revenue targets, streaming goals, fan engagement metrics, brand objectives.
+4. BUSINESS VERTICALS — Beyond music, what other verticals are in play? Options: Clothing/Merch, Film/TV/Visual, Touring/Live, Partnerships/Brand Deals, Other (cannabis, modeling, etc.)
+5. PHASE 1: SEEDING THE MYTH (Lore & Buzz) — What teaser moments will build anticipation? Think: freestyles, behind-the-scenes, pop-up appearances, brand soft-launches, social lore drops. Duration and budget for this phase.
+6. PHASE 2: SINGLE RELEASE (Revenue Generation) — Lead single strategy. Radio/press outreach? Merch pre-orders? Listening experiences? Music video plan?
+7. PHASE 3: AUDIENCE BUILD (Convert Listeners to Fans) — City activations, college tours, press runs, content series, playlist campaigns, fan engagement tactics.
+8. PHASE 4: FULL PROJECT RELEASE (The Big Reveal) — Album/project release strategy. Launch events, livestream campaigns, brand expansions, visual album, deluxe edition plans.
+9. PHASE 5: LONG-TERM GROWTH (Sustain & Monetize) — Post-release momentum. Podcasts, remix projects, clothing line expansions, sync licensing pushes, fan collaboration projects, catalog monetization.
+10. TIMELINE — Map all phases to calendar months/weeks. What's the target release date and how do we work backward?
+11. TEAM & BUDGET — Who's handling what? Total budget and cost per phase. Any external partners or vendors?
+
+After completing the framework, batch-create:
+- Tasks for every action item (with due dates and costs)
+- Milestones for key moments (release dates, pop-ups, premieres, launches)
+- Budgets for each category (marketing, production, merch, video, etc.)
+- Expenses for known costs
+- Split projects if tracks are discussed
+- Campaigns/Initiatives for each phase
 
 CRITICAL BEHAVIOR — Execute First, Ask Second:
 - When the user asks you to DO something, ALWAYS execute what you can IMMEDIATELY using your tools — even if some details are missing.
@@ -40,7 +57,7 @@ CRITICAL BEHAVIOR — Execute First, Ask Second:
 - When the user asks for ADVICE, STRATEGY, or EXPLANATION, respond conversationally.
 
 DATE HANDLING:
-- Today's date will be provided in the system context. Use it to resolve relative dates like "tomorrow", "next Friday", "this weekend", "in 2 weeks", etc.
+- Today's date will be provided in the system context. Use it to resolve relative dates like "tomorrow", "next Friday", "this weekend", etc.
 - Always convert natural language dates to ISO format (YYYY-MM-DD) before passing to tools.
 - If a user says "next week" without a specific day, pick Monday of the following week.
 
@@ -53,7 +70,7 @@ ASSIGNEE HANDLING:
 - If the user says "assign to me" or doesn't specify, assign to the current user (default behavior).
 - If they mention a name, resolve it to the matching team member.
 
-Your expertise: revenue streams, deal structures, splits & royalties, recoupment, industry math, copyright, PROs, business planning, contracts, release strategy, touring economics, sync licensing, and more.
+Your expertise: revenue streams, deal structures, splits & royalties, recoupment, industry math, copyright, PROs, business planning, contracts, release strategy, touring economics, sync licensing, clothing/merch brand building, and more.
 
 When uncertain about advice, say so and suggest consulting an entertainment attorney.`;
 
@@ -137,6 +154,31 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "create_budget",
+      description: "Create one or more budget categories for an artist with allocated amounts.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+          budgets: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                label: { type: "string", description: "Budget category name (e.g. Marketing, Production, Music Video)" },
+                amount: { type: "number", description: "Dollar amount allocated" },
+              },
+              required: ["label", "amount"],
+            },
+          },
+        },
+        required: ["artist_name", "budgets"],
+      },
+    },
+  },
 ];
 
 async function resolveArtistId(adminClient: any, teamId: string, artistName: string): Promise<string | null> {
@@ -173,14 +215,12 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
               continue;
             }
           }
-          // Resolve assignee
-          let assigneeId = userId; // default to requesting user
+          let assigneeId = userId;
           if (task.assignee_name) {
             const resolved = await resolveUserId(adminClient, teamId, task.assignee_name);
             if (resolved) {
               assigneeId = resolved;
             }
-            // If not found, still assign to requesting user
           }
           const { data, error } = await adminClient.from("tasks").insert({
             title: task.title,
@@ -238,7 +278,6 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
           project_type: args.project_type,
         }).select("id, name").single();
         if (projErr) return { success: false, message: projErr.message };
-        // Create tracks
         const tracks = args.track_names.map((name: string, i: number) => ({
           project_id: project.id,
           title: name,
@@ -247,6 +286,26 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
         const { error: trackErr } = await adminClient.from("split_songs").insert(tracks);
         if (trackErr) return { success: true, message: `Created project "${args.project_name}" but failed to add tracks: ${trackErr.message}`, data: project };
         return { success: true, message: `Created split project "${args.project_name}" with ${tracks.length} track(s)`, data: project };
+      }
+
+      case "create_budget": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        const results: any[] = [];
+        for (const budget of args.budgets) {
+          const { data, error } = await adminClient.from("budgets").insert({
+            artist_id: artistId,
+            label: budget.label,
+            amount: budget.amount,
+          }).select("id, label, amount").single();
+          if (error) {
+            results.push({ label: budget.label, error: error.message });
+          } else {
+            results.push({ id: data.id, label: data.label, amount: data.amount, status: "created" });
+          }
+        }
+        const created = results.filter(r => r.status === "created").length;
+        return { success: created > 0, message: `Created ${created} budget(s)`, data: results };
       }
 
       default:
@@ -340,7 +399,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Optionally persist messages
     if (conversation_id) {
       const adminClient = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -356,13 +414,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Search knowledge base
     const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch artist names and team members for context
     const [{ data: artists }, { data: members }] = await Promise.all([
       adminClient
         .from("artists")
@@ -402,13 +458,11 @@ Deno.serve(async (req) => {
       systemPrompt += `\n\n## Reference Material\nUse the following knowledge to inform your answers when relevant. Never mention the source, book title, or author by name — just weave the insights naturally into your advice as if it's your own expertise:\n\n${knowledgeContext}`;
     }
 
-    // Build initial AI request with tools
     const aiMessages = [
       { role: "system", content: systemPrompt },
       ...messages,
     ];
 
-    // Tool-calling loop (non-streaming) — max 3 iterations
     let toolActions: any[] = [];
     let finalMessages = [...aiMessages];
 
@@ -453,13 +507,10 @@ Deno.serve(async (req) => {
 
       if (!choice) break;
 
-      // If no tool calls, we have the final answer — stream it
       if (!choice.message?.tool_calls || choice.message.tool_calls.length === 0) {
-        // No tools called, use this as the final content but stream it
         break;
       }
 
-      // Execute tool calls
       finalMessages.push(choice.message);
 
       for (const tc of choice.message.tool_calls) {
@@ -473,12 +524,8 @@ Deno.serve(async (req) => {
           content: JSON.stringify(result),
         });
       }
-
-      // Continue loop to see if the AI wants to call more tools or give final answer
     }
 
-    // Now stream the final response
-    // Prepend tool actions as a custom SSE event
     const encoder = new TextEncoder();
     const toolActionsEvent = toolActions.length > 0
       ? `data: ${JSON.stringify({ type: "tool_actions", actions: toolActions })}\n\n`
@@ -506,15 +553,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create a combined stream: tool actions event + AI stream
     const readable = new ReadableStream({
       async start(controller) {
-        // Send tool actions first
         if (toolActionsEvent) {
           controller.enqueue(encoder.encode(toolActionsEvent));
         }
 
-        // Then pipe AI stream
         const reader = streamResponse.body!.getReader();
         try {
           while (true) {
