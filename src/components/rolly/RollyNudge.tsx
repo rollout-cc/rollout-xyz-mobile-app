@@ -1,8 +1,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { useRollyNudge } from "@/hooks/useRollyNudge";
-import { rollyEvents } from "@/lib/rollyEvents";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useNavigate } from "react-router-dom";
 import rollyIcon from "@/assets/rolly-icon.png";
 
 interface Props {
