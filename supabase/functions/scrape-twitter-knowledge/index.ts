@@ -136,8 +136,8 @@ Deno.serve(async (req: Request) => {
         console.log(`[${label}] Got ${results.length} results`);
 
         for (const item of results) {
-          const md = item.markdown || "";
-          if (!md) continue;
+          const content = item.markdown || item.description || "";
+          if (!content) continue;
 
           const blocks = extractInsights(md);
           for (const block of blocks) {
