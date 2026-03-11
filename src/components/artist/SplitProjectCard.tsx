@@ -145,13 +145,22 @@ export function SplitProjectCard({ project, teamId, artistId, onDelete }: Props)
                 </Button>
               </div>
 
-              {/* Send for Approval */}
+              {/* Actions */}
               {songs.length > 0 && (
-                <div className="pt-2 border-t border-border">
+                <div className="pt-2 border-t border-border flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 flex-1"
+                    onClick={handleDownloadPdf}
+                  >
+                    <FileDown className="h-3.5 w-3.5" />
+                    Download PDF
+                  </Button>
                   <Button
                     size="sm"
                     variant="default"
-                    className="gap-1.5 w-full"
+                    className="gap-1.5 flex-1"
                     onClick={() => setShowConfirm(true)}
                     disabled={sending}
                   >
