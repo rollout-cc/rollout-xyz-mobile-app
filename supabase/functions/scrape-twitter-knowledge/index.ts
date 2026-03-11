@@ -171,6 +171,10 @@ Deno.serve(async (req: Request) => {
     // Run Apify actor
     const tweets = await runApifyActor(apifyToken, handles, maxTweets);
     console.log(`Got ${tweets.length} tweets from Apify`);
+    // Debug: log first 3 raw tweet objects to see available fields
+    for (let d = 0; d < Math.min(3, tweets.length); d++) {
+      console.log(`RAW TWEET ${d}:`, JSON.stringify(tweets[d]).substring(0, 1000));
+    }
 
     const stats = { total_tweets: tweets.length, matched: 0, inserted: 0, duplicates: 0 };
 
