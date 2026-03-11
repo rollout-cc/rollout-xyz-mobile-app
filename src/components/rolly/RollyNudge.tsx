@@ -14,6 +14,7 @@ interface Props {
 export function RollyNudge({ screen, dataSnapshot, entityId }: Props) {
   const { nudge, ctaPrompt, dismissed, dismiss } = useRollyNudge(screen, dataSnapshot, entityId);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   if (!nudge || dismissed) return null;
 
