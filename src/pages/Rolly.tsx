@@ -53,7 +53,7 @@ export default function Rolly() {
         <div className="flex h-[calc(100vh-4rem)] -m-6">
           {/* Left: Chat sidebar */}
           <div className="w-[400px] shrink-0 border-r border-border flex flex-col bg-background">
-            <RollyChat />
+            <RollyChat prefillPrompt={prefill} onPrefillConsumed={() => setPrefill(null)} />
           </div>
           {/* Right: Workspace */}
           <div className="flex-1 overflow-y-auto min-w-0">
