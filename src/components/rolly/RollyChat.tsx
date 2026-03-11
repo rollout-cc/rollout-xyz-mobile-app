@@ -16,14 +16,25 @@ const QUICK_ACTIONS = [
 interface RollyChatProps {
   prefillPrompt?: string | null;
   onPrefillConsumed?: () => void;
+  planMode?: boolean;
+  onPlanModeChange?: (active: boolean) => void;
+  onSendReady?: (sendFn: (msg: string) => void) => void;
 }
 
-export function RollyChat({ prefillPrompt, onPrefillConsumed }: RollyChatProps = {}) {
-  const [planMode, setPlanMode] = useState(false);
+export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: externalPlanMode, onPlanModeChange, onSendReady }: RollyChatProps = {}) {
+  const planMode = externalPlanMode ?? false;
+  const setPlanMode = (val: boolean) => onPlanModeChange?.(val);
   const { messages, isLoading, send, stop, clear, lastActions } = useRollyChat(planMode);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Expose send function to parent
+  useEffect(() => {
+    onSendReady?.((msg: string) => {
+      send(msg);
+    });
+  }, [send, onSendReady]);
 
   // Handle prefill from nudge
   useEffect(() => {
