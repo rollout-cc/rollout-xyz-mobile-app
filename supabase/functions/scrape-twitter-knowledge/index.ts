@@ -139,7 +139,7 @@ Deno.serve(async (req: Request) => {
           const content = item.markdown || item.description || "";
           if (!content) continue;
 
-          const blocks = extractInsights(md);
+          const blocks = extractInsights(content);
           for (const block of blocks) {
             if (matchesKeywords(block)) {
               stats.matched++;
