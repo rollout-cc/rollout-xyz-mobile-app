@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronRight, Plus, Trash2, Music, Send, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Trash2, Music, Send, Loader2, FileDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useSplitSongs, useCreateSplitSong, useDeleteSplitSong } from "@/hooks/useSplits";
+import { useSplitSongs, useCreateSplitSong, useDeleteSplitSong, useSplitEntries } from "@/hooks/useSplits";
 import { SplitSongEditor } from "./SplitSongEditor";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { generateSplitSheetPdf } from "@/lib/splitSheetPdf";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -16,6 +17,7 @@ import {
 interface Props {
   project: any;
   teamId: string;
+  artistId?: string;
   onDelete: () => void;
 }
 
