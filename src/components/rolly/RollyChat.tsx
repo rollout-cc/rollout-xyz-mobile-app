@@ -13,12 +13,25 @@ const QUICK_ACTIONS = [
   { label: "Weekly planning", prompt: "Let's do a weekly planning session. Ask me about each artist on my roster — what's coming up, what needs to get done, and help me create tasks and milestones for the week." },
 ];
 
-export function RollyChat() {
+interface RollyChatProps {
+  prefillPrompt?: string | null;
+  onPrefillConsumed?: () => void;
+}
+
+export function RollyChat({ prefillPrompt, onPrefillConsumed }: RollyChatProps = {}) {
   const [planMode, setPlanMode] = useState(false);
   const { messages, isLoading, send, stop, clear, lastActions } = useRollyChat(planMode);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Handle prefill from nudge
+  useEffect(() => {
+    if (prefillPrompt && !isLoading) {
+      setInput(prefillPrompt);
+      onPrefillConsumed?.();
+    }
+  }, [prefillPrompt]);
 
   useEffect(() => {
     if (scrollRef.current) {
