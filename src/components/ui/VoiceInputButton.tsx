@@ -31,7 +31,7 @@ export function VoiceInputButton({
             "shrink-0 transition-colors",
             size === "icon" ? "h-9 w-9" : "h-7 w-7 p-0",
             isListening
-              ? "text-red-500 hover:text-red-600 bg-red-500/10 hover:bg-red-500/20"
+              ? "text-destructive hover:text-destructive bg-destructive/10 hover:bg-destructive/20"
               : "text-muted-foreground",
             className
           )}
