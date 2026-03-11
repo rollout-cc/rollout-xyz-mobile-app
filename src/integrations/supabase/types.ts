@@ -751,6 +751,7 @@ export type Database = {
           posting_frequency: string | null
           rate: string | null
           search_vector: unknown
+          source: string
           subcategory: string | null
           team_id: string | null
           url: string | null
@@ -778,6 +779,7 @@ export type Database = {
           posting_frequency?: string | null
           rate?: string | null
           search_vector?: unknown
+          source?: string
           subcategory?: string | null
           team_id?: string | null
           url?: string | null
@@ -805,6 +807,7 @@ export type Database = {
           posting_frequency?: string | null
           rate?: string | null
           search_vector?: unknown
+          source?: string
           subcategory?: string | null
           team_id?: string | null
           url?: string | null

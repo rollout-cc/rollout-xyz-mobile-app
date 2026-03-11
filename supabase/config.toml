@@ -41,3 +41,5 @@ project_id = "ctnsworqzzguykzzvdme"
     verify_jwt = false
   [functions.rolly-plan-question]
     verify_jwt = false
+  [functions.enrich-creators]
+    verify_jwt = false

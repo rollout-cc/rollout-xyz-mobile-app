@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useEffect } from "react";
+import { useMemo, useCallback, useEffect, lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { cn, formatLocalDate } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -39,13 +39,14 @@ import { useTeamPlan } from "@/hooks/useTeamPlan";
 import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 import { useTour } from "@/contexts/TourContext";
 import { RollyNudge } from "@/components/rolly/RollyNudge";
+import { MarketingOutreach } from "@/components/outreach/MarketingOutreach";
 
 export default function Overview() {
   const { selectedTeamId: teamId, canManageFinance } = useSelectedTeam();
   const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const initialTab = searchParams.get("tab") === "finance" ? "finance" : "dashboard";
-  const [companyTab, setCompanyTab] = useState<"dashboard" | "agenda" | "staff" | "finance">(initialTab);
+  const [companyTab, setCompanyTab] = useState<"dashboard" | "agenda" | "staff" | "finance" | "outreach">(initialTab);
   const showBudgetWizard = useShouldShowBudgetWizard(teamId ?? null);
   const { limits } = useTeamPlan();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
@@ -53,7 +54,7 @@ export default function Overview() {
   const { tryStartPageTour } = useTour();
   useEffect(() => { tryStartPageTour("overview-tour"); }, [tryStartPageTour]);
 
-  const handleCompanyTab = (tab: "dashboard" | "agenda" | "staff" | "finance") => {
+  const handleCompanyTab = (tab: "dashboard" | "agenda" | "staff" | "finance" | "outreach") => {
     if (tab === "finance" && !limits.canUseFinance) {
       setUpgradeFeature("Finance tools");
       setUpgradeOpen(true);
@@ -444,7 +445,7 @@ export default function Overview() {
   // Tab bar rendered in the AppLayout header on mobile
   const mobileTabBar = (
     <div className="flex items-center gap-1 px-4 py-2.5" data-tour="overview-tabs">
-      {(["dashboard", "agenda", "staff", "finance"] as const).map((tab) => (
+      {(["dashboard", "agenda", "staff", "finance", "outreach"] as const).map((tab) => (
         <button
           key={tab}
           onClick={() => handleCompanyTab(tab)}
@@ -470,7 +471,7 @@ export default function Overview() {
       <>
       {/* Company tabs — desktop only (mobile version lives in the header via mobileSubnav) */}
       <div className="hidden sm:flex items-center gap-1 mb-5" data-tour="overview-tabs-desktop">
-        {(["dashboard", "agenda", "staff", "finance"] as const).map((tab) => (
+      {(["dashboard", "agenda", "staff", "finance", "outreach"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => handleCompanyTab(tab)}
@@ -489,6 +490,8 @@ export default function Overview() {
         <StaffContent />
       ) : companyTab === "finance" ? (
         <FinanceContent />
+      ) : companyTab === "outreach" ? (
+        <MarketingOutreach />
       ) : (
       <>
       {/* Weekly Digest */}
