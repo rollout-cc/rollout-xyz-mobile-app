@@ -26,7 +26,7 @@ import { CompanyBudgetSection } from "./CompanyBudgetSection";
 type DateRange = "month" | "quarter" | "ytd" | "all";
 
 export function FinanceContent() {
-  const { selectedTeamId: teamId, canManage: canEdit } = useSelectedTeam();
+  const { selectedTeamId: teamId, canManage: canEdit, canManageFinance } = useSelectedTeam();
   const queryClient = useQueryClient();
   const [dateRange, setDateRange] = useState<DateRange>("all");
 
