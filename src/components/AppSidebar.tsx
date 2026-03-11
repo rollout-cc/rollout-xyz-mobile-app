@@ -7,6 +7,7 @@ import rolloutLogo from "@/assets/rollout-logo.png";
 import rolloutFlag from "@/assets/rollout-flag.svg";
 import rollyIcon from "@/assets/rolly-icon.png";
 import { NavLink } from "@/components/NavLink";
+import { useSelectedTeam } from "@/contexts/TeamContext";
 import {
   Sidebar,
   SidebarContent,
