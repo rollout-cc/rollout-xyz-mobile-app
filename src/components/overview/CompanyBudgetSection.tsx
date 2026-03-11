@@ -25,7 +25,11 @@ const DEFAULT_CATEGORIES = [
   "Staff Payroll",
 ];
 
-export function CompanyBudgetSection() {
+interface CompanyBudgetSectionProps {
+  readOnly?: boolean;
+}
+
+export function CompanyBudgetSection({ readOnly = false }: CompanyBudgetSectionProps) {
   const { selectedTeamId: teamId } = useSelectedTeam();
   const queryClient = useQueryClient();
   const [editingBudget, setEditingBudget] = useState(false);
@@ -205,7 +209,7 @@ export function CompanyBudgetSection() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="rounded-xl border border-border p-3">
           <p className="text-xs text-muted-foreground">Annual Budget</p>
-          {editingBudget ? (
+          {!readOnly && editingBudget ? (
             <CurrencyInput
               value={budgetInput}
               onChange={setBudgetInput}
@@ -216,8 +220,9 @@ export function CompanyBudgetSection() {
             />
           ) : (
             <button
-              onClick={() => { setBudgetInput(annualBudget.toString()); setEditingBudget(true); }}
-              className="text-lg font-bold mt-1 hover:text-primary transition-colors text-left w-full"
+              onClick={() => { if (!readOnly) { setBudgetInput(annualBudget.toString()); setEditingBudget(true); } }}
+              className={cn("text-lg font-bold mt-1 text-left w-full", !readOnly && "hover:text-primary transition-colors")}
+              disabled={readOnly}
             >
               <span className="sm:hidden">{abbr(annualBudget)}</span>
               <span className="hidden sm:inline">{fmt(annualBudget)}</span>
@@ -238,7 +243,7 @@ export function CompanyBudgetSection() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-semibold">Budget Categories</h3>
-          {availableCategories.length > 0 && (
+          {!readOnly && availableCategories.length > 0 && (
             <Select onValueChange={handleAddCategory}>
               <SelectTrigger className="w-[180px] h-7 text-xs">
                 <SelectValue placeholder="Add category…" />
@@ -262,16 +267,17 @@ export function CompanyBudgetSection() {
               const pct = budget > 0 ? Math.min(Math.round((spent / budget) * 100), 100) : 0;
 
               return (
-                <CategoryCard
-                  key={cat.id}
-                  name={cat.name}
-                  budget={budget}
-                  spent={spent}
-                  pct={pct}
-                  onBudgetChange={(val) => updateCategoryBudget.mutate({ id: cat.id, annual_budget: val })}
-                  onDelete={() => deleteCategory.mutate(cat.id)}
-                  fmt={fmt}
-                />
+                  <CategoryCard
+                    key={cat.id}
+                    name={cat.name}
+                    budget={budget}
+                    spent={spent}
+                    pct={pct}
+                    onBudgetChange={readOnly ? undefined : (val) => updateCategoryBudget.mutate({ id: cat.id, annual_budget: val })}
+                    onDelete={readOnly ? undefined : () => deleteCategory.mutate(cat.id)}
+                    fmt={fmt}
+                    readOnly={readOnly}
+                  />
               );
             })}
           </div>
@@ -319,35 +325,38 @@ function SummaryCard({ label, value, mobileValue, accent }: { label: string; val
 }
 
 function CategoryCard({
-  name, budget, spent, pct, onBudgetChange, onDelete, fmt,
+  name, budget, spent, pct, onBudgetChange, onDelete, fmt, readOnly,
 }: {
   name: string; budget: number; spent: number; pct: number;
-  onBudgetChange: (val: number) => void; onDelete: () => void; fmt: (n: number) => string;
+  onBudgetChange?: (val: number) => void; onDelete?: () => void; fmt: (n: number) => string;
+  readOnly?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [budgetVal, setBudgetVal] = useState(budget.toString());
 
   return (
     <div className="rounded-xl border border-border p-4 group relative">
-      <button
-        onClick={onDelete}
-        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
+      {!readOnly && onDelete && (
+        <button
+          onClick={onDelete}
+          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
       <p className="text-sm font-medium mb-2">{name}</p>
-      {editing ? (
+      {!readOnly && editing ? (
         <div className="mb-2">
           <CurrencyInput
             value={budgetVal}
             onChange={setBudgetVal}
             onBlur={() => {
-              onBudgetChange(parseFloat(budgetVal.replace(/,/g, "")) || 0);
+              onBudgetChange?.(parseFloat(budgetVal.replace(/,/g, "")) || 0);
               setEditing(false);
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                onBudgetChange(parseFloat(budgetVal.replace(/,/g, "")) || 0);
+                onBudgetChange?.(parseFloat(budgetVal.replace(/,/g, "")) || 0);
                 setEditing(false);
               }
             }}
@@ -357,8 +366,9 @@ function CategoryCard({
         </div>
       ) : (
         <button
-          onClick={() => { setBudgetVal(budget.toString()); setEditing(true); }}
-          className="text-lg font-bold hover:text-primary transition-colors"
+          onClick={() => { if (!readOnly) { setBudgetVal(budget.toString()); setEditing(true); } }}
+          className={cn("text-lg font-bold", !readOnly && "hover:text-primary transition-colors")}
+          disabled={readOnly}
         >
           {fmt(budget)}
         </button>

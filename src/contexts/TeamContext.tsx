@@ -4,16 +4,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+const FINANCE_JOB_TITLES = ["finance", "operations", "accountant", "accounting", "cfo", "controller", "bookkeeper", "business manager"];
+
 interface TeamContextType {
   selectedTeamId: string | null;
   setSelectedTeamId: (id: string) => void;
-  /** Current user's role in the selected team */
   role: string | null;
-  /** Whether the current user is team_owner or manager */
   canManage: boolean;
-  /** Granular permission flags */
   canViewCompany: boolean;
   canViewFinance: boolean;
+  canManageFinance: boolean;
   canViewStaffSalaries: boolean;
   canViewAR: boolean;
   canViewRoster: boolean;
@@ -21,7 +21,6 @@ interface TeamContextType {
   canViewBilling: boolean;
   isArtistRole: boolean;
   isGuestRole: boolean;
-  /** Artist IDs this user is assigned to (for artist/guest roles) */
   assignedArtistIds: string[];
 }
 
@@ -32,6 +31,7 @@ const TeamContext = createContext<TeamContextType>({
   canManage: false,
   canViewCompany: false,
   canViewFinance: false,
+  canManageFinance: false,
   canViewStaffSalaries: false,
   canViewAR: false,
   canViewRoster: false,
@@ -77,19 +77,41 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     enabled: !!user && (role === "artist" || role === "guest"),
   });
 
+  // Fetch user's job_role for finance permission detection
+  const { data: profile } = useQuery({
+    queryKey: ["my-profile-role", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("job_role")
+        .eq("id", user!.id)
+        .single();
+      return data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+  });
+
   const canManage = role === "team_owner" || role === "manager";
   const isArtistRole = role === "artist";
   const isGuestRole = role === "guest";
 
+  const isFinanceJobTitle = useMemo(() => {
+    if (!profile?.job_role) return false;
+    const lower = profile.job_role.toLowerCase();
+    return FINANCE_JOB_TITLES.some((t) => lower.includes(t));
+  }, [profile?.job_role]);
+
   const permissions = useMemo(() => ({
     canViewCompany: role === "team_owner" || role === "manager",
     canViewFinance: role === "team_owner" || role === "manager",
+    canManageFinance: role === "team_owner" || (canManage && isFinanceJobTitle),
     canViewStaffSalaries: role === "team_owner",
     canViewAR: role === "team_owner" || role === "manager",
     canViewRoster: role === "team_owner" || role === "manager",
     canEditArtists: role === "team_owner" || role === "manager",
     canViewBilling: role === "team_owner",
-  }), [role]);
+  }), [role, canManage, isFinanceJobTitle]);
 
   return (
     <TeamContext.Provider value={{
