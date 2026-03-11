@@ -81,19 +81,9 @@ interface SearchConfig {
 
 function buildSearchQueries(): SearchConfig[] {
   return [
-    // Donny Slater content across the web
-    { query: '"Donny Slater" music management strategy', label: "ds-mgmt" },
-    { query: '"Donny Slater" artist development rollout', label: "ds-dev" },
-    { query: '"Donny Slater" music business advice', label: "ds-advice" },
-    { query: '"thatdonnyslater" music industry', label: "ds-twitter" },
-    // Brian Zisook / DJBooth content
-    { query: '"Brian Zisook" music industry strategy', label: "bz-strategy" },
-    { query: '"Brian Zisook" artist development advice', label: "bz-dev" },
-    { query: '"Brian Zisook" DJBooth music business', label: "bz-djbooth" },
-    { query: '"Brian Zisook" streaming revenue labels', label: "bz-revenue" },
-    // Their combined / cross-referenced content
-    { query: '"Donny Slater" OR "Brian Zisook" music manager tips', label: "combined" },
-    { query: '"thatdonnyslater" OR "BrianZisook" release strategy', label: "combined-tw" },
+    { query: '"Donny Slater" music management artist strategy', label: "ds-mgmt" },
+    { query: '"Brian Zisook" DJBooth music business artist development', label: "bz-djbooth" },
+    { query: '"Donny Slater" OR "Brian Zisook" release rollout streaming revenue', label: "combined" },
   ];
 }
 
