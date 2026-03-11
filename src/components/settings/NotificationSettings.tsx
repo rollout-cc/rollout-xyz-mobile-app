@@ -76,7 +76,8 @@ type PrefKey =
   | "budget_alert_email"
   | "new_artist_email"
   | "daily_checkin_email"
-  | "weekly_summary_email";
+  | "weekly_summary_email"
+  | "push_enabled";
 
 const TIME_OPTIONS = Array.from({ length: 24 }, (_, i) => {
   const hour = i;
@@ -164,6 +165,21 @@ export function NotificationSettings() {
         </div>
       </div>
 
+      {/* Global toggles */}
+      <div>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Channels</p>
+        <div className="flex items-center justify-between gap-4 p-4 rounded-lg border border-border bg-card">
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-foreground text-sm">Push Notifications</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Receive push notifications on your mobile device</p>
+          </div>
+          <Switch
+            checked={(prefs as any)?.push_enabled ?? true}
+            onCheckedChange={(v) => updatePref.mutate({ key: "push_enabled", value: v })}
+          />
+        </div>
+      </div>
+
       {/* Notification section */}
       <div>
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Notifications</p>
@@ -171,7 +187,7 @@ export function NotificationSettings() {
         {/* Column headers */}
         <div className="flex items-center justify-end gap-8 pr-2 text-xs font-medium text-muted-foreground mb-2">
           <span>Email</span>
-          <span className="flex items-center gap-1">SMS <span className="text-[10px] text-muted-foreground/60 font-normal">(coming soon)</span></span>
+          <span>SMS</span>
         </div>
 
         {/* Notification cards */}
@@ -192,9 +208,8 @@ export function NotificationSettings() {
                 />
                 {card.smsCol ? (
                   <Switch
-                    disabled
-                    checked={false}
-                    className="opacity-40"
+                    checked={(prefs as any)?.[card.smsCol] ?? false}
+                    onCheckedChange={(v) => updatePref.mutate({ key: card.smsCol, value: v })}
                   />
                 ) : (
                   <div className="w-[36px]" /> // spacer for alignment

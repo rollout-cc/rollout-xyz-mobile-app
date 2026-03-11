@@ -35,3 +35,5 @@ project_id = "ctnsworqzzguykzzvdme"
     verify_jwt = false
   [functions.rolly-nudge]
     verify_jwt = false
+  [functions.send-push-notification]
+    verify_jwt = false

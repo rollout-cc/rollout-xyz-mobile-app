@@ -241,6 +241,74 @@ function buildHtml(p: NotificationPayload): string {
 </html>`;
 }
 
+// SMS notification type to pref column mapping
+const SMS_PREF_MAP: Record<string, string> = {
+  task_assigned: "task_assigned_sms",
+  task_due_soon: "task_due_soon_sms",
+  task_overdue: "task_overdue_sms",
+  milestone_approaching: "milestone_sms",
+};
+
+async function sendSmsIfEnabled(
+  adminClient: any,
+  userId: string,
+  notifType: string,
+  messageText: string
+) {
+  const smsCol = SMS_PREF_MAP[notifType];
+  if (!smsCol) return; // No SMS support for this notification type
+
+  // Check SMS preference
+  const { data: pref } = await adminClient
+    .from("notification_preferences")
+    .select(smsCol)
+    .eq("user_id", userId)
+    .single();
+
+  if (!pref || !(pref as any)[smsCol]) return;
+
+  // Get user's phone number from profile
+  const { data: profile } = await adminClient
+    .from("profiles")
+    .select("phone_number")
+    .eq("id", userId)
+    .single();
+
+  if (!profile?.phone_number) return;
+
+  const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
+  const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+  const fromNumber = Deno.env.get("TWILIO_PHONE_NUMBER");
+
+  if (!accountSid || !authToken || !fromNumber) {
+    console.warn("[SMS] Twilio credentials not configured, skipping");
+    return;
+  }
+
+  const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+  const credentials = btoa(`${accountSid}:${authToken}`);
+
+  const res = await fetch(twilioUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${credentials}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      To: profile.phone_number,
+      From: fromNumber,
+      Body: `Rollout: ${messageText}`,
+    }).toString(),
+  });
+
+  const result = await res.json();
+  if (res.ok) {
+    console.log("[SMS] Sent:", result.sid);
+  } else {
+    console.error("[SMS] Twilio error:", result);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -282,6 +350,8 @@ Deno.serve(async (req) => {
         });
       }
       payload.to_email = userData.user.email;
+      // Preserve user_id for push/SMS before clearing
+      (payload as any)._resolved_user_id = payload.user_id;
       delete payload.user_id;
       delete payload.pref_key;
     }
@@ -324,6 +394,43 @@ Deno.serve(async (req) => {
     }
 
     console.log("Notification email sent:", resendData.id, payload.type);
+
+    // --- Push Notification ---
+    // Fire push notification to the user's devices (fire-and-forget)
+    const userId = payload.user_id || payload._resolved_user_id;
+    if (userId) {
+      try {
+        const pushRes = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push-notification`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+            },
+            body: JSON.stringify({
+              user_id: userId,
+              title: subject,
+              body: payload.task_title || payload.milestone_title || payload.new_artist_name || payload.budget_label || "",
+              data: { type: payload.type },
+            }),
+          }
+        );
+        const pushData = await pushRes.json();
+        console.log("[Push] Sent alongside email:", pushData);
+      } catch (pushErr) {
+        console.warn("[Push] Failed (non-blocking):", pushErr);
+      }
+    }
+
+    // --- SMS via Twilio ---
+    if (userId) {
+      try {
+        await sendSmsIfEnabled(adminClient, userId, payload.type, subject);
+      } catch (smsErr) {
+        console.warn("[SMS] Failed (non-blocking):", smsErr);
+      }
+    }
 
     return new Response(
       JSON.stringify({ success: true, email_id: resendData.id }),

@@ -1065,6 +1065,7 @@ export type Database = {
           milestone_sms: boolean
           new_artist_email: boolean
           preferred_notification_time: string
+          push_enabled: boolean
           task_assigned_email: boolean
           task_assigned_sms: boolean
           task_completed_email: boolean
@@ -1084,6 +1085,7 @@ export type Database = {
           milestone_sms?: boolean
           new_artist_email?: boolean
           preferred_notification_time?: string
+          push_enabled?: boolean
           task_assigned_email?: boolean
           task_assigned_sms?: boolean
           task_completed_email?: boolean
@@ -1103,6 +1105,7 @@ export type Database = {
           milestone_sms?: boolean
           new_artist_email?: boolean
           preferred_notification_time?: string
+          push_enabled?: boolean
           task_assigned_email?: boolean
           task_assigned_sms?: boolean
           task_completed_email?: boolean
@@ -1377,6 +1380,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      push_tokens: {
+        Row: {
+          created_at: string | null
+          id: string
+          platform: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          platform: string
+          token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          platform?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       rolly_conversations: {
         Row: {
