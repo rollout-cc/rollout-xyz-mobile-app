@@ -63,7 +63,7 @@ export function RollyChat() {
                 <button
                   key={action.label}
                   onClick={() => send(action.prompt)}
-                  className="text-left p-3 rounded-lg border border-border hover:bg-muted transition-colors text-sm"
+                  className="text-left p-3 rounded-lg border border-border hover:bg-muted transition-colors text-sm opacity-70"
                 >
                   <span className="font-medium">{action.label}</span>
                 </button>
@@ -138,7 +138,7 @@ export function RollyChat() {
               <Trash2 className="h-4 w-4" />
             </Button>
           )}
-          <Textarea
+            <Textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => {
@@ -147,7 +147,7 @@ export function RollyChat() {
               e.target.style.height = Math.min(e.target.scrollHeight, 160) + "px";
             }}
             onKeyDown={handleKeyDown}
-            placeholder={planMode ? "Describe what you want to plan..." : "Ask ROLLY anything about the music business..."}
+            placeholder={planMode ? "Describe what you want to plan..." : "Ask ROLLY anything..."}
             className="min-h-[40px] max-h-[160px] resize-none rounded-xl py-2.5"
             rows={1}
           />
