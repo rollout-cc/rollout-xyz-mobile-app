@@ -12,6 +12,7 @@ import { TourOverlay } from "@/components/tour/TourOverlay";
 import { useTeams } from "@/hooks/useTeams";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { RoleGate } from "@/components/RoleGate";
 import { toast } from "sonner";
 import { ScrollToTop } from "@/components/ScrollToTop";
 
