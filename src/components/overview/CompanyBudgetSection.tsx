@@ -325,10 +325,11 @@ function SummaryCard({ label, value, mobileValue, accent }: { label: string; val
 }
 
 function CategoryCard({
-  name, budget, spent, pct, onBudgetChange, onDelete, fmt,
+  name, budget, spent, pct, onBudgetChange, onDelete, fmt, readOnly,
 }: {
   name: string; budget: number; spent: number; pct: number;
-  onBudgetChange: (val: number) => void; onDelete: () => void; fmt: (n: number) => string;
+  onBudgetChange?: (val: number) => void; onDelete?: () => void; fmt: (n: number) => string;
+  readOnly?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [budgetVal, setBudgetVal] = useState(budget.toString());
