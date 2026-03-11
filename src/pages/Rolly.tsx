@@ -111,6 +111,7 @@ export default function Rolly() {
   const [prefill, setPrefill] = useState<string | null>(prefillPrompt);
   const [planMode, setPlanMode] = useState(false);
   const [wizardActive, setWizardActive] = useState(false);
+  const [wizardContext, setWizardContext] = useState<string | null>(null);
   const [sendFn, setSendFn] = useState<((msg: string) => void) | null>(null);
   const handleSendReady = useCallback((fn: (msg: string) => void) => {
     setSendFn(() => fn);
