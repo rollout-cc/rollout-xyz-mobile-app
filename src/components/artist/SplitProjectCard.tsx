@@ -21,7 +21,7 @@ interface Props {
   onDelete: () => void;
 }
 
-export function SplitProjectCard({ project, teamId, onDelete }: Props) {
+export function SplitProjectCard({ project, teamId, artistId, onDelete }: Props) {
   const [open, setOpen] = useState(true);
   const { data: songs = [] } = useSplitSongs(project.id);
   const createSong = useCreateSplitSong();
