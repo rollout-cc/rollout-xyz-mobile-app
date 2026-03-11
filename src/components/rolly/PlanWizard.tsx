@@ -184,7 +184,6 @@ export function PlanWizard({ onComplete, onCancel }: PlanWizardProps) {
     : !!selectedValue;
 
   const isLastStep = currentStep === visibleSteps.length - 1;
-  const isLastStep = currentStep === visibleSteps.length - 1;
 
   const handleSingleSelect = (value: string) => {
     setAnswers((prev) => ({ ...prev, [step.id]: value }));
