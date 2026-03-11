@@ -204,6 +204,15 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
           />
           <Button
             size="icon"
+            variant="ghost"
+            className="h-9 w-9 shrink-0 text-muted-foreground"
+            onClick={() => setShowScanner(true)}
+            title="Scan receipt"
+          >
+            <Camera className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
             variant={planMode ? "default" : "ghost"}
             className={cn("h-9 w-9 shrink-0", !planMode && "text-muted-foreground")}
             onClick={() => setPlanMode(!planMode)}
@@ -222,6 +231,33 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
           )}
         </div>
       </div>
+
+      <ReceiptScanner
+        open={showScanner}
+        onOpenChange={setShowScanner}
+        onConfirm={async (data) => {
+          // If there's only one artist, auto-assign; otherwise tell user
+          if (artists.length === 0) {
+            toast.error("Add an artist first to log expenses");
+            return;
+          }
+          const artistId = artists.length === 1 ? artists[0].id : artists[0].id;
+          const insert: any = {
+            artist_id: artistId,
+            description: data.description,
+            amount: -Math.abs(data.amount),
+            transaction_date: data.date,
+            type: "expense",
+          };
+          const { error } = await supabase.from("transactions").insert(insert);
+          if (error) {
+            toast.error(error.message);
+          } else {
+            toast.success(`Expense added: $${data.amount.toFixed(2)} — ${data.description}`);
+            send(`I just logged a $${data.amount.toFixed(2)} expense for "${data.description}" from a receipt scan. Any thoughts on categorization or budgeting?`);
+          }
+        }}
+      />
     </div>
   );
 }
