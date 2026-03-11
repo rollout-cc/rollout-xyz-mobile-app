@@ -37,6 +37,12 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
   const [showScanner, setShowScanner] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const voice = useVoiceInput({
+    onResult: (text) => {
+      setInput((prev) => (prev ? prev + " " + text : text));
+    },
+  });
   const { selectedTeamId } = useSelectedTeam();
 
   // Fetch artists for receipt → expense linking
