@@ -227,6 +227,14 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
 
   return (
     <div className="mt-4 space-y-2">
+      <RollyNudge
+        screen="timelines"
+        entityId={artistId}
+        dataSnapshot={{
+          milestoneCount: milestones.length,
+          nextMilestoneDate: milestones.find((m: any) => new Date(m.date) >= new Date())?.date || null,
+        }}
+      />
       {/* Top bar */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-4">
