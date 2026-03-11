@@ -1536,6 +1536,38 @@ export type Database = {
           },
         ]
       }
+      rolly_usage: {
+        Row: {
+          created_at: string
+          id: string
+          message_count: number
+          month: string
+          team_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_count?: number
+          month: string
+          team_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_count?: number
+          month?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rolly_usage_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       roster_folders: {
         Row: {
           created_at: string
