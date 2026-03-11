@@ -1,8 +1,7 @@
 import { AppLayout } from "@/components/AppLayout";
 import { RollyChat } from "@/components/rolly/RollyChat";
 import { RollyWorkspace } from "@/components/rolly/RollyWorkspace";
-import { PlanWizard, type PlanAnswers } from "@/components/rolly/PlanWizard";
-import { PlanDraft, type DraftItem } from "@/components/rolly/PlanDraft";
+import { PlanWizard } from "@/components/rolly/PlanWizard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
