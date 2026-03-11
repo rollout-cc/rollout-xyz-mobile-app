@@ -34,7 +34,7 @@ export function RollyNudge({ screen, dataSnapshot, entityId }: Props) {
         className={`fixed z-[55] flex items-center gap-2.5 px-3.5 py-2.5 rounded-full bg-card border border-border shadow-lg cursor-pointer hover:shadow-xl transition-shadow max-w-[360px] ${
           isMobile
             ? "bottom-[calc(env(safe-area-inset-bottom)+74px)] left-3 right-20"
-            : "bottom-24 left-[calc(var(--sidebar-width,16rem)+1rem)]"
+            : "bottom-48 left-[calc(var(--sidebar-width,16rem)+1rem)]"
         }`}
         onClick={handleClick}
       >
