@@ -31,3 +31,5 @@ project_id = "ctnsworqzzguykzzvdme"
     verify_jwt = false
   [functions.rolly-chat]
     verify_jwt = false
+  [functions.scrape-twitter-knowledge]
+    verify_jwt = false
