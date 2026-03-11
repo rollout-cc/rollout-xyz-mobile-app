@@ -9,6 +9,7 @@ import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn, parseLocalDate } from "@/lib/utils";
+import { RollyNudge } from "@/components/rolly/RollyNudge";
 
 interface FinanceTabProps {
   artistId: string;
