@@ -83,10 +83,24 @@ export function ObjectiveKpiCard({
     setTargetInput("");
   };
 
-  const handleSetTarget = () => {
+  const handleSetTarget = async () => {
     const num = parseFloat(targetInput.replace(/,/g, ""));
     if (isNaN(num) || num <= 0) return;
     save.mutate({ [targetKey]: num });
+
+    // Record baseline snapshot
+    const selectedType = objectiveType || OBJECTIVE_TYPES.find(() => true)?.value;
+    if (selectedType) {
+      await supabase.from("objective_snapshots").upsert({
+        artist_id: artistId,
+        slot,
+        objective_type: selectedType,
+        recorded_value: currentValue ?? 0,
+        target_value: num,
+        recorded_at: new Date().toISOString().split("T")[0],
+        is_baseline: true,
+      } as any, { onConflict: "artist_id,slot,recorded_at" });
+    }
   };
 
   const handleClear = () => {
