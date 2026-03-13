@@ -38,6 +38,7 @@ const Rolly = React.lazy(() => import("./pages/Rolly"));
 const ApproveSplit = React.lazy(() => import("./pages/ApproveSplit"));
 const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
 const VendorW9 = React.lazy(() => import("./pages/VendorW9"));
+const VendorInvoice = React.lazy(() => import("./pages/VendorInvoice"));
 
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
