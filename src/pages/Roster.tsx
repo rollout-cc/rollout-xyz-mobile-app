@@ -361,8 +361,9 @@ export default function Roster() {
             Outreach
           </button>
         </div>
+        {activeTab === "roster" && (
         <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end h-9">
-          {activeTab === "roster" && <span data-tour="roster-sort">{SortSelect}</span>}
+          <span data-tour="roster-sort">{SortSelect}</span>
           <Button
             variant="outline"
             size="sm"
@@ -379,6 +380,7 @@ export default function Roster() {
             Add Artist
           </Button>
         </div>
+        )}
       </div>
 
       {activeTab === "ar" ? (
