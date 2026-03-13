@@ -317,6 +317,15 @@ export default function Roster() {
       >
         A&R Signings
       </button>
+      <button
+        onClick={() => setActiveTab("outreach")}
+        className={cn(
+          "px-3.5 py-1 rounded-full text-sm font-medium transition-colors whitespace-nowrap",
+          activeTab === "outreach" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+        )}
+      >
+        Outreach
+      </button>
     </div>
   );
 
