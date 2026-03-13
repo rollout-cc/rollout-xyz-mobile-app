@@ -1,112 +1,90 @@
 
 
-# Performance Audit: Speed & Flow Improvements
+# Invoicing & Vendor W-9 System
 
-After reviewing the full codebase, here are the bottlenecks and concrete fixes ranked by impact.
+## Key Design Decisions
 
----
+**Invoicing (Wave-inspired simplicity):**
+- Dead-simple invoice creation: pick a recipient, add line items (description + qty + price), set due date, send
+- Status tracking: Draft → Sent → Viewed → Paid → Overdue
+- Email delivery with a clean branded HTML invoice
+- Accessible from both Company Finance tab and Artist Finance tab
 
-## 1. Waterfall Query Chains (HIGH IMPACT)
+**W-9 Form (real IRS W-9):**
+- Public page that mirrors the actual IRS W-9 form fields: legal name, business name, federal tax classification (individual, C corp, S corp, Partnership, Trust/estate, LLC with classification, Other), exemptions, address, TIN (SSN or EIN), certification signature
+- Plus payment method section (bank ACH, PayPal, Venmo, check)
+- Vendor receives link via email or team copies shareable URL
+- Submitted data stored encrypted; team sees masked TIN (last 4 only)
 
-**Problem:** Several pages chain queries sequentially -- each waits for the previous to finish before starting. This creates "waterfall" loading where the page takes 3-4x longer than necessary.
+## Data Model
 
-**Where it happens:**
-- **Overview.tsx**: Fetches `artists` first, then waits for that result before fetching `budgets`, `transactions`, and `initiatives` (all use `enabled: artists.length > 0`). That's 3 sequential hops.
-- **FinanceContent.tsx**: Same pattern -- `artists` -> `budgets`, `transactions`, `company_expenses`, etc. Plus `staffEmployment` -> `staffProfiles` is another waterfall.
-- **StaffContent.tsx**: `memberships` -> `memberProfiles`, and `artists` -> `transactions`.
+**`vendors` table:**
+id, team_id, name, email, phone, w9_status (not_requested/pending/completed), w9_token (unique), w9_completed_at, total_paid, notes, created_at
 
-**Fix:** Create a single database function (RPC) that returns all needed data for the Overview and Finance pages in one call. Alternatively, restructure queries to use the team_id directly (budgets, transactions can be fetched via joins or team_id filter) so they all fire in parallel.
+**`vendor_w9_data` table (sensitive, tight RLS):**
+id, vendor_id, legal_name, business_name, federal_tax_classification, llc_classification, exempt_payee_code, fatca_exemption_code, address_line1, address_line2, city, state, zip, tin_type (ssn/ein), tin_last_four, tin_encrypted, signature_name, signature_date, payment_method, bank_routing_encrypted, bank_account_encrypted, paypal_email, venmo_handle, created_at
 
----
+RLS: Only team owners/managers can SELECT vendor_w9_data via a helper function. No public read.
 
-## 2. `useTeamPlan()` Calls an Edge Function Every 60 Seconds (HIGH IMPACT)
+**`invoices` table:**
+id, team_id, artist_id (nullable), vendor_id (nullable), invoice_number, recipient_name, recipient_email, status (draft/sent/viewed/paid/overdue/cancelled), issue_date, due_date, subtotal, tax_rate, total, notes, footer_notes, paid_at, created_at
 
-**Problem:** `useTeamPlan()` invokes the `check-subscription` edge function (cold-start latency ~200-800ms) on every page load and re-polls every 60s. This is called from at least 8 different components. While React Query deduplicates, the edge function call itself is slow and blocks UI decisions (feature gating).
+**`invoice_line_items` table:**
+id, invoice_id, description, quantity, unit_price, amount, sort_order
 
-**Fix:**
-- Increase `staleTime` to 5 minutes (from 30s) and `refetchInterval` to 5 minutes (from 60s)
-- Cache the result in `localStorage` as a fallback so the first render doesn't block on network
+RLS: Team members can view; owners/managers can CRUD.
 
----
+**DB function:** `next_invoice_number(p_team_id)` returns sequential `INV-0001`.
+**DB function:** `get_vendor_team_id(p_vendor_id)` for RLS helpers.
 
-## 3. `useTeams()` Called 14+ Times Across Components (MEDIUM IMPACT)
+## Edge Functions
 
-**Problem:** `useTeams()` is called in 14 places. React Query deduplicates the network call, but each call triggers the hook logic and context lookups. More importantly, the `role` check pattern (`teams.find(t => t.id === teamId)?.role`) is repeated everywhere.
+**`submit-vendor-w9`** (public, no JWT):
+- Validates w9_token, checks not already completed
+- Stores W-9 data using service role client
+- Updates vendor w9_status → completed
+- TIN stored as-is in tin_encrypted (Supabase encryption at rest), last 4 in tin_last_four
 
-**Fix:** Move `role` into `TeamContext` so components just read `const { role } = useSelectedTeam()` instead of re-querying teams and filtering.
+**`send-vendor-w9-request`** (authenticated):
+- Sends branded email via Resend with link to `/vendor-w9/{token}`
+- Updates vendor w9_status → pending
 
----
+**`send-invoice`** (authenticated):
+- Generates clean HTML email with invoice details, line items, totals
+- Sends via Resend
+- Updates invoice status → sent
 
-## 4. Duplicate Data Fetching Between Pages (MEDIUM IMPACT)
+## Frontend
 
-**Problem:** Overview.tsx, FinanceContent.tsx, and StaffContent.tsx all fetch the same data (artists, transactions, tasks, memberships, profiles) with different query keys (`overview-artists` vs `finance-artists` vs `staff-artists`). This means navigating between tabs re-fetches everything from scratch.
+**New Components:**
+- `src/components/finance/VendorManager.tsx` — vendor list with W-9 status badges, add vendor dialog, actions (send W-9, copy link, view masked data)
+- `src/components/finance/InvoiceCreator.tsx` — Sheet with: recipient (vendor dropdown or manual), line items editor (desc/qty/price with auto-calc), dates, tax rate, notes. Preview before send.
+- `src/components/finance/InvoiceList.tsx` — table of invoices with status badges, actions (edit, send, mark paid, cancel)
+- `src/pages/VendorW9.tsx` — public page, no auth. Multi-step form mirroring IRS W-9: Step 1 (Name/Business/Tax Classification), Step 2 (Exemptions/Address), Step 3 (TIN entry), Step 4 (Payment method), Step 5 (Certification/e-signature). Rollout branding.
 
-**Fix:** Unify query keys. Use `["artists", teamId]` everywhere instead of `["overview-artists", teamId]`, `["finance-artists", teamId]`, `["staff-artists", teamId]`. This lets React Query share the cache across all views.
+**Integration Points:**
+- Company Finance tab (`FinanceContent.tsx`): Add "Vendors" and "Invoices" collapsible sections
+- Artist Finance tab (`FinanceTab.tsx`): Add "Invoices" section scoped to that artist
+- `App.tsx`: Add `/vendor-w9/:token` public route
+- `supabase/config.toml`: Register 3 new edge functions
 
----
+**ROLLY:** Update system prompt in `rolly-chat` to be aware of invoicing and vendor management capabilities.
 
-## 5. Heavy `useMemo` Computations on Every Render (MEDIUM IMPACT)
+## Files Changed
 
-**Problem:** `staffMembers` computation in Overview.tsx has an O(n*m) loop inside it (for each member, it iterates all other members to compute `maxRevenue`). With more staff, this becomes expensive.
-
-**Fix:** Pre-compute `maxRevenue` once outside the map, then pass it in. Single pass instead of quadratic.
-
----
-
-## 6. Missing Prefetching on Navigation (LOW-MEDIUM IMPACT)
-
-**Problem:** When a user clicks an artist card, it navigates to ArtistDetail which then starts fetching from scratch. No data is prefetched on hover or anticipation.
-
-**Fix:** Add `queryClient.prefetchQuery` on artist card hover/mouse-enter for the artist detail data. This makes the transition feel instant.
-
----
-
-## 7. Large Bundle: DnD Library Loaded on Every Page (LOW IMPACT)
-
-**Problem:** `@hello-pangea/dnd` (~45KB gzipped) is imported in Roster.tsx and Overview.tsx. It's lazy-loaded via React.lazy, but it's still a significant chunk for pages that may not need drag-and-drop.
-
-**Fix:** No immediate action needed since pages are already lazy-loaded. Could consider dynamic import of the DnD wrapper only when folders exist.
-
----
-
-## 8. Edge Function Cold Starts (LOW IMPACT, Infrastructure)
-
-**Problem:** `spotify-artist`, `check-subscription`, `scrape-chartmasters` all have cold-start latency. The Spotify artist data is fetched via edge function on every artist detail page load (30min staleTime helps but first visit is slow).
-
-**Fix:** Already mitigated by staleTime. Could add a background sync job instead of on-demand fetching.
-
----
-
-## Implementation Plan (Ordered by Impact)
-
-### Step 1: Unify query keys across Overview/Finance/Staff
-- Change all `["finance-artists", teamId]`, `["overview-artists", teamId]`, `["staff-artists", teamId]` to `["artists-summary", teamId]`
-- Same for transactions, budgets, tasks, memberships, profiles
-- Instant cache sharing = no re-fetch when switching tabs
-
-### Step 2: Remove waterfall queries
-- Fetch budgets and transactions using `team_id` joins instead of waiting for artist IDs
-- Create an RPC function `get_team_finance_summary` that returns artists + budgets + transactions in one call
-
-### Step 3: Optimize useTeamPlan caching
-- Increase staleTime to 5min, refetchInterval to 5min
-- Add localStorage fallback for instant first render
-
-### Step 4: Move role into TeamContext
-- Eliminate 14 redundant `useTeams()` calls for role checking
-
-### Step 5: Fix quadratic staffMembers computation
-- Pre-compute maxRevenue in a single pass
-
-### Step 6: Add prefetching on artist card hover
-- `onMouseEnter` triggers `queryClient.prefetchQuery` for artist detail
-
-### Files to Edit
-1. `src/pages/Overview.tsx` -- unify query keys, remove waterfalls
-2. `src/components/overview/FinanceContent.tsx` -- unify query keys, remove waterfalls
-3. `src/components/overview/StaffContent.tsx` -- unify query keys
-4. `src/hooks/useTeamPlan.ts` -- increase cache times
-5. `src/contexts/TeamContext.tsx` -- add role to context
-6. `src/components/roster/ArtistCard.tsx` -- add prefetch on hover
-7. Database migration -- create RPC function for combined finance data
+| File | Change |
+|------|--------|
+| Migration SQL | 4 tables, RLS, functions |
+| `supabase/functions/submit-vendor-w9/index.ts` | New |
+| `supabase/functions/send-vendor-w9-request/index.ts` | New |
+| `supabase/functions/send-invoice/index.ts` | New |
+| `src/components/finance/VendorManager.tsx` | New |
+| `src/components/finance/InvoiceCreator.tsx` | New |
+| `src/components/finance/InvoiceList.tsx` | New |
+| `src/pages/VendorW9.tsx` | New — real W-9 form |
+| `src/App.tsx` | Add public route |
+| `src/components/overview/FinanceContent.tsx` | Add vendors + invoices sections |
+| `src/components/artist/FinanceTab.tsx` | Add invoices section |
+| `supabase/config.toml` | Register functions |
+| `supabase/functions/rolly-chat/index.ts` | Add awareness |
 
