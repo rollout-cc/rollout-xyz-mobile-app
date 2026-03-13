@@ -6,8 +6,15 @@ import { CalendarRange, Circle, Clock, DollarSign, Link as LinkIcon, ListTodo, R
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { DraftItem } from "./PlanDraft";
+import { PlanExecutionFeed } from "./PlanExecutionFeed";
 
-export function RollyWorkspace() {
+interface RollyWorkspaceProps {
+  executingItems?: DraftItem[] | null;
+  executionComplete?: boolean;
+}
+
+export function RollyWorkspace({ executingItems, executionComplete }: RollyWorkspaceProps = {}) {
   const { selectedTeamId } = useSelectedTeam();
   const { user } = useAuth();
 
@@ -117,6 +124,11 @@ export function RollyWorkspace() {
     if (val >= 1_000) return `$${(val / 1_000).toFixed(0)}k`;
     return `$${val.toLocaleString()}`;
   };
+
+  // Show execution feed when building
+  if (executingItems && executingItems.length > 0) {
+    return <PlanExecutionFeed items={executingItems} isComplete={!!executionComplete} />;
+  }
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">
