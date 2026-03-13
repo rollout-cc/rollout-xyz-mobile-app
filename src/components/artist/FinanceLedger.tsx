@@ -142,6 +142,8 @@ export function FinanceLedger({ artistId }: FinanceLedgerProps) {
       queryClient.invalidateQueries({ queryKey: ["transactions", artistId] });
       queryClient.invalidateQueries({ queryKey: ["finance-transactions", artistId] });
       queryClient.invalidateQueries({ queryKey: ["budget-expense-transactions", artistId] });
+      queryClient.invalidateQueries({ queryKey: ["artists"] });
+      queryClient.invalidateQueries({ queryKey: ["artists-summary"] });
     },
   });
 
