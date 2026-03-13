@@ -332,31 +332,33 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
                     </label>
                   ))
                 ) : (
-                  <RadioGroup
-                    value={isCustomMode ? "" : selectedValue}
-                    onValueChange={handleSingleSelect}
-                    className="space-y-2"
-                  >
+                  <div className="space-y-2">
                     {currentQuestion.options.map((opt) => (
-                      <label
+                      <button
                         key={opt.label}
+                        type="button"
+                        onClick={() => {
+                          const newEntry: QAEntry = { question: currentQuestion.question, answer: opt.label };
+                          const newHistory = [...qaHistory, newEntry];
+                          setQaHistory(newHistory);
+                          setCurrentQuestion(null);
+                          fetchNextQuestion(newHistory);
+                        }}
                         className={cn(
-                          "flex items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-all",
-                          selectedValue === opt.label && !isCustomMode
-                            ? "border-white bg-white/10"
-                            : "border-white/15 hover:border-white/40"
+                          "w-full text-left flex items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-all",
+                          "border-white/15 hover:border-white/40 hover:bg-white/5"
                         )}
                       >
-                        <RadioGroupItem value={opt.label} className="mt-0.5 border-white/30 text-white" />
+                        <div className="h-4 w-4 rounded-full border border-white/30 mt-0.5 shrink-0" />
                         <div>
                           <span className="text-sm font-medium text-white">{opt.label}</span>
                           {opt.description && (
                             <p className="text-xs text-white/40 mt-0.5">{opt.description}</p>
                           )}
                         </div>
-                      </label>
+                      </button>
                     ))}
-                  </RadioGroup>
+                  </div>
                 )}
               </div>
             )}
