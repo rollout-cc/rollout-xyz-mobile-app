@@ -249,7 +249,7 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
             }}
             onKeyDown={handleKeyDown}
             placeholder={planMode ? "Describe what you want to plan..." : "Ask ROLLY anything..."}
-            className="min-h-[40px] max-h-[160px] resize-none rounded-xl py-2.5"
+            className="min-h-[44px] max-h-[160px] resize-none rounded-xl py-2.5 flex-1 min-w-0"
             rows={1}
           />
           <VoiceInputButton
