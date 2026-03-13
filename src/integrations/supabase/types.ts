@@ -1354,6 +1354,50 @@ export type Database = {
         }
         Relationships: []
       }
+      objective_snapshots: {
+        Row: {
+          artist_id: string
+          created_at: string
+          id: string
+          is_baseline: boolean
+          objective_type: string
+          recorded_at: string
+          recorded_value: number | null
+          slot: number
+          target_value: number | null
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          id?: string
+          is_baseline?: boolean
+          objective_type: string
+          recorded_at?: string
+          recorded_value?: number | null
+          slot: number
+          target_value?: number | null
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          id?: string
+          is_baseline?: boolean
+          objective_type?: string
+          recorded_at?: string
+          recorded_value?: number | null
+          slot?: number
+          target_value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objective_snapshots_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

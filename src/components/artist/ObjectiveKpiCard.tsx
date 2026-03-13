@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Target, TrendingUp, Headphones, DollarSign, ChevronDown, X } from "lucide-react";
@@ -58,6 +58,24 @@ export function ObjectiveKpiCard({
     return () => document.removeEventListener("mousedown", handler);
   }, [showPicker]);
 
+  // Record a monthly snapshot whenever we have an active objective with a current value
+  useEffect(() => {
+    if (!objectiveType || objectiveTarget == null || currentValue == null) return;
+    const today = new Date().toISOString().split("T")[0];
+    // Use an async IIFE — upsert silently (conflict = already logged today)
+    (async () => {
+      await supabase.from("objective_snapshots").upsert({
+        artist_id: artistId,
+        slot,
+        objective_type: objectiveType,
+        recorded_value: currentValue,
+        target_value: objectiveTarget,
+        recorded_at: today,
+        is_baseline: false,
+      } as any, { onConflict: "artist_id,slot,recorded_at" });
+    })();
+  }, [artistId, slot, objectiveType, objectiveTarget, currentValue]);
+
   const typeDef = OBJECTIVE_TYPES.find((t) => t.value === objectiveType);
   const Icon = typeDef?.icon ?? Target;
 
@@ -83,10 +101,24 @@ export function ObjectiveKpiCard({
     setTargetInput("");
   };
 
-  const handleSetTarget = () => {
+  const handleSetTarget = async () => {
     const num = parseFloat(targetInput.replace(/,/g, ""));
     if (isNaN(num) || num <= 0) return;
     save.mutate({ [targetKey]: num });
+
+    // Record baseline snapshot
+    const selectedType = objectiveType || OBJECTIVE_TYPES.find(() => true)?.value;
+    if (selectedType) {
+      await supabase.from("objective_snapshots").upsert({
+        artist_id: artistId,
+        slot,
+        objective_type: selectedType,
+        recorded_value: currentValue ?? 0,
+        target_value: num,
+        recorded_at: new Date().toISOString().split("T")[0],
+        is_baseline: true,
+      } as any, { onConflict: "artist_id,slot,recorded_at" });
+    }
   };
 
   const handleClear = () => {
@@ -103,17 +135,23 @@ export function ObjectiveKpiCard({
     return (
       <div ref={pickerRef} className={cn(cardBase, "relative")}>
         {showPicker ? (
-          <div className={cn("p-2 min-w-[160px]", "text-foreground")}>
-            <p className="text-[9px] font-bold uppercase tracking-wider opacity-50 mb-1.5 px-1">
+          <div className={cn("p-2 min-w-[160px]", isBanner ? "text-white" : "text-foreground")}>
+            <p className={cn(
+              "text-[9px] font-bold uppercase tracking-wider mb-1.5 px-1",
+              isBanner ? "text-white/50" : "opacity-50"
+            )}>
               Select Objective
             </p>
             {OBJECTIVE_TYPES.map((t) => (
               <button
                 key={t.value}
                 onClick={() => handleSelectType(t.value)}
-                className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-xs font-medium transition-colors text-left hover:bg-accent"
+                className={cn(
+                  "flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-xs font-medium transition-colors text-left",
+                  isBanner ? "text-white hover:bg-white/10" : "hover:bg-accent"
+                )}
               >
-                <t.icon className="h-3 w-3 opacity-60" />
+                <t.icon className={cn("h-3 w-3", isBanner ? "text-white/60" : "opacity-60")} />
                 {t.label}
               </button>
             ))}
@@ -121,7 +159,10 @@ export function ObjectiveKpiCard({
         ) : (
           <button
             onClick={() => setShowPicker(true)}
-            className="flex items-center gap-1.5 px-3 py-2.5 text-muted-foreground hover:text-foreground transition-colors text-xs"
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-2.5 transition-colors text-xs",
+              isBanner ? "text-white/60 hover:text-white" : "text-muted-foreground hover:text-foreground"
+            )}
           >
             <Target className="h-3 w-3" />
             <span>Set Goal</span>
