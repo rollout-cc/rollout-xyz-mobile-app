@@ -239,7 +239,6 @@ export default function ArtistDetail() {
   const actionButtons = [
     { key: "finance" as ActiveView, icon: Receipt, label: "Finance" },
     { key: "budgets" as ActiveView, icon: DollarSign, label: "Budgets" },
-    { key: "objectives" as ActiveView, icon: Target, label: "Objectives" },
     { key: "information" as ActiveView, icon: Star, label: "Info" },
   ];
 
