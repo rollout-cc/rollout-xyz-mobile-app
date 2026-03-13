@@ -228,6 +228,11 @@ Deno.serve(async (req) => {
     const successCount = results.filter(r => r.success).length;
     const failCount = results.filter(r => !r.success).length;
 
+    if (failCount > 0) {
+      console.error("Failed items:", JSON.stringify(results.filter(r => !r.success)));
+    }
+    console.log(`Execute plan: ${successCount} created, ${failCount} failed out of ${items.length} items (campaigns=${campaigns.length}, tasks=${tasks.length}, milestones=${milestones.length}, budgets=${budgetItems.length})`);
+
     return new Response(JSON.stringify({
       success: failCount === 0,
       created: successCount,
