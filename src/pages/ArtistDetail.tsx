@@ -220,7 +220,7 @@ export default function ArtistDetail() {
 
   const isTopView = (v: ActiveView) => ["money", "finance", "budgets", "objectives", "information"].includes(v);
   const handleViewChange = (v: ActiveView) => {
-    if (v === "finance" && !limits.canUseFinance) {
+    if (v === "money" && !limits.canUseFinance) {
       setUpgradeFeature("Finance tools");
       setUpgradeOpen(true);
       return;
