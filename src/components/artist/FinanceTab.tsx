@@ -198,43 +198,43 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
       const amt = parseFloat(itemAmount) || 0;
       const finalAmount = activeTab === "expense" ? -Math.abs(amt) : Math.abs(amt);
 
-      let resolvedCategoryId = itemCategoryId;
-      if (itemCategoryId.startsWith("budget:")) {
-        const budgetLabel = itemCategoryId.replace("budget:", "");
-        const existing = categories.find((c: any) => c.name === budgetLabel);
-        if (existing) {
-          resolvedCategoryId = existing.id;
-        } else {
-          const { data: newCat, error: catErr } = await supabase
-            .from("finance_categories")
-            .insert({ artist_id: artistId, name: budgetLabel } as any)
-            .select("id")
-            .single();
-          if (catErr) throw catErr;
-          resolvedCategoryId = newCat.id;
-        }
-      }
-
-      // Resolve budget_id from the category/budget selection
+      let resolvedCategoryId: string | null = null;
       let resolvedBudgetId: string | null = null;
-      if (itemCategoryId.startsWith("budget:")) {
-        const budgetLabel = itemCategoryId.replace("budget:", "");
-        const matchedBudget = budgets.find((b: any) => b.label === budgetLabel);
-        if (matchedBudget) resolvedBudgetId = matchedBudget.id;
-      } else if (resolvedCategoryId !== "none") {
-        const cat = categories.find((c: any) => c.id === resolvedCategoryId);
-        if (cat) {
-          const matchedBudget = budgets.find((b: any) => b.label === cat.name);
-          if (matchedBudget) resolvedBudgetId = matchedBudget.id;
-        }
-      }
-      // Resolve revenue_category for revenue transactions
       let revCat: string | null = null;
-      if (activeTab === "revenue" && resolvedCategoryId !== "none") {
-        const catName = itemCategoryId.startsWith("budget:")
-          ? itemCategoryId.replace("budget:", "")
-          : categories.find((c: any) => c.id === resolvedCategoryId)?.name ?? null;
-        revCat = resolveRevenueCategory(catName);
+
+      if (activeTab === "revenue") {
+        // itemCategoryId is a revenue category value (e.g. "live", "royalty") or "none"
+        revCat = itemCategoryId === "none" ? null : itemCategoryId;
+      } else {
+        // Expense: resolve finance_categories / budget
+        resolvedCategoryId = itemCategoryId;
+        if (itemCategoryId.startsWith("budget:")) {
+          const budgetLabel = itemCategoryId.replace("budget:", "");
+          const existing = categories.find((c: any) => c.name === budgetLabel);
+          if (existing) {
+            resolvedCategoryId = existing.id;
+          } else {
+            const { data: newCat, error: catErr } = await supabase
+              .from("finance_categories")
+              .insert({ artist_id: artistId, name: budgetLabel } as any)
+              .select("id")
+              .single();
+            if (catErr) throw catErr;
+            resolvedCategoryId = newCat.id;
+          }
+        }
+
+        if (itemCategoryId.startsWith("budget:")) {
+          const budgetLabel = itemCategoryId.replace("budget:", "");
+          const matchedBudget = budgets.find((b: any) => b.label === budgetLabel);
+          if (matchedBudget) resolvedBudgetId = matchedBudget.id;
+        } else if (resolvedCategoryId !== "none" && resolvedCategoryId) {
+          const cat = categories.find((c: any) => c.id === resolvedCategoryId);
+          if (cat) {
+            const matchedBudget = budgets.find((b: any) => b.label === cat.name);
+            if (matchedBudget) resolvedBudgetId = matchedBudget.id;
+          }
+        }
       }
 
       const { error } = await supabase.from("transactions").insert({
@@ -243,7 +243,7 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
         description: itemDesc.trim(),
         type: activeTab,
         status: itemStatus,
-        category_id: resolvedCategoryId === "none" ? null : resolvedCategoryId,
+        category_id: (activeTab === "expense" && resolvedCategoryId && resolvedCategoryId !== "none") ? resolvedCategoryId : null,
         budget_id: resolvedBudgetId,
         initiative_id: itemInitiativeId === "none" ? null : itemInitiativeId,
         sub_budget_id: itemSubBudgetId === "none" ? null : itemSubBudgetId,
