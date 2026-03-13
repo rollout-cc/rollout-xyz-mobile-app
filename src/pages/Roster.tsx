@@ -4,6 +4,7 @@ import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-p
 import { AppLayout } from "@/components/AppLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ARContent } from "@/components/ar/ARContent";
+import { MarketingOutreach } from "@/components/outreach/MarketingOutreach";
 import { useArtists, useCreateArtist, useDeleteArtist } from "@/hooks/useArtists";
 import { useCreateTeam } from "@/hooks/useTeams";
 import { useSelectedTeam } from "@/contexts/TeamContext";
