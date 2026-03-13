@@ -457,40 +457,76 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
     return subBudgets.filter((sb: any) => sb.budget_id === budgetId);
   }, [itemCategoryId, subBudgets, budgets, categories]);
 
+  const revCatLabelsMap = Object.fromEntries(REVENUE_CATEGORIES.map((c) => [c.value, c.label]));
+
   const grouped = useMemo(() => {
     const groups: { id: string; name: string; items: any[]; total: number }[] = [];
-    const byCat: Record<string, any[]> = {};
-    const unsorted: any[] = [];
-    filtered.forEach((t: any) => {
-      if (t.category_id) {
-        if (!byCat[t.category_id]) byCat[t.category_id] = [];
-        byCat[t.category_id].push(t);
-      } else {
-        unsorted.push(t);
-      }
-    });
 
-    if (unsorted.length > 0) {
-      groups.push({
-        id: "unsorted",
-        name: "Unsorted",
-        items: unsorted,
-        total: unsorted.reduce((s, t) => s + Math.abs(Number(t.amount)), 0),
+    if (activeTab === "revenue") {
+      // Group revenue by revenue_category
+      const byRevCat: Record<string, any[]> = {};
+      const unsorted: any[] = [];
+      filtered.forEach((t: any) => {
+        const cat = t.revenue_category;
+        if (cat) {
+          if (!byRevCat[cat]) byRevCat[cat] = [];
+          byRevCat[cat].push(t);
+        } else {
+          unsorted.push(t);
+        }
+      });
+      if (unsorted.length > 0) {
+        groups.push({
+          id: "unsorted",
+          name: "Uncategorized",
+          items: unsorted,
+          total: unsorted.reduce((s: number, t: any) => s + Math.abs(Number(t.amount)), 0),
+        });
+      }
+      REVENUE_CATEGORIES.forEach((rc) => {
+        const items = byRevCat[rc.value] || [];
+        if (items.length > 0) {
+          groups.push({
+            id: rc.value,
+            name: rc.label,
+            items,
+            total: items.reduce((s: number, t: any) => s + Math.abs(Number(t.amount)), 0),
+          });
+        }
+      });
+    } else {
+      // Group expenses by category_id
+      const byCat: Record<string, any[]> = {};
+      const unsorted: any[] = [];
+      filtered.forEach((t: any) => {
+        if (t.category_id) {
+          if (!byCat[t.category_id]) byCat[t.category_id] = [];
+          byCat[t.category_id].push(t);
+        } else {
+          unsorted.push(t);
+        }
+      });
+      if (unsorted.length > 0) {
+        groups.push({
+          id: "unsorted",
+          name: "Unsorted",
+          items: unsorted,
+          total: unsorted.reduce((s: number, t: any) => s + Math.abs(Number(t.amount)), 0),
+        });
+      }
+      categories.forEach((c: any) => {
+        const items = byCat[c.id] || [];
+        groups.push({
+          id: c.id,
+          name: c.name,
+          items,
+          total: items.reduce((s: number, t: any) => s + Math.abs(Number(t.amount)), 0),
+        });
       });
     }
 
-    categories.forEach((c: any) => {
-      const items = byCat[c.id] || [];
-      groups.push({
-        id: c.id,
-        name: c.name,
-        items,
-        total: items.reduce((s: number, t: any) => s + Math.abs(Number(t.amount)), 0),
-      });
-    });
-
     return groups;
-  }, [filtered, categories]);
+  }, [filtered, categories, activeTab]);
 
   const statusLabel = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
   const statusColor = (s: string) => {
