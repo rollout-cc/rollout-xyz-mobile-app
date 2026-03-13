@@ -26,6 +26,7 @@ interface PlanWizardProps {
   onComplete: () => void;
   onCancel: () => void;
   initialContext?: string | null;
+  onExecutionStart?: (items: DraftItem[]) => void;
 }
 
 const PLAN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rolly-plan-question`;
