@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, DollarSign, FolderOpen, ListTodo, Milestone, Pencil, Sparkles, Trash2, X } from "lucide-react";
+import { CheckCircle2, DollarSign, FolderOpen, ListTodo, Milestone, Pencil, Sparkles, Trash2, X, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type DraftItem = {
@@ -28,6 +28,7 @@ interface PlanDraftProps {
 export function PlanDraft({ items: initialItems, artistName, onConfirm, onCancel, isExecuting }: PlanDraftProps) {
   const [items, setItems] = useState<DraftItem[]>(initialItems);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editField, setEditField] = useState<"title" | "amount" | "date" | "end_date" | "description">("title");
   const [editValue, setEditValue] = useState("");
 
   const campaigns = items.filter((i) => i.type === "campaign");
@@ -39,15 +40,36 @@ export function PlanDraft({ items: initialItems, artistName, onConfirm, onCancel
     setItems((prev) => prev.filter((i) => i.id !== id));
   };
 
-  const handleEdit = (item: DraftItem) => {
+  const startEdit = (item: DraftItem, field: typeof editField) => {
     setEditingId(item.id);
-    setEditValue(item.title);
+    setEditField(field);
+    if (field === "amount") {
+      setEditValue(String(item.amount ?? ""));
+    } else if (field === "date") {
+      setEditValue(item.date ?? "");
+    } else if (field === "end_date") {
+      setEditValue(item.end_date ?? "");
+    } else if (field === "description") {
+      setEditValue(item.description ?? "");
+    } else {
+      setEditValue(item.title);
+    }
   };
 
   const handleSaveEdit = () => {
-    if (!editingId || !editValue.trim()) return;
+    if (!editingId) return;
     setItems((prev) =>
-      prev.map((i) => (i.id === editingId ? { ...i, title: editValue.trim() } : i))
+      prev.map((i) => {
+        if (i.id !== editingId) return i;
+        if (editField === "amount") {
+          const num = parseFloat(editValue);
+          return { ...i, amount: isNaN(num) ? i.amount : num };
+        }
+        if (editField === "date") return { ...i, date: editValue || i.date };
+        if (editField === "end_date") return { ...i, end_date: editValue || i.end_date };
+        if (editField === "description") return { ...i, description: editValue.trim() };
+        return { ...i, title: editValue.trim() || i.title };
+      })
     );
     setEditingId(null);
     setEditValue("");
@@ -64,57 +86,125 @@ export function PlanDraft({ items: initialItems, artistName, onConfirm, onCancel
 
   const renderItemRow = (item: DraftItem) => {
     const isEditing = editingId === item.id;
+
+    if (isEditing) {
+      return (
+        <div key={item.id} className="px-4 py-3 space-y-2">
+          <div className="flex items-center gap-2">
+            {typeIcon(item.type)}
+            <Input
+              value={editField === "title" ? editValue : item.title}
+              onChange={(e) => editField === "title" && setEditValue(e.target.value)}
+              onFocus={() => { if (editField !== "title") startEdit(item, "title"); }}
+              className="h-8 text-sm bg-white/10 border-white/15 text-white rounded-lg flex-1"
+              autoFocus={editField === "title"}
+              placeholder="Title"
+              onKeyDown={(e) => { if (e.key === "Enter") handleSaveEdit(); if (e.key === "Escape") setEditingId(null); }}
+            />
+          </div>
+
+          {/* Date editing */}
+          {(item.type === "milestone" || item.type === "task" || item.type === "campaign") && (
+            <div className="flex items-center gap-2 ml-6">
+              <Calendar className="h-3.5 w-3.5 text-white/30 shrink-0" />
+              <Input
+                type="date"
+                value={editField === "date" ? editValue : (item.date ?? "")}
+                onChange={(e) => {
+                  if (editField !== "date") {
+                    setEditField("date");
+                  }
+                  setEditValue(e.target.value);
+                }}
+                onFocus={() => { if (editField !== "date") startEdit(item, "date"); }}
+                className="h-7 text-xs bg-white/10 border-white/15 text-white rounded-lg w-40"
+                placeholder="Date"
+              />
+              {item.type === "campaign" && (
+                <>
+                  <span className="text-white/30 text-xs">→</span>
+                  <Input
+                    type="date"
+                    value={editField === "end_date" ? editValue : (item.end_date ?? "")}
+                    onChange={(e) => {
+                      if (editField !== "end_date") {
+                        setEditField("end_date");
+                      }
+                      setEditValue(e.target.value);
+                    }}
+                    onFocus={() => { if (editField !== "end_date") startEdit(item, "end_date"); }}
+                    className="h-7 text-xs bg-white/10 border-white/15 text-white rounded-lg w-40"
+                    placeholder="End date"
+                  />
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Amount editing for budgets */}
+          {item.type === "budget" && (
+            <div className="flex items-center gap-2 ml-6">
+              <DollarSign className="h-3.5 w-3.5 text-white/30 shrink-0" />
+              <Input
+                type="number"
+                value={editField === "amount" ? editValue : String(item.amount ?? "")}
+                onChange={(e) => {
+                  if (editField !== "amount") {
+                    setEditField("amount");
+                  }
+                  setEditValue(e.target.value);
+                }}
+                onFocus={() => { if (editField !== "amount") startEdit(item, "amount"); }}
+                className="h-7 text-xs bg-white/10 border-white/15 text-white rounded-lg w-32"
+                placeholder="Amount"
+              />
+            </div>
+          )}
+
+          <div className="flex justify-end gap-1 mt-1">
+            <Button size="sm" variant="ghost" className="h-7 text-xs text-white/50 hover:text-white hover:bg-white/10" onClick={() => setEditingId(null)}>
+              Cancel
+            </Button>
+            <Button size="sm" className="h-7 text-xs bg-white text-black hover:bg-white/90 rounded-lg" onClick={handleSaveEdit}>
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              Save
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div key={item.id} className="flex items-center gap-3 px-4 py-3 group">
+      <div key={item.id} className="flex items-center gap-3 px-4 py-3 group cursor-pointer" onClick={() => startEdit(item, "title")}>
         {typeIcon(item.type)}
 
         <div className="flex-1 min-w-0">
-          {isEditing ? (
-            <div className="flex items-center gap-2">
-              <Input
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                className="h-7 text-sm bg-white/10 border-white/15 text-white rounded-lg"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSaveEdit();
-                  if (e.key === "Escape") setEditingId(null);
-                }}
-              />
-              <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 text-white/60 hover:text-white" onClick={handleSaveEdit}>
-                <CheckCircle2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          ) : (
-            <p className="text-sm font-medium truncate text-white">{item.title}</p>
-          )}
-          {!isEditing && item.date && (
+          <p className="text-sm font-medium truncate text-white">{item.title}</p>
+          {item.date && (
             <p className="text-xs text-white/40">{item.date}{item.end_date ? ` → ${item.end_date}` : ""}</p>
           )}
         </div>
 
-        {item.amount != null && !isEditing && (
+        {item.amount != null && (
           <span className="text-sm font-medium tabular-nums text-white/50">
             ${item.amount.toLocaleString()}
           </span>
         )}
 
-        {!isEditing && (
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-white/10 text-white/40"
-              onClick={() => handleEdit(item)}
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </button>
-            <button
-              className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-red-500/20 text-red-400"
-              onClick={() => handleDelete(item.id)}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+          <button
+            className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-white/10 text-white/40"
+            onClick={() => startEdit(item, "title")}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <button
+            className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-red-500/20 text-red-400"
+            onClick={() => handleDelete(item.id)}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
     );
   };
@@ -144,7 +234,7 @@ export function PlanDraft({ items: initialItems, artistName, onConfirm, onCancel
             <h2 className="text-base font-bold text-white">Your Plan</h2>
           </div>
           <p className="text-xs text-white/50">
-            Review and edit before Rolly creates everything for <span className="font-semibold text-white/80">{artistName}</span>.
+            Tap any item to edit details. Review before Rolly builds everything for <span className="font-semibold text-white/80">{artistName}</span>.
           </p>
         </div>
 

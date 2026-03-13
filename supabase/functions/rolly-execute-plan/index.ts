@@ -50,22 +50,72 @@ Deno.serve(async (req) => {
     const resolveArtistId = (name?: string): string | null => {
       if (!name) return artists?.[0]?.id || null;
       const lower = name.toLowerCase();
-      // Exact match
       if (artistMap.has(lower)) return artistMap.get(lower)!;
-      // Fuzzy match
       for (const [key, id] of artistMap) {
         if (key.includes(lower) || lower.includes(key)) return id;
       }
       return artists?.[0]?.id || null;
     };
 
+    // Fetch team members with their permissions for auto-assignment
+    const { data: teamMembers } = await sb
+      .from("team_memberships")
+      .select("user_id, role, display_name")
+      .eq("team_id", team_id);
+
+    // Build a map of artist_id → users who have access
+    const artistAccessMap = new Map<string, string[]>();
+    
+    // Fetch artist permissions for all team members
+    const memberIds = (teamMembers ?? []).map((m: any) => m.user_id).filter(Boolean);
+    
+    if (memberIds.length > 0) {
+      const { data: permissions } = await sb
+        .from("artist_permissions")
+        .select("user_id, artist_id, permission")
+        .in("user_id", memberIds);
+
+      // Owners and managers have access to all artists
+      const ownersAndManagers = (teamMembers ?? [])
+        .filter((m: any) => m.role === "team_owner" || m.role === "manager")
+        .map((m: any) => m.user_id);
+
+      // Build access map
+      for (const artist of (artists ?? [])) {
+        const usersWithAccess: string[] = [...ownersAndManagers];
+        
+        // Add users with explicit permissions
+        for (const perm of (permissions ?? [])) {
+          if (perm.artist_id === artist.id && 
+              (perm.permission === "view_access" || perm.permission === "full_access") &&
+              !usersWithAccess.includes(perm.user_id)) {
+            usersWithAccess.push(perm.user_id);
+          }
+        }
+        
+        artistAccessMap.set(artist.id, usersWithAccess);
+      }
+    }
+
+    // Simple round-robin assignment per artist
+    const assignmentCounters = new Map<string, number>();
+
+    const getAssignee = (artistId: string): string | null => {
+      const usersWithAccess = artistAccessMap.get(artistId);
+      if (!usersWithAccess || usersWithAccess.length === 0) return user.id; // fallback to current user
+      
+      const counter = assignmentCounters.get(artistId) || 0;
+      const assignee = usersWithAccess[counter % usersWithAccess.length];
+      assignmentCounters.set(artistId, counter + 1);
+      return assignee;
+    };
+
     const results: { type: string; success: boolean; title: string; error?: string }[] = [];
 
-    // Separate items by type
     const campaigns = items.filter((i: any) => i.type === "campaign");
     const tasks = items.filter((i: any) => i.type === "task");
     const milestones = items.filter((i: any) => i.type === "milestone");
-    const budgets = items.filter((i: any) => i.type === "budget");
+    const budgetItems = items.filter((i: any) => i.type === "budget");
 
     // 1. Create initiatives (campaigns) first
     const campaignIdMap = new Map<string, string>();
@@ -91,7 +141,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 2. Create tasks
+    // 2. Create tasks with auto-assignment
     for (const t of tasks) {
       const artistId = resolveArtistId(t.artist_name);
       if (!artistId) {
@@ -99,7 +149,6 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Try to link to an initiative
       let initiativeId: string | null = null;
       if (t.campaign_name) {
         const lower = t.campaign_name.toLowerCase();
@@ -111,6 +160,8 @@ Deno.serve(async (req) => {
         }
       }
 
+      const assignee = getAssignee(artistId);
+
       const { error } = await sb.from("tasks").insert({
         artist_id: artistId,
         title: t.title,
@@ -119,6 +170,7 @@ Deno.serve(async (req) => {
         initiative_id: initiativeId,
         status: "todo",
         created_by: user.id,
+        assigned_to: assignee,
       });
 
       if (error) {
@@ -150,7 +202,7 @@ Deno.serve(async (req) => {
     }
 
     // 4. Create budgets
-    for (const b of budgets) {
+    for (const b of budgetItems) {
       const artistId = resolveArtistId(b.artist_name);
       if (!artistId) {
         results.push({ type: "budget", success: false, title: b.title, error: "Artist not found" });
