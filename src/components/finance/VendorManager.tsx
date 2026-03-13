@@ -100,6 +100,31 @@ export function VendorManager() {
     toast.success("W-9 link copied");
   };
 
+  const openInvoiceDialog = (vendor: any) => {
+    setInvoiceVendor(vendor);
+    setInvoiceArtistId(vendor.invoice_artist_id || "");
+    setInvoiceTerms(vendor.invoice_payment_terms || "net_30");
+    setInvoiceDialogOpen(true);
+  };
+
+  const saveAndCopyInvoiceLink = useMutation({
+    mutationFn: async () => {
+      if (!invoiceVendor || !invoiceArtistId) return;
+      const { error } = await (supabase as any).from("vendors").update({
+        invoice_artist_id: invoiceArtistId,
+        invoice_payment_terms: invoiceTerms,
+      }).eq("id", invoiceVendor.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      navigator.clipboard.writeText(`${window.location.origin}/vendor-invoice/${invoiceVendor.w9_token}`);
+      qc.invalidateQueries({ queryKey: ["vendors", teamId] });
+      setInvoiceDialogOpen(false);
+      toast.success("Invoice link copied to clipboard");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const openViewW9 = (vendor: any) => {
     setSelectedVendor(vendor);
     setViewW9Open(true);
