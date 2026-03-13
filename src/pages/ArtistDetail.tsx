@@ -58,7 +58,8 @@ export default function ArtistDetail() {
   const { data: perfSnapshot } = useArtistPerformance(artistId!, artist?.spotify_id, artist?.name);
   const totalBudget = useTotalBudget(artistId!);
   const { limits } = useTeamPlan();
-  const [activeView, setActiveView] = useState<ActiveView>(fromFinance ? "finance" : "work");
+  const [activeView, setActiveView] = useState<ActiveView>(fromFinance ? "money" : "work");
+  const [moneySubTab, setMoneySubTab] = useState<MoneySubTab>(fromFinance ? "accounting" : "accounting");
   const [showCompleted, setShowCompleted] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
