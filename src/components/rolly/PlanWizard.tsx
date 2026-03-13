@@ -33,7 +33,7 @@ const PLAN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rolly-plan-q
 const GENERATE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rolly-generate-plan`;
 const EXECUTE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rolly-execute-plan`;
 
-export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardProps) {
+export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionStart }: PlanWizardProps) {
   const { selectedTeamId } = useSelectedTeam();
   const queryClient = useQueryClient();
   const [qaHistory, setQaHistory] = useState<QAEntry[]>([]);
