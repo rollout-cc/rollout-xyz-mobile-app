@@ -150,7 +150,7 @@ function EmptyLinksState({ artistId, folders }: { artistId: string; folders: any
   if (mode === "link") {
     return (
       <div className="mt-4">
-        <LinkItem isNew artistId={artistId} folders={folders} autoFocus />
+        <LinkItem isNew artistId={artistId} folders={folders} autoFocus onExternalCancel={() => setMode("idle")} />
       </div>
     );
   }
@@ -233,9 +233,10 @@ interface LinkItemProps {
   defaultFolderId?: string;
   autoFocus?: boolean;
   dragHandleProps?: any;
+  onExternalCancel?: () => void;
 }
 
-function LinkItem({ link, isNew, artistId, folders, defaultFolderId, autoFocus, dragHandleProps }: LinkItemProps) {
+function LinkItem({ link, isNew, artistId, folders, defaultFolderId, autoFocus, dragHandleProps, onExternalCancel }: LinkItemProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [url, setUrl] = useState(link?.url || "");
@@ -367,6 +368,7 @@ function LinkItem({ link, isNew, artistId, folders, defaultFolderId, autoFocus, 
   const handleCancel = () => {
     if (isNew) {
       resetForm();
+      onExternalCancel?.();
     } else {
       setUrl(link.url);
       setTitle(link.title);
