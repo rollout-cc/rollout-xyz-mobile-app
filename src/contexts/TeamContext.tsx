@@ -131,12 +131,12 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     if (isManager) {
       return {
         canViewCompany: true,
-        canViewFinance: true || !!membershipPerms?.perm_view_finance,
+        canViewFinance: true,
         canManageFinance: !!membershipPerms?.perm_manage_finance || isFinanceJobTitle,
         canViewStaffSalaries: !!membershipPerms?.perm_view_staff_salaries,
-        canViewAR: true || !!membershipPerms?.perm_view_ar,
-        canViewRoster: true || !!membershipPerms?.perm_view_roster,
-        canEditArtists: true || !!membershipPerms?.perm_edit_artists,
+        canViewAR: true,
+        canViewRoster: true,
+        canEditArtists: true,
         canViewBilling: !!membershipPerms?.perm_view_billing,
       };
     }

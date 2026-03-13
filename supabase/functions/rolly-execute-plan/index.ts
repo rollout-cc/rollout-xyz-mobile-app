@@ -44,16 +44,30 @@ Deno.serve(async (req) => {
 
     const artistMap = new Map<string, string>();
     (artists ?? []).forEach((a: any) => {
-      artistMap.set(a.name.toLowerCase(), a.id);
+      artistMap.set(a.name.trim().toLowerCase(), a.id);
     });
 
     const resolveArtistId = (name?: string): string | null => {
       if (!name) return artists?.[0]?.id || null;
-      const lower = name.toLowerCase();
+      const lower = name.trim().toLowerCase().replace(/\s+/g, " ");
+      
+      // 1. Exact match
       if (artistMap.has(lower)) return artistMap.get(lower)!;
+      
+      // 2. Substring match (either direction)
       for (const [key, id] of artistMap) {
         if (key.includes(lower) || lower.includes(key)) return id;
       }
+      
+      // 3. Word overlap match
+      const inputWords = lower.split(/\s+/);
+      for (const [key, id] of artistMap) {
+        const keyWords = key.split(/\s+/);
+        const overlap = inputWords.filter(w => keyWords.includes(w));
+        if (overlap.length > 0 && overlap.length >= Math.min(inputWords.length, keyWords.length) * 0.5) return id;
+      }
+      
+      console.warn(`Could not match artist name "${name}" to any roster artist. Available: ${[...artistMap.keys()].join(", ")}`);
       return artists?.[0]?.id || null;
     };
 

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -280,9 +280,9 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
   };
 
   // Fetch first question on mount
-  useState(() => {
+  useEffect(() => {
     fetchNextQuestion([]);
-  });
+  }, []);
 
   const handleSubmitAnswer = () => {
     if (!currentQuestion) return;
