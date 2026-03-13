@@ -22,6 +22,9 @@ import { KpiCardsSection } from "./KpiCardsSection";
 import { QuarterlyPnlSection } from "./QuarterlyPnlSection";
 import { SpendingPerActSection } from "./SpendingPerActSection";
 import { CompanyBudgetSection } from "./CompanyBudgetSection";
+import { VendorManager } from "@/components/finance/VendorManager";
+import { InvoiceCreator } from "@/components/finance/InvoiceCreator";
+import { InvoiceList } from "@/components/finance/InvoiceList";
 
 type DateRange = "month" | "quarter" | "ytd" | "all";
 
@@ -325,7 +328,19 @@ export function FinanceContent() {
         />
       </CollapsibleSection>
 
-      {/* Staff Payroll */}
+      {/* Vendors */}
+      <CollapsibleSection title="Vendors" defaultOpen={false}>
+        <VendorManager />
+      </CollapsibleSection>
+
+      {/* Invoices */}
+      <CollapsibleSection title="Invoices" defaultOpen={false}>
+        <div className="flex items-center justify-end mb-3">
+          {canEdit && <InvoiceCreator />}
+        </div>
+        <InvoiceList />
+      </CollapsibleSection>
+
       <CollapsibleSection title="Staff Payroll" defaultOpen>
         <div className="rounded-xl border border-border overflow-hidden">
           <table className="w-full text-sm">

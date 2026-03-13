@@ -43,3 +43,9 @@ project_id = "ctnsworqzzguykzzvdme"
     verify_jwt = false
   [functions.enrich-creators]
     verify_jwt = false
+  [functions.submit-vendor-w9]
+    verify_jwt = false
+  [functions.send-vendor-w9-request]
+    verify_jwt = false
+  [functions.send-invoice]
+    verify_jwt = false

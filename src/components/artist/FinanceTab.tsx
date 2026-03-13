@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DollarSign, Plus, ChevronDown, ChevronRight, Check, Trash2, Pencil, X } from "lucide-react";
+import { InvoiceCreator } from "@/components/finance/InvoiceCreator";
+import { InvoiceList } from "@/components/finance/InvoiceList";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -802,6 +804,15 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
       {pendingDelete && (
         <UndoSnackbar message="Item deleted" onUndo={handleUndoDelete} />
       )}
+
+      {/* Invoices */}
+      <div className="mt-6 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold">Invoices</h3>
+          <InvoiceCreator artistId={artistId} />
+        </div>
+        <InvoiceList artistId={artistId} />
+      </div>
       <RollyNudge
         screen="finance"
         entityId={artistId}
