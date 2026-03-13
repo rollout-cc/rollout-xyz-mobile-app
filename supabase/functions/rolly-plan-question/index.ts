@@ -298,9 +298,10 @@ ${questionCount >= 10 ? "If you have enough info to build tasks, milestones, and
     const fnArgs = JSON.parse(toolCall.function.arguments);
 
     if (fnName === "ask_question") {
+      const cleanedQuestion = simplifyQuestionText(fnArgs.question);
       return new Response(JSON.stringify({
         type: "question",
-        question: fnArgs.question,
+        question: cleanedQuestion,
         header: fnArgs.header,
         options: fnArgs.options || [],
         multi_select: fnArgs.multi_select || false,
