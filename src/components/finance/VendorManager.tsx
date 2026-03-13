@@ -155,7 +155,7 @@ export function VendorManager() {
                         </Button>
                       ) : (
                         <>
-                          {v.email && (
+                          {v.w9_status === "not_requested" && v.email && (
                             <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => sendW9.mutate(v.id)}>
                               <Send className="h-3 w-3" />
                               <span className="hidden sm:inline text-xs">Send W-9</span>
