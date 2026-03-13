@@ -273,7 +273,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
       </div>
 
       {/* Single question view — only shows current question */}
-      <div className="flex-1 overflow-y-auto px-4 flex flex-col justify-center">
+      <div className="flex-1 overflow-y-auto px-4 flex flex-col justify-start pt-6">
         {/* Loading state */}
         {isLoadingQuestion && (
           <div className="flex flex-col items-center gap-3 py-8">
