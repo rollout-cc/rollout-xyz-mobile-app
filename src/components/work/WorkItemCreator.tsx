@@ -84,7 +84,7 @@ export function WorkItemCreator({
       <div className="py-1">
         <div
           className="flex items-center gap-3 px-1 py-2.5 rounded-xl cursor-text active:bg-muted/40 transition-colors"
-          onClick={onOpenFullForm ? () => openFullForm() : undefined}
+          onClick={(e) => { if (onOpenFullForm) openFullForm(); else { const input = e.currentTarget.querySelector<HTMLElement>('[contenteditable]'); input?.focus(); } }}
           role={onOpenFullForm ? "button" : undefined}
           tabIndex={onOpenFullForm ? 0 : undefined}
           onKeyDown={
