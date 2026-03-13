@@ -88,8 +88,9 @@ export default function Roster() {
   }, [trialWelcomeOpen]);
 
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<"roster" | "ar">(
-    searchParams.get("tab") === "ar" || (location.state as Record<string, unknown>)?.openAddProspect ? "ar" : "roster"
+  const [activeTab, setActiveTab] = useState<"roster" | "ar" | "outreach">(
+    searchParams.get("tab") === "ar" || (location.state as Record<string, unknown>)?.openAddProspect ? "ar" 
+    : searchParams.get("tab") === "outreach" ? "outreach" : "roster"
   );
   const [showAddArtist, setShowAddArtist] = useState(false);
   const [openNewProspect, setOpenNewProspect] = useState(false);
