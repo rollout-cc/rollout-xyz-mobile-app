@@ -1,0 +1,1 @@
+UPDATE public.transactions SET revenue_category = 'live' WHERE id = '40d66d16-7f73-4080-b3fa-b4fda418c2b1' AND type = 'revenue' AND revenue_category IS NULL;
