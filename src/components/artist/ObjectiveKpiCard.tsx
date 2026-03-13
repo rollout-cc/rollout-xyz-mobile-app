@@ -247,7 +247,7 @@ export function ObjectiveKpiCard({
 
       <p
         className={cn(
-          "text-[9px] font-bold uppercase tracking-[0.14em] mb-1.5 leading-none",
+          "text-[9px] font-bold uppercase tracking-[0.14em] mb-1 leading-none",
           isBanner ? "text-white/40" : "text-muted-foreground"
         )}
       >
@@ -266,54 +266,42 @@ export function ObjectiveKpiCard({
             ? formatValue(currentValue, typeDef?.unit ?? "")
             : "—"}
         </span>
-      </div>
-
-      {/* Target & progress */}
-      {objectiveTarget != null ? (
-        <div className="mt-1.5">
-          <div className="flex items-center justify-between mb-0.5">
-            <span
-              className={cn(
-                "text-[9px] font-medium tabular-nums",
-                isBanner ? "text-white/40" : "text-muted-foreground"
-              )}
-            >
-              Goal: {formatValue(objectiveTarget, typeDef?.unit ?? "")}
-            </span>
-            {progress != null && (
-              <span
-                className={cn(
-                  "text-[9px] font-bold tabular-nums",
-                  progress >= 100
-                    ? "text-emerald-400"
-                    : progress >= 75
-                    ? isBanner ? "text-amber-300" : "text-amber-500"
-                    : isBanner ? "text-white/50" : "text-muted-foreground"
-                )}
-              >
-                {Math.round(progress)}%
-              </span>
-            )}
-          </div>
-          {/* Progress bar */}
-          <div
+        {objectiveTarget != null && progress != null && (
+          <span
             className={cn(
-              "h-1 rounded-full overflow-hidden",
-              isBanner ? "bg-white/10" : "bg-muted"
+              "text-[9px] font-bold tabular-nums ml-0.5",
+              progress >= 100
+                ? "text-emerald-400"
+                : progress >= 75
+                ? isBanner ? "text-amber-300" : "text-amber-500"
+                : isBanner ? "text-white/50" : "text-muted-foreground"
             )}
           >
-            <div
-              className={cn(
-                "h-full rounded-full transition-all duration-500",
-                progress != null && progress >= 100
-                  ? "bg-emerald-400"
-                  : "bg-primary"
-              )}
-              style={{ width: `${progress ?? 0}%` }}
-            />
-          </div>
+            {Math.round(progress)}%
+          </span>
+        )}
+      </div>
+
+      {/* Inline progress bar when target is set */}
+      {objectiveTarget != null && (
+        <div
+          className={cn(
+            "h-0.5 rounded-full overflow-hidden mt-1",
+            isBanner ? "bg-white/10" : "bg-muted"
+          )}
+        >
+          <div
+            className={cn(
+              "h-full rounded-full transition-all duration-500",
+              progress != null && progress >= 100
+                ? "bg-emerald-400"
+                : "bg-primary"
+            )}
+            style={{ width: `${progress ?? 0}%` }}
+          />
         </div>
-      ) : (
+      )}
+      {objectiveTarget == null && (
         <button
           onClick={() => setEditTarget(true)}
           className={cn(
