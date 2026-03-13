@@ -98,9 +98,8 @@ export function ObjectiveKpiCard({
     ? "rounded-xl border border-white/[0.14] bg-black/30 backdrop-blur-xl shadow-lg"
     : "rounded-xl border border-border bg-card shadow-sm";
 
-  // Empty state — in banner mode, render nothing to keep the banner clean
+  // Empty state
   if (!objectiveType) {
-    if (isBanner) return null;
     return (
       <div ref={pickerRef} className={cn(cardBase, "relative")}>
         {showPicker ? (
