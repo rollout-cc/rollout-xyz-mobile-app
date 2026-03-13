@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Square, Trash2, Sparkles, CheckCircle2, AlertCircle, ClipboardList, Camera } from "lucide-react";
+import { PlanWizard } from "@/components/rolly/PlanWizard";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { RollyMessage } from "./RollyMessage";
@@ -27,9 +28,13 @@ interface RollyChatProps {
   onPlanModeChange?: (active: boolean) => void;
   onSendReady?: (sendFn: (msg: string) => void) => void;
   onPlanMessage?: (msg: string) => void;
+  wizardActive?: boolean;
+  wizardContext?: string | null;
+  onWizardComplete?: (summaryPrompt: string) => void;
+  onWizardCancel?: () => void;
 }
 
-export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: externalPlanMode, onPlanModeChange, onSendReady, onPlanMessage }: RollyChatProps = {}) {
+export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: externalPlanMode, onPlanModeChange, onSendReady, onPlanMessage, wizardActive, wizardContext, onWizardComplete, onWizardCancel }: RollyChatProps = {}) {
   const planMode = externalPlanMode ?? false;
   const setPlanMode = (val: boolean) => onPlanModeChange?.(val);
   const { messages, isLoading, send, stop, clear, lastActions } = useRollyChat(planMode);
@@ -104,7 +109,16 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
 
   return (
     <div className="flex flex-col h-full">
-      {/* Messages area */}
+      {/* Messages area or Wizard */}
+      {wizardActive && onWizardComplete && onWizardCancel ? (
+        <div className="flex-1 min-h-0">
+          <PlanWizard
+            onComplete={onWizardComplete}
+            onCancel={onWizardCancel}
+            initialContext={wizardContext}
+          />
+        </div>
+      ) : (
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
@@ -181,9 +195,10 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
           </div>
         )}
       </div>
+      )}
 
-      {/* Input area */}
-      <div className="border-t border-border px-4 py-3 bg-background">
+      {/* Input area — hidden during wizard */}
+      {!wizardActive && <div className="border-t border-border px-4 py-3 bg-background">
         {/* Plan mode banner */}
         {planMode && (
           <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium max-w-3xl mx-auto">
@@ -243,7 +258,7 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
             </Button>
           )}
         </div>
-      </div>
+      </div>}
 
       <ReceiptScanner
         open={showScanner}
