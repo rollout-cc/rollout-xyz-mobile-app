@@ -259,6 +259,8 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
       qc.invalidateQueries({ queryKey: ["budgets", artistId] });
       qc.invalidateQueries({ queryKey: ["budget-expense-transactions", artistId] });
       qc.invalidateQueries({ queryKey: ["sub-budget-transactions", artistId] });
+      qc.invalidateQueries({ queryKey: ["artists"] });
+      qc.invalidateQueries({ queryKey: ["artists-summary"] });
       setItemAmount("");
       setItemDesc("");
       setItemDate(format(new Date(), "yyyy-MM-dd"));
