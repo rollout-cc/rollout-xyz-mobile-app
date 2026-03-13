@@ -121,35 +121,37 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
       ) : (
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
         {isEmpty && planMode ? (
-          <div className="flex flex-col items-center justify-center h-full gap-5 text-center animate-fade-in">
-            <div className="relative h-16 w-16">
-              <div className="absolute inset-0 rounded-2xl bg-primary/20 animate-ping" style={{ animationDuration: "2s" }} />
-              <div className="relative h-16 w-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center">
-                <ClipboardList className="h-8 w-8" />
+          <div className="flex flex-col items-center justify-center h-full gap-6 text-center animate-fade-in px-2">
+            <div className="relative h-20 w-20">
+              <div className="absolute inset-0 rounded-2xl bg-primary/15 animate-ping" style={{ animationDuration: "2.5s" }} />
+              <div className="absolute inset-[-8px] rounded-3xl bg-primary/10 animate-pulse" />
+              <div className="relative h-20 w-20 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg">
+                <ClipboardList className="h-10 w-10" />
               </div>
             </div>
-            <div>
-              <h2 className="text-xl font-bold">Plan Mode</h2>
-              <p className="text-muted-foreground mt-1.5 max-w-xs text-sm leading-relaxed">
-                Describe your project and I'll handle everything — tasks, budgets, milestones, and timelines — so you can keep working.
+            <div className="space-y-3">
+              <h2 className="text-3xl font-black uppercase tracking-tight">PLAN MODE</h2>
+              <p className="text-base font-medium text-foreground max-w-[280px] leading-snug">
+                Describe your project and Rolly will build everything for you — so you can keep working.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-3 max-w-xs w-full mt-1">
+            <div className="grid grid-cols-2 gap-2.5 w-full max-w-[300px]">
               {[
                 { icon: ListTodo, label: "Creates tasks" },
                 { icon: DollarSign, label: "Sets budgets" },
                 { icon: CalendarCheck, label: "Plans timelines" },
                 { icon: Zap, label: "Executes instantly" },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2.5">
+              ].map((item, i) => (
+                <div
+                  key={item.label}
+                  className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 animate-fade-in"
+                  style={{ animationDelay: `${(i + 1) * 100}ms`, animationFillMode: "both" }}
+                >
                   <item.icon className="h-4 w-4 text-primary shrink-0" />
-                  <span className="text-xs font-medium text-foreground">{item.label}</span>
+                  <span className="text-xs font-semibold text-foreground">{item.label}</span>
                 </div>
               ))}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1 max-w-xs">
-              Just describe what you need below and Rolly will ask a few quick questions before getting to work.
-            </p>
           </div>
         ) : isEmpty ? (
           <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
@@ -231,12 +233,6 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
       {/* Input area — hidden during wizard */}
       {!wizardActive && <div className="border-t border-border px-4 py-3 bg-background">
         {/* Plan mode banner */}
-        {planMode && (
-          <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium max-w-3xl mx-auto">
-            <ClipboardList className="h-3.5 w-3.5 shrink-0" />
-            Plan Mode — Rolly will guide you step by step
-          </div>
-        )}
         <div className="flex items-end gap-2 max-w-3xl mx-auto">
           {messages.length > 0 && (
             <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-muted-foreground" onClick={clear} title="Clear chat">
@@ -253,7 +249,7 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
             }}
             onKeyDown={handleKeyDown}
             placeholder={planMode ? "Describe what you want to plan..." : "Ask ROLLY anything..."}
-            className="min-h-[40px] max-h-[160px] resize-none rounded-xl py-2.5"
+            className="min-h-[44px] max-h-[160px] resize-none rounded-xl py-2.5 flex-1 min-w-0"
             rows={1}
           />
           <VoiceInputButton
