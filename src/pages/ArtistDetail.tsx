@@ -177,6 +177,18 @@ export default function ArtistDetail() {
     return `${prefix}${n.toLocaleString()}`;
   };
 
+  // Resolve current value for an objective type from tracked data
+  const getObjectiveCurrentValue = (type: string | null): number | null => {
+    if (!type) return null;
+    if (type === "monthly_listeners") return monthlyListeners || null;
+    if (perfSnapshot) {
+      if (type === "monthly_streams") return perfSnapshot.monthly_streams || null;
+      if (type === "daily_streams") return perfSnapshot.daily_streams || null;
+      if (type === "est_monthly_revenue") return perfSnapshot.est_monthly_revenue || null;
+    }
+    return null;
+  };
+
   const getObjectiveSummary = (slot: 1 | 2): string | null => {
     const typeKey = `objective_${slot}_type` as const;
     const targetKey = `objective_${slot}_target` as const;
@@ -198,22 +210,6 @@ export default function ArtistDetail() {
     }
 
     return `${label} · Tracking`;
-  };
-
-  const objectiveSummary1 = getObjectiveSummary(1);
-  const objectiveSummary2 = getObjectiveSummary(2);
-  const hasAnyObjectiveSummary = !!(objectiveSummary1 || objectiveSummary2);
-
-  // Resolve current value for an objective type from tracked data
-  const getObjectiveCurrentValue = (type: string | null): number | null => {
-    if (!type) return null;
-    if (type === "monthly_listeners") return monthlyListeners || null;
-    if (perfSnapshot) {
-      if (type === "monthly_streams") return perfSnapshot.monthly_streams || null;
-      if (type === "daily_streams") return perfSnapshot.daily_streams || null;
-      if (type === "est_monthly_revenue") return perfSnapshot.est_monthly_revenue || null;
-    }
-    return null;
   };
 
   const isTopView = (v: ActiveView) => ["finance", "budgets", "objectives", "information"].includes(v);
