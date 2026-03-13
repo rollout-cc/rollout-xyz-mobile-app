@@ -195,6 +195,7 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
           </div>
         )}
       </div>
+      )}
 
       {/* Input area — hidden during wizard */}
       {!wizardActive && <div className="border-t border-border px-4 py-3 bg-background">
