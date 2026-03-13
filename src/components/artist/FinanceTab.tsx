@@ -804,6 +804,15 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
       {pendingDelete && (
         <UndoSnackbar message="Item deleted" onUndo={handleUndoDelete} />
       )}
+
+      {/* Invoices */}
+      <div className="mt-6 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold">Invoices</h3>
+          <InvoiceCreator artistId={artistId} />
+        </div>
+        <InvoiceList artistId={artistId} />
+      </div>
       <RollyNudge
         screen="finance"
         entityId={artistId}
