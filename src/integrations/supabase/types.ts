@@ -1038,6 +1038,126 @@ export type Database = {
           },
         ]
       }
+      invoice_line_items: {
+        Row: {
+          amount: number
+          description: string
+          id: string
+          invoice_id: string
+          quantity: number
+          sort_order: number
+          unit_price: number
+        }
+        Insert: {
+          amount?: number
+          description: string
+          id?: string
+          invoice_id: string
+          quantity?: number
+          sort_order?: number
+          unit_price?: number
+        }
+        Update: {
+          amount?: number
+          description?: string
+          id?: string
+          invoice_id?: string
+          quantity?: number
+          sort_order?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          artist_id: string | null
+          created_at: string
+          due_date: string | null
+          footer_notes: string | null
+          id: string
+          invoice_number: string
+          issue_date: string
+          notes: string | null
+          paid_at: string | null
+          recipient_email: string | null
+          recipient_name: string
+          status: string
+          subtotal: number
+          tax_rate: number
+          team_id: string
+          total: number
+          vendor_id: string | null
+        }
+        Insert: {
+          artist_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          footer_notes?: string | null
+          id?: string
+          invoice_number: string
+          issue_date?: string
+          notes?: string | null
+          paid_at?: string | null
+          recipient_email?: string | null
+          recipient_name: string
+          status?: string
+          subtotal?: number
+          tax_rate?: number
+          team_id: string
+          total?: number
+          vendor_id?: string | null
+        }
+        Update: {
+          artist_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          footer_notes?: string | null
+          id?: string
+          invoice_number?: string
+          issue_date?: string
+          notes?: string | null
+          paid_at?: string | null
+          recipient_email?: string | null
+          recipient_name?: string
+          status?: string
+          subtotal?: number
+          tax_rate?: number
+          team_id?: string
+          total?: number
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       milestone_folders: {
         Row: {
           created_at: string
@@ -2352,6 +2472,145 @@ export type Database = {
           },
         ]
       }
+      vendor_w9_data: {
+        Row: {
+          address_line1: string
+          address_line2: string | null
+          bank_account_encrypted: string | null
+          bank_routing_encrypted: string | null
+          business_name: string | null
+          city: string
+          created_at: string
+          exempt_payee_code: string | null
+          fatca_exemption_code: string | null
+          federal_tax_classification: string
+          id: string
+          legal_name: string
+          llc_classification: string | null
+          payment_method: string
+          paypal_email: string | null
+          signature_date: string
+          signature_name: string
+          state: string
+          tin_encrypted: string
+          tin_last_four: string
+          tin_type: string
+          vendor_id: string
+          venmo_handle: string | null
+          zip: string
+        }
+        Insert: {
+          address_line1: string
+          address_line2?: string | null
+          bank_account_encrypted?: string | null
+          bank_routing_encrypted?: string | null
+          business_name?: string | null
+          city: string
+          created_at?: string
+          exempt_payee_code?: string | null
+          fatca_exemption_code?: string | null
+          federal_tax_classification: string
+          id?: string
+          legal_name: string
+          llc_classification?: string | null
+          payment_method?: string
+          paypal_email?: string | null
+          signature_date: string
+          signature_name: string
+          state: string
+          tin_encrypted: string
+          tin_last_four: string
+          tin_type: string
+          vendor_id: string
+          venmo_handle?: string | null
+          zip: string
+        }
+        Update: {
+          address_line1?: string
+          address_line2?: string | null
+          bank_account_encrypted?: string | null
+          bank_routing_encrypted?: string | null
+          business_name?: string | null
+          city?: string
+          created_at?: string
+          exempt_payee_code?: string | null
+          fatca_exemption_code?: string | null
+          federal_tax_classification?: string
+          id?: string
+          legal_name?: string
+          llc_classification?: string | null
+          payment_method?: string
+          paypal_email?: string | null
+          signature_date?: string
+          signature_name?: string
+          state?: string
+          tin_encrypted?: string
+          tin_last_four?: string
+          tin_type?: string
+          vendor_id?: string
+          venmo_handle?: string | null
+          zip?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_w9_data_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendors: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          team_id: string
+          total_paid: number
+          w9_completed_at: string | null
+          w9_status: string
+          w9_token: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          team_id: string
+          total_paid?: number
+          w9_completed_at?: string | null
+          w9_status?: string
+          w9_token?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          team_id?: string
+          total_paid?: number
+          w9_completed_at?: string | null
+          w9_status?: string
+          w9_token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendors_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2359,6 +2618,7 @@ export type Database = {
     Functions: {
       get_artist_team_id: { Args: { p_artist_id: string }; Returns: string }
       get_budget_team_id: { Args: { p_budget_id: string }; Returns: string }
+      get_invoice_team_id: { Args: { p_invoice_id: string }; Returns: string }
       get_link_folder_artist_id: {
         Args: { p_folder_id: string }
         Returns: string
@@ -2373,6 +2633,7 @@ export type Database = {
         Returns: string
       }
       get_split_song_team_id: { Args: { p_song_id: string }; Returns: string }
+      get_vendor_team_id: { Args: { p_vendor_id: string }; Returns: string }
       has_artist_access: {
         Args: {
           p_artist_id: string
@@ -2393,6 +2654,7 @@ export type Database = {
         Args: { p_team_id: string }
         Returns: boolean
       }
+      next_invoice_number: { Args: { p_team_id: string }; Returns: string }
       search_creator_intelligence: {
         Args: {
           category_filter?: string
