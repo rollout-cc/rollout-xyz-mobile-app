@@ -375,7 +375,8 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
     setEditDesc(t.description || "");
     setEditAmount(String(Math.abs(Number(t.amount))));
     setEditStatus(t.status || "");
-    setEditCategoryId(t.category_id || "none");
+    // For revenue, use revenue_category; for expenses, use category_id
+    setEditCategoryId(t.type === "revenue" ? (t.revenue_category || "none") : (t.category_id || "none"));
     setEditDate(t.transaction_date || "");
   };
 
