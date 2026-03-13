@@ -103,17 +103,23 @@ export function ObjectiveKpiCard({
     return (
       <div ref={pickerRef} className={cn(cardBase, "relative")}>
         {showPicker ? (
-          <div className={cn("p-2 min-w-[160px]", "text-foreground")}>
-            <p className="text-[9px] font-bold uppercase tracking-wider opacity-50 mb-1.5 px-1">
+          <div className={cn("p-2 min-w-[160px]", isBanner ? "text-white" : "text-foreground")}>
+            <p className={cn(
+              "text-[9px] font-bold uppercase tracking-wider mb-1.5 px-1",
+              isBanner ? "text-white/50" : "opacity-50"
+            )}>
               Select Objective
             </p>
             {OBJECTIVE_TYPES.map((t) => (
               <button
                 key={t.value}
                 onClick={() => handleSelectType(t.value)}
-                className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-xs font-medium transition-colors text-left hover:bg-accent"
+                className={cn(
+                  "flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-xs font-medium transition-colors text-left",
+                  isBanner ? "text-white hover:bg-white/10" : "hover:bg-accent"
+                )}
               >
-                <t.icon className="h-3 w-3 opacity-60" />
+                <t.icon className={cn("h-3 w-3", isBanner ? "text-white/60" : "opacity-60")} />
                 {t.label}
               </button>
             ))}
@@ -121,7 +127,10 @@ export function ObjectiveKpiCard({
         ) : (
           <button
             onClick={() => setShowPicker(true)}
-            className="flex items-center gap-1.5 px-3 py-2.5 text-muted-foreground hover:text-foreground transition-colors text-xs"
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-2.5 transition-colors text-xs",
+              isBanner ? "text-white/60 hover:text-white" : "text-muted-foreground hover:text-foreground"
+            )}
           >
             <Target className="h-3 w-3" />
             <span>Set Goal</span>
