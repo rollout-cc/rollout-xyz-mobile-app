@@ -36,7 +36,7 @@ export function RollyNudge({ screen, dataSnapshot, entityId }: Props) {
     ? "fixed bottom-[calc(env(safe-area-inset-bottom)+74px)] left-3 right-20 z-[55]"
     : collapsed
     ? "fixed bottom-6 right-6 z-[55] max-w-[320px]"
-    : "fixed bottom-[120px] left-4 z-[55] max-w-[calc(var(--sidebar-width,16rem)-2rem)]";
+    : "fixed bottom-[180px] left-4 z-[55] w-[calc(var(--sidebar-width,16rem)-2rem)]";
 
   return (
     <AnimatePresence>
@@ -49,7 +49,7 @@ export function RollyNudge({ screen, dataSnapshot, entityId }: Props) {
         onClick={handleClick}
       >
         <img src={rollyIcon} alt="" className="h-5 w-5 rounded-full shrink-0" />
-        <span className="text-xs text-foreground leading-snug line-clamp-2 flex-1">{nudge}</span>
+        <span className="text-xs text-foreground leading-snug flex-1">{nudge}</span>
         <button
           onClick={(e) => {
             e.stopPropagation();
