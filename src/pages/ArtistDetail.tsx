@@ -521,8 +521,28 @@ export default function ArtistDetail() {
           </div>
 
           <ErrorBoundary fallbackMessage="Could not load this section.">
-            {activeView === "finance" && <FinanceTab artistId={artist.id} teamId={artist.team_id} />}
-            {activeView === "budgets" && <BudgetSection artistId={artist.id} />}
+            {activeView === "money" && (
+              <div className="space-y-4">
+                <div className="flex gap-1 border-b border-border">
+                  {([{ key: "accounting" as MoneySubTab, label: "Accounting" }, { key: "budgets" as MoneySubTab, label: "Budgets" }]).map(t => (
+                    <button
+                      key={t.key}
+                      onClick={() => setMoneySubTab(t.key)}
+                      className={cn(
+                        "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
+                        moneySubTab === t.key
+                          ? "border-primary text-foreground"
+                          : "border-transparent text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+                {moneySubTab === "accounting" && <FinanceTab artistId={artist.id} teamId={artist.team_id} />}
+                {moneySubTab === "budgets" && <BudgetSection artistId={artist.id} />}
+              </div>
+            )}
             {activeView === "objectives" && <ObjectivesPanel artist={artist} />}
             {activeView === "information" && <ArtistInfoTab artist={artist} />}
             {activeView === "work" && <WorkTab artistId={artist.id} teamId={artist.team_id} showCompleted={showCompleted} showArchived={showArchived} />}
