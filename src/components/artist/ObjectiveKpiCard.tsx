@@ -174,18 +174,21 @@ export function ObjectiveKpiCard({
 
   // Has type but no target yet AND editTarget is active — show target-first view
   if (editTarget && objectiveTarget == null) {
+    const parsedInput = parseFloat(targetInput.replace(/,/g, ""));
+    const isBelowCurrent = !isNaN(parsedInput) && parsedInput > 0 && currentValue != null && parsedInput < currentValue;
+
     return (
-      <div className={cn(cardBase, "relative", isBanner ? "px-3 py-2.5" : "px-3.5 py-3")}>
+      <div className={cn(cardBase, "relative", isBanner ? "px-3.5 py-3" : "px-3.5 py-3")}>
         <p
           className={cn(
-            "text-[9px] font-bold uppercase tracking-[0.12em] mb-1.5 leading-none",
+            "text-[9px] font-bold uppercase tracking-[0.14em] mb-1.5 leading-none",
             isBanner ? "text-white/45" : "text-muted-foreground"
           )}
         >
           {typeDef?.label ?? "Objective"}
         </p>
         <div className="flex items-center gap-1.5">
-          <Icon className={cn("h-3 w-3 shrink-0", isBanner ? "text-emerald-400" : "text-primary")} />
+          <Icon className={cn("h-3.5 w-3.5 shrink-0", isBanner ? "text-emerald-400" : "text-primary")} />
           <input
             type="text"
             value={targetInput}
@@ -195,7 +198,9 @@ export function ObjectiveKpiCard({
             autoFocus
             className={cn(
               "w-20 text-sm font-bold bg-transparent outline-none border-b",
-              isBanner ? "text-white border-white/20 placeholder:text-white/30" : "text-foreground border-border placeholder:text-muted-foreground/40"
+              isBelowCurrent
+                ? "text-amber-400 border-amber-400/40 placeholder:text-amber-400/30"
+                : isBanner ? "text-white border-white/20 placeholder:text-white/30" : "text-foreground border-border placeholder:text-muted-foreground/40"
             )}
           />
           <button
@@ -208,6 +213,14 @@ export function ObjectiveKpiCard({
             Set
           </button>
         </div>
+        {isBelowCurrent && (
+          <p className={cn(
+            "text-[8px] font-medium mt-1 leading-tight",
+            isBanner ? "text-amber-400/70" : "text-amber-500"
+          )}>
+            Below current ({formatValue(currentValue!, typeDef?.unit ?? "")})
+          </p>
+        )}
       </div>
     );
   }
@@ -218,7 +231,7 @@ export function ObjectiveKpiCard({
     : null;
 
   return (
-    <div className={cn(cardBase, "relative group/obj", isBanner ? "px-3 py-2.5" : "px-3.5 py-3")}>
+    <div className={cn(cardBase, "relative group/obj", isBanner ? "px-3.5 py-3" : "px-3.5 py-3")}>
       {/* Clear button */}
       <button
         onClick={handleClear}
@@ -234,18 +247,18 @@ export function ObjectiveKpiCard({
 
       <p
         className={cn(
-          "text-[9px] font-bold uppercase tracking-[0.12em] mb-1 leading-none",
-          isBanner ? "text-white/45" : "text-muted-foreground"
+          "text-[9px] font-bold uppercase tracking-[0.14em] mb-1.5 leading-none",
+          isBanner ? "text-white/40" : "text-muted-foreground"
         )}
       >
         {typeDef?.label ?? "Objective"}
       </p>
 
-      <div className="flex items-center gap-1.5">
-        <Icon className={cn("h-3 w-3 shrink-0", isBanner ? "text-emerald-400" : "text-primary")} />
+      <div className="flex items-center gap-1">
+        <Icon className={cn("h-3.5 w-3.5 shrink-0", isBanner ? "text-emerald-400" : "text-primary")} />
         <span
           className={cn(
-            "text-sm font-bold tracking-tight tabular-nums leading-none",
+            "text-base font-bold tracking-tight tabular-nums leading-none",
             isBanner ? "text-white" : "text-foreground"
           )}
         >

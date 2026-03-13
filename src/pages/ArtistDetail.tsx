@@ -304,6 +304,25 @@ export default function ArtistDetail() {
             <BannerUpload artistId={artist.id} currentBannerUrl={artist.banner_url} />
           </div>
 
+          {/* Goals bar — top of banner */}
+          {hasAnyObjectiveSummary && (
+            <div className="absolute top-0 left-0 right-0 px-4 pt-3 sm:px-6 sm:pt-4 z-[5]">
+              <button
+                type="button"
+                onClick={() => handleViewChange("objectives")}
+                className="w-full rounded-lg bg-black/30 border border-white/10 backdrop-blur-md px-3 py-1.5 flex items-center gap-2 text-[11px] text-white/80 hover:bg-black/45 transition-colors"
+              >
+                <Target className="h-3.5 w-3.5 text-emerald-300 shrink-0" />
+                <span className="uppercase tracking-[0.18em] text-[9px] text-white/55 shrink-0">
+                  Goals
+                </span>
+                <span className="truncate text-left">
+                  {[objectiveSummary1, objectiveSummary2].filter(Boolean).join("  •  ")}
+                </span>
+              </button>
+            </div>
+          )}
+
           {/* Bottom overlay */}
           <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 sm:px-6 sm:pb-5 space-y-2.5">
 
@@ -442,22 +461,6 @@ export default function ArtistDetail() {
                 </div>
               </div>
             </div>
-
-            {hasAnyObjectiveSummary && (
-              <button
-                type="button"
-                onClick={() => handleViewChange("objectives")}
-                className="w-full rounded-lg bg-black/30 border border-white/10 backdrop-blur-md px-3 py-1.5 flex items-center gap-2 text-[11px] text-white/80 hover:bg-black/45 transition-colors"
-              >
-                <Target className="h-3.5 w-3.5 text-emerald-300 shrink-0" />
-                <span className="uppercase tracking-[0.18em] text-[9px] text-white/55 shrink-0">
-                  Goals
-                </span>
-                <span className="truncate text-left">
-                  {[objectiveSummary1, objectiveSummary2].filter(Boolean).join("  •  ")}
-                </span>
-              </button>
-            )}
 
           </div>
         </div>
