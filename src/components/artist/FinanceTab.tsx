@@ -12,6 +12,27 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn, parseLocalDate } from "@/lib/utils";
 import { RollyNudge } from "@/components/rolly/RollyNudge";
+import { REVENUE_CATEGORIES } from "@/lib/revenueCategories";
+
+/** Map a finance_categories name (e.g. "Touring") to a revenue_category value (e.g. "live") */
+function resolveRevenueCategory(categoryName: string | null): string | null {
+  if (!categoryName) return null;
+  const lower = categoryName.toLowerCase();
+  // Direct match on value
+  const exact = REVENUE_CATEGORIES.find((c) => c.value === lower);
+  if (exact) return exact.value;
+  // Match on label (partial)
+  const byLabel = REVENUE_CATEGORIES.find((c) => c.label.toLowerCase().includes(lower) || lower.includes(c.label.toLowerCase()));
+  if (byLabel) return byLabel.value;
+  // Common aliases
+  if (lower.includes("tour") || lower.includes("live") || lower.includes("show")) return "live";
+  if (lower.includes("merch")) return "merch";
+  if (lower.includes("brand")) return "brand_deal";
+  if (lower.includes("royal") || lower.includes("stream") || lower.includes("sync")) return "royalty";
+  if (lower.includes("publish")) return "publishing";
+  if (lower.includes("feature") || lower.includes("feat")) return "feature";
+  return "other";
+}
 
 interface FinanceTabProps {
   artistId: string;
@@ -207,6 +228,14 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
           if (matchedBudget) resolvedBudgetId = matchedBudget.id;
         }
       }
+      // Resolve revenue_category for revenue transactions
+      let revCat: string | null = null;
+      if (activeTab === "revenue" && resolvedCategoryId !== "none") {
+        const catName = itemCategoryId.startsWith("budget:")
+          ? itemCategoryId.replace("budget:", "")
+          : categories.find((c: any) => c.id === resolvedCategoryId)?.name ?? null;
+        revCat = resolveRevenueCategory(catName);
+      }
 
       const { error } = await supabase.from("transactions").insert({
         artist_id: artistId,
@@ -219,6 +248,7 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
         initiative_id: itemInitiativeId === "none" ? null : itemInitiativeId,
         sub_budget_id: itemSubBudgetId === "none" ? null : itemSubBudgetId,
         transaction_date: itemDate,
+        revenue_category: revCat,
       } as any);
       if (error) throw error;
     },
@@ -305,6 +335,16 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
         }
       }
 
+      // Resolve revenue_category for revenue transactions
+      let revCat: string | null = null;
+      const isRevenue = tx?.type === "revenue";
+      if (isRevenue && resolvedCategoryId !== "none") {
+        const catName = editCategoryId.startsWith("budget:")
+          ? editCategoryId.replace("budget:", "")
+          : categories.find((c: any) => c.id === resolvedCategoryId)?.name ?? null;
+        revCat = resolveRevenueCategory(catName);
+      }
+
       const { error } = await supabase.from("transactions").update({
         description: editDesc.trim(),
         amount: finalAmount,
@@ -312,6 +352,7 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
         category_id: resolvedCategoryId === "none" ? null : resolvedCategoryId,
         budget_id: resolvedBudgetId,
         transaction_date: editDate,
+        ...(isRevenue ? { revenue_category: revCat } : {}),
       } as any).eq("id", editingId);
       if (error) throw error;
     },
