@@ -2516,6 +2516,78 @@ export type Database = {
           },
         ]
       }
+      vendor_invoices: {
+        Row: {
+          amount: number
+          artist_id: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          file_url: string | null
+          id: string
+          invoice_date: string
+          notes: string | null
+          payment_terms: string
+          po_number: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          team_id: string
+          vendor_id: string
+        }
+        Insert: {
+          amount?: number
+          artist_id?: string | null
+          created_at?: string
+          description: string
+          due_date?: string | null
+          file_url?: string | null
+          id?: string
+          invoice_date?: string
+          notes?: string | null
+          payment_terms?: string
+          po_number: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          team_id: string
+          vendor_id: string
+        }
+        Update: {
+          amount?: number
+          artist_id?: string | null
+          created_at?: string
+          description?: string
+          due_date?: string | null
+          file_url?: string | null
+          id?: string
+          invoice_date?: string
+          notes?: string | null
+          payment_terms?: string
+          po_number?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          team_id?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_invoices_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendor_w9_data: {
         Row: {
           address_line1: string
@@ -2610,6 +2682,8 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          invoice_artist_id: string | null
+          invoice_payment_terms: string | null
           name: string
           notes: string | null
           phone: string | null
@@ -2623,6 +2697,8 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          invoice_artist_id?: string | null
+          invoice_payment_terms?: string | null
           name: string
           notes?: string | null
           phone?: string | null
@@ -2636,6 +2712,8 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          invoice_artist_id?: string | null
+          invoice_payment_terms?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
@@ -2646,6 +2724,13 @@ export type Database = {
           w9_token?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vendors_invoice_artist_id_fkey"
+            columns: ["invoice_artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vendors_team_id_fkey"
             columns: ["team_id"]
@@ -2699,6 +2784,7 @@ export type Database = {
         Returns: boolean
       }
       next_invoice_number: { Args: { p_team_id: string }; Returns: string }
+      next_po_number: { Args: { p_team_id: string }; Returns: string }
       search_creator_intelligence: {
         Args: {
           category_filter?: string
