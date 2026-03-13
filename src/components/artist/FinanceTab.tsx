@@ -896,6 +896,9 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
         <UndoSnackbar message="Item deleted" onUndo={handleUndoDelete} />
       )}
 
+      {/* Vendor Invoices */}
+      <VendorInvoiceList artistId={artistId} />
+
       <RollyNudge screen="finance" entityId={artistId} dataSnapshot={{ expenseCount: transactions.filter((t: any) => t.type === "expense").length }} />
     </div>
   );
