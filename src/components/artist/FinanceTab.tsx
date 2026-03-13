@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn, parseLocalDate } from "@/lib/utils";
 import { RollyNudge } from "@/components/rolly/RollyNudge";
+import { VendorInvoiceList } from "@/components/finance/VendorInvoiceList";
 import { REVENUE_CATEGORIES } from "@/lib/revenueCategories";
 
 /** Map a finance_categories name (e.g. "Touring") to a revenue_category value (e.g. "live") */
