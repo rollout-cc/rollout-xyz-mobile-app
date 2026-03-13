@@ -212,6 +212,10 @@ export default function ArtistDetail() {
     return `${label} · Tracking`;
   };
 
+  const objectiveSummary1 = getObjectiveSummary(1);
+  const objectiveSummary2 = getObjectiveSummary(2);
+  const hasAnyObjectiveSummary = !!(objectiveSummary1 || objectiveSummary2);
+
   const isTopView = (v: ActiveView) => ["finance", "budgets", "objectives", "information"].includes(v);
   const handleViewChange = (v: ActiveView) => {
     if (v === "finance" && !limits.canUseFinance) {
