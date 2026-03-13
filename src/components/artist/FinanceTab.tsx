@@ -304,54 +304,51 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
       const amt = parseFloat(editAmount) || 0;
       const tx = transactions.find((t: any) => t.id === editingId);
       const isExpense = tx?.type === "expense";
+      const isRevenue = tx?.type === "revenue";
       const finalAmount = isExpense ? -Math.abs(amt) : Math.abs(amt);
 
-      let resolvedCategoryId = editCategoryId;
-      if (editCategoryId.startsWith("budget:")) {
-        const budgetLabel = editCategoryId.replace("budget:", "");
-        const existing = categories.find((c: any) => c.name === budgetLabel);
-        if (existing) {
-          resolvedCategoryId = existing.id;
-        } else {
-          const { data: newCat, error: catErr } = await supabase
-            .from("finance_categories")
-            .insert({ artist_id: artistId, name: budgetLabel } as any)
-            .select("id")
-            .single();
-          if (catErr) throw catErr;
-          resolvedCategoryId = newCat.id;
-        }
-      }
-
-      // Resolve budget_id from the category/budget selection
+      let resolvedCategoryId: string | null = null;
       let resolvedBudgetId: string | null = null;
-      if (editCategoryId.startsWith("budget:")) {
-        const budgetLabel = editCategoryId.replace("budget:", "");
-        const matchedBudget = budgets.find((b: any) => b.label === budgetLabel);
-        if (matchedBudget) resolvedBudgetId = matchedBudget.id;
-      } else if (resolvedCategoryId !== "none") {
-        const cat = categories.find((c: any) => c.id === resolvedCategoryId);
-        if (cat) {
-          const matchedBudget = budgets.find((b: any) => b.label === cat.name);
-          if (matchedBudget) resolvedBudgetId = matchedBudget.id;
-        }
-      }
-
-      // Resolve revenue_category for revenue transactions
       let revCat: string | null = null;
-      const isRevenue = tx?.type === "revenue";
-      if (isRevenue && resolvedCategoryId !== "none") {
-        const catName = editCategoryId.startsWith("budget:")
-          ? editCategoryId.replace("budget:", "")
-          : categories.find((c: any) => c.id === resolvedCategoryId)?.name ?? null;
-        revCat = resolveRevenueCategory(catName);
+
+      if (isRevenue) {
+        revCat = editCategoryId === "none" ? null : editCategoryId;
+      } else {
+        resolvedCategoryId = editCategoryId;
+        if (editCategoryId.startsWith("budget:")) {
+          const budgetLabel = editCategoryId.replace("budget:", "");
+          const existing = categories.find((c: any) => c.name === budgetLabel);
+          if (existing) {
+            resolvedCategoryId = existing.id;
+          } else {
+            const { data: newCat, error: catErr } = await supabase
+              .from("finance_categories")
+              .insert({ artist_id: artistId, name: budgetLabel } as any)
+              .select("id")
+              .single();
+            if (catErr) throw catErr;
+            resolvedCategoryId = newCat.id;
+          }
+        }
+
+        if (editCategoryId.startsWith("budget:")) {
+          const budgetLabel = editCategoryId.replace("budget:", "");
+          const matchedBudget = budgets.find((b: any) => b.label === budgetLabel);
+          if (matchedBudget) resolvedBudgetId = matchedBudget.id;
+        } else if (resolvedCategoryId !== "none" && resolvedCategoryId) {
+          const cat = categories.find((c: any) => c.id === resolvedCategoryId);
+          if (cat) {
+            const matchedBudget = budgets.find((b: any) => b.label === cat.name);
+            if (matchedBudget) resolvedBudgetId = matchedBudget.id;
+          }
+        }
       }
 
       const { error } = await supabase.from("transactions").update({
         description: editDesc.trim(),
         amount: finalAmount,
         status: editStatus,
-        category_id: resolvedCategoryId === "none" ? null : resolvedCategoryId,
+        category_id: isRevenue ? null : (resolvedCategoryId === "none" ? null : resolvedCategoryId),
         budget_id: resolvedBudgetId,
         transaction_date: editDate,
         ...(isRevenue ? { revenue_category: revCat } : {}),
@@ -365,6 +362,8 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
       qc.invalidateQueries({ queryKey: ["budgets", artistId] });
       qc.invalidateQueries({ queryKey: ["budget-expense-transactions", artistId] });
       qc.invalidateQueries({ queryKey: ["sub-budget-transactions", artistId] });
+      qc.invalidateQueries({ queryKey: ["artists"] });
+      qc.invalidateQueries({ queryKey: ["artists-summary"] });
       setEditingId(null);
       toast.success("Transaction updated");
     },
