@@ -116,10 +116,18 @@ Deno.serve(async (req) => {
 
     const results: { type: string; success: boolean; title: string; error?: string }[] = [];
 
+    console.log("Received items:", JSON.stringify(items.map((i: any) => ({ type: i.type, title: i.title, artist_name: i.artist_name }))));
+
     const campaigns = items.filter((i: any) => i.type === "campaign");
     const tasks = items.filter((i: any) => i.type === "task");
     const milestones = items.filter((i: any) => i.type === "milestone");
     const budgetItems = items.filter((i: any) => i.type === "budget");
+
+    // Check for unmatched items
+    const matched = campaigns.length + tasks.length + milestones.length + budgetItems.length;
+    if (matched < items.length) {
+      console.warn(`${items.length - matched} items had unknown types:`, items.filter((i: any) => !["campaign","task","milestone","budget"].includes(i.type)).map((i: any) => i.type));
+    }
 
     // 1. Create initiatives (campaigns) first
     const campaignIdMap = new Map<string, string>();
@@ -227,6 +235,11 @@ Deno.serve(async (req) => {
 
     const successCount = results.filter(r => r.success).length;
     const failCount = results.filter(r => !r.success).length;
+
+    if (failCount > 0) {
+      console.error("Failed items:", JSON.stringify(results.filter(r => !r.success)));
+    }
+    console.log(`Execute plan: ${successCount} created, ${failCount} failed out of ${items.length} items (campaigns=${campaigns.length}, tasks=${tasks.length}, milestones=${milestones.length}, budgets=${budgetItems.length})`);
 
     return new Response(JSON.stringify({
       success: failCount === 0,
