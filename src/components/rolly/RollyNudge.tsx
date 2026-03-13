@@ -49,7 +49,7 @@ export function RollyNudge({ screen, dataSnapshot, entityId }: Props) {
         onClick={handleClick}
       >
         <img src={rollyIcon} alt="" className="h-5 w-5 rounded-full shrink-0" />
-        <span className="text-xs text-foreground leading-snug line-clamp-2 flex-1">{nudge}</span>
+        <span className="text-xs text-foreground leading-snug flex-1">{nudge}</span>
         <button
           onClick={(e) => {
             e.stopPropagation();
