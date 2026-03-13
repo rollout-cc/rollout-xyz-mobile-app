@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
         description: t.description || null,
         due_date: t.date || null,
         initiative_id: initiativeId,
-        status: "todo",
+        is_completed: false,
         assigned_to: assignee,
       });
 
