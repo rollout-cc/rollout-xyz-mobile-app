@@ -108,7 +108,7 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
   const isEmpty = messages.length === 0;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className={cn("flex flex-col h-full", planMode && "bg-[hsl(0,0%,5%)]")}>
       {/* Messages area or Wizard */}
       {wizardActive && onWizardComplete && onWizardCancel ? (
         <div className="flex-1 min-h-0">
@@ -121,36 +121,36 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
       ) : (
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
         {isEmpty && planMode ? (
-          <div className="flex flex-col items-center justify-center h-full gap-6 text-center animate-fade-in px-2">
-            <div className="relative h-20 w-20">
-              <div className="absolute inset-0 rounded-2xl bg-primary/15 animate-ping" style={{ animationDuration: "2.5s" }} />
-              <div className="absolute inset-[-8px] rounded-3xl bg-primary/10 animate-pulse" />
-              <div className="relative h-20 w-20 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg">
-                <ClipboardList className="h-10 w-10" />
-              </div>
-            </div>
-            <div className="space-y-3">
-              <h2 className="text-3xl font-black uppercase tracking-tight">PLAN MODE</h2>
-              <p className="text-base font-medium text-foreground max-w-[280px] leading-snug">
-                Describe your project and Rolly will build everything for you — so you can keep working.
+          <div className="flex flex-col items-start justify-end h-full px-2 pb-4 animate-fade-in">
+            <div className="space-y-5 w-full">
+              <h2
+                className="text-[clamp(2.5rem,8vw,4.5rem)] font-black uppercase leading-[0.85] tracking-tighter text-white"
+                style={{ fontStretch: "condensed" }}
+              >
+                PLAN
+                <br />
+                MODE.
+              </h2>
+              <p className="text-sm text-white/70 max-w-[280px] leading-relaxed font-medium">
+                Describe your project below. Rolly will ask a few questions, then build everything — tasks, budgets, timelines — so you can keep working.
               </p>
-            </div>
-            <div className="grid grid-cols-2 gap-2.5 w-full max-w-[300px]">
-              {[
-                { icon: ListTodo, label: "Creates tasks" },
-                { icon: DollarSign, label: "Sets budgets" },
-                { icon: CalendarCheck, label: "Plans timelines" },
-                { icon: Zap, label: "Executes instantly" },
-              ].map((item, i) => (
-                <div
-                  key={item.label}
-                  className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 animate-fade-in"
-                  style={{ animationDelay: `${(i + 1) * 100}ms`, animationFillMode: "both" }}
-                >
-                  <item.icon className="h-4 w-4 text-primary shrink-0" />
-                  <span className="text-xs font-semibold text-foreground">{item.label}</span>
-                </div>
-              ))}
+              <div className="flex flex-wrap gap-2 mt-2">
+                {[
+                  { icon: ListTodo, label: "Tasks" },
+                  { icon: DollarSign, label: "Budgets" },
+                  { icon: CalendarCheck, label: "Timelines" },
+                  { icon: Zap, label: "Instant" },
+                ].map((item, i) => (
+                  <div
+                    key={item.label}
+                    className="flex items-center gap-1.5 rounded-full border border-white/20 bg-white/5 px-3 py-1.5 animate-fade-in"
+                    style={{ animationDelay: `${(i + 1) * 80}ms`, animationFillMode: "both" }}
+                  >
+                    <item.icon className="h-3.5 w-3.5 text-white/60 shrink-0" />
+                    <span className="text-[11px] font-semibold text-white/80 uppercase tracking-wide">{item.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         ) : isEmpty ? (
