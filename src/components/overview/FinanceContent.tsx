@@ -22,6 +22,9 @@ import { KpiCardsSection } from "./KpiCardsSection";
 import { QuarterlyPnlSection } from "./QuarterlyPnlSection";
 import { SpendingPerActSection } from "./SpendingPerActSection";
 import { CompanyBudgetSection } from "./CompanyBudgetSection";
+import { VendorManager } from "@/components/finance/VendorManager";
+import { InvoiceCreator } from "@/components/finance/InvoiceCreator";
+import { InvoiceList } from "@/components/finance/InvoiceList";
 
 type DateRange = "month" | "quarter" | "ytd" | "all";
 
