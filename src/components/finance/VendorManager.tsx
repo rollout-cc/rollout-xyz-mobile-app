@@ -199,10 +199,16 @@ export function VendorManager() {
                   <td className="p-3 text-right">
                     <div className="flex items-center justify-end gap-1">
                       {v.w9_status === "completed" ? (
-                        <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => openViewW9(v)}>
-                          <Eye className="h-3 w-3" />
-                          <span className="hidden sm:inline text-xs">View W-9</span>
-                        </Button>
+                        <>
+                          <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => openInvoiceDialog(v)}>
+                            <FileText className="h-3 w-3" />
+                            <span className="hidden sm:inline text-xs">Request Invoice</span>
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => openViewW9(v)}>
+                            <Eye className="h-3 w-3" />
+                            <span className="hidden sm:inline text-xs">View W-9</span>
+                          </Button>
+                        </>
                       ) : (
                         <>
                           {v.w9_status === "not_requested" && v.email && (
