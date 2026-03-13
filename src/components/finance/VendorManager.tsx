@@ -8,7 +8,18 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Send, Copy, FileCheck, Clock, AlertCircle, Eye, Building2, MapPin, CreditCard, User } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Send, Copy, FileCheck, Clock, AlertCircle, Eye, Building2, MapPin, CreditCard, User, FileText } from "lucide-react";
+import { useQuery as useArtistsQuery } from "@tanstack/react-query";
+
+const PAYMENT_TERMS = [
+  { value: "asap", label: "ASAP" },
+  { value: "net_15", label: "Net 15" },
+  { value: "net_30", label: "Net 30" },
+  { value: "net_45", label: "Net 45" },
+  { value: "net_60", label: "Net 60" },
+  { value: "upon_completion", label: "Upon Completion" },
+];
 
 export function VendorManager() {
   const { selectedTeamId: teamId, canManage } = useSelectedTeam();
