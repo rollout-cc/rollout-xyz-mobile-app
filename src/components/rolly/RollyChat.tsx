@@ -254,7 +254,7 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
             </Button>
           )}
         </div>
-      </div>
+      </div>}
 
       <ReceiptScanner
         open={showScanner}
