@@ -6,8 +6,15 @@ import { CalendarRange, Circle, Clock, DollarSign, Link as LinkIcon, ListTodo, R
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { DraftItem } from "./PlanDraft";
+import { PlanExecutionFeed } from "./PlanExecutionFeed";
 
-export function RollyWorkspace() {
+interface RollyWorkspaceProps {
+  executingItems?: DraftItem[] | null;
+  executionComplete?: boolean;
+}
+
+export function RollyWorkspace({ executingItems, executionComplete }: RollyWorkspaceProps = {}) {
   const { selectedTeamId } = useSelectedTeam();
   const { user } = useAuth();
 
