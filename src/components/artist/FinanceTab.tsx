@@ -507,21 +507,32 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="none">Uncategorized</SelectItem>
-        {categories.length > 0 && (
+        {activeTab === "revenue" ? (
           <SelectGroup>
-            <SelectLabel className="text-xs uppercase tracking-wider">Categories</SelectLabel>
-            {categories.map((c: any) => (
-              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            <SelectLabel className="text-xs uppercase tracking-wider">Revenue Categories</SelectLabel>
+            {REVENUE_CATEGORIES.map((c) => (
+              <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
             ))}
           </SelectGroup>
-        )}
-        {budgetOnlyLabels.length > 0 && (
-          <SelectGroup>
-            <SelectLabel className="text-xs uppercase tracking-wider">Budgets</SelectLabel>
-            {budgetOnlyLabels.map((b: any) => (
-              <SelectItem key={`budget:${b.label}`} value={`budget:${b.label}`}>{b.label}</SelectItem>
-            ))}
-          </SelectGroup>
+        ) : (
+          <>
+            {categories.length > 0 && (
+              <SelectGroup>
+                <SelectLabel className="text-xs uppercase tracking-wider">Categories</SelectLabel>
+                {categories.map((c: any) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectGroup>
+            )}
+            {budgetOnlyLabels.length > 0 && (
+              <SelectGroup>
+                <SelectLabel className="text-xs uppercase tracking-wider">Budgets</SelectLabel>
+                {budgetOnlyLabels.map((b: any) => (
+                  <SelectItem key={`budget:${b.label}`} value={`budget:${b.label}`}>{b.label}</SelectItem>
+                ))}
+              </SelectGroup>
+            )}
+          </>
         )}
       </SelectContent>
     </Select>
