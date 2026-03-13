@@ -150,7 +150,7 @@ function EmptyLinksState({ artistId, folders }: { artistId: string; folders: any
   if (mode === "link") {
     return (
       <div className="mt-4">
-        <LinkItem isNew artistId={artistId} folders={folders} autoFocus />
+        <LinkItem isNew artistId={artistId} folders={folders} autoFocus onExternalCancel={() => setMode("idle")} />
       </div>
     );
   }
