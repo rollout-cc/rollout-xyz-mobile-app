@@ -193,8 +193,8 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
         )}
       </div>
 
-      {/* Input area */}
-      <div className="border-t border-border px-4 py-3 bg-background">
+      {/* Input area — hidden during wizard */}
+      {!wizardActive && <div className="border-t border-border px-4 py-3 bg-background">
         {/* Plan mode banner */}
         {planMode && (
           <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium max-w-3xl mx-auto">
