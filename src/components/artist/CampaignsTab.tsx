@@ -106,7 +106,7 @@ export function CampaignsTab({ artistId, teamId }: CampaignsTabProps) {
 
       {showAdd && (
         <div className="space-y-3 p-4 rounded-lg border border-border mb-4">
-          <div className="space-y-1"><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+          <div className="space-y-1"><Label>Name</Label><Input autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
           <div className="space-y-1"><Label>Description</Label><RichTextEditor value={form.description} onChange={(v) => setForm({ ...form, description: v })} /></div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1"><Label>Start Date</Label><Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></div>
