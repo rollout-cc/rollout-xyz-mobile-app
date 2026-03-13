@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, Sparkles, Loader2, Send } from "lucide-react";
+import { ChevronLeft, Sparkles, Loader2, Send, CheckCircle2, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 
@@ -39,6 +39,9 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
   const [isCustomMode, setIsCustomMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [questionNumber, setQuestionNumber] = useState(0);
+  const [summaryPrompt, setSummaryPrompt] = useState<string | null>(null);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState("");
 
   const fetchNextQuestion = useCallback(async (history: QAEntry[]) => {
     setIsLoadingQuestion(true);
@@ -80,7 +83,8 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
       const data = await resp.json();
 
       if (data.type === "complete") {
-        onComplete(data.summary_prompt);
+        setSummaryPrompt(data.summary_prompt);
+        setIsLoadingQuestion(false);
         return;
       }
 
@@ -100,7 +104,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
     } finally {
       setIsLoadingQuestion(false);
     }
-  }, [initialContext, selectedTeamId, onComplete]);
+  }, [initialContext, selectedTeamId]);
 
   // Fetch first question on mount
   useState(() => {
@@ -129,11 +133,20 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
   };
 
   const handleBack = () => {
+    if (summaryPrompt) {
+      // Go back from review to re-fetch last question
+      setSummaryPrompt(null);
+      const newHistory = qaHistory.slice(0, -1);
+      setQaHistory(newHistory);
+      setQuestionNumber((n) => Math.max(1, n - 1));
+      setCurrentQuestion(null);
+      fetchNextQuestion(newHistory);
+      return;
+    }
     if (qaHistory.length === 0) {
       onCancel();
       return;
     }
-    // Go back one question
     const newHistory = qaHistory.slice(0, -1);
     setQaHistory(newHistory);
     setQuestionNumber((n) => Math.max(1, n - 1));
@@ -151,7 +164,6 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
   const handleSingleSelect = (value: string) => {
     setSelectedValue(value);
     setIsCustomMode(false);
-    // Auto-advance for single-select
     if (currentQuestion && !currentQuestion.multi_select) {
       const newEntry: QAEntry = { question: currentQuestion.question, answer: value };
       const newHistory = [...qaHistory, newEntry];
@@ -161,15 +173,92 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
     }
   };
 
+  const handleEditAnswer = (index: number) => {
+    setEditingIndex(index);
+    setEditValue(qaHistory[index].answer);
+  };
+
+  const handleSaveEdit = () => {
+    if (editingIndex === null) return;
+    const updated = [...qaHistory];
+    updated[editingIndex] = { ...updated[editingIndex], answer: editValue.trim() || updated[editingIndex].answer };
+    setQaHistory(updated);
+    setEditingIndex(null);
+    setEditValue("");
+  };
+
   const canSubmit = isCustomMode
     ? !!customText.trim()
     : currentQuestion?.multi_select
     ? selectedValues.length > 0
     : !!selectedValue;
 
+  // Review screen
+  if (summaryPrompt) {
+    return (
+      <div className="flex flex-col h-full bg-[hsl(0,0%,5%)] text-white">
+        <div className="px-4 pt-4 pb-2 flex items-center gap-2 shrink-0">
+          <button onClick={handleBack} className="text-white/40 hover:text-white/70 transition-colors">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <div className="flex items-center gap-2 flex-1">
+            <Sparkles className="h-4 w-4 text-white" />
+            <span className="font-black text-sm uppercase tracking-wide">Review Plan</span>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+          <p className="text-xs text-white/50 mb-2">Review your answers, then submit to have Rolly build your plan.</p>
+          {qaHistory.map((qa, i) => (
+            <div key={i} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 space-y-1 group">
+              <p className="text-[11px] text-white/40 font-medium uppercase tracking-wide">{qa.question}</p>
+              {editingIndex === i ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    className="h-8 text-sm bg-white/10 border-white/15 text-white rounded-lg"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveEdit();
+                      if (e.key === "Escape") setEditingIndex(null);
+                    }}
+                  />
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-white/60 hover:text-white" onClick={handleSaveEdit}>
+                    <CheckCircle2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-white">{qa.answer}</p>
+                  <button
+                    onClick={() => handleEditAnswer(i)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-white/30 hover:text-white/70 h-7 w-7 flex items-center justify-center"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t border-white/10 px-4 py-3 flex items-center gap-2 shrink-0">
+          <Button
+            onClick={() => onComplete(summaryPrompt)}
+            className="flex-1 rounded-xl gap-2 bg-white text-black hover:bg-white/90 font-bold"
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            Build Plan
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full bg-[hsl(0,0%,5%)] text-white">
-      {/* Inline header */}
+      {/* Header */}
       <div className="px-4 pt-4 pb-2 flex items-center gap-2 shrink-0">
         <button onClick={handleBack} className="text-white/40 hover:text-white/70 transition-colors">
           <ChevronLeft className="h-4 w-4" />
@@ -183,35 +272,14 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
         )}
       </div>
 
-      {/* Brief banner */}
-      {initialContext && (
-        <div className="px-4 pt-3">
-          <div className="rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-xs text-white/50">
-            <span className="font-semibold text-white/80">Your brief:</span>{" "}
-            {initialContext.length > 120
-              ? initialContext.slice(0, 120) + "…"
-              : initialContext}
-          </div>
-        </div>
-      )}
-
-      {/* Previous Q&A scroll area */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-        {qaHistory.map((qa, i) => (
-          <div key={i} className="space-y-1">
-            <p className="text-xs text-white/40 font-medium">{qa.question}</p>
-            <p className="text-sm font-medium text-white bg-white/5 rounded-lg px-3 py-2">
-              {qa.answer}
-            </p>
-          </div>
-        ))}
-
+      {/* Single question view — only shows current question */}
+      <div className="flex-1 overflow-y-auto px-4 flex flex-col justify-center">
         {/* Loading state */}
         {isLoadingQuestion && (
-          <div className="flex items-center gap-3 py-8 justify-center">
-            <Loader2 className="h-5 w-5 animate-spin text-white" />
+          <div className="flex flex-col items-center gap-3 py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-white/70" />
             <span className="text-sm text-white/50">
-              {qaHistory.length === 0 ? "Analyzing your brief…" : "Thinking of the next question…"}
+              {qaHistory.length === 0 ? "Analyzing your brief…" : "Next question…"}
             </span>
           </div>
         )}
@@ -228,12 +296,12 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
 
         {/* Current question */}
         {currentQuestion && !isLoadingQuestion && (
-          <div className="space-y-4 animate-fade-in">
+          <div className="space-y-5 animate-fade-in py-4">
             <div>
               <span className="text-[10px] uppercase tracking-wider font-bold text-white/50">
                 {currentQuestion.header}
               </span>
-              <h3 className="text-lg font-bold mt-1 text-white">{currentQuestion.question}</h3>
+              <h3 className="text-xl font-bold mt-1.5 text-white leading-snug">{currentQuestion.question}</h3>
             </div>
 
             {/* Options */}
@@ -258,9 +326,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
                       <div>
                         <span className="text-sm font-medium text-white">{opt.label}</span>
                         {opt.description && (
-                          <p className="text-xs text-white/40 mt-0.5">
-                            {opt.description}
-                          </p>
+                          <p className="text-xs text-white/40 mt-0.5">{opt.description}</p>
                         )}
                       </div>
                     </label>
@@ -285,9 +351,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
                         <div>
                           <span className="text-sm font-medium text-white">{opt.label}</span>
                           {opt.description && (
-                            <p className="text-xs text-white/40 mt-0.5">
-                              {opt.description}
-                            </p>
+                            <p className="text-xs text-white/40 mt-0.5">{opt.description}</p>
                           )}
                         </div>
                       </label>
@@ -330,7 +394,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
         )}
       </div>
 
-      {/* Bottom action bar */}
+      {/* Bottom action bar — only for multi-select / custom input */}
       {currentQuestion && !isLoadingQuestion && (currentQuestion.multi_select || isCustomMode || currentQuestion.options.length === 0) && (
         <div className="border-t border-white/10 px-4 py-3 flex items-center gap-2 shrink-0">
           <Button
