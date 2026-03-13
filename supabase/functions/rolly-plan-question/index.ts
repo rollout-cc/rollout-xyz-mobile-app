@@ -16,7 +16,10 @@ You will receive:
 Your task: Return the NEXT question to ask, OR signal that you have enough information to generate the plan.
 
 RULES:
-- Ask ONE question at a time. Each question should have 2-4 suggested answer options.
+- Ask ONE question at a time.
+- EVERY question MUST have 2-4 answer options. NEVER return an empty options array. Even for open-ended things like names/titles, provide likely options plus a catch-all like "TBD / Not decided yet" or "Something else".
+  - Example: For "What's the project title?" → options: [artist's known projects if any, "TBD / Working title", "I'll name it later"]. Always set allow_custom: true so they can type their own.
+  - Example: For "What's the budget?" → options: ["Under $5K", "$5K–$15K", "$15K–$30K", "$30K+"]
 - Be contextual — adapt your questions based on what the user said and previous answers. Don't ask generic template questions.
 - Skip questions you can infer from context. If they said "we're dropping a single next month", don't ask "what type of release?" or "what's the timeline?"
 - Ask about things that matter for EXECUTION: Who's doing what? What's the budget? What channels? What's the creative direction?
