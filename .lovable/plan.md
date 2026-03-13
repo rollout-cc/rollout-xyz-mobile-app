@@ -1,104 +1,112 @@
 
 
-# Plan Mode: Full Execution Pipeline
+# Performance Audit: Speed & Flow Improvements
 
-## Problem
-After 8 wizard questions, the system produces a text summary sent to `rolly-chat` which responds conversationally ("sounds dope...") instead of executing. Users answered questions only to face more questions.
+After reviewing the full codebase, here are the bottlenecks and concrete fixes ranked by impact.
 
-## Solution
-Two major changes:
+---
 
-1. **Replace text summary with structured plan generation** -- when `plan_ready` fires, a new edge function (`rolly-generate-plan`) takes the full Q&A + brief and returns structured items (tasks, milestones, budgets, campaigns) using AI tool-calling.
+## 1. Waterfall Query Chains (HIGH IMPACT)
 
-2. **Show PlanDraft review, then batch-execute** -- the wizard displays the already-built `PlanDraft` component for review. On "Build Plan" click, a new `rolly-execute-plan` edge function batch-creates everything in the database.
+**Problem:** Several pages chain queries sequentially -- each waits for the previous to finish before starting. This creates "waterfall" loading where the page takes 3-4x longer than necessary.
 
-## Architecture
+**Where it happens:**
+- **Overview.tsx**: Fetches `artists` first, then waits for that result before fetching `budgets`, `transactions`, and `initiatives` (all use `enabled: artists.length > 0`). That's 3 sequential hops.
+- **FinanceContent.tsx**: Same pattern -- `artists` -> `budgets`, `transactions`, `company_expenses`, etc. Plus `staffEmployment` -> `staffProfiles` is another waterfall.
+- **StaffContent.tsx**: `memberships` -> `memberProfiles`, and `artists` -> `transactions`.
 
-```text
-Wizard Q&A (up to 14 questions, AI-driven)
-    ↓ plan_ready signal
-rolly-generate-plan edge function
-  → AI with tool-calling returns structured items
-    ↓
-PlanDraft review screen (edit/remove/confirm)
-    ↓ "Build Plan" click
-rolly-execute-plan edge function
-  → batch-creates tasks, milestones, budgets, initiatives
-    ↓
-Workspace refreshes, confirmation toast
-```
+**Fix:** Create a single database function (RPC) that returns all needed data for the Overview and Finance pages in one call. Alternatively, restructure queries to use the team_id directly (budgets, transactions can be fetched via joins or team_id filter) so they all fire in parallel.
 
-## Changes
+---
 
-### 1. Update `rolly-plan-question` edge function
-- Raise question cap from 8 to 14
-- Update prompt: "Ask 8-14 questions MAX. After question 10, strongly consider wrapping up."
-- Add instruction to use knowledge base context to determine the most necessary questions (skip obvious ones, focus on execution-critical details)
-- `plan_ready` summary remains text (used as input to the next step)
+## 2. `useTeamPlan()` Calls an Edge Function Every 60 Seconds (HIGH IMPACT)
 
-### 2. New `rolly-generate-plan` edge function
-- Input: `{ brief, qa_history, team_id }`
-- Fetches artist list and knowledge base context
-- Uses AI with forced tool-calling to produce structured output:
-  - `campaigns: [{ name, description, start_date, end_date, artist_name }]`
-  - `tasks: [{ title, description, due_date, expense_amount, artist_name, campaign_name }]`
-  - `milestones: [{ title, date, description, artist_name }]`
-  - `budgets: [{ label, amount, artist_name }]`
-- Returns the structured plan as JSON
+**Problem:** `useTeamPlan()` invokes the `check-subscription` edge function (cold-start latency ~200-800ms) on every page load and re-polls every 60s. This is called from at least 8 different components. While React Query deduplicates, the edge function call itself is slow and blocks UI decisions (feature gating).
 
-### 3. New `rolly-execute-plan` edge function
-- Input: `{ items: DraftItem[], team_id }`
-- Authenticated, resolves artist IDs from names
-- Creates initiatives first (for campaign linking), then tasks, milestones, budgets
-- Returns summary of created items
+**Fix:**
+- Increase `staleTime` to 5 minutes (from 30s) and `refetchInterval` to 5 minutes (from 60s)
+- Cache the result in `localStorage` as a fallback so the first render doesn't block on network
 
-### 4. Update `PlanWizard.tsx`
-- On `plan_ready`, call `rolly-generate-plan` with the full Q&A history
-- Parse response into `DraftItem[]` format
-- Render `PlanDraft` component inline (already built with edit/delete/confirm UI)
-- On confirm, call `rolly-execute-plan`
-- On completion: exit wizard, show success toast, trigger workspace refresh
+---
 
-### 5. Update `Rolly.tsx` / `RollyChat.tsx`
-- Change `onWizardComplete` to accept `void` (no more summary prompt to chat)
-- After execution, add synthetic assistant message confirming what was created
-- Invalidate workspace queries so items appear immediately
-- Remove the `[PLAN MODE]` text-to-chat flow entirely
+## 3. `useTeams()` Called 14+ Times Across Components (MEDIUM IMPACT)
 
-### 6. Update `PlanDraft.tsx`
-- Add "campaign" type to `DraftItem` alongside task/milestone/budget
-- Style to match the dark plan-mode theme
-- Add campaign section with icon
+**Problem:** `useTeams()` is called in 14 places. React Query deduplicates the network call, but each call triggers the hook logic and context lookups. More importantly, the `role` check pattern (`teams.find(t => t.id === teamId)?.role`) is repeated everywhere.
 
-## Knowledge Base Summary
+**Fix:** Move `role` into `TeamContext` so components just read `const { role } = useSelectedTeam()` instead of re-querying teams and filtering.
 
-Rolly's knowledge base contains **247 entries across 114 chapters** from **23 sources**:
+---
 
-| Source | Entries | Topics |
-|--------|---------|--------|
-| Industry insights (scraped articles) | 138 | Streaming strategy, artist development, release patterns, revenue, operations |
-| Passman 11th Edition (music law textbook) | 37 | Record deals, advances, royalties, cross-collateralization, 360 deals, agents, managers, publishing, producer deals, copyright |
-| Virgil Abloh "Free Game" | 14 | Brand building, e-commerce, design tools, naming, trademarks, screen printing, lookbooks |
-| Venice Music rollout strategies | 5 | 4-phase release rollout, announce/tease, single drop, release week, post-release |
-| Brent Faiyaz case study | 5 | Ownership, distribution, silence as strategy, creative narrative, post-release lifecycle |
-| Christian Clancy interview (Rap Radar) | 4 | Brand equity, Odd Future development, Camp Flog Gnaw, manager-artist longevity |
-| Godmode artist development | 4 | Licensing vs traditional deals, artist advocacy, creative freedom, world-building |
-| Rollout deck templates | 4 | Business verticals, revenue targets, phase structure, touch points & costs |
-| Shopify clothing guide | 4 | Business models, design & development, pricing & inventory, sales channels |
-| Colture Playbook (DJBooth) | 4 | Equity partnerships, surviving on $30K, middle-class artist, cultural capital |
-| OutKast Edge (Trapital) | 4 | OutKast Edge framework, Issa Rae/Tyler Perry, Tyler the Creator, losing the edge |
-| Venice Music (activation) | 3 | Activation framework, activation types, rollout templates |
-| LVRN / Amber Grimes | 3 | Album rollout, career building through assisting, marketing philosophy |
-| SoundExchange | 3 | Registration guide, claiming recordings, submitting as rights owner |
-| Split sheets guide | 3 | What split sheets are, how percentages work, quick reference |
-| ASCAP cue sheets | 2 | Cue sheet registration, understanding cue sheets for film/TV |
-| Distribution deals | 2 | Distribution explained, modern distribution landscape |
-| + 6 more sources | 1 each | BMI registration, ASCAP registration, mechanical royalties, medium article |
+## 4. Duplicate Data Fetching Between Pages (MEDIUM IMPACT)
 
-**Top 5 chapters by volume:**
-- Revenue & Deal Strategy: 40 entries
-- Music Business Operations: 32 entries
-- Artist Development Tactics: 28 entries
-- Release Strategy Patterns: 22 entries
-- Industry Strategy Insights: 16 entries
+**Problem:** Overview.tsx, FinanceContent.tsx, and StaffContent.tsx all fetch the same data (artists, transactions, tasks, memberships, profiles) with different query keys (`overview-artists` vs `finance-artists` vs `staff-artists`). This means navigating between tabs re-fetches everything from scratch.
+
+**Fix:** Unify query keys. Use `["artists", teamId]` everywhere instead of `["overview-artists", teamId]`, `["finance-artists", teamId]`, `["staff-artists", teamId]`. This lets React Query share the cache across all views.
+
+---
+
+## 5. Heavy `useMemo` Computations on Every Render (MEDIUM IMPACT)
+
+**Problem:** `staffMembers` computation in Overview.tsx has an O(n*m) loop inside it (for each member, it iterates all other members to compute `maxRevenue`). With more staff, this becomes expensive.
+
+**Fix:** Pre-compute `maxRevenue` once outside the map, then pass it in. Single pass instead of quadratic.
+
+---
+
+## 6. Missing Prefetching on Navigation (LOW-MEDIUM IMPACT)
+
+**Problem:** When a user clicks an artist card, it navigates to ArtistDetail which then starts fetching from scratch. No data is prefetched on hover or anticipation.
+
+**Fix:** Add `queryClient.prefetchQuery` on artist card hover/mouse-enter for the artist detail data. This makes the transition feel instant.
+
+---
+
+## 7. Large Bundle: DnD Library Loaded on Every Page (LOW IMPACT)
+
+**Problem:** `@hello-pangea/dnd` (~45KB gzipped) is imported in Roster.tsx and Overview.tsx. It's lazy-loaded via React.lazy, but it's still a significant chunk for pages that may not need drag-and-drop.
+
+**Fix:** No immediate action needed since pages are already lazy-loaded. Could consider dynamic import of the DnD wrapper only when folders exist.
+
+---
+
+## 8. Edge Function Cold Starts (LOW IMPACT, Infrastructure)
+
+**Problem:** `spotify-artist`, `check-subscription`, `scrape-chartmasters` all have cold-start latency. The Spotify artist data is fetched via edge function on every artist detail page load (30min staleTime helps but first visit is slow).
+
+**Fix:** Already mitigated by staleTime. Could add a background sync job instead of on-demand fetching.
+
+---
+
+## Implementation Plan (Ordered by Impact)
+
+### Step 1: Unify query keys across Overview/Finance/Staff
+- Change all `["finance-artists", teamId]`, `["overview-artists", teamId]`, `["staff-artists", teamId]` to `["artists-summary", teamId]`
+- Same for transactions, budgets, tasks, memberships, profiles
+- Instant cache sharing = no re-fetch when switching tabs
+
+### Step 2: Remove waterfall queries
+- Fetch budgets and transactions using `team_id` joins instead of waiting for artist IDs
+- Create an RPC function `get_team_finance_summary` that returns artists + budgets + transactions in one call
+
+### Step 3: Optimize useTeamPlan caching
+- Increase staleTime to 5min, refetchInterval to 5min
+- Add localStorage fallback for instant first render
+
+### Step 4: Move role into TeamContext
+- Eliminate 14 redundant `useTeams()` calls for role checking
+
+### Step 5: Fix quadratic staffMembers computation
+- Pre-compute maxRevenue in a single pass
+
+### Step 6: Add prefetching on artist card hover
+- `onMouseEnter` triggers `queryClient.prefetchQuery` for artist detail
+
+### Files to Edit
+1. `src/pages/Overview.tsx` -- unify query keys, remove waterfalls
+2. `src/components/overview/FinanceContent.tsx` -- unify query keys, remove waterfalls
+3. `src/components/overview/StaffContent.tsx` -- unify query keys
+4. `src/hooks/useTeamPlan.ts` -- increase cache times
+5. `src/contexts/TeamContext.tsx` -- add role to context
+6. `src/components/roster/ArtistCard.tsx` -- add prefetch on hover
+7. Database migration -- create RPC function for combined finance data
 

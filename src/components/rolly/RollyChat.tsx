@@ -31,7 +31,7 @@ interface RollyChatProps {
   onPlanMessage?: (msg: string) => void;
   wizardActive?: boolean;
   wizardContext?: string | null;
-  onWizardComplete?: (summaryPrompt: string) => void;
+  onWizardComplete?: () => void;
   onWizardCancel?: () => void;
 }
 

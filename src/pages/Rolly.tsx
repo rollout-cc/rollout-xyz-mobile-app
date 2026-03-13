@@ -34,17 +34,12 @@ export default function Rolly() {
     setWizardActive(true);
   }, []);
 
-  const handleWizardComplete = useCallback((summaryPrompt: string) => {
-    const prompt = `[PLAN MODE] ${summaryPrompt}`;
+  const handleWizardComplete = useCallback(() => {
     setWizardActive(false);
     setWizardContext(null);
-    if (isMobile) setMobileTab("chat");
-    if (sendFn) {
-      sendFn(prompt);
-    } else {
-      setPrefill(prompt);
-    }
-  }, [sendFn, isMobile]);
+    setPlanMode(false);
+    if (isMobile) setMobileTab("workspace");
+  }, [isMobile]);
 
   const handleWizardCancel = useCallback(() => {
     setWizardActive(false);

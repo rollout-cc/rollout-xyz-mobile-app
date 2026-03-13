@@ -6,12 +6,12 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are ROLLY's planning brain. Ask smart follow-up questions ONE AT A TIME to build a plan from the user's brief.
+const SYSTEM_PROMPT = `You are ROLLY's planning brain. You have deep music industry knowledge. Ask smart follow-up questions ONE AT A TIME to build a plan from the user's brief.
 
 RULES:
 - Ask ONE question at a time.
 - QUESTIONS MUST BE SHORT. Max 15 words. No preamble, no recapping previous answers, no "considering that..." filler. Just ask the question directly.
-  - BAD: "Considering the internal team will handle all efforts, and we're looking at strategic partnerships to support 'GUMBO' for a June 2026 release, what specific internal roles or external partner types do you foresee being most critical? This will help us clarify responsibilities and outreach."
+  - BAD: "Considering the internal team will handle all efforts, and we're looking at strategic partnerships to support 'GUMBO' for a June 2026 release, what specific internal roles or external partner types do you foresee being most critical?"
   - GOOD: "What roles or partners do you need?"
   - BAD: "To grow Pote Baby's social media and generate PR, what are the primary platforms you're focusing on for this release?"
   - GOOD: "Which platforms are you focusing on?"
@@ -19,22 +19,29 @@ RULES:
   - For open-ended things like names/titles, provide likely options plus "TBD". Set allow_custom: true.
 - USE multi_select: true when multiple answers make sense (platforms, channels, roles, content types, verticals, tactics).
   - Only use multi_select: false for single-answer questions (release type, budget range, artist name).
-- Skip questions you can infer from context.
-- Ask about EXECUTION: who, budget, channels, creative direction, timeline.
-- Ask 5-8 questions MAX, then signal completion. After question 6, strongly consider wrapping up.
-- When you have enough info, signal completion.
+- Skip questions you can infer from context. If the user already told you the artist, don't ask again. If the release type is obvious, skip it.
+- Focus on EXECUTION-CRITICAL details: things Rolly needs to actually create tasks, milestones, and budgets. Skip vague "vision" questions.
+- Ask 8-14 questions MAX. After question 10, strongly consider wrapping up.
+- When you have enough info to build a concrete plan with tasks, milestones, and budgets, signal completion immediately.
 
-QUESTION CATEGORIES (adapt based on context):
-- Artist & project identification
-- Release details (type, name, status)
-- Goals & metrics
-- Verticals (streaming, merch, live, sync) → multi_select
-- Creative direction
-- Platform strategy → multi_select
-- Content & marketing → multi_select
-- Team & partners → multi_select
-- Budget & resources
-- Timeline & phasing`;
+PRIORITIZE THESE QUESTION TYPES (in order):
+1. Artist & project identification (if not already clear)
+2. Release type & timeline (single, EP, album, merch drop, tour)
+3. Key dates / deadlines
+4. Budget range or allocation
+5. Verticals (streaming, merch, live, sync, brand deals) → multi_select
+6. Platform & channel strategy → multi_select
+7. Content needs (visuals, video, socials) → multi_select
+8. Team & responsibilities → multi_select
+9. Creative direction (only if relevant)
+10. Revenue goals / KPIs
+
+SKIP questions that are:
+- Too vague to produce actionable items
+- Already answered or inferable from context
+- About "feelings" or "vision" without execution impact
+
+USE YOUR KNOWLEDGE BASE CONTEXT to ask smarter questions. If the brief mentions a single release, reference rollout phase frameworks. If it mentions merch, ask about production timeline. If touring, ask about routing/dates.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -49,7 +56,6 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(supabaseUrl, supabaseKey);
 
-    // Verify user
     const { data: { user }, error: authError } = await sb.auth.getUser(token);
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -71,7 +77,23 @@ Deno.serve(async (req) => {
       artistNames = (artists ?? []).map((a: any) => a.name);
     }
 
-    // Build the conversation for the AI
+    // Search knowledge base for relevant context
+    let knowledgeContext = "";
+    if (brief) {
+      const searchTerms = brief.split(/\s+/).filter((w: string) => w.length > 3).slice(0, 5).join(" | ");
+      if (searchTerms) {
+        const { data: knowledge } = await sb.rpc("search_rolly_knowledge", {
+          search_query: searchTerms,
+          match_limit: 3,
+        });
+        if (knowledge && knowledge.length > 0) {
+          knowledgeContext = `\nRELEVANT KNOWLEDGE:\n${knowledge.map((k: any) => `- ${k.chapter}: ${k.content.slice(0, 200)}`).join("\n")}`;
+        }
+      }
+    }
+
+    const questionCount = previous_qa?.length || 0;
+
     const messages: any[] = [
       { role: "system", content: SYSTEM_PROMPT },
       {
@@ -79,14 +101,15 @@ Deno.serve(async (req) => {
         content: `CONTEXT:
 - Artists on roster: ${artistNames.length > 0 ? artistNames.join(", ") : "None added yet"}
 - Today's date: ${new Date().toISOString().split("T")[0]}
+${knowledgeContext}
 
 USER'S BRIEF: "${brief}"
 
 ${previous_qa && previous_qa.length > 0 ? `PREVIOUS Q&A:\n${previous_qa.map((qa: any, i: number) => `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}`).join("\n\n")}` : "No questions asked yet."}
 
-Questions asked so far: ${previous_qa?.length || 0}/8. ${(previous_qa?.length || 0) >= 6 ? "You MUST wrap up now — signal completion with plan_ready." : ""}
+Questions asked so far: ${questionCount}/14. ${questionCount >= 10 ? "You should strongly consider wrapping up — signal completion with plan_ready unless there's a critical gap." : ""} ${questionCount >= 13 ? "MANDATORY: Call plan_ready NOW. Do NOT ask another question." : ""}
 
-${(previous_qa?.length || 0) >= 7 ? "MANDATORY: Call plan_ready NOW. Do NOT ask another question." : "Generate the next question, or signal completion if you have enough info."}`,
+${questionCount >= 10 ? "If you have enough info to build tasks, milestones, and budgets, call plan_ready immediately." : "Generate the next question, or signal completion if you have enough info."}`,
       },
     ];
 
@@ -155,13 +178,13 @@ ${(previous_qa?.length || 0) >= 7 ? "MANDATORY: Call plan_ready NOW. Do NOT ask 
             type: "function",
             function: {
               name: "plan_ready",
-              description: "Signal that enough information has been gathered. Return a summary prompt for Rolly to execute the plan.",
+              description: "Signal that enough information has been gathered. Return a summary of all gathered information.",
               parameters: {
                 type: "object",
                 properties: {
                   summary_prompt: {
                     type: "string",
-                    description: "A detailed prompt summarizing all gathered information for Rolly to execute. Include all answers, inferred details, and specific instructions for what to create (tasks, milestones, budgets, etc.).",
+                    description: "A detailed summary of all gathered information including: artist name, project type, timeline, goals, verticals, platforms, budget, team, creative direction, and any other relevant details. This will be used to generate a structured plan.",
                   },
                 },
                 required: ["summary_prompt"],

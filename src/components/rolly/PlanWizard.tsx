@@ -1,12 +1,14 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, Sparkles, Loader2, Send, CheckCircle2, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSelectedTeam } from "@/contexts/TeamContext";
+import { PlanDraft, DraftItem } from "./PlanDraft";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 export type PlanAnswers = Record<string, string | string[]>;
 
@@ -21,15 +23,18 @@ type AIQuestion = {
 };
 
 interface PlanWizardProps {
-  onComplete: (summaryPrompt: string) => void;
+  onComplete: () => void;
   onCancel: () => void;
   initialContext?: string | null;
 }
 
 const PLAN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rolly-plan-question`;
+const GENERATE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rolly-generate-plan`;
+const EXECUTE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rolly-execute-plan`;
 
 export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardProps) {
   const { selectedTeamId } = useSelectedTeam();
+  const queryClient = useQueryClient();
   const [qaHistory, setQaHistory] = useState<QAEntry[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<AIQuestion | null>(null);
   const [isLoadingQuestion, setIsLoadingQuestion] = useState(false);
@@ -39,9 +44,19 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
   const [isCustomMode, setIsCustomMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [questionNumber, setQuestionNumber] = useState(0);
-  const [summaryPrompt, setSummaryPrompt] = useState<string | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
+
+  // Plan generation states
+  const [phase, setPhase] = useState<"questions" | "generating" | "review" | "executing">("questions");
+  const [draftItems, setDraftItems] = useState<DraftItem[]>([]);
+  const [primaryArtist, setPrimaryArtist] = useState("");
+  const [summaryPrompt, setSummaryPrompt] = useState("");
+
+  const getToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token;
+  };
 
   const fetchNextQuestion = useCallback(async (history: QAEntry[]) => {
     setIsLoadingQuestion(true);
@@ -52,8 +67,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
     setIsCustomMode(false);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const token = await getToken();
       if (!token) {
         setError("Please log in to use Plan Mode.");
         setIsLoadingQuestion(false);
@@ -83,8 +97,9 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
       const data = await resp.json();
 
       if (data.type === "complete") {
+        // Instead of showing a review of answers, generate the structured plan
         setSummaryPrompt(data.summary_prompt);
-        setIsLoadingQuestion(false);
+        await generatePlan(history, data.summary_prompt);
         return;
       }
 
@@ -105,6 +120,153 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
       setIsLoadingQuestion(false);
     }
   }, [initialContext, selectedTeamId]);
+
+  const generatePlan = async (history: QAEntry[], summary: string) => {
+    setPhase("generating");
+    setIsLoadingQuestion(false);
+
+    try {
+      const token = await getToken();
+      if (!token) {
+        setError("Please log in.");
+        setPhase("questions");
+        return;
+      }
+
+      const resp = await fetch(GENERATE_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          brief: initialContext || "",
+          qa_history: history,
+          summary_prompt: summary,
+          team_id: selectedTeamId,
+        }),
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        setError(errData.error || "Failed to generate plan");
+        setPhase("questions");
+        return;
+      }
+
+      const plan = await resp.json();
+
+      // Convert to DraftItem format
+      let counter = 0;
+      const items: DraftItem[] = [];
+      let detectedArtist = "";
+
+      for (const c of (plan.campaigns || [])) {
+        if (!detectedArtist && c.artist_name) detectedArtist = c.artist_name;
+        items.push({
+          id: `draft-${counter++}`,
+          type: "campaign",
+          title: c.name,
+          description: c.description,
+          date: c.start_date,
+          end_date: c.end_date,
+          artist_name: c.artist_name,
+        });
+      }
+
+      for (const t of (plan.tasks || [])) {
+        if (!detectedArtist && t.artist_name) detectedArtist = t.artist_name;
+        items.push({
+          id: `draft-${counter++}`,
+          type: "task",
+          title: t.title,
+          description: t.description,
+          date: t.due_date,
+          artist_name: t.artist_name,
+          campaign_name: t.campaign_name,
+        });
+      }
+
+      for (const m of (plan.milestones || [])) {
+        if (!detectedArtist && m.artist_name) detectedArtist = m.artist_name;
+        items.push({
+          id: `draft-${counter++}`,
+          type: "milestone",
+          title: m.title,
+          date: m.date,
+          description: m.description,
+          artist_name: m.artist_name,
+        });
+      }
+
+      for (const b of (plan.budgets || [])) {
+        if (!detectedArtist && b.artist_name) detectedArtist = b.artist_name;
+        items.push({
+          id: `draft-${counter++}`,
+          type: "budget",
+          title: b.label,
+          amount: b.amount,
+          artist_name: b.artist_name,
+        });
+      }
+
+      setPrimaryArtist(detectedArtist || "your artist");
+      setDraftItems(items);
+      setPhase("review");
+    } catch (e) {
+      console.error("Generate plan error:", e);
+      setError("Failed to generate plan. Please try again.");
+      setPhase("questions");
+    }
+  };
+
+  const executePlan = async (items: DraftItem[]) => {
+    setPhase("executing");
+
+    try {
+      const token = await getToken();
+      if (!token) {
+        setError("Please log in.");
+        setPhase("review");
+        return;
+      }
+
+      const resp = await fetch(EXECUTE_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          items,
+          team_id: selectedTeamId,
+        }),
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        setError(errData.error || "Failed to execute plan");
+        setPhase("review");
+        return;
+      }
+
+      const result = await resp.json();
+
+      // Invalidate workspace queries
+      queryClient.invalidateQueries({ queryKey: ["rolly-workspace-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["rolly-workspace-artists"] });
+      queryClient.invalidateQueries({ queryKey: ["rolly-workspace-budgets"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["artists"] });
+
+      toast.success(`Plan built! Created ${result.created} items.${result.failed > 0 ? ` (${result.failed} failed)` : ""}`);
+      onComplete();
+    } catch (e) {
+      console.error("Execute plan error:", e);
+      setError("Failed to build plan. Please try again.");
+      setPhase("review");
+    }
+  };
 
   // Fetch first question on mount
   useState(() => {
@@ -133,9 +295,10 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
   };
 
   const handleBack = () => {
-    if (summaryPrompt) {
-      // Go back from review to re-fetch last question
-      setSummaryPrompt(null);
+    if (phase === "review") {
+      // Go back to questions — re-ask from the last Q&A state
+      setPhase("questions");
+      setDraftItems([]);
       const newHistory = qaHistory.slice(0, -1);
       setQaHistory(newHistory);
       setQuestionNumber((n) => Math.max(1, n - 1));
@@ -161,18 +324,6 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
     setIsCustomMode(false);
   };
 
-  const handleSingleSelect = (value: string) => {
-    setSelectedValue(value);
-    setIsCustomMode(false);
-    if (currentQuestion && !currentQuestion.multi_select) {
-      const newEntry: QAEntry = { question: currentQuestion.question, answer: value };
-      const newHistory = [...qaHistory, newEntry];
-      setQaHistory(newHistory);
-      setCurrentQuestion(null);
-      fetchNextQuestion(newHistory);
-    }
-  };
-
   const handleEditAnswer = (index: number) => {
     setEditingIndex(index);
     setEditValue(qaHistory[index].answer);
@@ -193,69 +344,39 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
     ? selectedValues.length > 0
     : !!selectedValue;
 
-  // Review screen
-  if (summaryPrompt) {
+  // Plan generation loading
+  if (phase === "generating") {
     return (
-      <div className="flex flex-col h-full bg-[hsl(0,0%,5%)] text-white">
-        <div className="px-4 pt-4 pb-2 flex items-center gap-2 shrink-0">
-          <button onClick={handleBack} className="text-white/40 hover:text-white/70 transition-colors">
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <div className="flex items-center gap-2 flex-1">
-            <Sparkles className="h-4 w-4 text-white" />
-            <span className="font-black text-sm uppercase tracking-wide">Review Plan</span>
-          </div>
+      <div className="flex flex-col h-full bg-[hsl(0,0%,5%)] text-white items-center justify-center gap-4">
+        <div className="relative">
+          <Loader2 className="h-8 w-8 animate-spin text-white/70" />
+          <Sparkles className="h-4 w-4 text-white absolute -top-1 -right-1" />
         </div>
-
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-          <p className="text-xs text-white/50 mb-2">Review your answers, then submit to have Rolly build your plan.</p>
-          {qaHistory.map((qa, i) => (
-            <div key={i} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 space-y-1 group">
-              <p className="text-[11px] text-white/40 font-medium uppercase tracking-wide">{qa.question}</p>
-              {editingIndex === i ? (
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    className="h-8 text-sm bg-white/10 border-white/15 text-white rounded-lg"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveEdit();
-                      if (e.key === "Escape") setEditingIndex(null);
-                    }}
-                  />
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-white/60 hover:text-white" onClick={handleSaveEdit}>
-                    <CheckCircle2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-white">{qa.answer}</p>
-                  <button
-                    onClick={() => handleEditAnswer(i)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-white/30 hover:text-white/70 h-7 w-7 flex items-center justify-center"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div className="border-t border-white/10 px-4 py-3 flex items-center gap-2 shrink-0">
-          <Button
-            onClick={() => onComplete(summaryPrompt)}
-            className="flex-1 rounded-xl gap-2 bg-white text-black hover:bg-white/90 font-bold"
-          >
-            <CheckCircle2 className="h-4 w-4" />
-            Build Plan
-          </Button>
+        <div className="text-center">
+          <p className="text-sm font-semibold text-white">Building your plan…</p>
+          <p className="text-xs text-white/40 mt-1">Rolly is creating tasks, milestones & budgets</p>
         </div>
       </div>
     );
   }
 
+  // Plan draft review
+  if (phase === "review" || phase === "executing") {
+    return (
+      <PlanDraft
+        items={draftItems}
+        artistName={primaryArtist}
+        onConfirm={executePlan}
+        onCancel={() => {
+          setPhase("questions");
+          setDraftItems([]);
+        }}
+        isExecuting={phase === "executing"}
+      />
+    );
+  }
+
+  // Question phase
   return (
     <div className="flex flex-col h-full bg-[hsl(0,0%,5%)] text-white">
       {/* Header */}
@@ -272,9 +393,8 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
         )}
       </div>
 
-      {/* Single question view — only shows current question */}
+      {/* Single question view */}
       <div className="flex-1 overflow-y-auto px-4 flex flex-col justify-start pt-6">
-        {/* Loading state */}
         {isLoadingQuestion && (
           <div className="flex flex-col items-center gap-3 py-8">
             <Loader2 className="h-6 w-6 animate-spin text-white/70" />
@@ -284,7 +404,6 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
           </div>
         )}
 
-        {/* Error state */}
         {error && (
           <div className="text-center py-8">
             <p className="text-sm text-red-400 mb-3">{error}</p>
@@ -294,7 +413,6 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
           </div>
         )}
 
-        {/* Current question */}
         {currentQuestion && !isLoadingQuestion && (
           <div className="space-y-5 animate-fade-in py-4">
             <div>
@@ -304,7 +422,6 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
               <h3 className="text-base font-semibold mt-1.5 text-white leading-snug">{currentQuestion.question}</h3>
             </div>
 
-            {/* Options */}
             {currentQuestion.options.length > 0 && (
               <div className="space-y-2">
                 {currentQuestion.multi_select ? (
@@ -363,7 +480,6 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
               </div>
             )}
 
-            {/* Custom input */}
             {currentQuestion.allow_custom && (
               <div className="space-y-2">
                 {currentQuestion.options.length > 0 && (
@@ -396,7 +512,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
         )}
       </div>
 
-      {/* Bottom action bar — only for multi-select / custom input */}
+      {/* Bottom action bar */}
       {currentQuestion && !isLoadingQuestion && (currentQuestion.multi_select || isCustomMode || currentQuestion.options.length === 0) && (
         <div className="border-t border-white/10 px-4 py-3 flex items-center gap-2 shrink-0">
           <Button

@@ -51,3 +51,7 @@ project_id = "ctnsworqzzguykzzvdme"
     verify_jwt = false
   [functions.submit-vendor-invoice]
     verify_jwt = false
+  [functions.rolly-generate-plan]
+    verify_jwt = false
+  [functions.rolly-execute-plan]
+    verify_jwt = false
