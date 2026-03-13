@@ -1,15 +1,11 @@
 import { AppLayout } from "@/components/AppLayout";
 import { RollyChat } from "@/components/rolly/RollyChat";
 import { RollyWorkspace } from "@/components/rolly/RollyWorkspace";
-import { PlanWizard } from "@/components/rolly/PlanWizard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { MessageSquare, LayoutGrid } from "lucide-react";
 import { useLocation } from "react-router-dom";
-
-
-
 
 export default function Rolly() {
   const isMobile = useIsMobile();
@@ -27,9 +23,7 @@ export default function Rolly() {
 
   const handlePlanModeToggle = useCallback((active: boolean) => {
     setPlanMode(active);
-    if (active) {
-      // Don't activate wizard yet — wait for the user's first message
-    } else {
+    if (!active) {
       setWizardActive(false);
       setWizardContext(null);
     }
@@ -38,8 +32,7 @@ export default function Rolly() {
   const handlePlanMessage = useCallback((msg: string) => {
     setWizardContext(msg);
     setWizardActive(true);
-    if (isMobile) setMobileTab("workspace");
-  }, [isMobile]);
+  }, []);
 
   const handleWizardComplete = useCallback((summaryPrompt: string) => {
     const prompt = `[PLAN MODE] ${summaryPrompt}`;
@@ -57,14 +50,7 @@ export default function Rolly() {
     setWizardActive(false);
     setWizardContext(null);
     setPlanMode(false);
-    if (isMobile) setMobileTab("chat");
-  }, [isMobile]);
-
-  const workspaceContent = wizardActive ? (
-    <PlanWizard onComplete={handleWizardComplete} onCancel={handleWizardCancel} initialContext={wizardContext} />
-  ) : (
-    <RollyWorkspace />
-  );
+  }, []);
 
   return (
     <AppLayout title="ROLLY">
@@ -93,7 +79,7 @@ export default function Rolly() {
               )}
             >
               <LayoutGrid className="h-4 w-4" />
-              {wizardActive ? "Plan" : "Workspace"}
+              Workspace
             </button>
           </div>
           <div className="flex-1 min-h-0">
@@ -105,9 +91,13 @@ export default function Rolly() {
                 onPlanModeChange={handlePlanModeToggle}
                 onSendReady={handleSendReady}
                 onPlanMessage={handlePlanMessage}
+                wizardActive={wizardActive}
+                wizardContext={wizardContext}
+                onWizardComplete={handleWizardComplete}
+                onWizardCancel={handleWizardCancel}
               />
             ) : (
-              workspaceContent
+              <RollyWorkspace />
             )}
           </div>
         </div>
@@ -121,10 +111,14 @@ export default function Rolly() {
               onPlanModeChange={handlePlanModeToggle}
               onSendReady={handleSendReady}
               onPlanMessage={handlePlanMessage}
+              wizardActive={wizardActive}
+              wizardContext={wizardContext}
+              onWizardComplete={handleWizardComplete}
+              onWizardCancel={handleWizardCancel}
             />
           </div>
           <div className="flex-1 overflow-y-auto min-w-0">
-            {workspaceContent}
+            <RollyWorkspace />
           </div>
         </div>
       )}

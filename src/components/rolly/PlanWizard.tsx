@@ -161,11 +161,11 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Header */}
-      <div className="border-b border-border px-4 py-3 flex items-center gap-3 shrink-0">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleBack}>
+      {/* Inline header — no border/chrome, just back + counter */}
+      <div className="px-4 pt-4 pb-2 flex items-center gap-2 shrink-0">
+        <button onClick={handleBack} className="text-muted-foreground hover:text-foreground transition-colors">
           <ChevronLeft className="h-4 w-4" />
-        </Button>
+        </button>
         <div className="flex items-center gap-2 flex-1">
           <Sparkles className="h-4 w-4 text-primary" />
           <span className="font-semibold text-sm">Plan Mode</span>
