@@ -122,38 +122,7 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
       ) : (
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
         {isEmpty && planMode ? (
-          <div className="flex flex-col items-start justify-end h-full px-2 pb-4 animate-fade-in">
-            <div className="space-y-5 w-full">
-              <h2
-                className="text-[clamp(2.5rem,8vw,4.5rem)] font-black uppercase leading-[0.85] tracking-tighter text-white"
-                style={{ fontStretch: "condensed" }}
-              >
-                PLAN
-                <br />
-                MODE.
-              </h2>
-              <p className="text-sm text-white/70 max-w-[280px] leading-relaxed font-medium">
-                Describe your project below. Rolly will ask a few questions, then build everything — tasks, budgets, timelines — so you can keep working.
-              </p>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {[
-                  { icon: ListTodo, label: "Tasks" },
-                  { icon: DollarSign, label: "Budgets" },
-                  { icon: CalendarCheck, label: "Timelines" },
-                  { icon: Zap, label: "Instant" },
-                ].map((item, i) => (
-                  <div
-                    key={item.label}
-                    className="flex items-center gap-1.5 rounded-full border border-white/20 bg-white/5 px-3 py-1.5 animate-fade-in"
-                    style={{ animationDelay: `${(i + 1) * 80}ms`, animationFillMode: "both" }}
-                  >
-                    <item.icon className="h-3.5 w-3.5 text-white/60 shrink-0" />
-                    <span className="text-[11px] font-semibold text-white/80 uppercase tracking-wide">{item.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <PlanModeHero />
         ) : isEmpty ? (
           <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
             <div className="h-16 w-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center">
