@@ -1,112 +1,78 @@
 
 
-# Performance Audit: Speed & Flow Improvements
+# Platform Bug Audit
 
-After reviewing the full codebase, here are the bottlenecks and concrete fixes ranked by impact.
+## 1. Google Sign-In Not Working (CRITICAL)
 
----
+The Login code is correct — it uses `lovable.auth.signInWithOAuth("google")` with the managed Lovable Cloud OAuth. The code itself has no bugs. The issue is likely that Google OAuth needs to be enabled/configured in the Lovable Cloud authentication settings.
 
-## 1. Waterfall Query Chains (HIGH IMPACT)
+**Fix:** Open the Lovable Cloud backend settings and verify Google OAuth is enabled. If it's already enabled, check redirect URL configuration includes `https://app.rollout.cc` and `https://rollout-cc.lovable.app`.
 
-**Problem:** Several pages chain queries sequentially -- each waits for the previous to finish before starting. This creates "waterfall" loading where the page takes 3-4x longer than necessary.
+No code change needed — this is a configuration issue.
 
-**Where it happens:**
-- **Overview.tsx**: Fetches `artists` first, then waits for that result before fetching `budgets`, `transactions`, and `initiatives` (all use `enabled: artists.length > 0`). That's 3 sequential hops.
-- **FinanceContent.tsx**: Same pattern -- `artists` -> `budgets`, `transactions`, `company_expenses`, etc. Plus `staffEmployment` -> `staffProfiles` is another waterfall.
-- **StaffContent.tsx**: `memberships` -> `memberProfiles`, and `artists` -> `transactions`.
+## 2. `useState` Misused as `useEffect` in PlanWizard (BUG)
 
-**Fix:** Create a single database function (RPC) that returns all needed data for the Overview and Finance pages in one call. Alternatively, restructure queries to use the team_id directly (budgets, transactions can be fetched via joins or team_id filter) so they all fire in parallel.
+```typescript
+// Line 283 — PlanWizard.tsx
+useState(() => {
+  fetchNextQuestion([]);
+});
+```
 
----
+`useState` with an initializer is NOT the same as `useEffect`. This runs during render (not after mount), and `fetchNextQuestion` calls `setIsLoadingQuestion` etc. — calling setState during render is a React violation that causes unpredictable behavior. This could cause the plan wizard to double-fire or silently fail.
 
-## 2. `useTeamPlan()` Calls an Edge Function Every 60 Seconds (HIGH IMPACT)
+**Fix:** Replace with `useEffect(() => { fetchNextQuestion([]); }, [])`.
 
-**Problem:** `useTeamPlan()` invokes the `check-subscription` edge function (cold-start latency ~200-800ms) on every page load and re-polls every 60s. This is called from at least 8 different components. While React Query deduplicates, the edge function call itself is slow and blocks UI decisions (feature gating).
+## 3. Five Edge Functions Missing from `config.toml` (BUG)
 
-**Fix:**
-- Increase `staleTime` to 5 minutes (from 30s) and `refetchInterval` to 5 minutes (from 60s)
-- Cache the result in `localStorage` as a fallback so the first render doesn't block on network
+These functions exist but have no `verify_jwt = false` entry, so they default to `verify_jwt = true`. With the ES256 JWT issue on Lovable Cloud, these will reject valid tokens:
 
----
+- `get-stripe-config`
+- `invite-preview`
+- `milestone-ical`
+- `scrape-link-metadata`
+- `spotify-artist`
 
-## 3. `useTeams()` Called 14+ Times Across Components (MEDIUM IMPACT)
+**Fix:** Add all five to `config.toml` with `verify_jwt = false`.
 
-**Problem:** `useTeams()` is called in 14 places. React Query deduplicates the network call, but each call triggers the hook logic and context lookups. More importantly, the `role` check pattern (`teams.find(t => t.id === teamId)?.role`) is repeated everywhere.
+## 4. Plan Execution Failures — `rolly-generate-plan` Not Setting `artist_name` (LIKELY ROOT CAUSE)
 
-**Fix:** Move `role` into `TeamContext` so components just read `const { role } = useSelectedTeam()` instead of re-querying teams and filtering.
+The `rolly-execute-plan` function uses `resolveArtistId(item.artist_name)` to match items to artists. If the AI model returns an `artist_name` that doesn't match any artist on the roster (e.g. slightly different casing or spelling), it falls back to the first artist. But if NO artists exist on the team, `resolveArtistId` returns `null`, and the item fails with "Artist not found".
 
----
+Additionally, in `PlanWizard.tsx` the draft items use field `artist_name` from the generate-plan response, but when passing to execute-plan, the items go through as-is. If the AI produces names that differ from the DB (e.g. "Pote Baby" vs "POTE BABY"), the fuzzy match may fail for some items.
 
-## 4. Duplicate Data Fetching Between Pages (MEDIUM IMPACT)
+**Fix:** Add more robust matching (normalize whitespace, trim, case-insensitive exact match before substring match) and add a fallback log showing which artist name failed to match.
 
-**Problem:** Overview.tsx, FinanceContent.tsx, and StaffContent.tsx all fetch the same data (artists, transactions, tasks, memberships, profiles) with different query keys (`overview-artists` vs `finance-artists` vs `staff-artists`). This means navigating between tabs re-fetches everything from scratch.
+## 5. `CompanyBudgetSection` Uses `(supabase as any)` (LOW)
 
-**Fix:** Unify query keys. Use `["artists", teamId]` everywhere instead of `["overview-artists", teamId]`, `["finance-artists", teamId]`, `["staff-artists", teamId]`. This lets React Query share the cache across all views.
+Multiple components cast `supabase as any` to access tables not in the generated types (`company_budget_categories`, `company_expenses`, `staff_employment`, `vendor_invoices`, etc.). This bypasses TypeScript safety. Not a runtime bug per se, but means schema mismatches won't be caught at compile time.
 
----
+**No code change needed** — this is a known pattern for tables added after type generation.
 
-## 5. Heavy `useMemo` Computations on Every Render (MEDIUM IMPACT)
+## 6. Manager Permission Logic Has Dead Code (LOW)
 
-**Problem:** `staffMembers` computation in Overview.tsx has an O(n*m) loop inside it (for each member, it iterates all other members to compute `maxRevenue`). With more staff, this becomes expensive.
+In `TeamContext.tsx` lines 134-141, expressions like `true || !!membershipPerms?.perm_view_finance` — the `true ||` means the stored permission flag is never checked. Intentional (managers always get these), but the `||` branch is dead code that adds confusion.
 
-**Fix:** Pre-compute `maxRevenue` once outside the map, then pass it in. Single pass instead of quadratic.
-
----
-
-## 6. Missing Prefetching on Navigation (LOW-MEDIUM IMPACT)
-
-**Problem:** When a user clicks an artist card, it navigates to ArtistDetail which then starts fetching from scratch. No data is prefetched on hover or anticipation.
-
-**Fix:** Add `queryClient.prefetchQuery` on artist card hover/mouse-enter for the artist detail data. This makes the transition feel instant.
+**Fix:** Remove the dead `|| !!membershipPerms?.perm_xxx` branches for clarity.
 
 ---
 
-## 7. Large Bundle: DnD Library Loaded on Every Page (LOW IMPACT)
+## Implementation Plan
 
-**Problem:** `@hello-pangea/dnd` (~45KB gzipped) is imported in Roster.tsx and Overview.tsx. It's lazy-loaded via React.lazy, but it's still a significant chunk for pages that may not need drag-and-drop.
+### Step 1: Fix PlanWizard useState → useEffect
+- `src/components/rolly/PlanWizard.tsx` line 283: Replace `useState(() => { fetchNextQuestion([]); })` with `useEffect(() => { fetchNextQuestion([]); }, [])` and add the import.
 
-**Fix:** No immediate action needed since pages are already lazy-loaded. Could consider dynamic import of the DnD wrapper only when folders exist.
+### Step 2: Add missing functions to config.toml
+- Add `get-stripe-config`, `invite-preview`, `milestone-ical`, `scrape-link-metadata`, `spotify-artist` with `verify_jwt = false`.
 
----
+### Step 3: Improve artist name matching in rolly-execute-plan
+- Normalize names (trim, lowercase) before matching.
+- Add exact match → includes match → Levenshtein-like fallback.
+- Log the unmatched name clearly.
 
-## 8. Edge Function Cold Starts (LOW IMPACT, Infrastructure)
+### Step 4: Clean up dead permission logic in TeamContext
+- Remove `true ||` prefixes in manager permission block.
 
-**Problem:** `spotify-artist`, `check-subscription`, `scrape-chartmasters` all have cold-start latency. The Spotify artist data is fetched via edge function on every artist detail page load (30min staleTime helps but first visit is slow).
-
-**Fix:** Already mitigated by staleTime. Could add a background sync job instead of on-demand fetching.
-
----
-
-## Implementation Plan (Ordered by Impact)
-
-### Step 1: Unify query keys across Overview/Finance/Staff
-- Change all `["finance-artists", teamId]`, `["overview-artists", teamId]`, `["staff-artists", teamId]` to `["artists-summary", teamId]`
-- Same for transactions, budgets, tasks, memberships, profiles
-- Instant cache sharing = no re-fetch when switching tabs
-
-### Step 2: Remove waterfall queries
-- Fetch budgets and transactions using `team_id` joins instead of waiting for artist IDs
-- Create an RPC function `get_team_finance_summary` that returns artists + budgets + transactions in one call
-
-### Step 3: Optimize useTeamPlan caching
-- Increase staleTime to 5min, refetchInterval to 5min
-- Add localStorage fallback for instant first render
-
-### Step 4: Move role into TeamContext
-- Eliminate 14 redundant `useTeams()` calls for role checking
-
-### Step 5: Fix quadratic staffMembers computation
-- Pre-compute maxRevenue in a single pass
-
-### Step 6: Add prefetching on artist card hover
-- `onMouseEnter` triggers `queryClient.prefetchQuery` for artist detail
-
-### Files to Edit
-1. `src/pages/Overview.tsx` -- unify query keys, remove waterfalls
-2. `src/components/overview/FinanceContent.tsx` -- unify query keys, remove waterfalls
-3. `src/components/overview/StaffContent.tsx` -- unify query keys
-4. `src/hooks/useTeamPlan.ts` -- increase cache times
-5. `src/contexts/TeamContext.tsx` -- add role to context
-6. `src/components/roster/ArtistCard.tsx` -- add prefetch on hover
-7. Database migration -- create RPC function for combined finance data
+### Step 5: Google OAuth — verify configuration
+- No code change. Needs configuration check via backend settings.
 
