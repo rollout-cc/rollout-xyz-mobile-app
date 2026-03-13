@@ -84,7 +84,9 @@ USER'S BRIEF: "${brief}"
 
 ${previous_qa && previous_qa.length > 0 ? `PREVIOUS Q&A:\n${previous_qa.map((qa: any, i: number) => `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}`).join("\n\n")}` : "No questions asked yet."}
 
-Generate the next question, or signal completion if you have enough info.`,
+Questions asked so far: ${previous_qa?.length || 0}/8. ${(previous_qa?.length || 0) >= 6 ? "You MUST wrap up now — signal completion with plan_ready." : ""}
+
+${(previous_qa?.length || 0) >= 7 ? "MANDATORY: Call plan_ready NOW. Do NOT ask another question." : "Generate the next question, or signal completion if you have enough info."}`,
       },
     ];
 
