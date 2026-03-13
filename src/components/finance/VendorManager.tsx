@@ -30,6 +30,20 @@ export function VendorManager() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [invoiceVendor, setInvoiceVendor] = useState<any>(null);
+  const [invoiceArtistId, setInvoiceArtistId] = useState("");
+  const [invoiceTerms, setInvoiceTerms] = useState("net_30");
+
+  const { data: artists = [] } = useArtistsQuery({
+    queryKey: ["artists", teamId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("artists").select("id, name").eq("team_id", teamId!).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!teamId,
+  });
 
   const { data: vendors = [] } = useQuery({
     queryKey: ["vendors", teamId],
