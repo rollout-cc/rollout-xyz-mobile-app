@@ -340,6 +340,49 @@ export function VendorManager() {
           )}
         </DialogContent>
       </Dialog>
+      {/* Request Invoice Dialog */}
+      <Dialog open={invoiceDialogOpen} onOpenChange={setInvoiceDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Request Invoice — {invoiceVendor?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label>Which artist is this for? *</Label>
+              <Select value={invoiceArtistId} onValueChange={setInvoiceArtistId}>
+                <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select artist" /></SelectTrigger>
+                <SelectContent>
+                  {artists.map((a: any) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Payment Terms</Label>
+              <Select value={invoiceTerms} onValueChange={setInvoiceTerms}>
+                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_TERMS.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              onClick={() => saveAndCopyInvoiceLink.mutate()}
+              disabled={!invoiceArtistId || saveAndCopyInvoiceLink.isPending}
+              className="w-full gap-2"
+            >
+              <Copy className="h-4 w-4" />
+              Save & Copy Invoice Link
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

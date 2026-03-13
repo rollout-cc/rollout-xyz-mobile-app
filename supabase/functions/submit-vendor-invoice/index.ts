@@ -12,14 +12,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { token, description, amount, invoice_date, due_date, notes } = await req.json();
-
-    if (!token || !description || !amount || !invoice_date) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const body = await req.json();
+    const { token, _preview, description, amount, invoice_date, due_date, notes } = body;
 
     const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -37,6 +31,35 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Invalid or expired link" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Preview mode: return vendor info for the form
+    if (_preview) {
+      let artistName = "";
+      if (vendor.invoice_artist_id) {
+        const { data: artist } = await adminClient
+          .from("artists")
+          .select("name")
+          .eq("id", vendor.invoice_artist_id)
+          .single();
+        if (artist) artistName = artist.name;
+      }
+      return new Response(
+        JSON.stringify({
+          vendor_name: vendor.name,
+          artist_name: artistName,
+          payment_terms: vendor.invoice_payment_terms || "net_30",
+          w9_complete: vendor.w9_status === "completed",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!token || !description || !amount || !invoice_date) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

@@ -128,6 +128,7 @@ function AppRoutes() {
         <Route path="/join/:token" element={<JoinTeam />} />
         <Route path="/splits/approve/:token" element={<ApproveSplit />} />
         <Route path="/vendor-w9/:token" element={<VendorW9 />} />
+        <Route path="/vendor-invoice/:token" element={<VendorInvoice />} />
         <Route path="/rolly" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager", "artist"]}><Rolly /></RoleGate></ProtectedRoute>} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/" element={<RootRedirect />} />
