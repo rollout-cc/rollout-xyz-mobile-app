@@ -36,7 +36,7 @@ export function RollyNudge({ screen, dataSnapshot, entityId }: Props) {
     ? "fixed bottom-[calc(env(safe-area-inset-bottom)+74px)] left-3 right-20 z-[55]"
     : collapsed
     ? "fixed bottom-6 right-6 z-[55] max-w-[320px]"
-    : "fixed bottom-[120px] left-4 z-[55] max-w-[calc(var(--sidebar-width,16rem)-2rem)]";
+    : "fixed bottom-[180px] left-4 z-[55] w-[calc(var(--sidebar-width,16rem)-2rem)]";
 
   return (
     <AnimatePresence>
