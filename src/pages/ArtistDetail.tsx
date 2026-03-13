@@ -37,7 +37,7 @@ import defaultBanner from "@/assets/default-banner.png";
 
 type TabView = "work" | "links" | "timelines" | "splits";
 type ActiveView = TabView | "money" | "finance" | "budgets" | "objectives" | "information";
-type MoneySubTab = "accounting" | "budgets";
+type MoneySubTab = "accounting" | "budgets" | "invoices";
 
 export default function ArtistDetail() {
   const { artistId } = useParams<{ artistId: string }>();
