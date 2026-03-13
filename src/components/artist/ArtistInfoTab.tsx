@@ -24,6 +24,7 @@ export function ArtistInfoTab({ artist }: ArtistInfoTabProps) {
   return (
     <div className="space-y-6 mt-4">
       <MembersSection artistId={artist.id} />
+      <RollyNudge screen="artist-info" entityId={artist.id} dataSnapshot={{}} />
     </div>
   );
 }
