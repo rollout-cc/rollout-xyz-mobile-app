@@ -160,26 +160,26 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
     : !!selectedValue;
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      {/* Inline header — no border/chrome, just back + counter */}
+    <div className="flex flex-col h-full bg-[hsl(0,0%,5%)] text-white">
+      {/* Inline header */}
       <div className="px-4 pt-4 pb-2 flex items-center gap-2 shrink-0">
-        <button onClick={handleBack} className="text-muted-foreground hover:text-foreground transition-colors">
+        <button onClick={handleBack} className="text-white/40 hover:text-white/70 transition-colors">
           <ChevronLeft className="h-4 w-4" />
         </button>
         <div className="flex items-center gap-2 flex-1">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <span className="font-semibold text-sm">Plan Mode</span>
+          <Sparkles className="h-4 w-4 text-white" />
+          <span className="font-black text-sm uppercase tracking-wide">Plan Mode</span>
         </div>
         {questionNumber > 0 && (
-          <span className="text-xs text-muted-foreground">Q{questionNumber}</span>
+          <span className="text-xs text-white/40 font-mono">Q{questionNumber}</span>
         )}
       </div>
 
       {/* Brief banner */}
       {initialContext && (
         <div className="px-4 pt-3">
-          <div className="rounded-lg bg-muted/50 border border-border px-3 py-2 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">Your brief:</span>{" "}
+          <div className="rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-xs text-white/50">
+            <span className="font-semibold text-white/80">Your brief:</span>{" "}
             {initialContext.length > 120
               ? initialContext.slice(0, 120) + "…"
               : initialContext}
@@ -191,8 +191,8 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {qaHistory.map((qa, i) => (
           <div key={i} className="space-y-1">
-            <p className="text-xs text-muted-foreground font-medium">{qa.question}</p>
-            <p className="text-sm font-medium text-foreground bg-muted/30 rounded-lg px-3 py-2">
+            <p className="text-xs text-white/40 font-medium">{qa.question}</p>
+            <p className="text-sm font-medium text-white bg-white/5 rounded-lg px-3 py-2">
               {qa.answer}
             </p>
           </div>
@@ -201,8 +201,8 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
         {/* Loading state */}
         {isLoadingQuestion && (
           <div className="flex items-center gap-3 py-8 justify-center">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <span className="text-sm text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin text-white" />
+            <span className="text-sm text-white/50">
               {qaHistory.length === 0 ? "Analyzing your brief…" : "Thinking of the next question…"}
             </span>
           </div>
@@ -211,8 +211,8 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
         {/* Error state */}
         {error && (
           <div className="text-center py-8">
-            <p className="text-sm text-destructive mb-3">{error}</p>
-            <Button variant="outline" size="sm" onClick={() => fetchNextQuestion(qaHistory)}>
+            <p className="text-sm text-red-400 mb-3">{error}</p>
+            <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10" onClick={() => fetchNextQuestion(qaHistory)}>
               Retry
             </Button>
           </div>
@@ -222,10 +222,10 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
         {currentQuestion && !isLoadingQuestion && (
           <div className="space-y-4 animate-fade-in">
             <div>
-              <span className="text-[10px] uppercase tracking-wider font-semibold text-primary">
+              <span className="text-[10px] uppercase tracking-wider font-bold text-white/50">
                 {currentQuestion.header}
               </span>
-              <h3 className="text-base font-semibold mt-1">{currentQuestion.question}</h3>
+              <h3 className="text-lg font-bold mt-1 text-white">{currentQuestion.question}</h3>
             </div>
 
             {/* Options */}
@@ -238,19 +238,19 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
                       className={cn(
                         "flex items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-all",
                         selectedValues.includes(opt.label)
-                          ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                          : "border-border hover:border-primary/40"
+                          ? "border-white bg-white/10"
+                          : "border-white/15 hover:border-white/40"
                       )}
                     >
                       <Checkbox
                         checked={selectedValues.includes(opt.label)}
                         onCheckedChange={() => handleMultiToggle(opt.label)}
-                        className="mt-0.5"
+                        className="mt-0.5 border-white/30 data-[state=checked]:bg-white data-[state=checked]:text-black"
                       />
                       <div>
-                        <span className="text-sm font-medium">{opt.label}</span>
+                        <span className="text-sm font-medium text-white">{opt.label}</span>
                         {opt.description && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
+                          <p className="text-xs text-white/40 mt-0.5">
                             {opt.description}
                           </p>
                         )}
@@ -269,15 +269,15 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
                         className={cn(
                           "flex items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-all",
                           selectedValue === opt.label && !isCustomMode
-                            ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                            : "border-border hover:border-primary/40"
+                            ? "border-white bg-white/10"
+                            : "border-white/15 hover:border-white/40"
                         )}
                       >
-                        <RadioGroupItem value={opt.label} className="mt-0.5" />
+                        <RadioGroupItem value={opt.label} className="mt-0.5 border-white/30 text-white" />
                         <div>
-                          <span className="text-sm font-medium">{opt.label}</span>
+                          <span className="text-sm font-medium text-white">{opt.label}</span>
                           {opt.description && (
-                            <p className="text-xs text-muted-foreground mt-0.5">
+                            <p className="text-xs text-white/40 mt-0.5">
                               {opt.description}
                             </p>
                           )}
@@ -299,7 +299,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
                       setSelectedValue("");
                       setSelectedValues([]);
                     }}
-                    className="text-xs text-primary font-medium hover:underline"
+                    className="text-xs text-white/60 font-medium hover:text-white/90 hover:underline"
                   >
                     {isCustomMode ? "← Pick from options" : "Or type your own answer"}
                   </button>
@@ -309,7 +309,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
                     value={customText}
                     onChange={(e) => setCustomText(e.target.value)}
                     placeholder="Type your answer..."
-                    className="rounded-xl"
+                    className="rounded-xl bg-white/10 border-white/15 text-white placeholder:text-white/30 focus-visible:ring-white/30"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && canSubmit) handleSubmitAnswer();
                     }}
@@ -324,11 +324,11 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
 
       {/* Bottom action bar */}
       {currentQuestion && !isLoadingQuestion && (
-        <div className="border-t border-border px-4 py-3 flex items-center gap-2 shrink-0">
+        <div className="border-t border-white/10 px-4 py-3 flex items-center gap-2 shrink-0">
           <Button
             onClick={handleSubmitAnswer}
             disabled={!canSubmit}
-            className="flex-1 rounded-xl gap-2"
+            className="flex-1 rounded-xl gap-2 bg-white text-black hover:bg-white/90 font-bold"
           >
             <Send className="h-4 w-4" />
             Next
