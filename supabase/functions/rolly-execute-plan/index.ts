@@ -164,12 +164,12 @@ Deno.serve(async (req) => {
 
       const { error } = await sb.from("tasks").insert({
         artist_id: artistId,
+        team_id: team_id,
         title: t.title,
         description: t.description || null,
         due_date: t.date || null,
         initiative_id: initiativeId,
         status: "todo",
-        created_by: user.id,
         assigned_to: assignee,
       });
 
