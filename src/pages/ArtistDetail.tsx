@@ -35,7 +35,8 @@ import { supabase } from "@/integrations/supabase/client";
 import defaultBanner from "@/assets/default-banner.png";
 
 type TabView = "work" | "links" | "timelines" | "splits";
-type ActiveView = TabView | "finance" | "budgets" | "objectives" | "information";
+type ActiveView = TabView | "money" | "finance" | "budgets" | "objectives" | "information";
+type MoneySubTab = "accounting" | "budgets";
 
 export default function ArtistDetail() {
   const { artistId } = useParams<{ artistId: string }>();
