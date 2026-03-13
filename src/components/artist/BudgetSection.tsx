@@ -453,14 +453,6 @@ export function BudgetSection({ artistId }: BudgetSectionProps) {
           )}
         </div>
       </div>
-      <RollyNudge
-        screen="budget"
-        entityId={artistId}
-        dataSnapshot={{
-          totalBudget: budgets.reduce((s: number, b: any) => s + Number(b.amount), 0),
-          categoryCount: budgets.length,
-        }}
-      />
     </div>
   );
 }
