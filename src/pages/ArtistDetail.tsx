@@ -218,7 +218,7 @@ export default function ArtistDetail() {
   const objectiveSummary2 = getObjectiveSummary(2);
   const hasAnyObjectiveSummary = !!(objectiveSummary1 || objectiveSummary2);
 
-  const isTopView = (v: ActiveView) => ["finance", "budgets", "objectives", "information"].includes(v);
+  const isTopView = (v: ActiveView) => ["money", "finance", "budgets", "objectives", "information"].includes(v);
   const handleViewChange = (v: ActiveView) => {
     if (v === "finance" && !limits.canUseFinance) {
       setUpgradeFeature("Finance tools");
