@@ -115,7 +115,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
     if (!currentQuestion) return;
 
     let answer: string;
-    if (isCustomMode && customText.trim()) {
+    if ((isCustomMode || currentQuestion.options.length === 0) && customText.trim()) {
       answer = customText.trim();
     } else if (currentQuestion.multi_select) {
       if (selectedValues.length === 0) return;
