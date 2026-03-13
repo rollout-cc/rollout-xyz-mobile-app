@@ -233,12 +233,6 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
       {/* Input area — hidden during wizard */}
       {!wizardActive && <div className="border-t border-border px-4 py-3 bg-background">
         {/* Plan mode banner */}
-        {planMode && (
-          <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium max-w-3xl mx-auto">
-            <ClipboardList className="h-3.5 w-3.5 shrink-0" />
-            Plan Mode — Rolly will guide you step by step
-          </div>
-        )}
         <div className="flex items-end gap-2 max-w-3xl mx-auto">
           {messages.length > 0 && (
             <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-muted-foreground" onClick={clear} title="Clear chat">
