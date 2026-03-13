@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
 import { useTour } from "@/contexts/TourContext";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
@@ -35,7 +36,8 @@ import { supabase } from "@/integrations/supabase/client";
 import defaultBanner from "@/assets/default-banner.png";
 
 type TabView = "work" | "links" | "timelines" | "splits";
-type ActiveView = TabView | "finance" | "budgets" | "objectives" | "information";
+type ActiveView = TabView | "money" | "finance" | "budgets" | "objectives" | "information";
+type MoneySubTab = "accounting" | "budgets";
 
 export default function ArtistDetail() {
   const { artistId } = useParams<{ artistId: string }>();
@@ -57,7 +59,8 @@ export default function ArtistDetail() {
   const { data: perfSnapshot } = useArtistPerformance(artistId!, artist?.spotify_id, artist?.name);
   const totalBudget = useTotalBudget(artistId!);
   const { limits } = useTeamPlan();
-  const [activeView, setActiveView] = useState<ActiveView>(fromFinance ? "finance" : "work");
+  const [activeView, setActiveView] = useState<ActiveView>(fromFinance ? "money" : "work");
+  const [moneySubTab, setMoneySubTab] = useState<MoneySubTab>(fromFinance ? "accounting" : "accounting");
   const [showCompleted, setShowCompleted] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
@@ -216,9 +219,9 @@ export default function ArtistDetail() {
   const objectiveSummary2 = getObjectiveSummary(2);
   const hasAnyObjectiveSummary = !!(objectiveSummary1 || objectiveSummary2);
 
-  const isTopView = (v: ActiveView) => ["finance", "budgets", "objectives", "information"].includes(v);
+  const isTopView = (v: ActiveView) => ["money", "finance", "budgets", "objectives", "information"].includes(v);
   const handleViewChange = (v: ActiveView) => {
-    if (v === "finance" && !limits.canUseFinance) {
+    if (v === "money" && !limits.canUseFinance) {
       setUpgradeFeature("Finance tools");
       setUpgradeOpen(true);
       return;
@@ -237,8 +240,7 @@ export default function ArtistDetail() {
 
   // Build action buttons, conditionally showing Finance based on plan
   const actionButtons = [
-    { key: "finance" as ActiveView, icon: Receipt, label: "Finance" },
-    { key: "budgets" as ActiveView, icon: DollarSign, label: "Budgets" },
+    { key: "money" as ActiveView, icon: DollarSign, label: "Money" },
     { key: "information" as ActiveView, icon: Star, label: "Info" },
   ];
 
@@ -520,8 +522,28 @@ export default function ArtistDetail() {
           </div>
 
           <ErrorBoundary fallbackMessage="Could not load this section.">
-            {activeView === "finance" && <FinanceTab artistId={artist.id} teamId={artist.team_id} />}
-            {activeView === "budgets" && <BudgetSection artistId={artist.id} />}
+            {activeView === "money" && (
+              <div className="space-y-4">
+                <div className="flex gap-1 border-b border-border">
+                  {([{ key: "accounting" as MoneySubTab, label: "Accounting" }, { key: "budgets" as MoneySubTab, label: "Budgets" }]).map(t => (
+                    <button
+                      key={t.key}
+                      onClick={() => setMoneySubTab(t.key)}
+                      className={cn(
+                        "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
+                        moneySubTab === t.key
+                          ? "border-primary text-foreground"
+                          : "border-transparent text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+                {moneySubTab === "accounting" && <FinanceTab artistId={artist.id} teamId={artist.team_id} />}
+                {moneySubTab === "budgets" && <BudgetSection artistId={artist.id} />}
+              </div>
+            )}
             {activeView === "objectives" && <ObjectivesPanel artist={artist} />}
             {activeView === "information" && <ArtistInfoTab artist={artist} />}
             {activeView === "work" && <WorkTab artistId={artist.id} teamId={artist.team_id} showCompleted={showCompleted} showArchived={showArchived} />}
