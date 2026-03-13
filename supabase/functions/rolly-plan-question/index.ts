@@ -44,7 +44,12 @@ SKIP questions that are:
 - Already answered or inferable from the brief or previous answers
 - About "feelings" or "vision" without execution impact
 
-USE YOUR KNOWLEDGE BASE CONTEXT to ask smarter questions. If the brief mentions a single release, reference rollout phase frameworks. If it mentions merch, ask about production timeline. If touring, ask about routing/dates.`;
+USE YOUR KNOWLEDGE BASE CONTEXT to ask smarter, more specific questions. Examples:
+- If brief mentions EP release → reference rollout phases (Seeding, Single Drop, Launch Week, Sustain) and ask which phases they want
+- If merch → ask about production method (print-on-demand vs bulk), pricing strategy, merch types (based on clothing/brand knowledge)
+- If streaming goals → ask about playlist pitching timeline, DSP priorities
+- If budget → ask about allocation across specific categories you know matter (video production, social ads, PR)
+- DON'T ask generic questions — use the knowledge to make each question informed and specific to their situation`;
 
 
 Deno.serve(async (req) => {
@@ -81,18 +86,65 @@ Deno.serve(async (req) => {
       artistNames = (artists ?? []).map((a: any) => a.name);
     }
 
-    // Search knowledge base for relevant context
+    // Search knowledge base for relevant context — use multiple search passes
     let knowledgeContext = "";
     if (brief) {
-      const searchTerms = brief.split(/\s+/).filter((w: string) => w.length > 3).slice(0, 5).join(" | ");
-      if (searchTerms) {
-        const { data: knowledge } = await sb.rpc("search_rolly_knowledge", {
-          search_query: searchTerms,
-          match_limit: 3,
-        });
-        if (knowledge && knowledge.length > 0) {
-          knowledgeContext = `\nRELEVANT KNOWLEDGE:\n${knowledge.map((k: any) => `- ${k.chapter}: ${k.content.slice(0, 200)}`).join("\n")}`;
+      // Extract meaningful search terms from brief + any answers so far
+      const allText = [brief, ...(previous_qa || []).map((qa: any) => `${qa.question} ${qa.answer}`)].join(" ");
+      
+      // Build multiple search queries for broader coverage
+      const searchQueries: string[] = [];
+      
+      // Direct terms from the brief
+      const directTerms = brief.split(/\s+/).filter((w: string) => w.length > 3).slice(0, 6).join(" | ");
+      if (directTerms) searchQueries.push(directTerms);
+      
+      // Topic-based searches based on what the brief mentions
+      const topicMap: Record<string, string> = {
+        "ep|album|single|release|drop": "release strategy rollout",
+        "merch|merchandise|clothing|apparel": "merch production clothing brand",
+        "tour|show|concert|live": "touring live performance",
+        "video|visual|content": "music video content strategy",
+        "budget|cost|spend": "budget allocation spending",
+        "marketing|promo|campaign": "marketing campaign promotion",
+        "streaming|spotify|playlist": "streaming strategy playlist",
+        "social|tiktok|instagram": "social media platform strategy",
+        "brand|partnership|sync": "brand partnership sync licensing",
+        "distribution|distributor": "distribution deal strategy",
+      };
+      
+      const lowerBrief = allText.toLowerCase();
+      for (const [pattern, query] of Object.entries(topicMap)) {
+        if (new RegExp(pattern).test(lowerBrief)) {
+          searchQueries.push(query);
         }
+      }
+      
+      // Deduplicate and run searches
+      const knowledgeResults: any[] = [];
+      const seenIds = new Set<string>();
+      
+      for (const query of searchQueries.slice(0, 4)) {
+        try {
+          const { data: knowledge } = await sb.rpc("search_rolly_knowledge", {
+            search_query: query,
+            match_limit: 5,
+          });
+          if (knowledge) {
+            for (const k of knowledge) {
+              if (!seenIds.has(k.id)) {
+                seenIds.add(k.id);
+                knowledgeResults.push(k);
+              }
+            }
+          }
+        } catch { /* skip failed searches */ }
+      }
+      
+      if (knowledgeResults.length > 0) {
+        // Sort by relevance rank and take top entries
+        const top = knowledgeResults.slice(0, 10);
+        knowledgeContext = `\nINDUSTRY KNOWLEDGE (use this to ask smarter, more specific questions):\n${top.map((k: any) => `- [${k.chapter}]: ${k.content.slice(0, 400)}`).join("\n\n")}`;
       }
     }
 
