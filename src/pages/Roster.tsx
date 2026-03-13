@@ -352,6 +352,14 @@ export default function Roster() {
           >
             A&R Signings
           </button>
+          <button
+            onClick={() => setActiveTab("outreach")}
+            className={cn("h-9 px-4 rounded-full text-sm font-medium transition-colors flex items-center",
+              activeTab === "outreach" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"
+            )}
+          >
+            Outreach
+          </button>
         </div>
         <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end h-9">
           {activeTab === "roster" && <span data-tour="roster-sort">{SortSelect}</span>}
