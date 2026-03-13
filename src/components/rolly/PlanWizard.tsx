@@ -151,6 +151,14 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
   const handleSingleSelect = (value: string) => {
     setSelectedValue(value);
     setIsCustomMode(false);
+    // Auto-advance for single-select
+    if (currentQuestion && !currentQuestion.multi_select) {
+      const newEntry: QAEntry = { question: currentQuestion.question, answer: value };
+      const newHistory = [...qaHistory, newEntry];
+      setQaHistory(newHistory);
+      setCurrentQuestion(null);
+      fetchNextQuestion(newHistory);
+    }
   };
 
   const canSubmit = isCustomMode
@@ -323,7 +331,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
       </div>
 
       {/* Bottom action bar */}
-      {currentQuestion && !isLoadingQuestion && (
+      {currentQuestion && !isLoadingQuestion && (currentQuestion.multi_select || isCustomMode || currentQuestion.options.length === 0) && (
         <div className="border-t border-white/10 px-4 py-3 flex items-center gap-2 shrink-0">
           <Button
             onClick={handleSubmitAnswer}
