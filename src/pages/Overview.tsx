@@ -54,7 +54,7 @@ export default function Overview() {
   const { tryStartPageTour } = useTour();
   useEffect(() => { tryStartPageTour("overview-tour"); }, [tryStartPageTour]);
 
-  const handleCompanyTab = (tab: "dashboard" | "agenda" | "staff" | "finance" | "outreach") => {
+  const handleCompanyTab = (tab: "dashboard" | "agenda" | "staff" | "finance") => {
     if (tab === "finance" && !limits.canUseFinance) {
       setUpgradeFeature("Finance tools");
       setUpgradeOpen(true);
