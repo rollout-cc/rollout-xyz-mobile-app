@@ -335,6 +335,16 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
         }
       }
 
+      // Resolve revenue_category for revenue transactions
+      let revCat: string | null = null;
+      const isRevenue = tx?.type === "revenue";
+      if (isRevenue && resolvedCategoryId !== "none") {
+        const catName = editCategoryId.startsWith("budget:")
+          ? editCategoryId.replace("budget:", "")
+          : categories.find((c: any) => c.id === resolvedCategoryId)?.name ?? null;
+        revCat = resolveRevenueCategory(catName);
+      }
+
       const { error } = await supabase.from("transactions").update({
         description: editDesc.trim(),
         amount: finalAmount,
@@ -342,6 +352,7 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
         category_id: resolvedCategoryId === "none" ? null : resolvedCategoryId,
         budget_id: resolvedBudgetId,
         transaction_date: editDate,
+        ...(isRevenue ? { revenue_category: revCat } : {}),
       } as any).eq("id", editingId);
       if (error) throw error;
     },
