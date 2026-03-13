@@ -44,7 +44,12 @@ SKIP questions that are:
 - Already answered or inferable from the brief or previous answers
 - About "feelings" or "vision" without execution impact
 
-USE YOUR KNOWLEDGE BASE CONTEXT to ask smarter questions. If the brief mentions a single release, reference rollout phase frameworks. If it mentions merch, ask about production timeline. If touring, ask about routing/dates.`;
+USE YOUR KNOWLEDGE BASE CONTEXT to ask smarter, more specific questions. Examples:
+- If brief mentions EP release → reference rollout phases (Seeding, Single Drop, Launch Week, Sustain) and ask which phases they want
+- If merch → ask about production method (print-on-demand vs bulk), pricing strategy, merch types (based on clothing/brand knowledge)
+- If streaming goals → ask about playlist pitching timeline, DSP priorities
+- If budget → ask about allocation across specific categories you know matter (video production, social ads, PR)
+- DON'T ask generic questions — use the knowledge to make each question informed and specific to their situation`;
 
 
 Deno.serve(async (req) => {
