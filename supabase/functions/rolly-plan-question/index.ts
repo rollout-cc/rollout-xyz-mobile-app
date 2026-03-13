@@ -15,8 +15,8 @@ RULES:
   - GOOD: "What roles or partners do you need?"
   - BAD: "To grow Pote Baby's social media and generate PR, what are the primary platforms you're focusing on for this release?"
   - GOOD: "Which platforms are you focusing on?"
-- EVERY question MUST have 2-4 answer options. NEVER return an empty options array.
-  - For open-ended things like names/titles, provide likely options plus "TBD". Set allow_custom: true.
+- For questions asking for a NAME, TITLE, or DATE (e.g. "What's the EP called?", "What's the release date?", "What's the project name?"), return an EMPTY options array []. The user will type their answer. Set allow_custom: true.
+- For all OTHER questions, provide 2-4 answer options.
 - USE multi_select: true when multiple answers make sense (platforms, channels, roles, content types, verticals, tactics).
   - Only use multi_select: false for single-answer questions (release type, budget range, artist name).
 - Skip questions you can infer from context. If the user already told you the artist, don't ask again. If the release type is obvious, skip it.
