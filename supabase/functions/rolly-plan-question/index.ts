@@ -150,6 +150,13 @@ Deno.serve(async (req) => {
     }
 
     const questionCount = previous_qa?.length || 0;
+    const unsureTopics = (previous_qa || [])
+      .filter((qa: any) => {
+        const answer = String(qa?.answer || "").toLowerCase();
+        return unsureSignals.some((signal) => answer.includes(signal));
+      })
+      .map((qa: any) => qa.question)
+      .slice(0, 4);
 
     const messages: any[] = [
       { role: "system", content: SYSTEM_PROMPT },
@@ -163,6 +170,8 @@ ${knowledgeContext}
 USER'S BRIEF: "${brief}"
 
 ${previous_qa && previous_qa.length > 0 ? `PREVIOUS Q&A:\n${previous_qa.map((qa: any, i: number) => `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}`).join("\n\n")}` : "No questions asked yet."}
+
+${unsureTopics.length > 0 ? `USER SAID "I DON'T KNOW" ON: ${unsureTopics.join(" | ")}\nDo NOT ask deeper follow-ups on those topics. Move to another missing area.` : ""}
 
 Questions asked so far: ${questionCount}/14. ${questionCount >= 10 ? "You should strongly consider wrapping up — signal completion with plan_ready unless there's a critical gap." : ""} ${questionCount >= 13 ? "MANDATORY: Call plan_ready NOW. Do NOT ask another question." : ""}
 
