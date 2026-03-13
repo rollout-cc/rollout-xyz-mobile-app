@@ -373,7 +373,7 @@ function EmptyTimelinesState({
   if (mode === "milestone") {
     return (
       <div className="mt-4">
-        <InlineMilestoneInput onAdd={(title, date) => { onMilestoneAdd(title, date); setMode("idle"); }} />
+        <InlineMilestoneInput startActive onAdd={(title, date) => { onMilestoneAdd(title, date); setMode("idle"); }} />
       </div>
     );
   }
