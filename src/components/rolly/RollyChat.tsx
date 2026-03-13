@@ -111,7 +111,13 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
     <div className="flex flex-col h-full">
       {/* Messages area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-        {isEmpty ? (
+        {wizardActive && onWizardComplete && onWizardCancel ? (
+          <PlanWizard
+            onComplete={onWizardComplete}
+            onCancel={onWizardCancel}
+            initialContext={wizardContext}
+          />
+        ) : isEmpty ? (
           <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
             <div className="h-16 w-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center">
               <Sparkles className="h-8 w-8" />
