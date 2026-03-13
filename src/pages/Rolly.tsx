@@ -6,6 +6,7 @@ import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { MessageSquare, LayoutGrid } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { DraftItem } from "@/components/rolly/PlanDraft";
 
 export default function Rolly() {
   const isMobile = useIsMobile();
@@ -17,6 +18,11 @@ export default function Rolly() {
   const [wizardActive, setWizardActive] = useState(false);
   const [wizardContext, setWizardContext] = useState<string | null>(null);
   const [sendFn, setSendFn] = useState<((msg: string) => void) | null>(null);
+
+  // Execution feed state
+  const [executingItems, setExecutingItems] = useState<DraftItem[] | null>(null);
+  const [executionComplete, setExecutionComplete] = useState(false);
+
   const handleSendReady = useCallback((fn: (msg: string) => void) => {
     setSendFn(() => fn);
   }, []);
@@ -34,12 +40,28 @@ export default function Rolly() {
     setWizardActive(true);
   }, []);
 
+  const handleExecutionStart = useCallback((items: DraftItem[]) => {
+    setExecutingItems(items);
+    setExecutionComplete(false);
+    if (isMobile) setMobileTab("workspace");
+  }, [isMobile]);
+
+  const handleExecutionDone = useCallback(() => {
+    setExecutionComplete(true);
+    // Clear after a delay so user sees the completed state
+    setTimeout(() => {
+      setExecutingItems(null);
+      setExecutionComplete(false);
+    }, 2500);
+  }, []);
+
   const handleWizardComplete = useCallback(() => {
     setWizardActive(false);
     setWizardContext(null);
     setPlanMode(false);
+    handleExecutionDone();
     if (isMobile) setMobileTab("workspace");
-  }, [isMobile]);
+  }, [isMobile, handleExecutionDone]);
 
   const handleWizardCancel = useCallback(() => {
     setWizardActive(false);
@@ -90,9 +112,10 @@ export default function Rolly() {
                 wizardContext={wizardContext}
                 onWizardComplete={handleWizardComplete}
                 onWizardCancel={handleWizardCancel}
+                onExecutionStart={handleExecutionStart}
               />
             ) : (
-              <RollyWorkspace />
+              <RollyWorkspace executingItems={executingItems} executionComplete={executionComplete} />
             )}
           </div>
         </div>
@@ -110,10 +133,11 @@ export default function Rolly() {
               wizardContext={wizardContext}
               onWizardComplete={handleWizardComplete}
               onWizardCancel={handleWizardCancel}
+              onExecutionStart={handleExecutionStart}
             />
           </div>
           <div className="flex-1 overflow-y-auto min-w-0">
-            <RollyWorkspace />
+            <RollyWorkspace executingItems={executingItems} executionComplete={executionComplete} />
           </div>
         </div>
       )}
