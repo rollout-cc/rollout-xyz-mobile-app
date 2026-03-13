@@ -252,6 +252,10 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
       }
 
       const result = await resp.json();
+      
+      if (result.failed > 0) {
+        console.warn("Plan execution failures:", result.results?.filter((r: any) => !r.success));
+      }
 
       // Invalidate workspace queries
       queryClient.invalidateQueries({ queryKey: ["rolly-workspace-tasks"] });
@@ -260,7 +264,13 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["artists"] });
 
-      toast.success(`Plan built! Created ${result.created} items.${result.failed > 0 ? ` (${result.failed} failed)` : ""}`);
+      if (result.failed > 0) {
+        const failedItems = result.results?.filter((r: any) => !r.success) || [];
+        const firstError = failedItems[0]?.error || "Unknown error";
+        toast.warning(`Plan built with ${result.created} items. ${result.failed} failed: ${firstError}`);
+      } else {
+        toast.success(`Plan built! Created ${result.created} items.`);
+      }
       onComplete();
     } catch (e) {
       console.error("Execute plan error:", e);
