@@ -28,6 +28,8 @@ import { TimelinesTab } from "@/components/artist/TimelinesTab";
 import { BudgetSection, useTotalBudget } from "@/components/artist/BudgetSection";
 import { BannerUpload } from "@/components/artist/BannerUpload";
 import { FinanceTab } from "@/components/artist/FinanceTab";
+import { InvoiceCreator } from "@/components/finance/InvoiceCreator";
+import { InvoiceList } from "@/components/finance/InvoiceList";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SplitsTab } from "@/components/artist/SplitsTab";
 import { ObjectiveKpiCard, OBJECTIVE_TYPES } from "@/components/artist/ObjectiveKpiCard";
