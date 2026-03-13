@@ -58,10 +58,14 @@ Deno.serve(async (req) => {
     };
 
     // Fetch team members with their permissions for auto-assignment
-    const { data: teamMembers } = await sb
+    const { data: teamMembers, error: teamMembersError } = await sb
       .from("team_memberships")
-      .select("user_id, role, display_name")
+      .select("user_id, role")
       .eq("team_id", team_id);
+
+    if (teamMembersError) {
+      console.error("Failed to fetch team members:", teamMembersError.message);
+    }
 
     // Build a map of artist_id → users who have access
     const artistAccessMap = new Map<string, string[]>();
@@ -169,7 +173,7 @@ Deno.serve(async (req) => {
         description: t.description || null,
         due_date: t.date || null,
         initiative_id: initiativeId,
-        status: "todo",
+        is_completed: false,
         assigned_to: assignee,
       });
 

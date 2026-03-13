@@ -10,46 +10,47 @@ const SYSTEM_PROMPT = `You are ROLLY's planning brain. You have deep music indus
 
 CRITICAL — READ THE BRIEF CAREFULLY:
 - The user's initial brief already contains information. NEVER re-ask what they already told you.
-- If the brief says "release an EP and merch drop for Pote Baby" — you already know: artist = Pote Baby, release type = EP + merch drop. DO NOT ask "what type of release?" or "which artist?" — jump straight to the NEXT thing you need (e.g. timeline, budget, key dates).
-- Treat the brief as if the user already answered those questions. Start from what you DON'T know yet.
+- If the brief says "release an EP and merch drop for Pote Baby" — you already know: artist = Pote Baby, release type = EP + merch drop.
+- Start from what you DON'T know yet.
+
+LANGUAGE RULES (VERY IMPORTANT):
+- Use plain music-manager language only.
+- Avoid jargon like KPI, verticals, funnel, CAC, LTV, and overly corporate phrasing.
+- Prefer simple words: goals, channels, budget, team, launch dates, promo plan.
+- Keep every question easy to answer in under 10 seconds.
 
 RULES:
 - Ask ONE question at a time.
-- QUESTIONS MUST BE SHORT. Max 15 words. No preamble, no recapping previous answers, no "considering that..." filler. Just ask the question directly.
-  - BAD: "Considering the internal team will handle all efforts, and we're looking at strategic partnerships to support 'GUMBO' for a June 2026 release, what specific internal roles or external partner types do you foresee being most critical?"
-  - GOOD: "What roles or partners do you need?"
-  - BAD: "To grow Pote Baby's social media and generate PR, what are the primary platforms you're focusing on for this release?"
-  - GOOD: "Which platforms are you focusing on?"
-- For questions asking for a NAME, TITLE, or DATE (e.g. "What's the EP called?", "What's the release date?", "What's the project name?"), return an EMPTY options array []. The user will type their answer. Set allow_custom: true.
-- For all OTHER questions, provide 2-4 answer options.
-- USE multi_select: true when multiple answers make sense (platforms, channels, roles, content types, verticals, tactics).
-  - Only use multi_select: false for single-answer questions (budget range, priority choice).
-- NEVER ask something the brief or previous answers already cover. Extract every fact from the brief first.
-- Focus on EXECUTION-CRITICAL details: things Rolly needs to actually create tasks, milestones, and budgets. Skip vague "vision" questions.
-- Ask 8-14 questions MAX. After question 10, strongly consider wrapping up.
-- When you have enough info to build a concrete plan with tasks, milestones, and budgets, signal completion immediately.
+- QUESTIONS MUST BE SHORT. Max 15 words.
+- For NAME, TITLE, DATE, or simple NUMBER questions, return options: [] and allow_custom: true.
+- For all other questions, provide 2-4 answer options.
+- Use multi_select: true when multiple answers make sense.
+- NEVER ask what was already answered in the brief or previous answers.
+- Focus on execution details Rolly needs to create tasks, milestones, and budgets.
+- Ask 8-14 questions max. After question 10, wrap up unless a critical gap remains.
+- If a user says "I don't know" on a topic, do NOT drill deeper there. Move on.
 
-PRIORITIZE THESE QUESTION TYPES (in order, skipping any already answered by the brief):
-1. Key dates / deadlines (release date, merch drop date)
-2. Budget range or allocation
-3. Content needs (visuals, video, socials) → multi_select
-4. Platform & channel strategy → multi_select
-5. Verticals (streaming, merch, live, sync, brand deals) → multi_select
-6. Team & responsibilities → multi_select
-7. Revenue goals / KPIs
-8. Creative direction (only if relevant)
+PRIORITIZE (skip answered topics):
+1) Key dates
+2) Budget
+3) Content plan
+4) Platforms/channels
+5) Team responsibilities
+6) Revenue goals in simple terms
+7) Creative direction (only if needed)
 
-SKIP questions that are:
-- Too vague to produce actionable items
-- Already answered or inferable from the brief or previous answers
-- About "feelings" or "vision" without execution impact
+USE KNOWLEDGE BASE CONTEXT to make questions specific, but keep wording simple.`;
 
-USE YOUR KNOWLEDGE BASE CONTEXT to ask smarter, more specific questions. Examples:
-- If brief mentions EP release → reference rollout phases (Seeding, Single Drop, Launch Week, Sustain) and ask which phases they want
-- If merch → ask about production method (print-on-demand vs bulk), pricing strategy, merch types (based on clothing/brand knowledge)
-- If streaming goals → ask about playlist pitching timeline, DSP priorities
-- If budget → ask about allocation across specific categories you know matter (video production, social ads, PR)
-- DON'T ask generic questions — use the knowledge to make each question informed and specific to their situation`;
+const unsureSignals = ["i don't know", "dont know", "not sure", "unsure", "idk", "no idea"];
+
+const simplifyQuestionText = (question: string): string => {
+  let q = (question || "").trim();
+  q = q.replace(/key performance indicators\s*\(?kpis?\)?/gi, "success goals");
+  q = q.replace(/\bKPIs?\b/gi, "goals");
+  q = q.replace(/\bverticals\b/gi, "focus areas");
+  q = q.replace(/revenue generation/gi, "making money");
+  return q;
+};
 
 
 Deno.serve(async (req) => {
@@ -149,6 +150,13 @@ Deno.serve(async (req) => {
     }
 
     const questionCount = previous_qa?.length || 0;
+    const unsureTopics = (previous_qa || [])
+      .filter((qa: any) => {
+        const answer = String(qa?.answer || "").toLowerCase();
+        return unsureSignals.some((signal) => answer.includes(signal));
+      })
+      .map((qa: any) => qa.question)
+      .slice(0, 4);
 
     const messages: any[] = [
       { role: "system", content: SYSTEM_PROMPT },
@@ -162,6 +170,8 @@ ${knowledgeContext}
 USER'S BRIEF: "${brief}"
 
 ${previous_qa && previous_qa.length > 0 ? `PREVIOUS Q&A:\n${previous_qa.map((qa: any, i: number) => `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}`).join("\n\n")}` : "No questions asked yet."}
+
+${unsureTopics.length > 0 ? `USER SAID "I DON'T KNOW" ON: ${unsureTopics.join(" | ")}\nDo NOT ask deeper follow-ups on those topics. Move to another missing area.` : ""}
 
 Questions asked so far: ${questionCount}/14. ${questionCount >= 10 ? "You should strongly consider wrapping up — signal completion with plan_ready unless there's a critical gap." : ""} ${questionCount >= 13 ? "MANDATORY: Call plan_ready NOW. Do NOT ask another question." : ""}
 
@@ -288,9 +298,10 @@ ${questionCount >= 10 ? "If you have enough info to build tasks, milestones, and
     const fnArgs = JSON.parse(toolCall.function.arguments);
 
     if (fnName === "ask_question") {
+      const cleanedQuestion = simplifyQuestionText(fnArgs.question);
       return new Response(JSON.stringify({
         type: "question",
-        question: fnArgs.question,
+        question: cleanedQuestion,
         header: fnArgs.header,
         options: fnArgs.options || [],
         multi_select: fnArgs.multi_select || false,
