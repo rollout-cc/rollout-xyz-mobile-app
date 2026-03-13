@@ -220,9 +220,9 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
               e.target.style.height = Math.min(e.target.scrollHeight, 160) + "px";
             }}
             onKeyDown={handleKeyDown}
-            placeholder={planMode ? "Describe what you want to plan..." : "Ask ROLLY anything..."}
+            placeholder={planMode ? "Describe your project..." : "Ask ROLLY anything..."}
             className={cn(
-              "min-h-[44px] max-h-[160px] resize-none rounded-xl py-2.5 flex-1 min-w-0",
+              "min-h-[48px] max-h-[160px] resize-none rounded-xl py-3 px-4 flex-1 min-w-0 text-sm",
               planMode && "bg-white/10 border-white/15 text-white placeholder:text-white/40 focus-visible:ring-white/30"
             )}
             rows={1}
