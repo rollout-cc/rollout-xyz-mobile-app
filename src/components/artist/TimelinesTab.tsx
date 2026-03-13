@@ -373,7 +373,7 @@ function EmptyTimelinesState({
   if (mode === "milestone") {
     return (
       <div className="mt-4">
-        <InlineMilestoneInput onAdd={(title, date) => { onMilestoneAdd(title, date); setMode("idle"); }} />
+        <InlineMilestoneInput startActive onAdd={(title, date) => { onMilestoneAdd(title, date); setMode("idle"); }} />
       </div>
     );
   }
@@ -488,8 +488,8 @@ function CalendarView({ milestones }: { milestones: any[] }) {
 
 
 /* ── Inline Milestone Input ── */
-function InlineMilestoneInput({ onAdd }: { onAdd: (title: string, date: string) => void }) {
-  const [isActive, setIsActive] = useState(false);
+function InlineMilestoneInput({ onAdd, startActive = false }: { onAdd: (title: string, date: string) => void; startActive?: boolean }) {
+  const [isActive, setIsActive] = useState(startActive);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [manualDate, setManualDate] = useState<Date | undefined>(undefined);
