@@ -148,22 +148,25 @@ export function VendorManager() {
                 {canManage && (
                   <td className="p-3 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      {v.w9_status === "completed" && (
+                      {v.w9_status === "completed" ? (
                         <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => openViewW9(v)}>
                           <Eye className="h-3 w-3" />
                           <span className="hidden sm:inline text-xs">View W-9</span>
                         </Button>
+                      ) : (
+                        <>
+                          {v.email && (
+                            <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => sendW9.mutate(v.id)}>
+                              <Send className="h-3 w-3" />
+                              <span className="hidden sm:inline text-xs">Send W-9</span>
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => copyLink(v.w9_token)}>
+                            <Copy className="h-3 w-3" />
+                            <span className="hidden sm:inline text-xs">Copy Link</span>
+                          </Button>
+                        </>
                       )}
-                      {v.w9_status !== "completed" && v.email && (
-                        <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => sendW9.mutate(v.id)}>
-                          <Send className="h-3 w-3" />
-                          <span className="hidden sm:inline text-xs">Send W-9</span>
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => copyLink(v.w9_token)}>
-                        <Copy className="h-3 w-3" />
-                        <span className="hidden sm:inline text-xs">Copy Link</span>
-                      </Button>
                     </div>
                   </td>
                 )}
