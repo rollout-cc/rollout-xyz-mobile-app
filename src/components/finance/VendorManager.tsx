@@ -8,7 +8,18 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Send, Copy, FileCheck, Clock, AlertCircle, Eye, Building2, MapPin, CreditCard, User } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Send, Copy, FileCheck, Clock, AlertCircle, Eye, Building2, MapPin, CreditCard, User, FileText } from "lucide-react";
+import { useQuery as useArtistsQuery } from "@tanstack/react-query";
+
+const PAYMENT_TERMS = [
+  { value: "asap", label: "ASAP" },
+  { value: "net_15", label: "Net 15" },
+  { value: "net_30", label: "Net 30" },
+  { value: "net_45", label: "Net 45" },
+  { value: "net_60", label: "Net 60" },
+  { value: "upon_completion", label: "Upon Completion" },
+];
 
 export function VendorManager() {
   const { selectedTeamId: teamId, canManage } = useSelectedTeam();
@@ -19,6 +30,20 @@ export function VendorManager() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [invoiceVendor, setInvoiceVendor] = useState<any>(null);
+  const [invoiceArtistId, setInvoiceArtistId] = useState("");
+  const [invoiceTerms, setInvoiceTerms] = useState("net_30");
+
+  const { data: artists = [] } = useArtistsQuery({
+    queryKey: ["artists", teamId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("artists").select("id, name").eq("team_id", teamId!).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!teamId,
+  });
 
   const { data: vendors = [] } = useQuery({
     queryKey: ["vendors", teamId],
@@ -74,6 +99,31 @@ export function VendorManager() {
     navigator.clipboard.writeText(`${window.location.origin}/vendor-w9/${token}`);
     toast.success("W-9 link copied");
   };
+
+  const openInvoiceDialog = (vendor: any) => {
+    setInvoiceVendor(vendor);
+    setInvoiceArtistId(vendor.invoice_artist_id || "");
+    setInvoiceTerms(vendor.invoice_payment_terms || "net_30");
+    setInvoiceDialogOpen(true);
+  };
+
+  const saveAndCopyInvoiceLink = useMutation({
+    mutationFn: async () => {
+      if (!invoiceVendor || !invoiceArtistId) return;
+      const { error } = await (supabase as any).from("vendors").update({
+        invoice_artist_id: invoiceArtistId,
+        invoice_payment_terms: invoiceTerms,
+      }).eq("id", invoiceVendor.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      navigator.clipboard.writeText(`${window.location.origin}/vendor-invoice/${invoiceVendor.w9_token}`);
+      qc.invalidateQueries({ queryKey: ["vendors", teamId] });
+      setInvoiceDialogOpen(false);
+      toast.success("Invoice link copied to clipboard");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   const openViewW9 = (vendor: any) => {
     setSelectedVendor(vendor);
@@ -149,10 +199,16 @@ export function VendorManager() {
                   <td className="p-3 text-right">
                     <div className="flex items-center justify-end gap-1">
                       {v.w9_status === "completed" ? (
-                        <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => openViewW9(v)}>
-                          <Eye className="h-3 w-3" />
-                          <span className="hidden sm:inline text-xs">View W-9</span>
-                        </Button>
+                        <>
+                          <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => openInvoiceDialog(v)}>
+                            <FileText className="h-3 w-3" />
+                            <span className="hidden sm:inline text-xs">Request Invoice</span>
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => openViewW9(v)}>
+                            <Eye className="h-3 w-3" />
+                            <span className="hidden sm:inline text-xs">View W-9</span>
+                          </Button>
+                        </>
                       ) : (
                         <>
                           {v.w9_status === "not_requested" && v.email && (
@@ -282,6 +338,49 @@ export function VendorManager() {
           ) : (
             <div className="py-8 text-center text-muted-foreground">Loading W-9 data...</div>
           )}
+        </DialogContent>
+      </Dialog>
+      {/* Request Invoice Dialog */}
+      <Dialog open={invoiceDialogOpen} onOpenChange={setInvoiceDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Request Invoice — {invoiceVendor?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label>Which artist is this for? *</Label>
+              <Select value={invoiceArtistId} onValueChange={setInvoiceArtistId}>
+                <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select artist" /></SelectTrigger>
+                <SelectContent>
+                  {artists.map((a: any) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Payment Terms</Label>
+              <Select value={invoiceTerms} onValueChange={setInvoiceTerms}>
+                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_TERMS.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              onClick={() => saveAndCopyInvoiceLink.mutate()}
+              disabled={!invoiceArtistId || saveAndCopyInvoiceLink.isPending}
+              className="w-full gap-2"
+            >
+              <Copy className="h-4 w-4" />
+              Save & Copy Invoice Link
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

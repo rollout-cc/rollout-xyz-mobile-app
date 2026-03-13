@@ -49,3 +49,5 @@ project_id = "ctnsworqzzguykzzvdme"
     verify_jwt = false
   [functions.send-invoice]
     verify_jwt = false
+  [functions.submit-vendor-invoice]
+    verify_jwt = false

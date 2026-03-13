@@ -38,6 +38,7 @@ const Rolly = React.lazy(() => import("./pages/Rolly"));
 const ApproveSplit = React.lazy(() => import("./pages/ApproveSplit"));
 const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
 const VendorW9 = React.lazy(() => import("./pages/VendorW9"));
+const VendorInvoice = React.lazy(() => import("./pages/VendorInvoice"));
 
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
@@ -127,6 +128,7 @@ function AppRoutes() {
         <Route path="/join/:token" element={<JoinTeam />} />
         <Route path="/splits/approve/:token" element={<ApproveSplit />} />
         <Route path="/vendor-w9/:token" element={<VendorW9 />} />
+        <Route path="/vendor-invoice/:token" element={<VendorInvoice />} />
         <Route path="/rolly" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager", "artist"]}><Rolly /></RoleGate></ProtectedRoute>} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/" element={<RootRedirect />} />
