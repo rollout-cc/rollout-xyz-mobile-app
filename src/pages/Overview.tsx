@@ -490,8 +490,6 @@ export default function Overview() {
         <StaffContent />
       ) : companyTab === "finance" ? (
         <FinanceContent />
-      ) : companyTab === "outreach" ? (
-        <MarketingOutreach />
       ) : (
       <>
       {/* Weekly Digest */}
