@@ -383,6 +383,8 @@ export default function Roster() {
 
       {activeTab === "ar" ? (
         <ARContent openNew={openNewProspect} onNewHandled={() => setOpenNewProspect(false)} />
+      ) : activeTab === "outreach" ? (
+        <MarketingOutreach />
       ) : (
       <>
       <PullToRefresh onRefresh={handleRefresh}>
