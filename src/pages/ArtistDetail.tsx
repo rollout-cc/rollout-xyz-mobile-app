@@ -239,8 +239,7 @@ export default function ArtistDetail() {
 
   // Build action buttons, conditionally showing Finance based on plan
   const actionButtons = [
-    { key: "finance" as ActiveView, icon: Receipt, label: "Finance" },
-    { key: "budgets" as ActiveView, icon: DollarSign, label: "Budgets" },
+    { key: "money" as ActiveView, icon: DollarSign, label: "Money" },
     { key: "information" as ActiveView, icon: Star, label: "Info" },
   ];
 
