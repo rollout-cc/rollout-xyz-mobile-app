@@ -525,7 +525,7 @@ export default function ArtistDetail() {
             {activeView === "money" && (
               <div className="space-y-4">
                 <div className="flex gap-1 border-b border-border">
-                  {([{ key: "accounting" as MoneySubTab, label: "Accounting" }, { key: "budgets" as MoneySubTab, label: "Budgets" }]).map(t => (
+                  {([{ key: "accounting" as MoneySubTab, label: "Accounting" }, { key: "budgets" as MoneySubTab, label: "Budgets" }, { key: "invoices" as MoneySubTab, label: "Invoices" }]).map(t => (
                     <button
                       key={t.key}
                       onClick={() => setMoneySubTab(t.key)}
@@ -542,6 +542,15 @@ export default function ArtistDetail() {
                 </div>
                 {moneySubTab === "accounting" && <FinanceTab artistId={artist.id} teamId={artist.team_id} />}
                 {moneySubTab === "budgets" && <BudgetSection artistId={artist.id} />}
+                {moneySubTab === "invoices" && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold">Invoices</h3>
+                      <InvoiceCreator artistId={artist.id} />
+                    </div>
+                    <InvoiceList artistId={artist.id} />
+                  </div>
+                )}
               </div>
             )}
             {activeView === "objectives" && <ObjectivesPanel artist={artist} />}
