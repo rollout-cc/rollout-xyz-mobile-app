@@ -280,9 +280,9 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
   };
 
   // Fetch first question on mount
-  useState(() => {
+  useEffect(() => {
     fetchNextQuestion([]);
-  });
+  }, []);
 
   const handleSubmitAnswer = () => {
     if (!currentQuestion) return;
