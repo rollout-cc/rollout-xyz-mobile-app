@@ -233,9 +233,10 @@ interface LinkItemProps {
   defaultFolderId?: string;
   autoFocus?: boolean;
   dragHandleProps?: any;
+  onExternalCancel?: () => void;
 }
 
-function LinkItem({ link, isNew, artistId, folders, defaultFolderId, autoFocus, dragHandleProps }: LinkItemProps) {
+function LinkItem({ link, isNew, artistId, folders, defaultFolderId, autoFocus, dragHandleProps, onExternalCancel }: LinkItemProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [url, setUrl] = useState(link?.url || "");
