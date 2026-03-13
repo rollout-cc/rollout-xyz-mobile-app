@@ -4,6 +4,7 @@ import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-p
 import { AppLayout } from "@/components/AppLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ARContent } from "@/components/ar/ARContent";
+import { MarketingOutreach } from "@/components/outreach/MarketingOutreach";
 import { useArtists, useCreateArtist, useDeleteArtist } from "@/hooks/useArtists";
 import { useCreateTeam } from "@/hooks/useTeams";
 import { useSelectedTeam } from "@/contexts/TeamContext";
@@ -87,8 +88,9 @@ export default function Roster() {
   }, [trialWelcomeOpen]);
 
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<"roster" | "ar">(
-    searchParams.get("tab") === "ar" || (location.state as Record<string, unknown>)?.openAddProspect ? "ar" : "roster"
+  const [activeTab, setActiveTab] = useState<"roster" | "ar" | "outreach">(
+    searchParams.get("tab") === "ar" || (location.state as Record<string, unknown>)?.openAddProspect ? "ar" 
+    : searchParams.get("tab") === "outreach" ? "outreach" : "roster"
   );
   const [showAddArtist, setShowAddArtist] = useState(false);
   const [openNewProspect, setOpenNewProspect] = useState(false);
@@ -315,6 +317,15 @@ export default function Roster() {
       >
         A&R Signings
       </button>
+      <button
+        onClick={() => setActiveTab("outreach")}
+        className={cn(
+          "px-3.5 py-1 rounded-full text-sm font-medium transition-colors whitespace-nowrap",
+          activeTab === "outreach" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+        )}
+      >
+        Outreach
+      </button>
     </div>
   );
 
@@ -341,9 +352,18 @@ export default function Roster() {
           >
             A&R Signings
           </button>
+          <button
+            onClick={() => setActiveTab("outreach")}
+            className={cn("h-9 px-4 rounded-full text-sm font-medium transition-colors flex items-center",
+              activeTab === "outreach" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"
+            )}
+          >
+            Outreach
+          </button>
         </div>
+        {activeTab === "roster" && (
         <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end h-9">
-          {activeTab === "roster" && <span data-tour="roster-sort">{SortSelect}</span>}
+          <span data-tour="roster-sort">{SortSelect}</span>
           <Button
             variant="outline"
             size="sm"
@@ -360,10 +380,13 @@ export default function Roster() {
             Add Artist
           </Button>
         </div>
+        )}
       </div>
 
       {activeTab === "ar" ? (
         <ARContent openNew={openNewProspect} onNewHandled={() => setOpenNewProspect(false)} />
+      ) : activeTab === "outreach" ? (
+        <MarketingOutreach />
       ) : (
       <>
       <PullToRefresh onRefresh={handleRefresh}>
