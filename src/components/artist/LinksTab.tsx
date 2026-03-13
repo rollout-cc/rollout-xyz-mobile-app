@@ -368,6 +368,7 @@ function LinkItem({ link, isNew, artistId, folders, defaultFolderId, autoFocus, 
   const handleCancel = () => {
     if (isNew) {
       resetForm();
+      onExternalCancel?.();
     } else {
       setUrl(link.url);
       setTitle(link.title);
