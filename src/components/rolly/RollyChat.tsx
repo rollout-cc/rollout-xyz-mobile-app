@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Square, Trash2, Sparkles, CheckCircle2, AlertCircle, ClipboardList, Camera } from "lucide-react";
+import { PlanWizard } from "@/components/rolly/PlanWizard";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { RollyMessage } from "./RollyMessage";
