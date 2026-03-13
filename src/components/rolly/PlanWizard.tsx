@@ -151,6 +151,14 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
   const handleSingleSelect = (value: string) => {
     setSelectedValue(value);
     setIsCustomMode(false);
+    // Auto-advance for single-select
+    if (currentQuestion && !currentQuestion.multi_select) {
+      const newEntry: QAEntry = { question: currentQuestion.question, answer: value };
+      const newHistory = [...qaHistory, newEntry];
+      setQaHistory(newHistory);
+      setCurrentQuestion(null);
+      fetchNextQuestion(newHistory);
+    }
   };
 
   const canSubmit = isCustomMode
