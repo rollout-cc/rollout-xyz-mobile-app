@@ -227,6 +227,7 @@ export function TimelinesTab({ artistId }: TimelinesTabProps) {
 
   return (
     <div className="mt-4 space-y-2">
+      <RollyNudge screen="timelines" entityId={artistId} dataSnapshot={{ milestoneCount: milestones.length }} />
       {/* Top bar */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-4">

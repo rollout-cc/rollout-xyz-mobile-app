@@ -680,6 +680,7 @@ export default function Overview() {
       )}
       </>
       )}
+      <RollyNudge screen="overview" dataSnapshot={{ artistCount: artists.length, taskCount: tasks.length }} />
       <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} feature={upgradeFeature} />
     </AppLayout>
   );
