@@ -187,7 +187,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
     setEditValue("");
   };
 
-  const canSubmit = isCustomMode
+  const canSubmit = (isCustomMode || currentQuestion?.options.length === 0)
     ? !!customText.trim()
     : currentQuestion?.multi_select
     ? selectedValues.length > 0
