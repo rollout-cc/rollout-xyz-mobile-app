@@ -58,6 +58,24 @@ export function ObjectiveKpiCard({
     return () => document.removeEventListener("mousedown", handler);
   }, [showPicker]);
 
+  // Record a monthly snapshot whenever we have an active objective with a current value
+  useEffect(() => {
+    if (!objectiveType || objectiveTarget == null || currentValue == null) return;
+    const today = new Date().toISOString().split("T")[0];
+    // Use an async IIFE — upsert silently (conflict = already logged today)
+    (async () => {
+      await supabase.from("objective_snapshots").upsert({
+        artist_id: artistId,
+        slot,
+        objective_type: objectiveType,
+        recorded_value: currentValue,
+        target_value: objectiveTarget,
+        recorded_at: today,
+        is_baseline: false,
+      } as any, { onConflict: "artist_id,slot,recorded_at" });
+    })();
+  }, [artistId, slot, objectiveType, objectiveTarget, currentValue]);
+
   const typeDef = OBJECTIVE_TYPES.find((t) => t.value === objectiveType);
   const Icon = typeDef?.icon ?? Target;
 
