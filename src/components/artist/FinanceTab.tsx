@@ -228,6 +228,14 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
           if (matchedBudget) resolvedBudgetId = matchedBudget.id;
         }
       }
+      // Resolve revenue_category for revenue transactions
+      let revCat: string | null = null;
+      if (activeTab === "revenue" && resolvedCategoryId !== "none") {
+        const catName = itemCategoryId.startsWith("budget:")
+          ? itemCategoryId.replace("budget:", "")
+          : categories.find((c: any) => c.id === resolvedCategoryId)?.name ?? null;
+        revCat = resolveRevenueCategory(catName);
+      }
 
       const { error } = await supabase.from("transactions").insert({
         artist_id: artistId,
@@ -240,6 +248,7 @@ function FinanceTabContent({ artistId, teamId }: FinanceTabProps) {
         initiative_id: itemInitiativeId === "none" ? null : itemInitiativeId,
         sub_budget_id: itemSubBudgetId === "none" ? null : itemSubBudgetId,
         transaction_date: itemDate,
+        revenue_category: revCat,
       } as any);
       if (error) throw error;
     },
