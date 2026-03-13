@@ -301,7 +301,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext }: PlanWizardP
               <span className="text-[10px] uppercase tracking-wider font-bold text-white/50">
                 {currentQuestion.header}
               </span>
-              <h3 className="text-xl font-bold mt-1.5 text-white leading-snug">{currentQuestion.question}</h3>
+              <h3 className="text-base font-semibold mt-1.5 text-white leading-snug">{currentQuestion.question}</h3>
             </div>
 
             {/* Options */}
