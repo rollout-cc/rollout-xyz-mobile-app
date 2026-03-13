@@ -120,7 +120,38 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
         </div>
       ) : (
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-        {isEmpty ? (
+        {isEmpty && planMode ? (
+          <div className="flex flex-col items-center justify-center h-full gap-5 text-center animate-fade-in">
+            <div className="relative h-16 w-16">
+              <div className="absolute inset-0 rounded-2xl bg-primary/20 animate-ping" style={{ animationDuration: "2s" }} />
+              <div className="relative h-16 w-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center">
+                <ClipboardList className="h-8 w-8" />
+              </div>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold">Plan Mode</h2>
+              <p className="text-muted-foreground mt-1.5 max-w-xs text-sm leading-relaxed">
+                Describe your project and I'll handle everything — tasks, budgets, milestones, and timelines — so you can keep working.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 max-w-xs w-full mt-1">
+              {[
+                { icon: ListTodo, label: "Creates tasks" },
+                { icon: DollarSign, label: "Sets budgets" },
+                { icon: CalendarCheck, label: "Plans timelines" },
+                { icon: Zap, label: "Executes instantly" },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2.5">
+                  <item.icon className="h-4 w-4 text-primary shrink-0" />
+                  <span className="text-xs font-medium text-foreground">{item.label}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1 max-w-xs">
+              Just describe what you need below and Rolly will ask a few quick questions before getting to work.
+            </p>
+          </div>
+        ) : isEmpty ? (
           <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
             <div className="h-16 w-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center">
               <Sparkles className="h-8 w-8" />
