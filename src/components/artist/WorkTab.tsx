@@ -221,7 +221,7 @@ function EmptyWorkState({ artistId, teamId, onCampaignCreated }: { artistId: str
   if (mode === "task") {
     return (
       <div className="mt-4">
-        <TaskItem isNew artistId={artistId} teamId={teamId} campaigns={[]} teamMembers={[]} budgets={[]} subBudgets={[]} autoFocus />
+        <TaskItem isNew artistId={artistId} teamId={teamId} campaigns={[]} teamMembers={[]} budgets={[]} subBudgets={[]} autoFocus onCancel={() => setMode("idle")} />
       </div>
     );
   }
