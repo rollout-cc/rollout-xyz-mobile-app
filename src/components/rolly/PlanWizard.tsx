@@ -223,7 +223,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
 
   const executePlan = async (items: DraftItem[]) => {
     setPhase("executing");
-
+    onExecutionStart?.(items);
     try {
       const token = await getToken();
       if (!token) {

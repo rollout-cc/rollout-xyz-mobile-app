@@ -125,6 +125,11 @@ export function RollyWorkspace({ executingItems, executionComplete }: RollyWorks
     return `$${val.toLocaleString()}`;
   };
 
+  // Show execution feed when building
+  if (executingItems && executingItems.length > 0) {
+    return <PlanExecutionFeed items={executingItems} isComplete={!!executionComplete} />;
+  }
+
   return (
     <div className="p-6 space-y-6 max-w-4xl">
       <div>
