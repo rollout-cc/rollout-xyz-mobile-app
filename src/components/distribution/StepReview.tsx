@@ -24,51 +24,15 @@ export function StepReview({ form, artists, onSaveDraft, onMarkReady, saving }: 
   const tracksWithAudio = form.tracks.filter((t) => t.audio_url);
 
   const checks: CheckItem[] = [
-    {
-      label: "Artist Selected",
-      ok: !!form.artist_id,
-      detail: selectedArtist?.name || "Select an artist in Step 1",
-    },
-    {
-      label: "Tracks Added",
-      ok: tracksWithTitle.length > 0,
-      detail: `${tracksWithTitle.length} track(s)`,
-    },
-    {
-      label: "Audio Files",
-      ok: tracksWithAudio.length === tracksWithTitle.length && tracksWithTitle.length > 0,
-      detail: `${tracksWithAudio.length}/${tracksWithTitle.length} uploaded`,
-    },
-    {
-      label: "Release Name",
-      ok: !!form.name.trim(),
-      detail: form.name || "Not set",
-    },
-    {
-      label: "Genre",
-      ok: !!form.genre,
-      detail: form.genre || "Not set",
-    },
-    {
-      label: "Release Date",
-      ok: !!form.release_date,
-      detail: form.release_date || "Not set",
-    },
-    {
-      label: "Distribution Partners",
-      ok: form.platforms.some((p) => p.enabled),
-      detail: `${form.platforms.filter((p) => p.enabled).length} platform(s)`,
-    },
-    {
-      label: "MLC Registration",
-      ok: form.mlc_registration_status === "completed",
-      detail: form.mlc_registration_status === "completed" ? "Registered" : "Not registered",
-    },
-    {
-      label: "Split Project",
-      ok: !!form.split_project_id,
-      detail: form.split_project_id ? "Linked" : "Optional — not linked",
-    },
+    { label: "Artist Selected", ok: !!form.artist_id, detail: selectedArtist?.name || "Select an artist in Step 1" },
+    { label: "Tracks Added", ok: tracksWithTitle.length > 0, detail: `${tracksWithTitle.length} track(s)` },
+    { label: "Audio Files", ok: tracksWithAudio.length === tracksWithTitle.length && tracksWithTitle.length > 0, detail: `${tracksWithAudio.length}/${tracksWithTitle.length} uploaded` },
+    { label: "Release Name", ok: !!form.name.trim(), detail: form.name || "Not set" },
+    { label: "Genre", ok: !!form.genre, detail: form.genre || "Not set" },
+    { label: "Release Date", ok: !!form.release_date, detail: form.release_date || "Not set" },
+    { label: "Distribution Partners", ok: form.platforms.some((p) => p.enabled), detail: `${form.platforms.filter((p) => p.enabled).length} platform(s)` },
+    { label: "Rights Registration", ok: form.mlc_registration_status === "completed" && form.pro_registration_status === "completed", detail: form.mlc_registration_status === "completed" ? "Authorized" : "Not authorized" },
+    { label: "Split Project", ok: !!form.split_project_id, detail: form.split_project_id ? "Linked" : "Optional — not linked" },
   ];
 
   const requiredChecks = checks.filter((c) =>
@@ -81,34 +45,23 @@ export function StepReview({ form, artists, onSaveDraft, onMarkReady, saving }: 
     <div className="space-y-6">
       <div>
         <h3 className="text-foreground mb-1">Review Release</h3>
-        <p className="text-sm text-muted-foreground">
-          Check all items below before submitting your release
-        </p>
+        <p className="text-sm text-muted-foreground">Check all items below before submitting your release</p>
       </div>
 
-      {/* Cover art + summary */}
       <Card className="p-4 space-y-3">
         <div className="flex gap-4">
           {form.artwork_url ? (
-            <img
-              src={form.artwork_url}
-              alt="Cover art"
-              className="h-24 w-24 rounded-lg object-cover shrink-0"
-            />
+            <img src={form.artwork_url} alt="Cover art" className="h-24 w-24 rounded-lg object-cover shrink-0" />
           ) : (
             <div className="h-24 w-24 rounded-lg bg-muted flex items-center justify-center shrink-0">
               <Music className="h-8 w-8 text-muted-foreground" />
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <div className="text-lg font-semibold text-foreground truncate">
-              {form.name || "Untitled Release"}
-            </div>
+            <div className="text-lg font-semibold text-foreground truncate">{form.name || "Untitled Release"}</div>
             {selectedArtist && (
               <div className="flex items-center gap-2 mt-1">
-                {selectedArtist.avatar_url && (
-                  <img src={selectedArtist.avatar_url} alt="" className="h-4 w-4 rounded-full object-cover" />
-                )}
+                {selectedArtist.avatar_url && <img src={selectedArtist.avatar_url} alt="" className="h-4 w-4 rounded-full object-cover" />}
                 <span className="text-sm text-muted-foreground">{selectedArtist.name}</span>
               </div>
             )}
@@ -120,34 +73,23 @@ export function StepReview({ form, artists, onSaveDraft, onMarkReady, saving }: 
           </div>
         </div>
 
-        {/* Track list with audio status */}
         {tracksWithTitle.length > 0 && (
           <div className="space-y-1 pt-2 border-t border-border">
             {tracksWithTitle.map((t, i) => (
               <div key={i} className="flex items-center gap-2 text-sm">
                 <span className="text-xs text-muted-foreground w-5 text-right">{i + 1}.</span>
                 <span className="flex-1 truncate">{t.title}</span>
-                {t.is_explicit && (
-                  <Badge variant="secondary" className="text-[9px] px-1 py-0">E</Badge>
-                )}
-                {t.audio_url ? (
-                  <FileAudio className="h-3.5 w-3.5 text-primary" />
-                ) : (
-                  <FileAudio className="h-3.5 w-3.5 text-muted-foreground/40" />
-                )}
+                {t.is_explicit && <Badge variant="secondary" className="text-[9px] px-1 py-0">E</Badge>}
+                {t.audio_url ? <FileAudio className="h-3.5 w-3.5 text-primary" /> : <FileAudio className="h-3.5 w-3.5 text-muted-foreground/40" />}
               </div>
             ))}
           </div>
         )}
       </Card>
 
-      {/* Checklist */}
       <div className="space-y-2">
         {checks.map((check) => (
-          <div
-            key={check.label}
-            className="flex items-center gap-3 py-2 px-3 rounded-md bg-muted/50"
-          >
+          <div key={check.label} className="flex items-center gap-3 py-2 px-3 rounded-md bg-muted/50">
             {check.ok ? (
               <div className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                 <Check className="h-3 w-3 text-primary" />
@@ -157,49 +99,30 @@ export function StepReview({ form, artists, onSaveDraft, onMarkReady, saving }: 
                 <X className="h-3 w-3 text-destructive" />
               </div>
             )}
-            <div className="flex-1">
-              <span className="text-sm font-medium">{check.label}</span>
-            </div>
+            <div className="flex-1"><span className="text-sm font-medium">{check.label}</span></div>
             <span className="text-xs text-muted-foreground">{check.detail}</span>
           </div>
         ))}
       </div>
 
-      {/* Warnings */}
       {warnings.length > 0 && (
         <Card className="p-3 border-warning/50 bg-warning/5">
           <div className="flex items-start gap-2">
             <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium">
-                {warnings.length} optional item{warnings.length !== 1 ? "s" : ""} incomplete
-              </p>
-              <p className="text-xs text-muted-foreground">
-                You can still save as draft, but these should be completed before distribution
-              </p>
+              <p className="text-sm font-medium">{warnings.length} optional item{warnings.length !== 1 ? "s" : ""} incomplete</p>
+              <p className="text-xs text-muted-foreground">You can still save as draft, but these should be completed before distribution</p>
             </div>
           </div>
         </Card>
       )}
 
-      {/* Actions */}
       <div className="flex gap-3">
-        <Button
-          variant="outline"
-          className="flex-1"
-          onClick={onSaveDraft}
-          disabled={saving}
-        >
-          <Save className="h-4 w-4 mr-2" />
-          Save as Draft
+        <Button variant="outline" className="flex-1" onClick={onSaveDraft} disabled={saving}>
+          <Save className="h-4 w-4 mr-2" /> Save as Draft
         </Button>
-        <Button
-          className="flex-1"
-          onClick={onMarkReady}
-          disabled={saving || !allRequiredOk}
-        >
-          <Rocket className="h-4 w-4 mr-2" />
-          Mark Ready
+        <Button className="flex-1" onClick={onMarkReady} disabled={saving || !allRequiredOk}>
+          <Rocket className="h-4 w-4 mr-2" /> Mark Ready
         </Button>
       </div>
     </div>

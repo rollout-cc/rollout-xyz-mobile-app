@@ -1398,6 +1398,36 @@ export type Database = {
           },
         ]
       }
+      pro_connections: {
+        Row: {
+          account_email: string | null
+          created_at: string
+          id: string
+          last_synced_at: string | null
+          source: string
+          status: string
+          team_id: string
+        }
+        Insert: {
+          account_email?: string | null
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          source: string
+          status?: string
+          team_id: string
+        }
+        Update: {
+          account_email?: string | null
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          source?: string
+          status?: string
+          team_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

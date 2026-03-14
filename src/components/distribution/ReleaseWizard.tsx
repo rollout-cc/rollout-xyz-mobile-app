@@ -7,7 +7,6 @@ import { StepTracks } from "./StepTracks";
 import { StepDetails } from "./StepDetails";
 import { StepPlatforms } from "./StepPlatforms";
 import { StepRightsRegistration } from "./StepRightsRegistration";
-import { StepSplitApproval } from "./StepSplitApproval";
 import { StepReview } from "./StepReview";
 import { PLATFORM_LIST } from "./PlatformLogos";
 import { toast } from "sonner";
@@ -16,8 +15,7 @@ const STEPS = [
   { label: "Tracks", key: "tracks" },
   { label: "Details", key: "details" },
   { label: "Partners", key: "partners" },
-  { label: "Rights", key: "rights" },
-  { label: "Approvals", key: "approvals" },
+  { label: "Rights & Splits", key: "rights" },
   { label: "Review", key: "review" },
 ] as const;
 
@@ -80,7 +78,6 @@ export function ReleaseWizard({ teamId, artists, releaseId, onClose }: Props) {
   const { data: existingTracks } = useReleaseTracks(releaseId);
   const { data: existingPlatforms } = useReleasePlatforms(releaseId);
 
-  // Load existing release data
   useEffect(() => {
     if (existingRelease) {
       setForm((prev) => ({
@@ -175,14 +172,12 @@ export function ReleaseWizard({ teamId, artists, releaseId, onClose }: Props) {
       case 2: return form.platforms.some((p) => p.enabled) ? true : null;
       case 3: return null;
       case 4: return null;
-      case 5: return null;
       default: return null;
     }
   };
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={onClose}>
           <ChevronLeft className="h-5 w-5" />
@@ -190,7 +185,6 @@ export function ReleaseWizard({ teamId, artists, releaseId, onClose }: Props) {
         <h2 className="text-foreground">{releaseId ? "Edit Release" : "New Release"}</h2>
       </div>
 
-      {/* Step indicator */}
       <div className="flex items-center gap-1">
         {STEPS.map((s, i) => {
           const valid = stepValid(i);
@@ -214,8 +208,8 @@ export function ReleaseWizard({ teamId, artists, releaseId, onClose }: Props) {
                 !isCurrent && valid === false && "bg-destructive/20 text-destructive",
                 !isCurrent && valid === null && "bg-background text-muted-foreground"
               )}>
-                {valid === true && !isCurrent ? <Check className="h-3 w-3" /> : 
-                 valid === false && !isCurrent ? <X className="h-3 w-3" /> : 
+                {valid === true && !isCurrent ? <Check className="h-3 w-3" /> :
+                 valid === false && !isCurrent ? <X className="h-3 w-3" /> :
                  i + 1}
               </span>
               <span className="hidden sm:inline">{s.label}</span>
@@ -224,33 +218,12 @@ export function ReleaseWizard({ teamId, artists, releaseId, onClose }: Props) {
         })}
       </div>
 
-      {/* Step content */}
       <div className="min-h-[400px]">
-        {step === 0 && (
-          <StepTracks
-            form={form}
-            updateForm={updateForm}
-            artists={artists}
-            teamId={teamId}
-          />
-        )}
-        {step === 1 && (
-          <StepDetails form={form} updateForm={updateForm} teamId={teamId} />
-        )}
-        {step === 2 && (
-          <StepPlatforms form={form} updateForm={updateForm} />
-        )}
-        {step === 3 && (
-          <StepRightsRegistration
-            form={form}
-            updateForm={updateForm}
-            teamId={teamId}
-          />
-        )}
+        {step === 0 && <StepTracks form={form} updateForm={updateForm} artists={artists} teamId={teamId} />}
+        {step === 1 && <StepDetails form={form} updateForm={updateForm} teamId={teamId} />}
+        {step === 2 && <StepPlatforms form={form} updateForm={updateForm} />}
+        {step === 3 && <StepRightsRegistration form={form} updateForm={updateForm} teamId={teamId} />}
         {step === 4 && (
-          <StepSplitApproval form={form} updateForm={updateForm} teamId={teamId} />
-        )}
-        {step === 5 && (
           <StepReview
             form={form}
             artists={artists}
@@ -261,19 +234,13 @@ export function ReleaseWizard({ teamId, artists, releaseId, onClose }: Props) {
         )}
       </div>
 
-      {/* Navigation */}
       <div className="flex justify-between pt-4 border-t border-border">
-        <Button
-          variant="ghost"
-          onClick={() => (step === 0 ? onClose() : setStep(step - 1))}
-        >
+        <Button variant="ghost" onClick={() => (step === 0 ? onClose() : setStep(step - 1))}>
           {step === 0 ? "Cancel" : "Back"}
         </Button>
         <div className="flex gap-2">
-          {step < 5 && (
-            <Button onClick={() => setStep(step + 1)}>
-              Continue
-            </Button>
+          {step < 4 && (
+            <Button onClick={() => setStep(step + 1)}>Continue</Button>
           )}
         </div>
       </div>
