@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, FolderOpen, CheckCheck } from "lucide-react";
+import { Home, FolderOpen, CheckCheck, Disc3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import rollyIcon from "@/assets/rolly-icon.png";
 import { useSelectedTeam } from "@/contexts/TeamContext";
@@ -31,6 +31,7 @@ export function MobileBottomNav() {
     // Owner/Manager: full nav
     items.push({ to: "/overview", icon: Home, label: "Home" });
     items.push({ to: "/roster", icon: FolderOpen, label: "Artists" });
+    items.push({ to: "/distribution", icon: Disc3, label: "Distro" });
     items.push({ to: "/my-work", icon: CheckCheck, label: "My Work" });
     items.push({ to: "/rolly", icon: null, label: "Rolly", isRolly: true });
   }

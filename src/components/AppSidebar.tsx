@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { LayoutGrid, Plus, ChevronsUpDown, Building2, ClipboardList, Users, Radar, CheckCheck, PanelLeftOpen, PanelRightOpen, Settings, User, CreditCard, Sparkles } from "lucide-react";
+import { LayoutGrid, Plus, ChevronsUpDown, Building2, ClipboardList, Users, Radar, CheckCheck, PanelLeftOpen, PanelRightOpen, Settings, User, CreditCard, Sparkles, Disc3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import rolloutLogo from "@/assets/rollout-logo.png";
 import rolloutFlag from "@/assets/rollout-flag.svg";
@@ -85,6 +85,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
     return [
       { to: "/overview", icon: Building2, label: "Company", tourId: "nav-company" },
       { to: "/roster", icon: LayoutGrid, label: "Artists", tourId: "nav-artists" },
+      { to: "/distribution", icon: Disc3, label: "Distribution", tourId: "nav-distribution" },
       { to: "/my-work", icon: CheckCheck, label: "My Work", tourId: "nav-mywork" },
     ];
   })();

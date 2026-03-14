@@ -35,6 +35,7 @@ const Staff = React.lazy(() => import("./pages/Staff"));
 const StaffDetail = React.lazy(() => import("./pages/StaffDetail"));
 const ARList = React.lazy(() => import("./pages/ARList"));
 const Rolly = React.lazy(() => import("./pages/Rolly"));
+const Distribution = React.lazy(() => import("./pages/Distribution"));
 const ApproveSplit = React.lazy(() => import("./pages/ApproveSplit"));
 const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
 const VendorW9 = React.lazy(() => import("./pages/VendorW9"));
@@ -111,6 +112,7 @@ function AppRoutes() {
         <Route path="/roster" element={<ProtectedRoute><Roster /></ProtectedRoute>} />
         <Route path="/overview" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager"]}><Overview /></RoleGate></ProtectedRoute>} />
         <Route path="/agenda" element={<Navigate to="/overview" replace />} />
+        <Route path="/distribution" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager"]}><Distribution /></RoleGate></ProtectedRoute>} />
         <Route path="/my-work" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager", "artist"]}><MyWork /></RoleGate></ProtectedRoute>} />
         <Route path="/notes" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager", "artist"]}><MyWork /></RoleGate></ProtectedRoute>} />
         <Route path="/roster/:artistId" element={<ProtectedRoute><ArtistDetail /></ProtectedRoute>} />

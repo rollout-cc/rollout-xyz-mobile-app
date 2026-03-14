@@ -1,80 +1,112 @@
 
 
-# Distribution Section
+# Performance Audit: Speed & Flow Improvements
 
-## What We're Building
-A new **Distribution** page between "Artists" and "My Work" in the nav. It's a 6-step release wizard that pulls from existing split projects, validates PRO/MLC registration data, requires contributor emails for approval, and tracks platform distribution status.
+After reviewing the full codebase, here are the bottlenecks and concrete fixes ranked by impact.
 
-## Database Changes (1 migration)
+---
 
-Three new tables:
+## 1. Waterfall Query Chains (HIGH IMPACT)
 
-**`releases`** — Core release record
-- `id`, `team_id` (FK teams), `artist_id` (FK artists), `name`, `release_type` (single/ep/album), `release_date`, `artwork_url`, `genre`, `secondary_genre`, `record_label`, `upc_code`, `status` (draft/ready/submitted), `split_project_id` (nullable FK split_projects), `pro_registration_status` (not_started/in_progress/completed), `mlc_registration_status` (not_started/in_progress/completed), `created_at`
+**Problem:** Several pages chain queries sequentially -- each waits for the previous to finish before starting. This creates "waterfall" loading where the page takes 3-4x longer than necessary.
 
-**`release_tracks`** — Tracks within a release
-- `id`, `release_id` (FK releases), `title`, `isrc_code`, `song_id` (nullable FK split_songs), `sort_order`, `duration_seconds`, `is_explicit`, `created_at`
+**Where it happens:**
+- **Overview.tsx**: Fetches `artists` first, then waits for that result before fetching `budgets`, `transactions`, and `initiatives` (all use `enabled: artists.length > 0`). That's 3 sequential hops.
+- **FinanceContent.tsx**: Same pattern -- `artists` -> `budgets`, `transactions`, `company_expenses`, etc. Plus `staffEmployment` -> `staffProfiles` is another waterfall.
+- **StaffContent.tsx**: `memberships` -> `memberProfiles`, and `artists` -> `transactions`.
 
-**`release_platforms`** — Which DSPs to distribute to
-- `id`, `release_id` (FK releases), `platform` (text), `enabled` (boolean default true)
+**Fix:** Create a single database function (RPC) that returns all needed data for the Overview and Finance pages in one call. Alternatively, restructure queries to use the team_id directly (budgets, transactions can be fetched via joins or team_id filter) so they all fire in parallel.
 
-RLS: team member SELECT via `is_team_member(team_id)`, owner/manager INSERT/UPDATE/DELETE via `is_team_owner_or_manager(team_id)`. Helper function `get_release_team_id(release_id)` for child tables.
+---
 
-## Wizard Flow (6 steps)
+## 2. `useTeamPlan()` Calls an Edge Function Every 60 Seconds (HIGH IMPACT)
 
-### Step 1 — Tracks
-- Select artist from roster dropdown
-- Optionally link an existing split project → auto-populate tracks from `split_songs`
-- Add tracks manually, reorder via drag
-- Each track row shows title + explicit toggle
+**Problem:** `useTeamPlan()` invokes the `check-subscription` edge function (cold-start latency ~200-800ms) on every page load and re-polls every 60s. This is called from at least 8 different components. While React Query deduplicates, the edge function call itself is slow and blocks UI decisions (feature gating).
 
-### Step 2 — Details
-- Artwork upload (to `artist-assets` bucket)
-- Release name, genre, secondary genre, record label, release date picker
-- UPC code field, per-track ISRC fields
+**Fix:**
+- Increase `staleTime` to 5 minutes (from 30s) and `refetchInterval` to 5 minutes (from 60s)
+- Cache the result in `localStorage` as a fallback so the first render doesn't block on network
 
-### Step 3 — Partners (DSPs)
-- Checkbox grid: Spotify, Apple Music, Tidal, Amazon Music, YouTube Music, Deezer, Pandora, iHeartRadio
-- "Select All" toggle
+---
 
-### Step 4 — Rights Registration (ROLLOUT-unique)
-- **PRO section**: For each contributor on linked split entries, show name, PRO affiliation (ASCAP/BMI/SESAC), IPI number. Red flags for missing PRO or IPI data.
-- **MLC section**: Checklist per song — has it been registered with The MLC for mechanical royalties? Toggle per track.
-- **Copyright**: Optional prompt for US Copyright Office registration.
-- All data pulled from `split_contributors` via linked `split_project_id`.
+## 3. `useTeams()` Called 14+ Times Across Components (MEDIUM IMPACT)
 
-### Step 5 — Split Approval
-- If split project linked: show read-only split summary per track (master/producer/writer/publisher %).
-- **Key addition**: Each contributor row shows their email. If email is missing, show a red warning — they MUST have an email to receive the approval request.
-- Inline email input for contributors missing emails → updates `split_contributors.email`.
-- "Send Approval Requests" button triggers `send-split-approval` edge function for all pending contributors.
-- Status badges per contributor: pending / approved / rejected.
-- If no split project linked: prompt to create one or link existing.
+**Problem:** `useTeams()` is called in 14 places. React Query deduplicates the network call, but each call triggers the hook logic and context lookups. More importantly, the `role` check pattern (`teams.find(t => t.id === teamId)?.role`) is repeated everywhere.
 
-### Step 6 — Review
-- Summary of all steps with ✓/✗ status badges
-- "Save as Draft" and "Mark Ready" actions
-- Shows warnings (missing emails, incomplete splits, unregistered PRO)
+**Fix:** Move `role` into `TeamContext` so components just read `const { role } = useSelectedTeam()` instead of re-querying teams and filtering.
 
-## Navigation Changes
-- **AppSidebar.tsx**: Add `{ to: "/distribution", icon: Disc3, label: "Distribution" }` between Artists and My Work (line 87, for owner/manager nav)
-- **MobileBottomNav.tsx**: Add Distribution between Artists and My Work (line 33)
-- **App.tsx**: Add route with `RoleGate allow={["team_owner", "manager"]}`
+---
 
-## New Files
-- `src/pages/Distribution.tsx` — Release list + "New Release" button
-- `src/components/distribution/ReleaseWizard.tsx` — 6-step wizard container with progress bar
-- `src/components/distribution/StepTracks.tsx`
-- `src/components/distribution/StepDetails.tsx`
-- `src/components/distribution/StepPlatforms.tsx`
-- `src/components/distribution/StepRightsRegistration.tsx`
-- `src/components/distribution/StepSplitApproval.tsx`
-- `src/components/distribution/StepReview.tsx`
-- `src/hooks/useReleases.ts` — CRUD hooks for releases, tracks, platforms
+## 4. Duplicate Data Fetching Between Pages (MEDIUM IMPACT)
 
-## Design
-- Follows existing `SplitWizard` step-based pattern
-- Numbered progress indicator at top (like screenshots)
-- Reuses existing UI components (Card, Input, Select, Checkbox, Badge, Button)
-- Consistent with platform styling (muted backgrounds, border-border, etc.)
+**Problem:** Overview.tsx, FinanceContent.tsx, and StaffContent.tsx all fetch the same data (artists, transactions, tasks, memberships, profiles) with different query keys (`overview-artists` vs `finance-artists` vs `staff-artists`). This means navigating between tabs re-fetches everything from scratch.
+
+**Fix:** Unify query keys. Use `["artists", teamId]` everywhere instead of `["overview-artists", teamId]`, `["finance-artists", teamId]`, `["staff-artists", teamId]`. This lets React Query share the cache across all views.
+
+---
+
+## 5. Heavy `useMemo` Computations on Every Render (MEDIUM IMPACT)
+
+**Problem:** `staffMembers` computation in Overview.tsx has an O(n*m) loop inside it (for each member, it iterates all other members to compute `maxRevenue`). With more staff, this becomes expensive.
+
+**Fix:** Pre-compute `maxRevenue` once outside the map, then pass it in. Single pass instead of quadratic.
+
+---
+
+## 6. Missing Prefetching on Navigation (LOW-MEDIUM IMPACT)
+
+**Problem:** When a user clicks an artist card, it navigates to ArtistDetail which then starts fetching from scratch. No data is prefetched on hover or anticipation.
+
+**Fix:** Add `queryClient.prefetchQuery` on artist card hover/mouse-enter for the artist detail data. This makes the transition feel instant.
+
+---
+
+## 7. Large Bundle: DnD Library Loaded on Every Page (LOW IMPACT)
+
+**Problem:** `@hello-pangea/dnd` (~45KB gzipped) is imported in Roster.tsx and Overview.tsx. It's lazy-loaded via React.lazy, but it's still a significant chunk for pages that may not need drag-and-drop.
+
+**Fix:** No immediate action needed since pages are already lazy-loaded. Could consider dynamic import of the DnD wrapper only when folders exist.
+
+---
+
+## 8. Edge Function Cold Starts (LOW IMPACT, Infrastructure)
+
+**Problem:** `spotify-artist`, `check-subscription`, `scrape-chartmasters` all have cold-start latency. The Spotify artist data is fetched via edge function on every artist detail page load (30min staleTime helps but first visit is slow).
+
+**Fix:** Already mitigated by staleTime. Could add a background sync job instead of on-demand fetching.
+
+---
+
+## Implementation Plan (Ordered by Impact)
+
+### Step 1: Unify query keys across Overview/Finance/Staff
+- Change all `["finance-artists", teamId]`, `["overview-artists", teamId]`, `["staff-artists", teamId]` to `["artists-summary", teamId]`
+- Same for transactions, budgets, tasks, memberships, profiles
+- Instant cache sharing = no re-fetch when switching tabs
+
+### Step 2: Remove waterfall queries
+- Fetch budgets and transactions using `team_id` joins instead of waiting for artist IDs
+- Create an RPC function `get_team_finance_summary` that returns artists + budgets + transactions in one call
+
+### Step 3: Optimize useTeamPlan caching
+- Increase staleTime to 5min, refetchInterval to 5min
+- Add localStorage fallback for instant first render
+
+### Step 4: Move role into TeamContext
+- Eliminate 14 redundant `useTeams()` calls for role checking
+
+### Step 5: Fix quadratic staffMembers computation
+- Pre-compute maxRevenue in a single pass
+
+### Step 6: Add prefetching on artist card hover
+- `onMouseEnter` triggers `queryClient.prefetchQuery` for artist detail
+
+### Files to Edit
+1. `src/pages/Overview.tsx` -- unify query keys, remove waterfalls
+2. `src/components/overview/FinanceContent.tsx` -- unify query keys, remove waterfalls
+3. `src/components/overview/StaffContent.tsx` -- unify query keys
+4. `src/hooks/useTeamPlan.ts` -- increase cache times
+5. `src/contexts/TeamContext.tsx` -- add role to context
+6. `src/components/roster/ArtistCard.tsx` -- add prefetch on hover
+7. Database migration -- create RPC function for combined finance data
 
