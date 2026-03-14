@@ -112,6 +112,7 @@ function AppRoutes() {
         <Route path="/roster" element={<ProtectedRoute><Roster /></ProtectedRoute>} />
         <Route path="/overview" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager"]}><Overview /></RoleGate></ProtectedRoute>} />
         <Route path="/agenda" element={<Navigate to="/overview" replace />} />
+        <Route path="/distribution" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager"]}><Distribution /></RoleGate></ProtectedRoute>} />
         <Route path="/my-work" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager", "artist"]}><MyWork /></RoleGate></ProtectedRoute>} />
         <Route path="/notes" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager", "artist"]}><MyWork /></RoleGate></ProtectedRoute>} />
         <Route path="/roster/:artistId" element={<ProtectedRoute><ArtistDetail /></ProtectedRoute>} />

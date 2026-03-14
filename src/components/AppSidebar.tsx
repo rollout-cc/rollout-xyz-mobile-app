@@ -85,6 +85,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
     return [
       { to: "/overview", icon: Building2, label: "Company", tourId: "nav-company" },
       { to: "/roster", icon: LayoutGrid, label: "Artists", tourId: "nav-artists" },
+      { to: "/distribution", icon: Disc3, label: "Distribution", tourId: "nav-distribution" },
       { to: "/my-work", icon: CheckCheck, label: "My Work", tourId: "nav-mywork" },
     ];
   })();
