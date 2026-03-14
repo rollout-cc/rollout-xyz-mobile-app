@@ -41,7 +41,6 @@ export function StepSplitApproval({ form, updateForm, teamId }: Props) {
     enabled: songIds.length > 0,
   });
 
-  // Unique contributors
   const uniqueContributors = new Map<string, any>();
   allEntries.forEach((entry: any) => {
     if (entry.contributor && !uniqueContributors.has(entry.contributor.id)) {
@@ -50,7 +49,6 @@ export function StepSplitApproval({ form, updateForm, teamId }: Props) {
   });
   const contribList = Array.from(uniqueContributors.values());
 
-  // Get entries per song for summary
   const songsWithEntries = splitSongs.map((song: any) => ({
     ...song,
     entries: allEntries.filter((e: any) => e.song_id === song.id),
@@ -89,7 +87,6 @@ export function StepSplitApproval({ form, updateForm, teamId }: Props) {
         name: form.name || "Untitled Release",
         project_type: form.release_type,
       });
-      // Create songs for each track
       for (const track of form.tracks.filter((t) => t.title.trim())) {
         await createSplitSong.mutateAsync({
           project_id: project.id,
@@ -146,7 +143,7 @@ export function StepSplitApproval({ form, updateForm, teamId }: Props) {
               No split project linked
             </p>
             <p className="text-xs text-muted-foreground">
-              Create a split project for this release to manage contributor splits and approvals
+              Create a split project to send approval requests to contributors
             </p>
           </div>
           <Button onClick={handleCreateSplitProject} disabled={creating || !form.artist_id}>
@@ -164,11 +161,9 @@ export function StepSplitApproval({ form, updateForm, teamId }: Props) {
         <h3 className="text-foreground mb-1">Split Approvals</h3>
         <p className="text-sm text-muted-foreground">
           Each contributor must have an email on file and approve their split percentage
-          before the release can be distributed.
         </p>
       </div>
 
-      {/* Warning for missing emails */}
       {missingEmails.length > 0 && (
         <Card className="p-3 border-destructive/50 bg-destructive/5">
           <div className="flex items-start gap-2">
@@ -185,7 +180,6 @@ export function StepSplitApproval({ form, updateForm, teamId }: Props) {
         </Card>
       )}
 
-      {/* Contributor list with emails */}
       <Card className="p-4 space-y-3">
         <h4 className="text-foreground flex items-center gap-2">
           <Mail className="h-4 w-4" />
@@ -194,16 +188,13 @@ export function StepSplitApproval({ form, updateForm, teamId }: Props) {
         <div className="space-y-2">
           {contribList.length === 0 ? (
             <p className="text-xs text-muted-foreground italic py-2">
-              No contributors yet — add them in the Splits tab on the artist page
+              No contributors yet — add them in the Rights step
             </p>
           ) : (
             contribList.map((c: any) => {
               const isEditing = editingEmails[c.id] !== undefined;
               return (
-                <div
-                  key={c.id}
-                  className="flex items-center gap-3 py-2 px-3 rounded-md bg-muted/50"
-                >
+                <div key={c.id} className="flex items-center gap-3 py-2 px-3 rounded-md bg-muted/50">
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">{c.name}</div>
                     {c.email && !isEditing ? (
@@ -213,10 +204,7 @@ export function StepSplitApproval({ form, updateForm, teamId }: Props) {
                         <Input
                           value={editingEmails[c.id] ?? c.email ?? ""}
                           onChange={(e) =>
-                            setEditingEmails((prev) => ({
-                              ...prev,
-                              [c.id]: e.target.value,
-                            }))
+                            setEditingEmails((prev) => ({ ...prev, [c.id]: e.target.value }))
                           }
                           placeholder="contributor@email.com"
                           className="h-7 text-xs"
@@ -226,9 +214,7 @@ export function StepSplitApproval({ form, updateForm, teamId }: Props) {
                           variant="outline"
                           size="sm"
                           className="h-7 text-xs px-2"
-                          onClick={() =>
-                            handleEmailUpdate(c.id, editingEmails[c.id] ?? "")
-                          }
+                          onClick={() => handleEmailUpdate(c.id, editingEmails[c.id] ?? "")}
                           disabled={upsertContributor.isPending}
                         >
                           Save
@@ -250,9 +236,7 @@ export function StepSplitApproval({ form, updateForm, teamId }: Props) {
                     )}
                     {c.email && !isEditing && (
                       <button
-                        onClick={() =>
-                          setEditingEmails((prev) => ({ ...prev, [c.id]: c.email }))
-                        }
+                        onClick={() => setEditingEmails((prev) => ({ ...prev, [c.id]: c.email }))}
                         className="text-xs text-primary hover:underline"
                       >
                         Edit
@@ -266,7 +250,6 @@ export function StepSplitApproval({ form, updateForm, teamId }: Props) {
         </div>
       </Card>
 
-      {/* Song split summary */}
       {songsWithEntries.length > 0 && (
         <Card className="p-4 space-y-3">
           <h4 className="text-foreground">Split Summary</h4>
@@ -278,10 +261,7 @@ export function StepSplitApproval({ form, updateForm, teamId }: Props) {
               ) : (
                 <div className="flex flex-wrap gap-1.5">
                   {song.entries.map((e: any) => (
-                    <span
-                      key={e.id}
-                      className="text-xs bg-muted px-2 py-0.5 rounded-full"
-                    >
+                    <span key={e.id} className="text-xs bg-muted px-2 py-0.5 rounded-full">
                       {e.contributor?.name} · {e.role}
                       {e.master_pct ? ` · M:${e.master_pct}%` : ""}
                       {e.producer_pct ? ` · P:${e.producer_pct}%` : ""}
@@ -296,7 +276,6 @@ export function StepSplitApproval({ form, updateForm, teamId }: Props) {
         </Card>
       )}
 
-      {/* Send approvals */}
       <Button
         onClick={handleSendApprovals}
         disabled={sending || contribList.length === 0 || missingEmails.length === contribList.length}

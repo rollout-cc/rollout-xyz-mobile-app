@@ -17,24 +17,45 @@ interface Props {
 }
 
 const RELEASE_TYPES = [
-  { value: "single", label: "Single", icon: Disc, sub: "1 track", minTracks: 1 },
-  { value: "ep", label: "EP", icon: Music, sub: "2-6 tracks", minTracks: 3 },
-  { value: "album", label: "Album", icon: Album, sub: "7+ tracks", minTracks: 7 },
+  { value: "single", label: "Single", icon: Disc, sub: "1 track", targetTracks: 1 },
+  { value: "ep", label: "EP", icon: Music, sub: "2-6 tracks", targetTracks: 3 },
+  { value: "album", label: "Album", icon: Album, sub: "7+ tracks", targetTracks: 7 },
 ];
 
 function makeTrack(index: number): ReleaseFormData["tracks"][0] {
   return { title: "", isrc_code: "", sort_order: index, is_explicit: false };
 }
 
+/**
+ * Parse a filename into a clean track title.
+ * Strips extension, version markers like (v2), (V5), _v3, etc.
+ * Strips leading initials pattern like "AB - " or "AB_" assuming artist name/initials.
+ */
+function parseTrackTitle(filename: string): string {
+  // Remove extension
+  let name = filename.replace(/\.[^.]+$/, "");
+  // Remove version markers: (v2), [v5], _v3, -v2, (V1), (version 2), etc.
+  name = name.replace(/[\s_-]*[\(\[]?\s*v(?:ersion)?\s*\d+\s*[\)\]]?/gi, "");
+  // Remove leading short initials pattern: "AB - ", "AB_", "ABC - " (1-3 uppercase chars followed by separator)
+  name = name.replace(/^[A-Z]{1,3}[\s]*[-_][\s]+/, "");
+  // Replace underscores and hyphens with spaces
+  name = name.replace(/[_-]+/g, " ");
+  // Clean up extra spaces
+  name = name.replace(/\s+/g, " ").trim();
+  return name;
+}
+
 export function StepTracks({ form, updateForm, artists, teamId }: Props) {
-  // Auto-populate tracks when release type changes
+  // Adjust tracks when release type changes (both up AND down)
   useEffect(() => {
     const type = RELEASE_TYPES.find((t) => t.value === form.release_type);
     if (!type) return;
-    if (form.tracks.length < type.minTracks) {
-      const newTracks = Array.from({ length: type.minTracks }, (_, i) =>
+    const target = type.targetTracks;
+    if (form.tracks.length !== target) {
+      // For switching down, truncate. For switching up, pad.
+      const newTracks = Array.from({ length: target }, (_, i) =>
         i < form.tracks.length ? form.tracks[i] : makeTrack(i)
-      );
+      ).map((t, i) => ({ ...t, sort_order: i }));
       updateForm({ tracks: newTracks });
     }
   }, [form.release_type]);
@@ -54,7 +75,8 @@ export function StepTracks({ form, updateForm, artists, teamId }: Props) {
 
   const removeTrack = (idx: number) => {
     const type = RELEASE_TYPES.find((t) => t.value === form.release_type);
-    if (type && form.tracks.length <= type.minTracks) return;
+    const minTracks = type ? type.targetTracks : 1;
+    if (form.tracks.length <= minTracks) return;
     updateForm({
       tracks: form.tracks
         .filter((_, i) => i !== idx)
@@ -74,6 +96,13 @@ export function StepTracks({ form, updateForm, artists, teamId }: Props) {
       toast.error("Only .mp3 and .wav files are supported");
       return;
     }
+    // Auto-populate title from filename if empty
+    const currentTrack = form.tracks[idx];
+    const titlePatch: Partial<ReleaseFormData["tracks"][0]> = {};
+    if (!currentTrack.title.trim()) {
+      titlePatch.title = parseTrackTitle(file.name);
+    }
+
     const path = `${teamId}/tracks/${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("artist-assets").upload(path, file);
     if (error) {
@@ -81,7 +110,7 @@ export function StepTracks({ form, updateForm, artists, teamId }: Props) {
       return;
     }
     const { data: urlData } = supabase.storage.from("artist-assets").getPublicUrl(path);
-    updateTrack(idx, { audio_url: urlData.publicUrl });
+    updateTrack(idx, { audio_url: urlData.publicUrl, ...titlePatch });
     toast.success(`Uploaded ${file.name}`);
   };
 
@@ -191,23 +220,16 @@ export function StepTracks({ form, updateForm, artists, teamId }: Props) {
               </TooltipProvider>
 
               {/* Explicit toggle */}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-[10px] text-muted-foreground font-bold">E</span>
-                      <Switch
-                        checked={track.is_explicit}
-                        onCheckedChange={(checked) => updateTrack(i, { is_explicit: checked })}
-                        className="scale-75"
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>Explicit Content</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-[10px] text-muted-foreground">Explicit</span>
+                <Switch
+                  checked={track.is_explicit}
+                  onCheckedChange={(checked) => updateTrack(i, { is_explicit: checked })}
+                  className="scale-75"
+                />
+              </div>
 
-              {form.tracks.length > (RELEASE_TYPES.find((t) => t.value === form.release_type)?.minTracks ?? 1) && (
+              {form.tracks.length > (RELEASE_TYPES.find((t) => t.value === form.release_type)?.targetTracks ?? 1) && (
                 <button
                   onClick={() => removeTrack(i)}
                   className="text-muted-foreground hover:text-destructive shrink-0"
