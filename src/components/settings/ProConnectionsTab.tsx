@@ -42,7 +42,7 @@ export function ProConnectionsTab() {
   const getConnection = (source: string) => connections.find((c: any) => c.source === source);
 
   const handleConnect = async () => {
-    if (!currentTeam || !connectingSource || !email.trim()) return;
+    if (!selectedTeamId || !connectingSource || !email.trim()) return;
     setSaving(true);
     try {
       const existing = getConnection(connectingSource);
