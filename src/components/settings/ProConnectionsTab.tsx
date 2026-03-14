@@ -55,10 +55,10 @@ export function ProConnectionsTab() {
       } else {
         const { error } = await supabase
           .from("pro_connections")
-          .insert({ team_id: currentTeam.id, source: connectingSource, account_email: email.trim(), status: "connected" });
+          .insert({ team_id: selectedTeamId, source: connectingSource, account_email: email.trim(), status: "connected" });
         if (error) throw error;
       }
-      queryClient.invalidateQueries({ queryKey: ["pro-connections", currentTeam.id] });
+      queryClient.invalidateQueries({ queryKey: ["pro-connections", selectedTeamId] });
       toast.success("Connection saved");
       setConnectingSource(null);
       setEmail("");
