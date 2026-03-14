@@ -1685,6 +1685,86 @@ export type Database = {
         }
         Relationships: []
       }
+      release_platforms: {
+        Row: {
+          enabled: boolean
+          id: string
+          platform: string
+          release_id: string
+        }
+        Insert: {
+          enabled?: boolean
+          id?: string
+          platform: string
+          release_id: string
+        }
+        Update: {
+          enabled?: boolean
+          id?: string
+          platform?: string
+          release_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "release_platforms_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      release_tracks: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          is_explicit: boolean
+          isrc_code: string | null
+          release_id: string
+          song_id: string | null
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          is_explicit?: boolean
+          isrc_code?: string | null
+          release_id: string
+          song_id?: string | null
+          sort_order?: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          is_explicit?: boolean
+          isrc_code?: string | null
+          release_id?: string
+          song_id?: string | null
+          sort_order?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "release_tracks_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "release_tracks_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "split_songs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       releases: {
         Row: {
           artist_id: string
@@ -2836,6 +2916,7 @@ export type Database = {
         Returns: string
       }
       get_prospect_team_id: { Args: { p_prospect_id: string }; Returns: string }
+      get_release_team_id: { Args: { p_release_id: string }; Returns: string }
       get_split_project_team_id: {
         Args: { p_project_id: string }
         Returns: string
