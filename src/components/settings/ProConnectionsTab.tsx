@@ -20,7 +20,7 @@ const SOURCES = [
 ] as const;
 
 export function ProConnectionsTab() {
-  const { currentTeam } = useSelectedTeam();
+  const { selectedTeamId } = useSelectedTeam();
   const queryClient = useQueryClient();
   const [connectingSource, setConnectingSource] = useState<string | null>(null);
   const [email, setEmail] = useState("");
