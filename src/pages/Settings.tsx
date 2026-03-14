@@ -222,6 +222,12 @@ export default function Settings() {
             <NotificationSettings />
           </div>
         )}
+
+        {activeSection === "connections" && (
+          <div className="mt-6">
+            <ProConnectionsTab />
+          </div>
+        )}
       </div>
     </AppLayout>
   );
