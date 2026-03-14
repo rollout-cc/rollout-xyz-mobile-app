@@ -127,6 +127,7 @@ export default function Settings() {
   const tabs: { key: ProfileSection; label: string }[] = [
     { key: "profile", label: "Profile" },
     { key: "notifications", label: "Notifications" },
+    { key: "connections", label: "Connections" },
   ];
 
   return (
