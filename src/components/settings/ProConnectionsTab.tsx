@@ -27,16 +27,16 @@ export function ProConnectionsTab() {
   const [saving, setSaving] = useState(false);
 
   const { data: connections = [] } = useQuery({
-    queryKey: ["pro-connections", currentTeam?.id],
+    queryKey: ["pro-connections", selectedTeamId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pro_connections")
         .select("*")
-        .eq("team_id", currentTeam!.id);
+        .eq("team_id", selectedTeamId!);
       if (error) throw error;
       return data;
     },
-    enabled: !!currentTeam?.id,
+    enabled: !!selectedTeamId,
   });
 
   const getConnection = (source: string) => connections.find((c: any) => c.source === source);
