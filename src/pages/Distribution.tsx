@@ -43,7 +43,7 @@ export default function Distribution() {
 
   if (wizardOpen || editingReleaseId) {
     return (
-      <AppLayout>
+      <AppLayout title="Distribution">
         <ReleaseWizard
           teamId={selectedTeamId!}
           artists={artists}
