@@ -1,0 +1,1 @@
+ALTER TABLE public.release_tracks ADD COLUMN audio_url text;
