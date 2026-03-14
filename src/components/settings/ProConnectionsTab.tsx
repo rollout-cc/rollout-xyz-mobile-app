@@ -70,12 +70,12 @@ export function ProConnectionsTab() {
   };
 
   const handleDisconnect = async (source: string) => {
-    if (!currentTeam) return;
+    if (!selectedTeamId) return;
     const conn = getConnection(source);
     if (!conn) return;
     try {
       await supabase.from("pro_connections").delete().eq("id", conn.id);
-      queryClient.invalidateQueries({ queryKey: ["pro-connections", currentTeam.id] });
+      queryClient.invalidateQueries({ queryKey: ["pro-connections", selectedTeamId] });
       toast.success("Disconnected");
     } catch {
       toast.error("Failed to disconnect");
