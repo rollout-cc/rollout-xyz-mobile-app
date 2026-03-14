@@ -96,8 +96,8 @@ export function StepReview({ form, onSaveDraft, onMarkReady, saving }: Props) {
             className="flex items-center gap-3 py-2 px-3 rounded-md bg-muted/50"
           >
             {check.ok ? (
-              <div className="h-5 w-5 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
-                <Check className="h-3 w-3 text-green-600" />
+              <div className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                <Check className="h-3 w-3 text-primary" />
               </div>
             ) : (
               <div className="h-5 w-5 rounded-full bg-destructive/20 flex items-center justify-center shrink-0">
