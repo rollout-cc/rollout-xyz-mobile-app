@@ -14,7 +14,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTour } from "@/contexts/TourContext";
 
-type ProfileSection = "profile" | "notifications";
+type ProfileSection = "profile" | "notifications" | "connections";
 
 export default function Settings() {
   const navigate = useNavigate();
