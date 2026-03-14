@@ -124,6 +124,7 @@ export function useUpsertReleaseTracks() {
         song_id?: string;
         sort_order: number;
         is_explicit?: boolean;
+        audio_url?: string;
       }[];
     }) => {
       // Delete existing and re-insert

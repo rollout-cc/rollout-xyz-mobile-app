@@ -3,13 +3,13 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Check, X, ChevronLeft } from "lucide-react";
 import { useCreateRelease, useUpdateRelease, useRelease, useReleaseTracks, useReleasePlatforms } from "@/hooks/useReleases";
-import { useSplitProjects } from "@/hooks/useSplits";
 import { StepTracks } from "./StepTracks";
 import { StepDetails } from "./StepDetails";
 import { StepPlatforms } from "./StepPlatforms";
 import { StepRightsRegistration } from "./StepRightsRegistration";
 import { StepSplitApproval } from "./StepSplitApproval";
 import { StepReview } from "./StepReview";
+import { PLATFORM_LIST } from "./PlatformLogos";
 import { toast } from "sonner";
 
 const STEPS = [
@@ -40,6 +40,7 @@ export interface ReleaseFormData {
     sort_order: number;
     is_explicit: boolean;
     song_id?: string;
+    audio_url?: string;
   }[];
   platforms: { platform: string; enabled: boolean }[];
 }
@@ -51,16 +52,7 @@ interface Props {
   onClose: () => void;
 }
 
-const DEFAULT_PLATFORMS = [
-  "Spotify",
-  "Apple Music",
-  "Tidal",
-  "Amazon Music",
-  "YouTube Music",
-  "Deezer",
-  "Pandora",
-  "iHeartRadio",
-];
+const DEFAULT_PLATFORMS = PLATFORM_LIST.map((p) => p.name);
 
 export function ReleaseWizard({ teamId, artists, releaseId, onClose }: Props) {
   const [step, setStep] = useState(0);
@@ -119,6 +111,7 @@ export function ReleaseWizard({ teamId, artists, releaseId, onClose }: Props) {
           sort_order: t.sort_order,
           is_explicit: t.is_explicit,
           song_id: t.song_id || undefined,
+          audio_url: t.audio_url || undefined,
         })),
       }));
     }
@@ -180,8 +173,8 @@ export function ReleaseWizard({ teamId, artists, releaseId, onClose }: Props) {
       case 0: return form.artist_id && form.tracks.some((t) => t.title.trim()) ? true : null;
       case 1: return form.name.trim() ? true : null;
       case 2: return form.platforms.some((p) => p.enabled) ? true : null;
-      case 3: return null; // optional
-      case 4: return null; // optional
+      case 3: return null;
+      case 4: return null;
       case 5: return null;
       default: return null;
     }
@@ -255,11 +248,12 @@ export function ReleaseWizard({ teamId, artists, releaseId, onClose }: Props) {
           />
         )}
         {step === 4 && (
-          <StepSplitApproval form={form} teamId={teamId} />
+          <StepSplitApproval form={form} updateForm={updateForm} teamId={teamId} />
         )}
         {step === 5 && (
           <StepReview
             form={form}
+            artists={artists}
             onSaveDraft={() => handleSave(false)}
             onMarkReady={() => handleSave(true)}
             saving={createRelease.isPending || updateRelease.isPending}

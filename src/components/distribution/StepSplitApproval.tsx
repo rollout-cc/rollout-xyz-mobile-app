@@ -2,8 +2,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertTriangle, Check, Clock, Mail, Send, Users } from "lucide-react";
-import { useSplitSongs, useSplitContributors, useUpsertSplitContributor } from "@/hooks/useSplits";
+import { AlertTriangle, Check, Clock, Mail, Send, Users, Plus } from "lucide-react";
+import { useSplitSongs, useSplitContributors, useUpsertSplitContributor, useCreateSplitProject, useCreateSplitSong } from "@/hooks/useSplits";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -12,15 +12,19 @@ import type { ReleaseFormData } from "./ReleaseWizard";
 
 interface Props {
   form: ReleaseFormData;
+  updateForm: (patch: Partial<ReleaseFormData>) => void;
   teamId: string;
 }
 
-export function StepSplitApproval({ form, teamId }: Props) {
+export function StepSplitApproval({ form, updateForm, teamId }: Props) {
   const { data: splitSongs = [] } = useSplitSongs(form.split_project_id || undefined);
   const { data: contributors = [] } = useSplitContributors(teamId);
   const upsertContributor = useUpsertSplitContributor();
+  const createSplitProject = useCreateSplitProject();
+  const createSplitSong = useCreateSplitSong();
   const [editingEmails, setEditingEmails] = useState<Record<string, string>>({});
   const [sending, setSending] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const songIds = splitSongs.map((s: any) => s.id);
   const { data: allEntries = [] } = useQuery({
@@ -73,6 +77,34 @@ export function StepSplitApproval({ form, teamId }: Props) {
     }
   };
 
+  const handleCreateSplitProject = async () => {
+    if (!form.artist_id) {
+      toast.error("Select an artist first");
+      return;
+    }
+    setCreating(true);
+    try {
+      const project = await createSplitProject.mutateAsync({
+        artist_id: form.artist_id,
+        name: form.name || "Untitled Release",
+        project_type: form.release_type,
+      });
+      // Create songs for each track
+      for (const track of form.tracks.filter((t) => t.title.trim())) {
+        await createSplitSong.mutateAsync({
+          project_id: project.id,
+          title: track.title,
+        });
+      }
+      updateForm({ split_project_id: project.id });
+      toast.success("Split project created with tracks");
+    } catch {
+      toast.error("Failed to create split project");
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const handleSendApprovals = async () => {
     const contribsWithEmail = contribList.filter((c) => c.email);
     if (contribsWithEmail.length === 0) {
@@ -81,7 +113,6 @@ export function StepSplitApproval({ form, teamId }: Props) {
     }
     setSending(true);
     try {
-      // Trigger send-split-approval for each song that has entries
       for (const song of songsWithEntries) {
         if (song.entries.length > 0) {
           await supabase.functions.invoke("send-split-approval", {
@@ -108,11 +139,20 @@ export function StepSplitApproval({ form, teamId }: Props) {
             Contributors must approve their splits before distribution
           </p>
         </div>
-        <Card className="p-6 text-center border-dashed">
-          <Users className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
-          <p className="text-sm text-muted-foreground">
-            Link a split project in Step 1 to manage contributor approvals
-          </p>
+        <Card className="p-6 text-center border-dashed space-y-4">
+          <Users className="h-8 w-8 mx-auto text-muted-foreground" />
+          <div>
+            <p className="text-sm font-medium text-foreground mb-1">
+              No split project linked
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Create a split project for this release to manage contributor splits and approvals
+            </p>
+          </div>
+          <Button onClick={handleCreateSplitProject} disabled={creating || !form.artist_id}>
+            <Plus className="h-4 w-4 mr-2" />
+            {creating ? "Creating…" : "Create Split Project"}
+          </Button>
         </Card>
       </div>
     );
@@ -152,106 +192,114 @@ export function StepSplitApproval({ form, teamId }: Props) {
           Contributors
         </h4>
         <div className="space-y-2">
-          {contribList.map((c: any) => {
-            const isEditing = editingEmails[c.id] !== undefined;
-            return (
-              <div
-                key={c.id}
-                className="flex items-center gap-3 py-2 px-3 rounded-md bg-muted/50"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{c.name}</div>
-                  {c.email && !isEditing ? (
-                    <div className="text-xs text-muted-foreground">{c.email}</div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <Input
-                        value={editingEmails[c.id] ?? c.email ?? ""}
-                        onChange={(e) =>
-                          setEditingEmails((prev) => ({
-                            ...prev,
-                            [c.id]: e.target.value,
-                          }))
-                        }
-                        placeholder="contributor@email.com"
-                        className="h-7 text-xs"
-                        type="email"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs px-2"
+          {contribList.length === 0 ? (
+            <p className="text-xs text-muted-foreground italic py-2">
+              No contributors yet — add them in the Splits tab on the artist page
+            </p>
+          ) : (
+            contribList.map((c: any) => {
+              const isEditing = editingEmails[c.id] !== undefined;
+              return (
+                <div
+                  key={c.id}
+                  className="flex items-center gap-3 py-2 px-3 rounded-md bg-muted/50"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{c.name}</div>
+                    {c.email && !isEditing ? (
+                      <div className="text-xs text-muted-foreground">{c.email}</div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <Input
+                          value={editingEmails[c.id] ?? c.email ?? ""}
+                          onChange={(e) =>
+                            setEditingEmails((prev) => ({
+                              ...prev,
+                              [c.id]: e.target.value,
+                            }))
+                          }
+                          placeholder="contributor@email.com"
+                          className="h-7 text-xs"
+                          type="email"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs px-2"
+                          onClick={() =>
+                            handleEmailUpdate(c.id, editingEmails[c.id] ?? "")
+                          }
+                          disabled={upsertContributor.isPending}
+                        >
+                          Save
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {!c.email ? (
+                      <Badge variant="destructive" className="text-[10px]">
+                        <AlertTriangle className="h-2.5 w-2.5 mr-1" />
+                        No Email
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px]">
+                        <Clock className="h-2.5 w-2.5 mr-1" />
+                        Pending
+                      </Badge>
+                    )}
+                    {c.email && !isEditing && (
+                      <button
                         onClick={() =>
-                          handleEmailUpdate(c.id, editingEmails[c.id] ?? "")
+                          setEditingEmails((prev) => ({ ...prev, [c.id]: c.email }))
                         }
-                        disabled={upsertContributor.isPending}
+                        className="text-xs text-primary hover:underline"
                       >
-                        Save
-                      </Button>
-                    </div>
-                  )}
+                        Edit
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {!c.email ? (
-                    <Badge variant="destructive" className="text-[10px]">
-                      <AlertTriangle className="h-2.5 w-2.5 mr-1" />
-                      No Email
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary" className="text-[10px]">
-                      <Clock className="h-2.5 w-2.5 mr-1" />
-                      Pending
-                    </Badge>
-                  )}
-                  {c.email && !isEditing && (
-                    <button
-                      onClick={() =>
-                        setEditingEmails((prev) => ({ ...prev, [c.id]: c.email }))
-                      }
-                      className="text-xs text-primary hover:underline"
-                    >
-                      Edit
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </Card>
 
       {/* Song split summary */}
-      <Card className="p-4 space-y-3">
-        <h4 className="text-foreground">Split Summary</h4>
-        {songsWithEntries.map((song: any) => (
-          <div key={song.id} className="border border-border rounded-lg p-3 space-y-1.5">
-            <div className="text-sm font-medium">{song.title}</div>
-            {song.entries.length === 0 ? (
-              <div className="text-xs text-muted-foreground italic">No splits defined</div>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {song.entries.map((e: any) => (
-                  <span
-                    key={e.id}
-                    className="text-xs bg-muted px-2 py-0.5 rounded-full"
-                  >
-                    {e.contributor?.name} · {e.role}
-                    {e.master_pct ? ` · M:${e.master_pct}%` : ""}
-                    {e.producer_pct ? ` · P:${e.producer_pct}%` : ""}
-                    {e.writer_pct ? ` · W:${e.writer_pct}%` : ""}
-                    {e.publisher_pct ? ` · Pub:${e.publisher_pct}%` : ""}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </Card>
+      {songsWithEntries.length > 0 && (
+        <Card className="p-4 space-y-3">
+          <h4 className="text-foreground">Split Summary</h4>
+          {songsWithEntries.map((song: any) => (
+            <div key={song.id} className="border border-border rounded-lg p-3 space-y-1.5">
+              <div className="text-sm font-medium">{song.title}</div>
+              {song.entries.length === 0 ? (
+                <div className="text-xs text-muted-foreground italic">No splits defined</div>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {song.entries.map((e: any) => (
+                    <span
+                      key={e.id}
+                      className="text-xs bg-muted px-2 py-0.5 rounded-full"
+                    >
+                      {e.contributor?.name} · {e.role}
+                      {e.master_pct ? ` · M:${e.master_pct}%` : ""}
+                      {e.producer_pct ? ` · P:${e.producer_pct}%` : ""}
+                      {e.writer_pct ? ` · W:${e.writer_pct}%` : ""}
+                      {e.publisher_pct ? ` · Pub:${e.publisher_pct}%` : ""}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </Card>
+      )}
 
       {/* Send approvals */}
       <Button
         onClick={handleSendApprovals}
-        disabled={sending || missingEmails.length === contribList.length}
+        disabled={sending || contribList.length === 0 || missingEmails.length === contribList.length}
         className="w-full"
       >
         <Send className="h-4 w-4 mr-2" />
