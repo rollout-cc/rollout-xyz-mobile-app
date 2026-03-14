@@ -1716,6 +1716,7 @@ export type Database = {
       }
       release_tracks: {
         Row: {
+          audio_url: string | null
           created_at: string
           duration_seconds: number | null
           id: string
@@ -1727,6 +1728,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          audio_url?: string | null
           created_at?: string
           duration_seconds?: number | null
           id?: string
@@ -1738,6 +1740,7 @@ export type Database = {
           title: string
         }
         Update: {
+          audio_url?: string | null
           created_at?: string
           duration_seconds?: number | null
           id?: string

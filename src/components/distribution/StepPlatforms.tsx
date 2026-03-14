@@ -2,18 +2,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { getPlatformLogo } from "./PlatformLogos";
 import type { ReleaseFormData } from "./ReleaseWizard";
-
-const PLATFORM_ICONS: Record<string, string> = {
-  "Spotify": "🟢",
-  "Apple Music": "🍎",
-  "Tidal": "🌊",
-  "Amazon Music": "📦",
-  "YouTube Music": "▶️",
-  "Deezer": "🎵",
-  "Pandora": "📻",
-  "iHeartRadio": "❤️",
-};
 
 interface Props {
   form: ReleaseFormData;
@@ -62,8 +52,10 @@ export function StepPlatforms({ form, updateForm }: Props) {
                 : "border-border opacity-60 hover:opacity-100"
             }`}
           >
-            <span className="text-2xl">{PLATFORM_ICONS[p.platform] || "🎶"}</span>
-            <span className="text-xs font-medium">{p.platform}</span>
+            <div className="h-7 w-7 flex items-center justify-center">
+              {getPlatformLogo(p.platform)}
+            </div>
+            <span className="text-xs font-medium leading-tight">{p.platform}</span>
             <Checkbox checked={p.enabled} className="mt-1" />
           </Card>
         ))}
