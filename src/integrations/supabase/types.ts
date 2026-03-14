@@ -1685,6 +1685,85 @@ export type Database = {
         }
         Relationships: []
       }
+      releases: {
+        Row: {
+          artist_id: string
+          artwork_url: string | null
+          created_at: string
+          genre: string | null
+          id: string
+          mlc_registration_status: string
+          name: string
+          pro_registration_status: string
+          record_label: string | null
+          release_date: string | null
+          release_type: string
+          secondary_genre: string | null
+          split_project_id: string | null
+          status: string
+          team_id: string
+          upc_code: string | null
+        }
+        Insert: {
+          artist_id: string
+          artwork_url?: string | null
+          created_at?: string
+          genre?: string | null
+          id?: string
+          mlc_registration_status?: string
+          name: string
+          pro_registration_status?: string
+          record_label?: string | null
+          release_date?: string | null
+          release_type?: string
+          secondary_genre?: string | null
+          split_project_id?: string | null
+          status?: string
+          team_id: string
+          upc_code?: string | null
+        }
+        Update: {
+          artist_id?: string
+          artwork_url?: string | null
+          created_at?: string
+          genre?: string | null
+          id?: string
+          mlc_registration_status?: string
+          name?: string
+          pro_registration_status?: string
+          record_label?: string | null
+          release_date?: string | null
+          release_type?: string
+          secondary_genre?: string | null
+          split_project_id?: string | null
+          status?: string
+          team_id?: string
+          upc_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "releases_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "releases_split_project_id_fkey"
+            columns: ["split_project_id"]
+            isOneToOne: false
+            referencedRelation: "split_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "releases_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rolly_conversations: {
         Row: {
           artist_id: string | null
