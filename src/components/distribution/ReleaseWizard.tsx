@@ -217,7 +217,7 @@ export function ReleaseWizard({ teamId, artists, releaseId, onClose }: Props) {
               <span className={cn(
                 "flex items-center justify-center h-5 w-5 rounded-full text-[10px] font-bold shrink-0",
                 isCurrent && "bg-primary-foreground text-primary",
-                !isCurrent && valid === true && "bg-green-500/20 text-green-600",
+                !isCurrent && valid === true && "bg-primary/20 text-primary",
                 !isCurrent && valid === false && "bg-destructive/20 text-destructive",
                 !isCurrent && valid === null && "bg-background text-muted-foreground"
               )}>
