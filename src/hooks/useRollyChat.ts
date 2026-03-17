@@ -54,7 +54,7 @@ export function useRollyChat(planMode: boolean = false) {
       if (!resp.ok) {
         const errData = await resp.json().catch(() => ({}));
         if (errData.error === "rolly_limit_reached") {
-          setMessages(prev => [...prev, { role: "assistant", content: "🔒 You've used all 10 free Rolly messages this month. Upgrade to **Icon** for unlimited access to Rolly." }]);
+          setMessages(prev => [...prev, { role: "assistant", content: "🔒 You've reached your Rolly message limit for this month. Please try again next month or contact support if you believe this is an error." }]);
           setIsLoading(false);
           return;
         }
