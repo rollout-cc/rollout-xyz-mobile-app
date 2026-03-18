@@ -207,11 +207,11 @@ export default function ArtistDetail() {
 
     if (target && current != null) {
       const progress = Math.min((current / target) * 100, 999);
-      return `${label}: ${formatObjectiveNumber(current, unit)} → ${formatObjectiveNumber(target, unit)} Goal (${Math.round(progress)}%)`;
+      return `${label}: ${formatObjectiveNumber(current, unit)} → ${formatObjectiveNumber(target, unit)} (${Math.round(progress)}% progress)`;
     }
 
     if (target) {
-      return `${label}: → ${formatObjectiveNumber(target, unit)} Goal`;
+      return `${label}: → ${formatObjectiveNumber(target, unit)}`;
     }
 
     return `${label} · Tracking`;

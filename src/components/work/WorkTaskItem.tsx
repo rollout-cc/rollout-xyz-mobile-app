@@ -13,7 +13,7 @@ import { InlineAddTrigger } from "@/components/ui/CollapsibleSection";
 import { ItemEditor, DescriptionEditor } from "@/components/ui/ItemEditor";
 import { MetaBadge } from "@/components/ui/ItemCard";
 import { ToolbarButton } from "@/components/ui/ItemPickers";
-import { cn, formatLocalDate } from "@/lib/utils";
+import { cn, formatLocalDate, parseDateFromText } from "@/lib/utils";
 import {
   DragDropContext, Droppable, Draggable, type DropResult,
 } from "@hello-pangea/dnd";
@@ -159,6 +159,7 @@ export function WorkTaskItem({
   const [title, setTitle] = useState(task?.title ?? initialTitle ?? "");
   const [description, setDescription] = useState(task?.description || "");
   const [showNew, setShowNew] = useState(false);
+  const [parsedDate, setParsedDate] = useState<Date | null>(null);
 
   useEffect(() => {
     if (task?.title !== undefined) setTitle(task.title);
@@ -210,13 +211,13 @@ export function WorkTaskItem({
         return items;
       })(),
       onSelect: (item: any, current: string) => {
-        if (String(item.id).startsWith("sub:")) {
-          const parts = String(item.id).split(":");
-          const subBudget = subBudgets.find((sb: any) => sb.id === parts[1]);
-          return current.replace(/\$\S*$/, `$${subBudget?.amount || 0} `);
-        }
-        const budget = budgets.find((b: any) => b.id === item.id);
-        return current.replace(/\$\S*$/, `$${budget?.amount || 0} `);
+        // Extract the user's typed amount after $
+        const amountMatch = current.match(/\$(\d[\d,.]*)$/);
+        const userAmount = amountMatch ? amountMatch[1] : "";
+        const label = String(item.id).startsWith("sub:")
+          ? subBudgets.find((sb: any) => sb.id === String(item.id).split(":")[1])?.label || ""
+          : budgets.find((b: any) => b.id === item.id)?.label || "";
+        return current.replace(/\$\S*$/, userAmount ? `$${userAmount} [${label}] ` : `[${label}] `);
       },
     },
   ], [teamMembers, campaigns, budgets, subBudgets]);
@@ -263,9 +264,11 @@ export function WorkTaskItem({
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
       queryClient.invalidateQueries({ queryKey: ["transactions", artistId] });
+      queryClient.invalidateQueries({ queryKey: ["artists-summary"] });
       onMutateSuccess?.();
       setTitle("");
       setDescription("");
+      setParsedDate(null);
       setShowNew(false);
       import("@/lib/notifications").then(({ notifyTaskAssigned, checkBudgetThreshold }) => {
         if (variables.assigned_to) {
@@ -344,6 +347,24 @@ export function WorkTaskItem({
     if (dollarMatch) {
       expense_amount = parseFloat(dollarMatch[1].replace(/,/g, ""));
       parsed_title = parsed_title.replace(dollarMatch[0], "").trim();
+    }
+
+    // Extract [BudgetName] bracket pattern
+    const bracketMatch = parsed_title.match(/\[([^\]]+)\]/);
+    if (bracketMatch) {
+      const budgetLabel = bracketMatch[1].trim();
+      parsed_title = parsed_title.replace(bracketMatch[0], "").trim();
+      const matchedBudget = budgets.find((b: any) => b.label.toLowerCase() === budgetLabel.toLowerCase());
+      if (matchedBudget) budget_id = matchedBudget.id;
+      if (!budget_id) {
+        const matchedSub = subBudgets.find((sb: any) => sb.label?.toLowerCase() === budgetLabel.toLowerCase());
+        if (matchedSub) {
+          sub_budget_id = matchedSub.id;
+          budget_id = matchedSub.budget_id;
+        }
+      }
+    } else if (expense_amount) {
+      // Fallback: match by amount
       const matchedSub = subBudgets.find((sb: any) => Number(sb.amount) === expense_amount);
       if (matchedSub) {
         sub_budget_id = matchedSub.id;
@@ -377,6 +398,11 @@ export function WorkTaskItem({
       parsed_title = parsed_title.replace(dateMatch[0], "").trim();
     }
 
+    // Use inline-detected date from ItemEditor if no date was parsed above
+    if (!due_date && parsedDate) {
+      due_date = formatLocalDate(parsedDate);
+    }
+
     if (isNew) {
       addTask.mutate({ title: parsed_title, description: description.trim() || undefined, due_date, expense_amount, initiative_id, assigned_to, budget_id, sub_budget_id });
     } else {
@@ -389,16 +415,18 @@ export function WorkTaskItem({
         ...(assigned_to && { assigned_to }),
       });
     }
-  }, [title, description, campaigns, teamMembers, budgets, subBudgets, isNew, addTask, updateTask]);
+  }, [title, description, campaigns, teamMembers, budgets, subBudgets, isNew, addTask, updateTask, parsedDate]);
 
   const handleCancel = () => {
     if (isNew) {
       setTitle("");
       setDescription("");
+      setParsedDate(null);
       setShowNew(false);
     } else {
       setTitle(task.title);
       setDescription(task.description || "");
+      setParsedDate(null);
       setEditing(false);
     }
     onCancel?.();
@@ -431,6 +459,9 @@ export function WorkTaskItem({
               autoFocus={autoFocus || showNew || isEditing}
               triggers={triggers}
               className="text-[15px] font-medium leading-snug"
+              enableDateDetection
+              onDateParsed={setParsedDate}
+              parsedDate={parsedDate}
             />
             <DescriptionEditor
               value={description}
