@@ -210,13 +210,13 @@ export function WorkTaskItem({
         return items;
       })(),
       onSelect: (item: any, current: string) => {
-        if (String(item.id).startsWith("sub:")) {
-          const parts = String(item.id).split(":");
-          const subBudget = subBudgets.find((sb: any) => sb.id === parts[1]);
-          return current.replace(/\$\S*$/, `$${subBudget?.amount || 0} `);
-        }
-        const budget = budgets.find((b: any) => b.id === item.id);
-        return current.replace(/\$\S*$/, `$${budget?.amount || 0} `);
+        // Extract the user's typed amount after $
+        const amountMatch = current.match(/\$(\d[\d,.]*)$/);
+        const userAmount = amountMatch ? amountMatch[1] : "";
+        const label = String(item.id).startsWith("sub:")
+          ? subBudgets.find((sb: any) => sb.id === String(item.id).split(":")[1])?.label || ""
+          : budgets.find((b: any) => b.id === item.id)?.label || "";
+        return current.replace(/\$\S*$/, userAmount ? `$${userAmount} [${label}] ` : `[${label}] `);
       },
     },
   ], [teamMembers, campaigns, budgets, subBudgets]);

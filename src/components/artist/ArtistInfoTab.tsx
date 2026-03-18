@@ -243,7 +243,7 @@ function MemberCard({
             </h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <SelectField label="Shirt Size" value={member.shirt_size ?? ""} options={["XS", "S", "M", "L", "XL", "XXL", "XXXL"]} placeholder="Select size" onSave={(v) => onUpdate({ shirt_size: v })} />
-              <Field label="Pants Size" value={member.pant_size ?? ""} placeholder="e.g. 32x30" onSave={(v) => onUpdate({ pant_size: v })} />
+              <SelectField label="Pants Size" value={member.pant_size ?? ""} options={["00","0","2","4","6","8","10","12","14","16","18","20","24","25","26","27","28","29","30","32","34","36","38","40","28x28","28x30","28x32","30x28","30x30","30x32","30x34","32x28","32x30","32x32","32x34","34x28","34x30","34x32","34x34","36x30","36x32","36x34","38x30","38x32","38x34","40x30","40x32","40x34"]} placeholder="Select size" onSave={(v) => onUpdate({ pant_size: v })} />
               <SelectField label="Shoe Size" value={member.shoe_size ?? ""} options={["6", "6.5", "7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", "11", "11.5", "12", "13", "14"]} placeholder="Select size" onSave={(v) => onUpdate({ shoe_size: v })} />
               <SelectField label="Dress Size" value={member.dress_size ?? ""} options={["XS", "S", "M", "L", "XL", "0", "2", "4", "6", "8", "10", "12", "14", "16"]} placeholder="Select size" onSave={(v) => onUpdate({ dress_size: v })} />
               <SelectField label="Hat Size" value={member.hat_size ?? ""} options={["S", "M", "L", "XL", "6 7/8", "7", "7 1/8", "7 1/4", "7 3/8", "7 1/2", "7 5/8", "7 3/4"]} placeholder="Select size" onSave={(v) => onUpdate({ hat_size: v })} />
