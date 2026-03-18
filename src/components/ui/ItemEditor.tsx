@@ -54,6 +54,9 @@ export function ItemEditor({
   enableDateDetection = false,
   onDateParsed,
   parsedDate,
+  enableHighlight = false,
+  highlightMembers = [],
+  highlightCampaigns = [],
 }: ItemEditorProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
