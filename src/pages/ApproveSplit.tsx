@@ -68,10 +68,15 @@ export default function ApproveSplit() {
   const handleAction = async (status: "approved" | "rejected") => {
     if (!entry) return;
     setSubmitting(true);
-    await supabase
+    const { error } = await supabase
       .from("split_entries")
       .update({ approval_status: status, approved_at: new Date().toISOString() })
       .eq("approval_token", token!);
+    if (error) {
+      toast.error("Failed to save your response. Please try again.");
+      setSubmitting(false);
+      return;
+    }
     setActionDone(status);
     setSubmitting(false);
   };

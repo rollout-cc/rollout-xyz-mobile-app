@@ -158,7 +158,6 @@ export default function JoinTeam() {
   };
 
   const handleAppleLogin = async () => {
-    localStorage.setItem("pending_invite_token", token || "");
     const { error } = await lovable.auth.signInWithOAuth("apple", {
       redirect_uri: `${window.location.origin}/join/${token}`,
     });
