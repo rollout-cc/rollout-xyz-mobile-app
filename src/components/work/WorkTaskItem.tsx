@@ -6,9 +6,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Trash2, Calendar, DollarSign, User,
   GripVertical, Hash, Link2, Bookmark,
-  Star, Check,
+  Star, Check, X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import { InlineAddTrigger } from "@/components/ui/CollapsibleSection";
 import { ItemEditor, DescriptionEditor } from "@/components/ui/ItemEditor";
 import { MetaBadge } from "@/components/ui/ItemCard";
