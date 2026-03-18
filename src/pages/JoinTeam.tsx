@@ -151,7 +151,6 @@ export default function JoinTeam() {
   };
 
   const handleGoogleLogin = async () => {
-    localStorage.setItem("pending_invite_token", token || "");
     const { error } = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: `${window.location.origin}/join/${token}`,
     });
