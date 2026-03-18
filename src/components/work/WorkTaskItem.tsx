@@ -415,7 +415,7 @@ export function WorkTaskItem({
         ...(assigned_to && { assigned_to }),
       });
     }
-  }, [title, description, campaigns, teamMembers, budgets, subBudgets, isNew, addTask, updateTask]);
+  }, [title, description, campaigns, teamMembers, budgets, subBudgets, isNew, addTask, updateTask, parsedDate]);
 
   const handleCancel = () => {
     if (isNew) {
