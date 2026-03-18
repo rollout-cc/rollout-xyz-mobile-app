@@ -490,7 +490,14 @@ export function WorkTaskItem({
         <div className="flex flex-col gap-2 pt-0.5 sm:flex-row sm:items-center sm:justify-between">
           {/* Quick-add toolbar: scroll horizontally on narrow screens */}
           <div className="flex items-center gap-0.5 -mx-1 px-1 min-w-0 overflow-x-auto overflow-y-hidden scrollbar-hide">
-            <ToolbarButton icon={<Star className="h-4 w-4" />} title="Priority" onClick={() => {}} />
+            <PriorityFlagButton
+              priority={task?.priority ?? null}
+              onChange={(p) => {
+                if (task?.id) {
+                  updateTask.mutate({ priority: p });
+                }
+              }}
+            />
 
             {/* Assignee: chip replaces icon when parsed */}
             {(() => {
