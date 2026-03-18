@@ -246,7 +246,8 @@ export function WorkTaskItem({
         expense_amount: parsed.expense_amount || null,
         initiative_id: parsed.initiative_id || defaultCampaignId || null,
         assigned_to: parsed.assigned_to || defaultAssignedTo || null,
-      }).select("id").single();
+        priority: parsed.priority || null,
+      } as any).select("id").single();
       if (error) throw error;
 
       if (parsed.expense_amount && artistId) {
