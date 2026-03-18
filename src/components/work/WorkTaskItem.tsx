@@ -421,10 +421,12 @@ export function WorkTaskItem({
     if (isNew) {
       setTitle("");
       setDescription("");
+      setParsedDate(null);
       setShowNew(false);
     } else {
       setTitle(task.title);
       setDescription(task.description || "");
+      setParsedDate(null);
       setEditing(false);
     }
     onCancel?.();
