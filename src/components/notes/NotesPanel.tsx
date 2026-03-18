@@ -87,6 +87,17 @@ export function NotesPanel({ autoCreate }: NotesPanelProps) {
     [selectedId, updateNote]
   );
 
+  // Auto-delete empty notes when navigating away from them
+  const cleanupEmptyNote = useCallback((noteId: string) => {
+    const note = notes.find((n) => n.id === noteId);
+    if (!note) return;
+    const hasTitle = note.title && note.title.trim().length > 0;
+    const hasContent = note.content && note.content.trim().length > 0 && note.content.trim() !== "<p></p>";
+    if (!hasTitle && !hasContent) {
+      deleteNote.mutate(noteId);
+    }
+  }, [notes, deleteNote]);
+
   const handleTitleBlur = (val: string) => {
     if (!selectedId || !isOwner) return;
     if (val !== selectedNote?.title) {
