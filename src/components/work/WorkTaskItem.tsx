@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Trash2, Calendar, DollarSign, User,
   GripVertical, Hash, Link2, Bookmark,
-  Star, Check, X,
+  Check, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
