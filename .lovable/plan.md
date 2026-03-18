@@ -1,112 +1,84 @@
 
 
-# Performance Audit: Speed & Flow Improvements
+# Bug Verification Report
 
-After reviewing the full codebase, here are the bottlenecks and concrete fixes ranked by impact.
+I reviewed each reported bug against the actual source code. Here's what's confirmed vs. not reproducible from code alone:
 
----
+## Confirmed Bugs (13 of 15)
 
-## 1. Waterfall Query Chains (HIGH IMPACT)
+### 1. Monthly Cost Repeating Decimals — CONFIRMED
+`FinanceContent.tsx` line 360: `Number(emp.annual_salary || 0) / 12` with no rounding. The `fmt()` on line 172 uses `toLocaleString()` which doesn't cap decimal places. Same for `totalPayroll` (line 159-162) and `monthlyBurn` (line 164-166).
 
-**Problem:** Several pages chain queries sequentially -- each waits for the previous to finish before starting. This creates "waterfall" loading where the page takes 3-4x longer than necessary.
+### 2. Total Budget Inconsistency — CONFIRMED
+- `FinanceContent.tsx` line 152: `budgets + team.annual_budget` (correct)
+- `RollyWorkspace.tsx` line 119: only `budgets.reduce(...)` — missing `team.annual_budget`
+- Dashboard (`KpiCardsSection`) receives `totalBudget` from `FinanceContent` so it matches Finance, but not Rolly.
 
-**Where it happens:**
-- **Overview.tsx**: Fetches `artists` first, then waits for that result before fetching `budgets`, `transactions`, and `initiatives` (all use `enabled: artists.length > 0`). That's 3 sequential hops.
-- **FinanceContent.tsx**: Same pattern -- `artists` -> `budgets`, `transactions`, `company_expenses`, etc. Plus `staffEmployment` -> `staffProfiles` is another waterfall.
-- **StaffContent.tsx**: `memberships` -> `memberProfiles`, and `artists` -> `transactions`.
+### 3. Overdue Work Inconsistency — CONFIRMED
+- Dashboard (`FinanceContent.tsx` line 170): counts ALL team tasks
+- `RollyWorkspace.tsx` line 118: filters to `myTasks` (assigned to current user only), then counts overdue from that subset
 
-**Fix:** Create a single database function (RPC) that returns all needed data for the Overview and Finance pages in one call. Alternatively, restructure queries to use the team_id directly (budgets, transactions can be fetched via joins or team_id filter) so they all fire in parallel.
+### 4. Company Budget "Remaining" + Staff Payroll Mismatch — CONFIRMED
+`CompanyBudgetSection.tsx`: `remaining = annualBudget - totalArtistAllocated - totalPayroll - totalCategorySpend`. If a "Staff Payroll" budget category also exists, payroll is double-counted. The Staff Payroll summary card shows actual payroll from `staff_employment`, but the category card shows whatever `annual_budget` was manually entered.
 
----
+### 5. Company Budget Categories $0 Spent — CONFIRMED
+Line ~202 in `CompanyBudgetSection.tsx`: `spent = companyExpenses.filter(e => e.category_id === cat.id)`. If expenses don't have `category_id` set (which is likely since it's a separate insert flow), everything shows $0.
 
-## 2. `useTeamPlan()` Calls an Edge Function Every 60 Seconds (HIGH IMPACT)
+### 6. Distribution Wizard No Step 1 Validation — CONFIRMED
+`ReleaseWizard.tsx`: The Continue button on step 0 has no disabled state. `stepValid(0)` is computed but never prevents navigation.
 
-**Problem:** `useTeamPlan()` invokes the `check-subscription` edge function (cold-start latency ~200-800ms) on every page load and re-polls every 60s. This is called from at least 8 different components. While React Query deduplicates, the edge function call itself is slow and blocks UI decisions (feature gating).
+### 7. Partners Step Premature Checkmark — CONFIRMED
+`stepValid(2)` returns `true` because all platforms default to enabled. The checkmark shows based on `valid === true` regardless of whether the user has visited the step.
 
-**Fix:**
-- Increase `staleTime` to 5 minutes (from 30s) and `refetchInterval` to 5 minutes (from 60s)
-- Cache the result in `localStorage` as a fallback so the first render doesn't block on network
+### 8. Goals Banner Wording — PARTIALLY CONFIRMED
+`ObjectiveKpiCard.tsx` renders: label, current value, and percentage. It does NOT show "Goal · Goal 500K" — it shows `{typeDef.label}` then `{currentValue} {progress}%`. The complaint about showing percentage of intermediate milestone vs. actual goal needs further investigation (may be a data issue where `objective_1_target` is set to an intermediate milestone). The rendering is technically clean but could be clearer with a "→ Target" format.
 
----
+### 9. Agenda Task Duplication — CONFIRMED
+`AgendaContent.tsx` line 192-206: `weeklyTasks` includes ALL tasks due this week, and `campaignSections` includes tasks with `initiative_id`. Tasks with both a due date this week AND an `initiative_id` appear in both lists. Public agenda (`PublicAgenda.tsx` line 88-91) has the same issue.
 
-## 3. `useTeams()` Called 14+ Times Across Components (MEDIUM IMPACT)
+### 10. Public Agenda Scroll — NEEDS VERIFICATION
+The page uses `min-h-screen` on line 94 with no `overflow` constraints visible in code. May be caused by parent container. Need to check `AppLayout` or outer wrapper — but since PublicAgenda doesn't use AppLayout, the issue might be from the `max-w-[820px]` container having no scroll behavior on mobile.
 
-**Problem:** `useTeams()` is called in 14 places. React Query deduplicates the network call, but each call triggers the hook logic and context lookups. More importantly, the `role` check pattern (`teams.find(t => t.id === teamId)?.role`) is repeated everywhere.
+### 11. Stale Onboarding Tooltip — CONFIRMED
+`RollyNudge` on overview (line 683 of Overview.tsx) passes `{ artistCount, taskCount }` to `dataSnapshot`, but the edge function's `rolly-nudge` prompt doesn't instruct the AI to suppress "getting started" nudges when data exists. It's up to the AI model's judgment, which is unreliable.
 
-**Fix:** Move `role` into `TeamContext` so components just read `const { role } = useSelectedTeam()` instead of re-querying teams and filtering.
+### 12. Invite Form Email Field — CONFIRMED
+`InviteMemberDialog.tsx` line 67-78: `inviteEmail` state controls behavior via `hasEmail` (line 78), and the button changes between "Send Invite" and "Generate Link" based on this. But the email `<Input>` has no "(optional)" label or helper text.
 
----
+### 13. Unnamed Band Member — CONFIRMED
+`ArtistInfoTab.tsx` lines 100-106: `addMember.mutate({})` auto-creates a blank member with no fields when the artist has zero members. This creates the "Unnamed Member" entry.
 
-## 4. Duplicate Data Fetching Between Pages (MEDIUM IMPACT)
+### 14. Release Plan Milestones "Unsorted" + Calendar — PARTIALLY CONFIRMED
+List view: milestones without `timeline_id` correctly go under "Unsorted" (line 183). Calendar view (line 268): `<CalendarView milestones={milestones} />` receives ALL milestones, so they should all appear. The "Unsorted" complaint is expected behavior (no timeline = unsorted). Calendar missing events could be a rendering issue in the CalendarView component — need to verify.
 
-**Problem:** Overview.tsx, FinanceContent.tsx, and StaffContent.tsx all fetch the same data (artists, transactions, tasks, memberships, profiles) with different query keys (`overview-artists` vs `finance-artists` vs `staff-artists`). This means navigating between tabs re-fetches everything from scratch.
+### 15. A&R Signed → Roster — CONFIRMED
+`PipelineBoard.tsx` line 145-151: `handleDragEnd` simply calls `onStageChange(prospectId, newStage)` with no confirmation dialog and no artist creation logic when moving to "signed".
 
-**Fix:** Unify query keys. Use `["artists", teamId]` everywhere instead of `["overview-artists", teamId]`, `["finance-artists", teamId]`, `["staff-artists", teamId]`. This lets React Query share the cache across all views.
-
----
-
-## 5. Heavy `useMemo` Computations on Every Render (MEDIUM IMPACT)
-
-**Problem:** `staffMembers` computation in Overview.tsx has an O(n*m) loop inside it (for each member, it iterates all other members to compute `maxRevenue`). With more staff, this becomes expensive.
-
-**Fix:** Pre-compute `maxRevenue` once outside the map, then pass it in. Single pass instead of quadratic.
-
----
-
-## 6. Missing Prefetching on Navigation (LOW-MEDIUM IMPACT)
-
-**Problem:** When a user clicks an artist card, it navigates to ArtistDetail which then starts fetching from scratch. No data is prefetched on hover or anticipation.
-
-**Fix:** Add `queryClient.prefetchQuery` on artist card hover/mouse-enter for the artist detail data. This makes the transition feel instant.
+### 16. Blank "New Note" Entries — CONFIRMED
+`useCreateNote` (useNotes.ts line 34-37): immediately inserts `{ title: "", content: "" }`. No cleanup on abandon. `NotesPanel.tsx` displays these as "New Note" (line 225).
 
 ---
 
-## 7. Large Bundle: DnD Library Loaded on Every Page (LOW IMPACT)
+## Implementation Plan
 
-**Problem:** `@hello-pangea/dnd` (~45KB gzipped) is imported in Roster.tsx and Overview.tsx. It's lazy-loaded via React.lazy, but it's still a significant chunk for pages that may not need drag-and-drop.
+### Files to Modify
 
-**Fix:** No immediate action needed since pages are already lazy-loaded. Could consider dynamic import of the DnD wrapper only when folders exist.
+| File | Fixes |
+|------|-------|
+| `FinanceContent.tsx` | #1 Round monthly/burn to 2 decimals |
+| `CompanyBudgetSection.tsx` | #1 #4 #5 Round payroll, fix remaining calc, wire categories to expenses |
+| `RollyWorkspace.tsx` | #2 #3 Add team.annual_budget to totalBudget, use all team tasks for overdue |
+| `ReleaseWizard.tsx` | #6 #7 Disable Continue when invalid, track visited steps |
+| `ObjectiveKpiCard.tsx` | #8 Show "Current → Target Goal (X%)" format |
+| `AgendaContent.tsx` | #9 Exclude campaign tasks from "This Week" |
+| `PublicAgenda.tsx` | #9 #10 Same dedup, add overflow-y-auto |
+| `rolly-nudge/index.ts` | #11 Add prompt rule to suppress "getting started" for active teams |
+| `InviteMemberDialog.tsx` | #12 Add "(optional)" to email label |
+| `ArtistInfoTab.tsx` | #13 Remove auto-create blank member |
+| `PipelineBoard.tsx` | #15 Add confirm dialog + auto-create artist on "signed" |
+| `NotesPanel.tsx` | #16 Auto-delete empty notes on navigate away |
+| `useNotes.ts` | #16 Filter out empty notes from list |
+| `TimelinesTab.tsx` | #14 Check CalendarView receives all milestones (already does — may need CalendarView rendering fix) |
 
----
-
-## 8. Edge Function Cold Starts (LOW IMPACT, Infrastructure)
-
-**Problem:** `spotify-artist`, `check-subscription`, `scrape-chartmasters` all have cold-start latency. The Spotify artist data is fetched via edge function on every artist detail page load (30min staleTime helps but first visit is slow).
-
-**Fix:** Already mitigated by staleTime. Could add a background sync job instead of on-demand fetching.
-
----
-
-## Implementation Plan (Ordered by Impact)
-
-### Step 1: Unify query keys across Overview/Finance/Staff
-- Change all `["finance-artists", teamId]`, `["overview-artists", teamId]`, `["staff-artists", teamId]` to `["artists-summary", teamId]`
-- Same for transactions, budgets, tasks, memberships, profiles
-- Instant cache sharing = no re-fetch when switching tabs
-
-### Step 2: Remove waterfall queries
-- Fetch budgets and transactions using `team_id` joins instead of waiting for artist IDs
-- Create an RPC function `get_team_finance_summary` that returns artists + budgets + transactions in one call
-
-### Step 3: Optimize useTeamPlan caching
-- Increase staleTime to 5min, refetchInterval to 5min
-- Add localStorage fallback for instant first render
-
-### Step 4: Move role into TeamContext
-- Eliminate 14 redundant `useTeams()` calls for role checking
-
-### Step 5: Fix quadratic staffMembers computation
-- Pre-compute maxRevenue in a single pass
-
-### Step 6: Add prefetching on artist card hover
-- `onMouseEnter` triggers `queryClient.prefetchQuery` for artist detail
-
-### Files to Edit
-1. `src/pages/Overview.tsx` -- unify query keys, remove waterfalls
-2. `src/components/overview/FinanceContent.tsx` -- unify query keys, remove waterfalls
-3. `src/components/overview/StaffContent.tsx` -- unify query keys
-4. `src/hooks/useTeamPlan.ts` -- increase cache times
-5. `src/contexts/TeamContext.tsx` -- add role to context
-6. `src/components/roster/ArtistCard.tsx` -- add prefetch on hover
-7. Database migration -- create RPC function for combined finance data
+No database migrations needed. All fixes are frontend logic and one edge function prompt update.
 
