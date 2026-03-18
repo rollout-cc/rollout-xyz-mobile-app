@@ -103,8 +103,7 @@ export function ItemEditor({
       if (lastDetectedRef.current !== dateKey) {
         lastDetectedRef.current = dateKey;
         onDateParsed(parsed.date);
-        // Strip the date text from the value
-        onChange(parsed.title);
+        // Keep sentence intact — don't strip date text while typing
       }
     }
   }, [value, enableDateDetection, onDateParsed, onChange]);
