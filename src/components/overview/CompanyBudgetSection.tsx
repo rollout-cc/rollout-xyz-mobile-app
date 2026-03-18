@@ -183,14 +183,14 @@ export function CompanyBudgetSection({ readOnly = false }: CompanyBudgetSectionP
     .reduce((s: number, c: any) => s + Number(c.annual_budget || 0), 0);
   const remaining = annualBudget - totalArtistAllocated - totalPayroll - totalCategorySpend;
 
-  const fmt = (n: number) => `$${Math.abs(n).toLocaleString()}`;
+  const fmt = (n: number) => `$${Math.abs(Math.round(n * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
   const abbr = (n: number) => {
     const abs = Math.abs(n);
     const sign = n < 0 ? "-" : "";
     if (abs >= 1_000_000_000) return `${sign}$${(abs / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}B`;
     if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
     if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
-    return `${sign}$${abs.toLocaleString()}`;
+    return `${sign}$${abs.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
   };
 
   // Categories available to add (not yet added)
