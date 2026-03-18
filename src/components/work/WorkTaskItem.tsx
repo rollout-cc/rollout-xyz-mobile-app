@@ -611,12 +611,17 @@ export function WorkTaskItem({
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className={cn(
-          "text-[15px] font-medium leading-snug",
-          task.is_completed ? "line-through text-muted-foreground" : "text-foreground"
-        )}>
-          {task.title}
-        </p>
+        <div className="flex items-center gap-1.5">
+          {task.priority != null && (
+            <PriorityFlagIcon priority={task.priority} className="h-3.5 w-3.5 shrink-0" />
+          )}
+          <p className={cn(
+            "text-[15px] font-medium leading-snug",
+            task.is_completed ? "line-through text-muted-foreground" : "text-foreground"
+          )}>
+            {task.title}
+          </p>
+        </div>
         {task.description && (
           <p className="text-sm text-muted-foreground mt-0.5 leading-snug line-clamp-2">{task.description}</p>
         )}
