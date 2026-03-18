@@ -553,6 +553,92 @@ export type Database = {
           },
         ]
       }
+      brand_alert_artist_matches: {
+        Row: {
+          alert_id: string
+          artist_id: string
+          artist_name: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          alert_id: string
+          artist_id: string
+          artist_name: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          alert_id?: string
+          artist_id?: string
+          artist_name?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_alert_artist_matches_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "brand_alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_alert_artist_matches_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brand_alerts: {
+        Row: {
+          brand_name: string
+          created_at: string
+          detected_at: string
+          drop_type: string
+          headline: string
+          id: string
+          image_url: string | null
+          is_read: boolean
+          team_id: string
+          url: string | null
+        }
+        Insert: {
+          brand_name: string
+          created_at?: string
+          detected_at?: string
+          drop_type?: string
+          headline: string
+          id?: string
+          image_url?: string | null
+          is_read?: boolean
+          team_id: string
+          url?: string | null
+        }
+        Update: {
+          brand_name?: string
+          created_at?: string
+          detected_at?: string
+          drop_type?: string
+          headline?: string
+          id?: string
+          image_url?: string | null
+          is_read?: boolean
+          team_id?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_alerts_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budgets: {
         Row: {
           amount: number
@@ -1293,6 +1379,7 @@ export type Database = {
       }
       notification_preferences: {
         Row: {
+          brand_alert_frequency: string
           budget_alert_email: boolean
           created_at: string
           daily_checkin_email: boolean
@@ -1313,6 +1400,7 @@ export type Database = {
           weekly_summary_email: boolean
         }
         Insert: {
+          brand_alert_frequency?: string
           budget_alert_email?: boolean
           created_at?: string
           daily_checkin_email?: boolean
@@ -1333,6 +1421,7 @@ export type Database = {
           weekly_summary_email?: boolean
         }
         Update: {
+          brand_alert_frequency?: string
           budget_alert_email?: boolean
           created_at?: string
           daily_checkin_email?: boolean
@@ -2322,6 +2411,7 @@ export type Database = {
           id: string
           initiative_id: string | null
           is_completed: boolean
+          priority: number | null
           team_id: string
           title: string
           updated_at: string
@@ -2337,6 +2427,7 @@ export type Database = {
           id?: string
           initiative_id?: string | null
           is_completed?: boolean
+          priority?: number | null
           team_id: string
           title: string
           updated_at?: string
@@ -2352,6 +2443,7 @@ export type Database = {
           id?: string
           initiative_id?: string | null
           is_completed?: boolean
+          priority?: number | null
           team_id?: string
           title?: string
           updated_at?: string

@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Trash2, Calendar, DollarSign, User,
   GripVertical, Hash, Link2, Bookmark,
-  Star, Check, X,
+  Check, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -246,7 +246,8 @@ export function WorkTaskItem({
         expense_amount: parsed.expense_amount || null,
         initiative_id: parsed.initiative_id || defaultCampaignId || null,
         assigned_to: parsed.assigned_to || defaultAssignedTo || null,
-      }).select("id").single();
+        priority: parsed.priority || null,
+      } as any).select("id").single();
       if (error) throw error;
 
       if (parsed.expense_amount && artistId) {
@@ -463,6 +464,9 @@ export function WorkTaskItem({
               enableDateDetection
               onDateParsed={setParsedDate}
               parsedDate={parsedDate}
+              enableHighlight
+              highlightMembers={teamMembers.map((m: any) => m.full_name || "")}
+              highlightCampaigns={campaigns.map((c: any) => c.name)}
             />
             <DescriptionEditor
               value={description}
@@ -486,7 +490,14 @@ export function WorkTaskItem({
         <div className="flex flex-col gap-2 pt-0.5 sm:flex-row sm:items-center sm:justify-between">
           {/* Quick-add toolbar: scroll horizontally on narrow screens */}
           <div className="flex items-center gap-0.5 -mx-1 px-1 min-w-0 overflow-x-auto overflow-y-hidden scrollbar-hide">
-            <ToolbarButton icon={<Star className="h-4 w-4" />} title="Priority" onClick={() => {}} />
+            <PriorityFlagButton
+              priority={task?.priority ?? null}
+              onChange={(p) => {
+                if (task?.id) {
+                  updateTask.mutate({ priority: p });
+                }
+              }}
+            />
 
             {/* Assignee: chip replaces icon when parsed */}
             {(() => {
@@ -574,6 +585,9 @@ export function WorkTaskItem({
       className={cn(
         "flex items-start gap-3 py-3.5 group cursor-pointer",
         task?.is_completed && "opacity-50",
+        task?.priority === 1 && "border-l-2 border-red-500 pl-2",
+        task?.priority === 2 && "border-l-2 border-amber-400 pl-2",
+        task?.priority === 3 && "border-l-2 border-emerald-500 pl-2",
       )}
       onClick={enterEdit}
     >
@@ -597,12 +611,17 @@ export function WorkTaskItem({
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className={cn(
-          "text-[15px] font-medium leading-snug",
-          task.is_completed ? "line-through text-muted-foreground" : "text-foreground"
-        )}>
-          {task.title}
-        </p>
+        <div className="flex items-center gap-1.5">
+          {task.priority != null && (
+            <PriorityFlagIcon priority={task.priority} className="h-3.5 w-3.5 shrink-0" />
+          )}
+          <p className={cn(
+            "text-[15px] font-medium leading-snug",
+            task.is_completed ? "line-through text-muted-foreground" : "text-foreground"
+          )}>
+            {task.title}
+          </p>
+        </div>
         {task.description && (
           <p className="text-sm text-muted-foreground mt-0.5 leading-snug line-clamp-2">{task.description}</p>
         )}
@@ -658,5 +677,50 @@ function MetadataChip({ label, icon, onClear }: { label: string; icon: React.Rea
         <X className="h-2.5 w-2.5" />
       </button>
     </span>
+  );
+}
+
+/** Rollout flag SVG used for priority icons */
+function RolloutFlagSvg({ className, fill }: { className?: string; fill: string }) {
+  return (
+    <svg className={className} viewBox="0 0 72 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M49.9467 12.1212L49.435 15.3318C43.4592 10.8369 39.7737 11.6426 35.2538 13.9567C27.2677 18.0518 22.9427 12.9026 22.9427 12.9026L19.0745 30.6158C19.0745 30.6158 26.4697 37.8792 33.5725 32.3362C39.5666 27.6596 44.9577 26.7993 47.3578 28.4228L43.4774 52L46.2004 51.9455L52.9255 12L49.9589 12.1151L49.9467 12.1212Z"
+        fill={fill}
+      />
+    </svg>
+  );
+}
+
+/** Priority flag icon for read mode */
+function PriorityFlagIcon({ priority, className }: { priority: number; className?: string }) {
+  const fill = priority === 1 ? "#ef4444" : priority === 2 ? "#f59e0b" : "#10b981";
+  return <RolloutFlagSvg className={className} fill={fill} />;
+}
+
+/** Priority flag button for toolbar — cycles NULL → 1 → 2 → 3 → NULL */
+function PriorityFlagButton({ priority, onChange }: { priority: number | null; onChange: (p: number | null) => void }) {
+  const cycle = () => {
+    if (priority === null || priority === undefined) onChange(1);
+    else if (priority === 1) onChange(2);
+    else if (priority === 2) onChange(3);
+    else onChange(null);
+  };
+
+  const fill = priority === 1 ? "#ef4444" : priority === 2 ? "#f59e0b" : priority === 3 ? "#10b981" : "currentColor";
+  const title = priority === 1 ? "Priority 1 (Red)" : priority === 2 ? "Priority 2 (Yellow)" : priority === 3 ? "Priority 3 (Green)" : "Set priority";
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); cycle(); }}
+      className={cn(
+        "p-2 rounded-md hover:bg-accent transition-colors shrink-0",
+        priority === null || priority === undefined ? "text-muted-foreground/40" : ""
+      )}
+      title={title}
+    >
+      <RolloutFlagSvg className="h-4 w-4" fill={fill} />
+    </button>
   );
 }

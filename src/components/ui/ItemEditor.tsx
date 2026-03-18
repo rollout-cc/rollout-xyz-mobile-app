@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn, parseDateFromText } from "@/lib/utils";
 import { format } from "date-fns";
@@ -33,6 +33,12 @@ interface ItemEditorProps {
   onDateParsed?: (date: Date | null) => void;
   /** Externally controlled parsed date (for display) */
   parsedDate?: Date | null;
+  /** Enable inline highlight overlay for parsed tokens */
+  enableHighlight?: boolean;
+  /** Team member names for highlight matching */
+  highlightMembers?: string[];
+  /** Campaign names for highlight matching */
+  highlightCampaigns?: string[];
 }
 
 export function ItemEditor({
@@ -48,6 +54,9 @@ export function ItemEditor({
   enableDateDetection = false,
   onDateParsed,
   parsedDate,
+  enableHighlight = false,
+  highlightMembers = [],
+  highlightCampaigns = [],
 }: ItemEditorProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -177,8 +186,26 @@ export function ItemEditor({
     onDateParsed?.(null);
   }, [onDateParsed]);
 
+  const highlightedTokens = useMemo(() => {
+    if (!enableHighlight || !value) return null;
+    return buildHighlightOverlay(value, highlightMembers, highlightCampaigns);
+  }, [enableHighlight, value, highlightMembers, highlightCampaigns]);
+
   return (
     <div className="relative flex-1 min-w-0">
+      {/* Highlight overlay — sits behind input, mirrors text with colored spans */}
+      {enableHighlight && value && (
+        <div
+          aria-hidden
+          className={cn(
+            "absolute inset-0 pointer-events-none whitespace-pre overflow-hidden",
+            className
+          )}
+          style={{ lineHeight: "inherit" }}
+        >
+          {highlightedTokens}
+        </div>
+      )}
       <input
         ref={inputRef}
         value={value}
@@ -187,6 +214,7 @@ export function ItemEditor({
         placeholder={placeholder}
         className={cn(
           "w-full min-w-0 bg-transparent outline-none text-sm placeholder:text-muted-foreground/50",
+          enableHighlight && value ? "text-transparent caret-foreground" : "",
           className
         )}
       />
@@ -220,6 +248,66 @@ export function ItemEditor({
       )}
     </div>
   );
+}
+
+/** Build highlighted overlay from text, wrapping detected tokens in colored spans */
+function buildHighlightOverlay(
+  text: string,
+  memberNames: string[],
+  campaignNames: string[]
+): ReactNode[] {
+  // Token patterns: @mention, #campaign, $amount [label], date phrases
+  const dateWords = "(?:today|tomorrow|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday|next\\s+(?:week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|this\\s+weekend|next\\s+weekend|(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\\s+\\d{1,2}(?:st|nd|rd|th)?|due\\s+\\S+)";
+  const patterns = [
+    { regex: new RegExp(`@(\\S+(?:\\s\\S+)?)`, "gi"), cls: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold rounded px-0.5" },
+    { regex: new RegExp(`(${dateWords})`, "gi"), cls: "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 font-bold rounded px-0.5" },
+    { regex: new RegExp(`#(\\S+)`, "gi"), cls: "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 font-bold rounded px-0.5" },
+    { regex: new RegExp(`\\$\\d[\\d,.]*(?:\\s*\\[[^\\]]+\\])?`, "gi"), cls: "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-bold rounded px-0.5" },
+  ];
+
+  // Find all matches with positions
+  type Match = { start: number; end: number; cls: string; text: string };
+  const matches: Match[] = [];
+
+  for (const { regex, cls } of patterns) {
+    let m: RegExpExecArray | null;
+    const re = new RegExp(regex.source, regex.flags);
+    while ((m = re.exec(text)) !== null) {
+      matches.push({ start: m.index, end: m.index + m[0].length, cls, text: m[0] });
+    }
+  }
+
+  // Sort by position
+  matches.sort((a, b) => a.start - b.start);
+
+  // Remove overlapping matches
+  const filtered: Match[] = [];
+  let lastEnd = 0;
+  for (const m of matches) {
+    if (m.start >= lastEnd) {
+      filtered.push(m);
+      lastEnd = m.end;
+    }
+  }
+
+  // Build JSX
+  const result: ReactNode[] = [];
+  let cursor = 0;
+  for (let i = 0; i < filtered.length; i++) {
+    const m = filtered[i];
+    if (cursor < m.start) {
+      result.push(<span key={`t-${i}`}>{text.slice(cursor, m.start)}</span>);
+    }
+    result.push(
+      <span key={`h-${i}`} className={m.cls}>{m.text}</span>
+    );
+    cursor = m.end;
+  }
+  if (cursor < text.length) {
+    result.push(<span key="tail">{text.slice(cursor)}</span>);
+  }
+
+  return result;
 }
 
 /** Date chip pill shown inline when a date is detected */
