@@ -37,21 +37,21 @@ export default function ApproveSplit() {
     }
 
     // Fetch song
-    const { data: songData } = await supabase
+    const { data: songData, error: songError } = await supabase
       .from("split_songs")
       .select("*")
       .eq("id", entryData.song_id)
       .single();
-    setSong(songData);
+    if (!songError) setSong(songData);
 
     if (songData) {
       // Fetch project
-      const { data: projData } = await supabase
+      const { data: projData, error: projError } = await supabase
         .from("split_projects")
         .select("*, artist:artists(name)")
         .eq("id", songData.project_id)
         .single();
-      setProject(projData);
+      if (!projError) setProject(projData);
 
       // Fetch all entries for this song
       const { data: allEntriesData } = await supabase
