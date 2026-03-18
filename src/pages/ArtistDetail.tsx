@@ -200,21 +200,20 @@ export default function ArtistDetail() {
     const type = (artist as any)[typeKey] as string | null;
     if (!type) return null;
     const meta = OBJECTIVE_TYPES.find((t) => t.value === type);
-    const label = meta?.label ?? "Goal";
     const unit = meta?.unit ?? "";
     const target = (artist as any)[targetKey] as number | null;
     const current = getObjectiveCurrentValue(type);
 
     if (target && current != null) {
       const progress = Math.min((current / target) * 100, 999);
-      return `${label}: ${formatObjectiveNumber(current, unit)} → ${formatObjectiveNumber(target, unit)} (${Math.round(progress)}% progress)`;
+      return `${formatObjectiveNumber(current, unit)} → ${formatObjectiveNumber(target, unit)} (${Math.round(progress)}% progress)`;
     }
 
     if (target) {
-      return `${label}: → ${formatObjectiveNumber(target, unit)}`;
+      return `→ ${formatObjectiveNumber(target, unit)}`;
     }
 
-    return `${label} · Tracking`;
+    return null;
   };
 
   const objectiveSummary1 = getObjectiveSummary(1);
