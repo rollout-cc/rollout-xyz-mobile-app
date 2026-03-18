@@ -345,6 +345,24 @@ export function WorkTaskItem({
     if (dollarMatch) {
       expense_amount = parseFloat(dollarMatch[1].replace(/,/g, ""));
       parsed_title = parsed_title.replace(dollarMatch[0], "").trim();
+    }
+
+    // Extract [BudgetName] bracket pattern
+    const bracketMatch = parsed_title.match(/\[([^\]]+)\]/);
+    if (bracketMatch) {
+      const budgetLabel = bracketMatch[1].trim();
+      parsed_title = parsed_title.replace(bracketMatch[0], "").trim();
+      const matchedBudget = budgets.find((b: any) => b.label.toLowerCase() === budgetLabel.toLowerCase());
+      if (matchedBudget) budget_id = matchedBudget.id;
+      if (!budget_id) {
+        const matchedSub = subBudgets.find((sb: any) => sb.label?.toLowerCase() === budgetLabel.toLowerCase());
+        if (matchedSub) {
+          sub_budget_id = matchedSub.id;
+          budget_id = matchedSub.budget_id;
+        }
+      }
+    } else if (expense_amount) {
+      // Fallback: match by amount
       const matchedSub = subBudgets.find((sb: any) => Number(sb.amount) === expense_amount);
       if (matchedSub) {
         sub_budget_id = matchedSub.id;
