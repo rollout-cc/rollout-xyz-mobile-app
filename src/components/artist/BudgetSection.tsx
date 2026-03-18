@@ -472,3 +472,20 @@ export function useTotalBudget(artistId: string) {
   });
   return budgets.reduce((sum: number, b: any) => sum + Number(b.amount), 0);
 }
+
+export function useTotalSpent(artistId: string) {
+  const { data: transactions = [] } = useQuery({
+    queryKey: ["transactions-spent", artistId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("amount")
+        .eq("artist_id", artistId)
+        .eq("type", "expense");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!artistId,
+  });
+  return transactions.reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+}
