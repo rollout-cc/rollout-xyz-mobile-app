@@ -1,53 +1,112 @@
 
 
-# Implementation Plan — 5 Refined Changes
+# Performance Audit: Speed & Flow Improvements
 
-## 1. Goals Banner — Clean Text + Amber Progress Bar
-**File**: `src/pages/ArtistDetail.tsx` (lines 197-218)
-- Simplify `getObjectiveSummary()` to return ONLY `"138.7K → 500K (27% progress)"` — no label prefix, no colon, no "Goal" word.
+After reviewing the full codebase, here are the bottlenecks and concrete fixes ranked by impact.
 
-**File**: `src/components/artist/ObjectiveKpiCard.tsx` (line 298)
-- Change `"bg-primary"` to `"bg-amber-400"` for the progress bar fill color.
+---
 
-## 2. Clothing Brands — Seed from Blue in Green + User's List
-**Method**: Database migration to INSERT ~70 brands from blueingreensoho.com (Kapital, Needles, orSlow, Engineered Garments, Pure Blue Japan, etc.) using `ON CONFLICT (name) DO NOTHING`. No code changes needed.
+## 1. Waterfall Query Chains (HIGH IMPACT)
 
-## 3. Task Editor — Parsed Metadata Replaces Icons in Toolbar
+**Problem:** Several pages chain queries sequentially -- each waits for the previous to finish before starting. This creates "waterfall" loading where the page takes 3-4x longer than necessary.
 
-**Current**: `ItemEditor` strips date text from input (line 107: `onChange(parsed.title)`). Parsed date renders as a chip inline next to the input. Toolbar shows static icons (Calendar, User, $, #).
+**Where it happens:**
+- **Overview.tsx**: Fetches `artists` first, then waits for that result before fetching `budgets`, `transactions`, and `initiatives` (all use `enabled: artists.length > 0`). That's 3 sequential hops.
+- **FinanceContent.tsx**: Same pattern -- `artists` -> `budgets`, `transactions`, `company_expenses`, etc. Plus `staffEmployment` -> `staffProfiles` is another waterfall.
+- **StaffContent.tsx**: `memberships` -> `memberProfiles`, and `artists` -> `transactions`.
 
-**New behavior**:
-- **ItemEditor.tsx** (line 107): Remove `onChange(parsed.title)` — keep sentence intact, only call `onDateParsed(parsed.date)`.
-- **ItemEditor.tsx** (lines 195-197): Remove the inline `DateChip` from next to the input.
-- **WorkTaskItem.tsx** (lines 487-494): In the toolbar row, replace each icon with a filled chip when its metadata is set:
-  - Calendar icon → when `parsedDate` is set, show a clickable chip like `"Mar 27"` in its place. Clicking opens date re-entry.
-  - User icon → when `@name` is detected in text, show assignee name chip replacing the User icon.
-  - $ icon → when `$amount [Budget]` is detected, show `"$150 Marketing"` chip replacing the $ icon.
-  - # icon → when `#campaign` is detected, show campaign name chip replacing the # icon.
-- Add state tracking for `parsedAssignee` and `parsedBudget` and `parsedCampaign` alongside existing `parsedDate`.
-- Each chip has an X to clear and revert to the icon. Clicking the chip focuses the input with the trigger character appended.
-- Apply same inline detection logic: when `@name` matches a team member, set `parsedAssignee` state. When `$amount [label]` detected, set `parsedBudget`. When `#campaign` detected, set `parsedCampaign`.
-- `parseAndSubmit()` uses these states for the final values, stripping parsed tokens from the title at save time only.
+**Fix:** Create a single database function (RPC) that returns all needed data for the Overview and Finance pages in one call. Alternatively, restructure queries to use the team_id directly (budgets, transactions can be fetched via joins or team_id filter) so they all fire in parallel.
 
-## 4. Objectives Panel — Goal Types + Notes Only
+---
 
-**File**: `src/components/artist/ObjectiveKpiCard.tsx` (lines 9-14)
-- Add two new objective types to `OBJECTIVE_TYPES`:
-  - `{ value: "merch_revenue", label: "Merch Revenue", icon: DollarSign, unit: "$" }`
-  - `{ value: "gross_revenue", label: "Gross Revenue", icon: DollarSign, unit: "$" }`
+## 2. `useTeamPlan()` Calls an Edge Function Every 60 Seconds (HIGH IMPACT)
 
-**File**: `src/pages/ArtistDetail.tsx` (lines 611-655)
-- Remove the `textFields` array with Primary/Secondary Goal/Focus.
-- Replace with a single notes section: one `InlineField` per objective slot (using `primary_goal` and `secondary_goal` columns). Label as "Notes" under each objective card.
-- The ObjectiveKpiCard picker (banner "Set Goal") already renders `OBJECTIVE_TYPES` — the new types will appear automatically.
+**Problem:** `useTeamPlan()` invokes the `check-subscription` edge function (cold-start latency ~200-800ms) on every page load and re-polls every 60s. This is called from at least 8 different components. While React Query deduplicates, the edge function call itself is slow and blocks UI decisions (feature gating).
 
-## 5. Budget Pill — Show Remaining on Hover (Content Swap)
+**Fix:**
+- Increase `staleTime` to 5 minutes (from 30s) and `refetchInterval` to 5 minutes (from 60s)
+- Cache the result in `localStorage` as a fallback so the first render doesn't block on network
 
-**File**: `src/pages/ArtistDetail.tsx` (lines 443-456)
-- Add state: `const [budgetHover, setBudgetHover] = useState(false)`
-- Query total expenses for artist (reuse `useQuery` for `transactions` with `type: "expense"`)
-- On the budget `<div>`, add `onMouseEnter` / `onMouseLeave` to toggle `budgetHover`
-- When `budgetHover === false`: show current content ("Budget" label + `$90K`)
-- When `budgetHover === true`: swap content to show "Remaining" label + `$X` (totalBudget - totalSpent), same styling
-- No tooltip — the box content itself changes on hover
+---
+
+## 3. `useTeams()` Called 14+ Times Across Components (MEDIUM IMPACT)
+
+**Problem:** `useTeams()` is called in 14 places. React Query deduplicates the network call, but each call triggers the hook logic and context lookups. More importantly, the `role` check pattern (`teams.find(t => t.id === teamId)?.role`) is repeated everywhere.
+
+**Fix:** Move `role` into `TeamContext` so components just read `const { role } = useSelectedTeam()` instead of re-querying teams and filtering.
+
+---
+
+## 4. Duplicate Data Fetching Between Pages (MEDIUM IMPACT)
+
+**Problem:** Overview.tsx, FinanceContent.tsx, and StaffContent.tsx all fetch the same data (artists, transactions, tasks, memberships, profiles) with different query keys (`overview-artists` vs `finance-artists` vs `staff-artists`). This means navigating between tabs re-fetches everything from scratch.
+
+**Fix:** Unify query keys. Use `["artists", teamId]` everywhere instead of `["overview-artists", teamId]`, `["finance-artists", teamId]`, `["staff-artists", teamId]`. This lets React Query share the cache across all views.
+
+---
+
+## 5. Heavy `useMemo` Computations on Every Render (MEDIUM IMPACT)
+
+**Problem:** `staffMembers` computation in Overview.tsx has an O(n*m) loop inside it (for each member, it iterates all other members to compute `maxRevenue`). With more staff, this becomes expensive.
+
+**Fix:** Pre-compute `maxRevenue` once outside the map, then pass it in. Single pass instead of quadratic.
+
+---
+
+## 6. Missing Prefetching on Navigation (LOW-MEDIUM IMPACT)
+
+**Problem:** When a user clicks an artist card, it navigates to ArtistDetail which then starts fetching from scratch. No data is prefetched on hover or anticipation.
+
+**Fix:** Add `queryClient.prefetchQuery` on artist card hover/mouse-enter for the artist detail data. This makes the transition feel instant.
+
+---
+
+## 7. Large Bundle: DnD Library Loaded on Every Page (LOW IMPACT)
+
+**Problem:** `@hello-pangea/dnd` (~45KB gzipped) is imported in Roster.tsx and Overview.tsx. It's lazy-loaded via React.lazy, but it's still a significant chunk for pages that may not need drag-and-drop.
+
+**Fix:** No immediate action needed since pages are already lazy-loaded. Could consider dynamic import of the DnD wrapper only when folders exist.
+
+---
+
+## 8. Edge Function Cold Starts (LOW IMPACT, Infrastructure)
+
+**Problem:** `spotify-artist`, `check-subscription`, `scrape-chartmasters` all have cold-start latency. The Spotify artist data is fetched via edge function on every artist detail page load (30min staleTime helps but first visit is slow).
+
+**Fix:** Already mitigated by staleTime. Could add a background sync job instead of on-demand fetching.
+
+---
+
+## Implementation Plan (Ordered by Impact)
+
+### Step 1: Unify query keys across Overview/Finance/Staff
+- Change all `["finance-artists", teamId]`, `["overview-artists", teamId]`, `["staff-artists", teamId]` to `["artists-summary", teamId]`
+- Same for transactions, budgets, tasks, memberships, profiles
+- Instant cache sharing = no re-fetch when switching tabs
+
+### Step 2: Remove waterfall queries
+- Fetch budgets and transactions using `team_id` joins instead of waiting for artist IDs
+- Create an RPC function `get_team_finance_summary` that returns artists + budgets + transactions in one call
+
+### Step 3: Optimize useTeamPlan caching
+- Increase staleTime to 5min, refetchInterval to 5min
+- Add localStorage fallback for instant first render
+
+### Step 4: Move role into TeamContext
+- Eliminate 14 redundant `useTeams()` calls for role checking
+
+### Step 5: Fix quadratic staffMembers computation
+- Pre-compute maxRevenue in a single pass
+
+### Step 6: Add prefetching on artist card hover
+- `onMouseEnter` triggers `queryClient.prefetchQuery` for artist detail
+
+### Files to Edit
+1. `src/pages/Overview.tsx` -- unify query keys, remove waterfalls
+2. `src/components/overview/FinanceContent.tsx` -- unify query keys, remove waterfalls
+3. `src/components/overview/StaffContent.tsx` -- unify query keys
+4. `src/hooks/useTeamPlan.ts` -- increase cache times
+5. `src/contexts/TeamContext.tsx` -- add role to context
+6. `src/components/roster/ArtistCard.tsx` -- add prefetch on hover
+7. Database migration -- create RPC function for combined finance data
 

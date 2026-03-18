@@ -103,8 +103,7 @@ export function ItemEditor({
       if (lastDetectedRef.current !== dateKey) {
         lastDetectedRef.current = dateKey;
         onDateParsed(parsed.date);
-        // Strip the date text from the value
-        onChange(parsed.title);
+        // Keep sentence intact — don't strip date text while typing
       }
     }
   }, [value, enableDateDetection, onDateParsed, onChange]);
@@ -180,22 +179,17 @@ export function ItemEditor({
 
   return (
     <div className="relative flex-1 min-w-0">
-      <div className="flex items-center gap-2 min-w-0">
-        <input
-          ref={inputRef}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          className={cn(
-            "w-full min-w-0 bg-transparent outline-none text-sm placeholder:text-muted-foreground/50",
-            className
-          )}
-        />
-        {enableDateDetection && parsedDate && (
-          <DateChip date={parsedDate} onClear={clearDate} />
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        className={cn(
+          "w-full min-w-0 bg-transparent outline-none text-sm placeholder:text-muted-foreground/50",
+          className
         )}
-      </div>
+      />
       {activeTrigger && filteredItems.length > 0 && dropdownPos && createPortal(
         <div
           ref={dropdownRef}

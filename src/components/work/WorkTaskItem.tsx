@@ -6,9 +6,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Trash2, Calendar, DollarSign, User,
   GripVertical, Hash, Link2, Bookmark,
-  Star, Check,
+  Star, Check, X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import { InlineAddTrigger } from "@/components/ui/CollapsibleSection";
 import { ItemEditor, DescriptionEditor } from "@/components/ui/ItemEditor";
 import { MetaBadge } from "@/components/ui/ItemCard";
@@ -486,10 +487,69 @@ export function WorkTaskItem({
           {/* Quick-add toolbar: scroll horizontally on narrow screens */}
           <div className="flex items-center gap-0.5 -mx-1 px-1 min-w-0 overflow-x-auto overflow-y-hidden scrollbar-hide">
             <ToolbarButton icon={<Star className="h-4 w-4" />} title="Priority" onClick={() => {}} />
-            <ToolbarButton icon={<User className="h-4 w-4" />} title="Assign (@)" onClick={() => setTitle((prev) => prev + " @")} />
-            <ToolbarButton icon={<Calendar className="h-4 w-4" />} title="Due date" onClick={() => setTitle((prev) => prev + " due ")} />
-            <ToolbarButton icon={<Hash className="h-4 w-4" />} title="Campaign (#)" onClick={() => setTitle((prev) => prev + " #")} />
-            <ToolbarButton icon={<DollarSign className="h-4 w-4" />} title="Cost ($)" onClick={() => setTitle((prev) => prev + " $")} />
+
+            {/* Assignee: chip replaces icon when parsed */}
+            {(() => {
+              const atMatch = title.match(/@(\S+(?:\s\S+)?)/);
+              const foundAssignee = atMatch ? teamMembers.find((m: any) => m.full_name?.toLowerCase().startsWith(atMatch[1].toLowerCase())) : null;
+              if (foundAssignee) {
+                return (
+                  <MetadataChip
+                    label={foundAssignee.full_name}
+                    icon={<User className="h-2.5 w-2.5" />}
+                    onClear={() => setTitle((prev) => prev.replace(/@\S+(?:\s\S+)?/, "").trim())}
+                  />
+                );
+              }
+              return <ToolbarButton icon={<User className="h-4 w-4" />} title="Assign (@)" onClick={() => setTitle((prev) => prev + " @")} />;
+            })()}
+
+            {/* Date: chip replaces icon when parsed */}
+            {parsedDate ? (
+              <MetadataChip
+                label={format(parsedDate, "MMM d")}
+                icon={<Calendar className="h-2.5 w-2.5" />}
+                onClear={() => setParsedDate(null)}
+              />
+            ) : (
+              <ToolbarButton icon={<Calendar className="h-4 w-4" />} title="Due date" onClick={() => setTitle((prev) => prev + " due ")} />
+            )}
+
+            {/* Campaign: chip replaces icon when parsed */}
+            {(() => {
+              const hashMatch = title.match(/#(\S+)/);
+              const foundCampaign = hashMatch ? campaigns.find((c: any) => c.name.toLowerCase().startsWith(hashMatch[1].toLowerCase())) : null;
+              if (foundCampaign) {
+                return (
+                  <MetadataChip
+                    label={foundCampaign.name}
+                    icon={<Hash className="h-2.5 w-2.5" />}
+                    onClear={() => setTitle((prev) => prev.replace(/#\S+/, "").trim())}
+                  />
+                );
+              }
+              return <ToolbarButton icon={<Hash className="h-4 w-4" />} title="Campaign (#)" onClick={() => setTitle((prev) => prev + " #")} />;
+            })()}
+
+            {/* Budget: chip replaces icon when parsed */}
+            {(() => {
+              const dollarMatch = title.match(/\$(\d[\d,.]*)/);
+              const bracketMatch = title.match(/\[([^\]]+)\]/);
+              if (dollarMatch || bracketMatch) {
+                const chipLabel = bracketMatch
+                  ? `$${dollarMatch?.[1] || ""} ${bracketMatch[1]}`.trim()
+                  : `$${dollarMatch?.[1] || ""}`;
+                return (
+                  <MetadataChip
+                    label={chipLabel}
+                    icon={<DollarSign className="h-2.5 w-2.5" />}
+                    onClear={() => setTitle((prev) => prev.replace(/\$\d[\d,.]*/, "").replace(/\[[^\]]+\]/, "").replace(/\s{2,}/g, " ").trim())}
+                  />
+                );
+              }
+              return <ToolbarButton icon={<DollarSign className="h-4 w-4" />} title="Cost ($)" onClick={() => setTitle((prev) => prev + " $")} />;
+            })()}
+
             <ToolbarButton icon={<Link2 className="h-4 w-4" />} title="Link" onClick={() => {}} />
             <ToolbarButton icon={<Bookmark className="h-4 w-4" />} title="Timeline" onClick={() => {}} />
           </div>
@@ -581,5 +641,22 @@ export function WorkTaskItem({
         <Trash2 className="h-4 w-4" />
       </button>
     </div>
+  );
+}
+
+/** Small metadata chip that replaces a toolbar icon when metadata is detected */
+function MetadataChip({ label, icon, onClear }: { label: string; icon: React.ReactNode; onClear: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary shrink-0 whitespace-nowrap">
+      {icon}
+      {label}
+      <button
+        onClick={(e) => { e.stopPropagation(); onClear(); }}
+        className="ml-0.5 hover:text-primary/70 transition-colors"
+        type="button"
+      >
+        <X className="h-2.5 w-2.5" />
+      </button>
+    </span>
   );
 }

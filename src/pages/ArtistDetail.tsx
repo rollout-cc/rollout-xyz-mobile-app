@@ -25,7 +25,7 @@ import { ArtistInfoTab } from "@/components/artist/ArtistInfoTab";
 import { WorkTab } from "@/components/artist/WorkTab";
 import { LinksTab } from "@/components/artist/LinksTab";
 import { TimelinesTab } from "@/components/artist/TimelinesTab";
-import { BudgetSection, useTotalBudget } from "@/components/artist/BudgetSection";
+import { BudgetSection, useTotalBudget, useTotalSpent } from "@/components/artist/BudgetSection";
 import { BannerUpload } from "@/components/artist/BannerUpload";
 import { FinanceTab } from "@/components/artist/FinanceTab";
 import { InvoiceCreator } from "@/components/finance/InvoiceCreator";
@@ -60,6 +60,7 @@ export default function ArtistDetail() {
   const { data: spotifyData, refetch: refetchSpotify, isFetching: isRefreshingSpotify } = useSpotifyArtist(artist?.spotify_id);
   const { data: perfSnapshot } = useArtistPerformance(artistId!, artist?.spotify_id, artist?.name);
   const totalBudget = useTotalBudget(artistId!);
+  const totalSpent = useTotalSpent(artistId!);
   const { limits } = useTeamPlan();
   const [activeView, setActiveView] = useState<ActiveView>(fromFinance ? "money" : "work");
   const [moneySubTab, setMoneySubTab] = useState<MoneySubTab>(fromFinance ? "accounting" : "accounting");
@@ -200,21 +201,20 @@ export default function ArtistDetail() {
     const type = (artist as any)[typeKey] as string | null;
     if (!type) return null;
     const meta = OBJECTIVE_TYPES.find((t) => t.value === type);
-    const label = meta?.label ?? "Goal";
     const unit = meta?.unit ?? "";
     const target = (artist as any)[targetKey] as number | null;
     const current = getObjectiveCurrentValue(type);
 
     if (target && current != null) {
       const progress = Math.min((current / target) * 100, 999);
-      return `${label}: ${formatObjectiveNumber(current, unit)} → ${formatObjectiveNumber(target, unit)} (${Math.round(progress)}% progress)`;
+      return `${formatObjectiveNumber(current, unit)} → ${formatObjectiveNumber(target, unit)} (${Math.round(progress)}% progress)`;
     }
 
     if (target) {
-      return `${label}: → ${formatObjectiveNumber(target, unit)}`;
+      return `→ ${formatObjectiveNumber(target, unit)}`;
     }
 
-    return `${label} · Tracking`;
+    return null;
   };
 
   const objectiveSummary1 = getObjectiveSummary(1);
@@ -441,11 +441,38 @@ export default function ArtistDetail() {
                 />
                 {/* Budget + Done unified pill */}
                 <div className="flex items-stretch rounded-xl border border-white/[0.14] bg-black/35 backdrop-blur-xl shadow-lg overflow-hidden">
-                  <div className="px-3.5 py-3 text-right border-r border-white/[0.10]">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/40 mb-1.5 leading-none">Budget</p>
+                  <div
+                    className="px-3.5 py-3 text-right border-r border-white/[0.10] cursor-default transition-all"
+                    onMouseEnter={(e) => {
+                      const label = e.currentTarget.querySelector('[data-budget-label]') as HTMLElement;
+                      const val = e.currentTarget.querySelector('[data-budget-value]') as HTMLElement;
+                      if (label) label.textContent = "Remaining";
+                      if (val) {
+                        const remaining = totalBudget - totalSpent;
+                        val.textContent = remaining >= 1_000_000
+                          ? `${(remaining / 1_000_000).toFixed(1)}M`
+                          : remaining >= 1_000
+                          ? `${(remaining / 1_000).toFixed(0)}K`
+                          : remaining.toLocaleString();
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      const label = e.currentTarget.querySelector('[data-budget-label]') as HTMLElement;
+                      const val = e.currentTarget.querySelector('[data-budget-value]') as HTMLElement;
+                      if (label) label.textContent = "Budget";
+                      if (val) {
+                        val.textContent = totalBudget >= 1_000_000
+                          ? `${(totalBudget / 1_000_000).toFixed(1)}M`
+                          : totalBudget >= 1_000
+                          ? `${(totalBudget / 1_000).toFixed(0)}K`
+                          : totalBudget.toLocaleString();
+                      }
+                    }}
+                  >
+                    <p data-budget-label className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/40 mb-1.5 leading-none">Budget</p>
                     <div className="flex items-center gap-1">
                       <DollarSign className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                      <span className="text-base font-bold text-white tracking-tight tabular-nums leading-none">
+                      <span data-budget-value className="text-base font-bold text-white tracking-tight tabular-nums leading-none">
                         {totalBudget >= 1_000_000
                           ? `${(totalBudget / 1_000_000).toFixed(1)}M`
                           : totalBudget >= 1_000
@@ -608,49 +635,53 @@ function ObjectivesPanel({ artist }: { artist: any }) {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const textFields = [
-    { key: "primary_goal", label: "Primary Goal" },
-    { key: "secondary_goal", label: "Secondary Goal" },
-    { key: "primary_focus", label: "Primary Focus" },
-    { key: "secondary_focus", label: "Secondary Focus" },
-  ];
-
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-sm font-semibold text-foreground mb-3">Tracked Objectives</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <ObjectiveKpiCard
-            artistId={artist.id}
-            slot={1}
-            objectiveType={artist.objective_1_type}
-            objectiveTarget={artist.objective_1_target}
-            currentValue={getObjectiveCurrentValue(artist.objective_1_type)}
-            variant="card"
-          />
-          <ObjectiveKpiCard
-            artistId={artist.id}
-            slot={2}
-            objectiveType={artist.objective_2_type}
-            objectiveTarget={artist.objective_2_target}
-            currentValue={getObjectiveCurrentValue(artist.objective_2_type)}
-            variant="card"
-          />
-        </div>
-      </div>
-      <div>
-        <h3 className="text-sm font-semibold text-foreground mb-3">Notes</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-          {textFields.map(({ key, label }) => (
-            <div key={key}>
-              <span className="text-muted-foreground">{label}: </span>
-              <InlineField
-                value={artist[key] ?? ""}
-                placeholder="—"
-                onSave={(v) => save.mutate({ [key]: v })}
-              />
-            </div>
-          ))}
+          <div className="space-y-2">
+            <ObjectiveKpiCard
+              artistId={artist.id}
+              slot={1}
+              objectiveType={artist.objective_1_type}
+              objectiveTarget={artist.objective_1_target}
+              currentValue={getObjectiveCurrentValue(artist.objective_1_type)}
+              variant="card"
+            />
+            {artist.objective_1_type && (
+              <div>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">Notes</span>
+                <InlineField
+                  value={artist.primary_goal ?? ""}
+                  placeholder="Add notes…"
+                  as="textarea"
+                  onSave={(v) => save.mutate({ primary_goal: v })}
+                />
+              </div>
+            )}
+          </div>
+          <div className="space-y-2">
+            <ObjectiveKpiCard
+              artistId={artist.id}
+              slot={2}
+              objectiveType={artist.objective_2_type}
+              objectiveTarget={artist.objective_2_target}
+              currentValue={getObjectiveCurrentValue(artist.objective_2_type)}
+              variant="card"
+            />
+            {artist.objective_2_type && (
+              <div>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">Notes</span>
+                <InlineField
+                  value={artist.secondary_goal ?? ""}
+                  placeholder="Add notes…"
+                  as="textarea"
+                  onSave={(v) => save.mutate({ secondary_goal: v })}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

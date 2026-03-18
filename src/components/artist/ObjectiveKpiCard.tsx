@@ -11,6 +11,8 @@ export const OBJECTIVE_TYPES = [
   { value: "monthly_streams", label: "Monthly Streams", icon: TrendingUp, unit: "" },
   { value: "daily_streams", label: "Daily Streams", icon: TrendingUp, unit: "" },
   { value: "est_monthly_revenue", label: "Monthly Revenue", icon: DollarSign, unit: "$" },
+  { value: "merch_revenue", label: "Merch Revenue", icon: DollarSign, unit: "$" },
+  { value: "gross_revenue", label: "Gross Revenue", icon: DollarSign, unit: "$" },
 ] as const;
 
 export type ObjectiveType = (typeof OBJECTIVE_TYPES)[number]["value"];
@@ -295,7 +297,7 @@ export function ObjectiveKpiCard({
               "h-full rounded-full transition-all duration-500",
               progress != null && progress >= 100
                 ? "bg-emerald-400"
-                : "bg-primary"
+                : "bg-amber-400"
             )}
             style={{ width: `${progress ?? 0}%` }}
           />
