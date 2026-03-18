@@ -68,6 +68,7 @@ interface PipelineBoardProps {
   onStageChange?: (id: string, newStage: string) => void;
   onDelete?: (id: string) => void;
   onAddToStage?: (stage: string) => void;
+  onAddToRoster?: (prospect: any) => void;
 }
 
 function ProspectCard({ p, onSelect, onDelete, dragProvided, dragSnapshot }: any) {
