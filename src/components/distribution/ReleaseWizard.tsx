@@ -205,12 +205,12 @@ export function ReleaseWizard({ teamId, artists, releaseId, onClose }: Props) {
               <span className={cn(
                 "flex items-center justify-center h-5 w-5 rounded-full text-[10px] font-bold shrink-0",
                 isCurrent && "bg-primary-foreground text-primary",
-                !isCurrent && valid === true && "bg-primary/20 text-primary",
-                !isCurrent && valid === false && "bg-destructive/20 text-destructive",
-                !isCurrent && valid === null && "bg-background text-muted-foreground"
+                !isCurrent && valid === true && i < furthestStep && "bg-primary/20 text-primary",
+                !isCurrent && valid === false && i < furthestStep && "bg-destructive/20 text-destructive",
+                !isCurrent && (valid === null || i >= furthestStep) && "bg-background text-muted-foreground"
               )}>
-                {valid === true && !isCurrent ? <Check className="h-3 w-3" /> :
-                 valid === false && !isCurrent ? <X className="h-3 w-3" /> :
+                {valid === true && !isCurrent && i < furthestStep ? <Check className="h-3 w-3" /> :
+                 valid === false && !isCurrent && i < furthestStep ? <X className="h-3 w-3" /> :
                  i + 1}
               </span>
               <span className="hidden sm:inline">{s.label}</span>
