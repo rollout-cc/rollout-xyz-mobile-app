@@ -264,9 +264,11 @@ export function WorkTaskItem({
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["tasks", artistId] });
       queryClient.invalidateQueries({ queryKey: ["transactions", artistId] });
+      queryClient.invalidateQueries({ queryKey: ["artists-summary"] });
       onMutateSuccess?.();
       setTitle("");
       setDescription("");
+      setParsedDate(null);
       setShowNew(false);
       import("@/lib/notifications").then(({ notifyTaskAssigned, checkBudgetThreshold }) => {
         if (variables.assigned_to) {
