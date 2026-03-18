@@ -135,6 +135,8 @@ function AppRoutes() {
         <Route path="/vendor-invoice/:token" element={<VendorInvoice />} />
         <Route path="/rolly" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager", "artist"]}><Rolly /></RoleGate></ProtectedRoute>} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
         <Route path="/" element={<RootRedirect />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
