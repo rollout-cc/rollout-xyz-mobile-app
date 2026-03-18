@@ -235,6 +235,10 @@ export default function Login() {
           )}
         </div>
 
+        <div className="flex gap-4 text-xs text-muted-foreground">
+          <a href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</a>
+          <a href="/terms" className="hover:text-foreground transition-colors">Terms of Service</a>
+        </div>
         <div className="pb-10 sm:pb-12" style={{ paddingBottom: "max(2.5rem, calc(var(--safe-area-inset-bottom) + 1.5rem))" }} />
       </div>
 

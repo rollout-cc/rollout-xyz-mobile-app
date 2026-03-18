@@ -40,6 +40,8 @@ const ApproveSplit = React.lazy(() => import("./pages/ApproveSplit"));
 const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
 const VendorW9 = React.lazy(() => import("./pages/VendorW9"));
 const VendorInvoice = React.lazy(() => import("./pages/VendorInvoice"));
+const PrivacyPolicy = React.lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = React.lazy(() => import("./pages/TermsOfService"));
 
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
@@ -133,6 +135,8 @@ function AppRoutes() {
         <Route path="/vendor-invoice/:token" element={<VendorInvoice />} />
         <Route path="/rolly" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager", "artist"]}><Rolly /></RoleGate></ProtectedRoute>} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
         <Route path="/" element={<RootRedirect />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
