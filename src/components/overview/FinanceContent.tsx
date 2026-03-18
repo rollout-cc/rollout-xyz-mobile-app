@@ -169,8 +169,8 @@ export function FinanceContent() {
   const openTasks = tasks.filter((t: any) => !t.is_completed).length;
   const overdueTasks = tasks.filter((t: any) => !t.is_completed && t.due_date && new Date(t.due_date) < new Date()).length;
 
-  const fmt = (n: number) => `$${Math.abs(n).toLocaleString()}`;
-  const fmtSigned = (n: number) => `${n < 0 ? "-" : ""}$${Math.abs(n).toLocaleString()}`;
+  const fmt = (n: number) => `$${Math.abs(Math.round(n * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  const fmtSigned = (n: number) => `${n < 0 ? "-" : ""}$${Math.abs(Math.round(n * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 
   // ── Approval mutations ──
   const approveTransaction = useMutation({
