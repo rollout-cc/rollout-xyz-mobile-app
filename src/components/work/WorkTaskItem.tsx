@@ -585,6 +585,9 @@ export function WorkTaskItem({
       className={cn(
         "flex items-start gap-3 py-3.5 group cursor-pointer",
         task?.is_completed && "opacity-50",
+        task?.priority === 1 && "border-l-2 border-red-500 pl-2",
+        task?.priority === 2 && "border-l-2 border-amber-400 pl-2",
+        task?.priority === 3 && "border-l-2 border-emerald-500 pl-2",
       )}
       onClick={enterEdit}
     >
