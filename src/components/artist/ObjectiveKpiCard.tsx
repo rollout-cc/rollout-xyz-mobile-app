@@ -297,7 +297,7 @@ export function ObjectiveKpiCard({
               "h-full rounded-full transition-all duration-500",
               progress != null && progress >= 100
                 ? "bg-emerald-400"
-                : "bg-primary"
+                : "bg-amber-400"
             )}
             style={{ width: `${progress ?? 0}%` }}
           />
