@@ -128,7 +128,8 @@ export function useUpsertReleaseTracks() {
       }[];
     }) => {
       // Delete existing and re-insert
-      await supabase.from("release_tracks").delete().eq("release_id", releaseId);
+      const { error: deleteError } = await supabase.from("release_tracks").delete().eq("release_id", releaseId);
+      if (deleteError) throw deleteError;
       if (tracks.length > 0) {
         const { error } = await supabase
           .from("release_tracks")
