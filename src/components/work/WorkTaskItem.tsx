@@ -643,3 +643,20 @@ export function WorkTaskItem({
     </div>
   );
 }
+
+/** Small metadata chip that replaces a toolbar icon when metadata is detected */
+function MetadataChip({ label, icon, onClear }: { label: string; icon: React.ReactNode; onClear: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary shrink-0 whitespace-nowrap">
+      {icon}
+      {label}
+      <button
+        onClick={(e) => { e.stopPropagation(); onClear(); }}
+        className="ml-0.5 hover:text-primary/70 transition-colors"
+        type="button"
+      >
+        <X className="h-2.5 w-2.5" />
+      </button>
+    </span>
+  );
+}

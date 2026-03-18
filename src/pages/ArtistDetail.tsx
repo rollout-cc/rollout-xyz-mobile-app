@@ -440,11 +440,38 @@ export default function ArtistDetail() {
                 />
                 {/* Budget + Done unified pill */}
                 <div className="flex items-stretch rounded-xl border border-white/[0.14] bg-black/35 backdrop-blur-xl shadow-lg overflow-hidden">
-                  <div className="px-3.5 py-3 text-right border-r border-white/[0.10]">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/40 mb-1.5 leading-none">Budget</p>
+                  <div
+                    className="px-3.5 py-3 text-right border-r border-white/[0.10] cursor-default transition-all"
+                    onMouseEnter={(e) => {
+                      const label = e.currentTarget.querySelector('[data-budget-label]') as HTMLElement;
+                      const val = e.currentTarget.querySelector('[data-budget-value]') as HTMLElement;
+                      if (label) label.textContent = "Remaining";
+                      if (val) {
+                        const remaining = totalBudget - totalSpent;
+                        val.textContent = remaining >= 1_000_000
+                          ? `${(remaining / 1_000_000).toFixed(1)}M`
+                          : remaining >= 1_000
+                          ? `${(remaining / 1_000).toFixed(0)}K`
+                          : remaining.toLocaleString();
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      const label = e.currentTarget.querySelector('[data-budget-label]') as HTMLElement;
+                      const val = e.currentTarget.querySelector('[data-budget-value]') as HTMLElement;
+                      if (label) label.textContent = "Budget";
+                      if (val) {
+                        val.textContent = totalBudget >= 1_000_000
+                          ? `${(totalBudget / 1_000_000).toFixed(1)}M`
+                          : totalBudget >= 1_000
+                          ? `${(totalBudget / 1_000).toFixed(0)}K`
+                          : totalBudget.toLocaleString();
+                      }
+                    }}
+                  >
+                    <p data-budget-label className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/40 mb-1.5 leading-none">Budget</p>
                     <div className="flex items-center gap-1">
                       <DollarSign className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                      <span className="text-base font-bold text-white tracking-tight tabular-nums leading-none">
+                      <span data-budget-value className="text-base font-bold text-white tracking-tight tabular-nums leading-none">
                         {totalBudget >= 1_000_000
                           ? `${(totalBudget / 1_000_000).toFixed(1)}M`
                           : totalBudget >= 1_000
