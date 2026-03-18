@@ -59,6 +59,13 @@ export function NotesPanel({ autoCreate }: NotesPanelProps) {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  // Filter out empty notes (no title and no content) from the list view
+  const visibleNotes = useMemo(() => notes.filter((n) => {
+    const hasTitle = n.title && n.title.trim().length > 0;
+    const hasContent = n.content && n.content.trim().length > 0 && n.content.trim() !== "<p></p>";
+    return hasTitle || hasContent || n.id === selectedId;
+  }), [notes, selectedId]);
+
   const selectedNote = useMemo(() => notes.find((n) => n.id === selectedId), [notes, selectedId]);
   const isOwner = selectedNote?.user_id === user?.id;
 
@@ -79,6 +86,17 @@ export function NotesPanel({ autoCreate }: NotesPanelProps) {
     },
     [selectedId, updateNote]
   );
+
+  // Auto-delete empty notes when navigating away from them
+  const cleanupEmptyNote = useCallback((noteId: string) => {
+    const note = notes.find((n) => n.id === noteId);
+    if (!note) return;
+    const hasTitle = note.title && note.title.trim().length > 0;
+    const hasContent = note.content && note.content.trim().length > 0 && note.content.trim() !== "<p></p>";
+    if (!hasTitle && !hasContent) {
+      deleteNote.mutate(noteId);
+    }
+  }, [notes, deleteNote]);
 
   const handleTitleBlur = (val: string) => {
     if (!selectedId || !isOwner) return;
@@ -110,8 +128,8 @@ export function NotesPanel({ autoCreate }: NotesPanelProps) {
     }
   };
 
-  const pinnedNotes = notes.filter((n) => n.is_pinned);
-  const unpinnedNotes = notes.filter((n) => !n.is_pinned);
+  const pinnedNotes = visibleNotes.filter((n) => n.is_pinned);
+  const unpinnedNotes = visibleNotes.filter((n) => !n.is_pinned);
   const shareCount = selectedNote?.note_shares?.length || 0;
 
   // ── Detail View ──
@@ -119,7 +137,7 @@ export function NotesPanel({ autoCreate }: NotesPanelProps) {
     return (
       <div className="flex flex-col h-full">
         <div className="flex items-center gap-2 py-2 border-b border-border">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedId(null)}>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { cleanupEmptyNote(selectedId!); setSelectedId(null); }}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex-1" />
@@ -165,7 +183,7 @@ export function NotesPanel({ autoCreate }: NotesPanelProps) {
 
       {isLoading ? (
         <div className="p-3 text-xs text-muted-foreground">Loading…</div>
-      ) : notes.length === 0 ? (
+      ) : visibleNotes.length === 0 ? (
         <div className="p-8 text-center">
           <p className="text-sm text-muted-foreground mb-2">No notes yet</p>
           <Button size="sm" variant="outline" onClick={handleCreate} className="gap-1">

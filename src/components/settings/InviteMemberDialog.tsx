@@ -183,13 +183,14 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
             <div className="space-y-4 py-2">
               {/* Email & Name */}
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label>Email <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 <Input
                   type="email"
                   placeholder="name@company.com"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                 />
+                <p className="text-xs text-muted-foreground">Leave blank to generate a shareable link instead.</p>
               </div>
               <div className="space-y-2">
                 <Label>Name</Label>

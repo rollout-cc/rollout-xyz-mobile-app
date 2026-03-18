@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Headphones, Trash2, Plus, Archive } from "lucide-react";
@@ -67,6 +68,7 @@ interface PipelineBoardProps {
   onStageChange?: (id: string, newStage: string) => void;
   onDelete?: (id: string) => void;
   onAddToStage?: (stage: string) => void;
+  onAddToRoster?: (prospect: any) => void;
 }
 
 function ProspectCard({ p, onSelect, onDelete, dragProvided, dragSnapshot }: any) {
@@ -141,13 +143,24 @@ function ProspectCard({ p, onSelect, onDelete, dragProvided, dragSnapshot }: any
   );
 }
 
-export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete, onAddToStage }: PipelineBoardProps) {
+export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete, onAddToStage, onAddToRoster }: PipelineBoardProps) {
+  const [pendingSignedProspect, setPendingSignedProspect] = useState<any>(null);
+
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
     const newStage = result.destination.droppableId;
     const prospectId = result.draggableId;
     if (newStage !== result.source.droppableId && onStageChange) {
-      onStageChange(prospectId, newStage);
+      // If moving to "signed", confirm adding to roster
+      if (newStage === "signed") {
+        const prospect = prospects.find((p: any) => p.id === prospectId);
+        if (prospect) {
+          setPendingSignedProspect(prospect);
+        }
+        onStageChange(prospectId, newStage);
+      } else {
+        onStageChange(prospectId, newStage);
+      }
     }
   };
 
@@ -281,6 +294,29 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete, on
             ))}
           </div>
         </div>
+      )}
+
+      {/* Confirmation dialog for adding signed prospect to roster */}
+      {pendingSignedProspect && (
+        <AlertDialog open={!!pendingSignedProspect} onOpenChange={(o) => !o && setPendingSignedProspect(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Add {pendingSignedProspect.artist_name} to your roster?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This prospect has been moved to Signed. Would you like to add them as an artist on your current roster?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setPendingSignedProspect(null)}>Not Now</AlertDialogCancel>
+              <AlertDialogAction onClick={() => {
+                onAddToRoster?.(pendingSignedProspect);
+                setPendingSignedProspect(null);
+              }}>
+                Add to Roster
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </DragDropContext>
   );

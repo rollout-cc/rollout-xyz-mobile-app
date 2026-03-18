@@ -172,21 +172,25 @@ export function CompanyBudgetSection({ readOnly = false }: CompanyBudgetSectionP
   // Calculations
   const annualBudget = Number(team?.annual_budget || 0);
   const totalArtistAllocated = artistBudgets.reduce((s: number, a: any) => s + a.totalBudget, 0);
-  const totalPayroll = staffEmployment.reduce((s: number, e: any) => {
+  const totalPayroll = Math.round(staffEmployment.reduce((s: number, e: any) => {
     if (e.employment_type === "w2") return s + Number(e.annual_salary || 0);
     return s + (Number(e.monthly_retainer || 0) * 12);
-  }, 0);
-  const totalCategorySpend = categories.reduce((s: number, c: any) => s + Number(c.annual_budget || 0), 0);
+  }, 0) * 100) / 100;
+  // Exclude "Staff Payroll" category from totalCategorySpend to avoid double-counting with actual payroll
+  const staffPayrollCatName = "Staff Payroll";
+  const totalCategorySpend = categories
+    .filter((c: any) => c.name !== staffPayrollCatName)
+    .reduce((s: number, c: any) => s + Number(c.annual_budget || 0), 0);
   const remaining = annualBudget - totalArtistAllocated - totalPayroll - totalCategorySpend;
 
-  const fmt = (n: number) => `$${Math.abs(n).toLocaleString()}`;
+  const fmt = (n: number) => `$${Math.abs(Math.round(n * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
   const abbr = (n: number) => {
     const abs = Math.abs(n);
     const sign = n < 0 ? "-" : "";
     if (abs >= 1_000_000_000) return `${sign}$${(abs / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}B`;
     if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
     if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
-    return `${sign}$${abs.toLocaleString()}`;
+    return `${sign}$${abs.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
   };
 
   // Categories available to add (not yet added)
@@ -260,10 +264,14 @@ export function CompanyBudgetSection({ readOnly = false }: CompanyBudgetSectionP
         {categories.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {categories.map((cat: any) => {
-              const spent = companyExpenses
-                .filter((e: any) => e.category_id === cat.id)
-                .reduce((s: number, e: any) => s + Number(e.amount), 0);
-              const budget = Number(cat.annual_budget || 0);
+              const isStaffPayrollCat = cat.name === staffPayrollCatName;
+              // For Staff Payroll category, use actual payroll data; for others, match by category_id OR by category name in description
+              const spent = isStaffPayrollCat
+                ? totalPayroll
+                : companyExpenses
+                    .filter((e: any) => e.category_id === cat.id || (!e.category_id && e.description && e.description.toLowerCase().includes(cat.name.toLowerCase())))
+                    .reduce((s: number, e: any) => s + Number(e.amount), 0);
+              const budget = isStaffPayrollCat ? totalPayroll : Number(cat.annual_budget || 0);
               const pct = budget > 0 ? Math.min(Math.round((spent / budget) * 100), 100) : 0;
 
               return (

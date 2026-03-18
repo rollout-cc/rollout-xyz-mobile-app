@@ -74,8 +74,17 @@ export default function PublicAgenda() {
     return { ...b, spent, pct };
   });
 
+  const campaignSections = initiatives.map((init: any) => {
+    const campaignTasks = tasks.filter((t: any) => t.initiative_id === init.id);
+    return { ...init, tasks: campaignTasks };
+  }).filter((c: any) => c.tasks.length > 0);
+
+  // Exclude campaign tasks from "This Week" to prevent duplicates
+  const campaignTaskIds = new Set(campaignSections.flatMap((c: any) => c.tasks.map((t: any) => t.id)));
+
   const weeklyTasks = tasks.filter((t: any) => {
     if (!t.due_date) return false;
+    if (campaignTaskIds.has(t.id)) return false;
     const d = new Date(t.due_date);
     return d >= weekStart && d <= weekEnd;
   });
@@ -85,13 +94,8 @@ export default function PublicAgenda() {
     return d >= weekStart && d <= weekEnd;
   });
 
-  const campaignSections = initiatives.map((init: any) => {
-    const campaignTasks = tasks.filter((t: any) => t.initiative_id === init.id);
-    return { ...init, tasks: campaignTasks };
-  }).filter((c: any) => c.tasks.length > 0);
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-y-auto">
       {/* Header */}
       <div className="border-b border-border px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">

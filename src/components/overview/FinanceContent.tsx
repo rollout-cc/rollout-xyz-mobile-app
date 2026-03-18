@@ -156,21 +156,21 @@ export function FinanceContent() {
   const totalExpenses = totalArtistExpenses + totalCompanyExpenses;
   const netProfit = totalRevenue - totalExpenses;
 
-  const totalPayroll = staffEmployment.reduce((s: number, e: any) => {
+  const totalPayroll = Math.round(staffEmployment.reduce((s: number, e: any) => {
     if (e.employment_type === "w2") return s + Number(e.annual_salary || 0) / 12;
     return s + Number(e.monthly_retainer || 0);
-  }, 0);
+  }, 0) * 100) / 100;
 
-  const monthlyBurn = totalExpenses > 0
+  const monthlyBurn = Math.round((totalExpenses > 0
     ? totalExpenses / (dateRange === "month" ? 1 : dateRange === "quarter" ? 3 : dateRange === "ytd" ? new Date().getMonth() + 1 : 12)
-    : totalPayroll;
+    : totalPayroll) * 100) / 100;
   const runway = monthlyBurn > 0 ? Math.round((totalBudget - totalExpenses) / monthlyBurn) : Infinity;
 
   const openTasks = tasks.filter((t: any) => !t.is_completed).length;
   const overdueTasks = tasks.filter((t: any) => !t.is_completed && t.due_date && new Date(t.due_date) < new Date()).length;
 
-  const fmt = (n: number) => `$${Math.abs(n).toLocaleString()}`;
-  const fmtSigned = (n: number) => `${n < 0 ? "-" : ""}$${Math.abs(n).toLocaleString()}`;
+  const fmt = (n: number) => `$${Math.abs(Math.round(n * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  const fmtSigned = (n: number) => `${n < 0 ? "-" : ""}$${Math.abs(Math.round(n * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 
   // ── Approval mutations ──
   const approveTransaction = useMutation({
@@ -356,9 +356,9 @@ export function FinanceContent() {
               {staffEmployment.map((emp: any) => {
                 const profile = staffProfiles.find((p) => p.id === emp.user_id);
                 const displayName = profile?.full_name || emp.display_name || "Unknown";
-                const monthly = emp.employment_type === "w2"
+                const monthly = Math.round((emp.employment_type === "w2"
                   ? Number(emp.annual_salary || 0) / 12
-                  : Number(emp.monthly_retainer || 0);
+                  : Number(emp.monthly_retainer || 0)) * 100) / 100;
                 return (
                   <tr key={emp.id} className="border-b border-border last:border-0 hover:bg-accent/30">
                     <td className="p-3 flex items-center gap-2">
