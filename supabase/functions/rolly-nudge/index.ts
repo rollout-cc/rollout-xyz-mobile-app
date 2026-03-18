@@ -66,6 +66,13 @@ Deno.serve(async (req) => {
     const screenContext = SCREEN_PROMPTS[screen] || `The user is on the "${screen}" screen.`;
     const dataStr = JSON.stringify(data_snapshot || {});
 
+    // P1 nudge logic: if user just completed a non-P1 task but has P1 tasks remaining
+    let p1Context = "";
+    if (data_snapshot?.completedTaskTitle && data_snapshot?.p1TasksPending?.length > 0) {
+      const p1Names = data_snapshot.p1TasksPending.map((t: any) => t.title).join(", ");
+      p1Context = `\nIMPORTANT: The user just completed "${data_snapshot.completedTaskTitle}" but has Priority 1 (urgent) tasks still pending: ${p1Names}. Generate a nudge reminding them about their P1 task(s). Example: "Nice work on [completed task], but did you [P1 task]?"`;
+    }
+
     const systemPrompt = `You are ROLLY, a music business advisor. Generate ONE short, actionable nudge (max 90 characters) for the user based on what you see on their screen. Also provide a CTA prompt — a question the user could ask you to dive deeper.
 
 Rules:
@@ -75,6 +82,7 @@ Rules:
 - If the data looks good/complete, return empty nudge
 - IMPORTANT: If the data_snapshot shows artistCount > 0 or taskCount > 0, the team is NOT new. NEVER suggest "getting started", "build your roster", or "add artists" if they already have artists. Instead, give a contextual nudge about the specific screen data.
 - If you cannot find anything specific to nudge about, return an empty nudge.
+${p1Context}
 
 ${knowledgeContext ? `Industry knowledge:\n${knowledgeContext}\n` : ""}
 

@@ -679,3 +679,48 @@ function MetadataChip({ label, icon, onClear }: { label: string; icon: React.Rea
     </span>
   );
 }
+
+/** Rollout flag SVG used for priority icons */
+function RolloutFlagSvg({ className, fill }: { className?: string; fill: string }) {
+  return (
+    <svg className={className} viewBox="0 0 72 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M49.9467 12.1212L49.435 15.3318C43.4592 10.8369 39.7737 11.6426 35.2538 13.9567C27.2677 18.0518 22.9427 12.9026 22.9427 12.9026L19.0745 30.6158C19.0745 30.6158 26.4697 37.8792 33.5725 32.3362C39.5666 27.6596 44.9577 26.7993 47.3578 28.4228L43.4774 52L46.2004 51.9455L52.9255 12L49.9589 12.1151L49.9467 12.1212Z"
+        fill={fill}
+      />
+    </svg>
+  );
+}
+
+/** Priority flag icon for read mode */
+function PriorityFlagIcon({ priority, className }: { priority: number; className?: string }) {
+  const fill = priority === 1 ? "#ef4444" : priority === 2 ? "#f59e0b" : "#10b981";
+  return <RolloutFlagSvg className={className} fill={fill} />;
+}
+
+/** Priority flag button for toolbar — cycles NULL → 1 → 2 → 3 → NULL */
+function PriorityFlagButton({ priority, onChange }: { priority: number | null; onChange: (p: number | null) => void }) {
+  const cycle = () => {
+    if (priority === null || priority === undefined) onChange(1);
+    else if (priority === 1) onChange(2);
+    else if (priority === 2) onChange(3);
+    else onChange(null);
+  };
+
+  const fill = priority === 1 ? "#ef4444" : priority === 2 ? "#f59e0b" : priority === 3 ? "#10b981" : "currentColor";
+  const title = priority === 1 ? "Priority 1 (Red)" : priority === 2 ? "Priority 2 (Yellow)" : priority === 3 ? "Priority 3 (Green)" : "Set priority";
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); cycle(); }}
+      className={cn(
+        "p-2 rounded-md hover:bg-accent transition-colors shrink-0",
+        priority === null || priority === undefined ? "text-muted-foreground/40" : ""
+      )}
+      title={title}
+    >
+      <RolloutFlagSvg className="h-4 w-4" fill={fill} />
+    </button>
+  );
+}
