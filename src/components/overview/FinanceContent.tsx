@@ -156,14 +156,14 @@ export function FinanceContent() {
   const totalExpenses = totalArtistExpenses + totalCompanyExpenses;
   const netProfit = totalRevenue - totalExpenses;
 
-  const totalPayroll = staffEmployment.reduce((s: number, e: any) => {
+  const totalPayroll = Math.round(staffEmployment.reduce((s: number, e: any) => {
     if (e.employment_type === "w2") return s + Number(e.annual_salary || 0) / 12;
     return s + Number(e.monthly_retainer || 0);
-  }, 0);
+  }, 0) * 100) / 100;
 
-  const monthlyBurn = totalExpenses > 0
+  const monthlyBurn = Math.round((totalExpenses > 0
     ? totalExpenses / (dateRange === "month" ? 1 : dateRange === "quarter" ? 3 : dateRange === "ytd" ? new Date().getMonth() + 1 : 12)
-    : totalPayroll;
+    : totalPayroll) * 100) / 100;
   const runway = monthlyBurn > 0 ? Math.round((totalBudget - totalExpenses) / monthlyBurn) : Infinity;
 
   const openTasks = tasks.filter((t: any) => !t.is_completed).length;
