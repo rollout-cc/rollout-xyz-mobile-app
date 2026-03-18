@@ -264,10 +264,14 @@ export function CompanyBudgetSection({ readOnly = false }: CompanyBudgetSectionP
         {categories.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {categories.map((cat: any) => {
-              const spent = companyExpenses
-                .filter((e: any) => e.category_id === cat.id)
-                .reduce((s: number, e: any) => s + Number(e.amount), 0);
-              const budget = Number(cat.annual_budget || 0);
+              const isStaffPayrollCat = cat.name === staffPayrollCatName;
+              // For Staff Payroll category, use actual payroll data; for others, match by category_id OR by category name in description
+              const spent = isStaffPayrollCat
+                ? totalPayroll
+                : companyExpenses
+                    .filter((e: any) => e.category_id === cat.id || (!e.category_id && e.description && e.description.toLowerCase().includes(cat.name.toLowerCase())))
+                    .reduce((s: number, e: any) => s + Number(e.amount), 0);
+              const budget = isStaffPayrollCat ? totalPayroll : Number(cat.annual_budget || 0);
               const pct = budget > 0 ? Math.min(Math.round((spent / budget) * 100), 100) : 0;
 
               return (

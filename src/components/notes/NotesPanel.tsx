@@ -183,7 +183,7 @@ export function NotesPanel({ autoCreate }: NotesPanelProps) {
 
       {isLoading ? (
         <div className="p-3 text-xs text-muted-foreground">Loading…</div>
-      ) : notes.length === 0 ? (
+      ) : visibleNotes.length === 0 ? (
         <div className="p-8 text-center">
           <p className="text-sm text-muted-foreground mb-2">No notes yet</p>
           <Button size="sm" variant="outline" onClick={handleCreate} className="gap-1">

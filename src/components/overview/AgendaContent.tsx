@@ -189,8 +189,17 @@ export function AgendaContent() {
     return { ...b, spent, pct };
   });
 
+  const campaignSections = initiatives.map((init) => {
+    const campaignTasks = filteredTasks.filter((t) => t.initiative_id === init.id);
+    return { ...init, tasks: campaignTasks };
+  }).filter((c) => c.tasks.length > 0);
+
+  // IDs of tasks shown in campaign sections — exclude from "This Week" to prevent duplicates
+  const campaignTaskIds = new Set(campaignSections.flatMap((c) => c.tasks.map((t) => t.id)));
+
   const weeklyTasks = filteredTasks.filter((t) => {
     if (!t.due_date) return false;
+    if (campaignTaskIds.has(t.id)) return false;
     const d = new Date(t.due_date);
     return d >= weekStart && d <= weekEnd;
   });
@@ -199,11 +208,6 @@ export function AgendaContent() {
     const d = parse(m.date, "yyyy-MM-dd", new Date());
     return d >= weekStart && d <= weekEnd;
   });
-
-  const campaignSections = initiatives.map((init) => {
-    const campaignTasks = filteredTasks.filter((t) => t.initiative_id === init.id);
-    return { ...init, tasks: campaignTasks };
-  }).filter((c) => c.tasks.length > 0);
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggle = (id: string) => setCollapsed((p) => ({ ...p, [id]: !p[id] }));

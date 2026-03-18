@@ -97,13 +97,7 @@ function MembersSection({ artistId }: { artistId: string }) {
     onError: (e: any) => toast.error(e.message),
   });
 
-  // Auto-create a blank member for new artists
-  useEffect(() => {
-    if (isSuccess && members.length === 0 && !autoCreatedRef.current && !addMember.isPending) {
-      autoCreatedRef.current = true;
-      addMember.mutate({});
-    }
-  }, [isSuccess, members.length]);
+  // No longer auto-create blank members — user must click "Add Member" explicitly
 
   const updateMember = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Record<string, any> }) => {

@@ -73,6 +73,8 @@ Rules:
 - Be specific to the data, not generic
 - Sound like a helpful text from a friend, not a system notification
 - If the data looks good/complete, return empty nudge
+- IMPORTANT: If the data_snapshot shows artistCount > 0 or taskCount > 0, the team is NOT new. NEVER suggest "getting started", "build your roster", or "add artists" if they already have artists. Instead, give a contextual nudge about the specific screen data.
+- If you cannot find anything specific to nudge about, return an empty nudge.
 
 ${knowledgeContext ? `Industry knowledge:\n${knowledgeContext}\n` : ""}
 

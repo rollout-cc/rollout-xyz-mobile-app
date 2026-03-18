@@ -356,9 +356,9 @@ export function FinanceContent() {
               {staffEmployment.map((emp: any) => {
                 const profile = staffProfiles.find((p) => p.id === emp.user_id);
                 const displayName = profile?.full_name || emp.display_name || "Unknown";
-                const monthly = emp.employment_type === "w2"
+                const monthly = Math.round((emp.employment_type === "w2"
                   ? Number(emp.annual_salary || 0) / 12
-                  : Number(emp.monthly_retainer || 0);
+                  : Number(emp.monthly_retainer || 0)) * 100) / 100;
                 return (
                   <tr key={emp.id} className="border-b border-border last:border-0 hover:bg-accent/30">
                     <td className="p-3 flex items-center gap-2">

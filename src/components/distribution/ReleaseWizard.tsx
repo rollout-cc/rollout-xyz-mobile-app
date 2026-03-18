@@ -241,7 +241,16 @@ export function ReleaseWizard({ teamId, artists, releaseId, onClose }: Props) {
         </Button>
         <div className="flex gap-2">
           {step < 4 && (
-            <Button onClick={() => setStep(step + 1)}>Continue</Button>
+            <Button
+              disabled={step === 0 && stepValid(0) !== true}
+              onClick={() => {
+                const next = step + 1;
+                setStep(next);
+                setFurthestStep((prev) => Math.max(prev, next));
+              }}
+            >
+              Continue
+            </Button>
           )}
         </div>
       </div>

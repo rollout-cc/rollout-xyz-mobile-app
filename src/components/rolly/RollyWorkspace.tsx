@@ -125,8 +125,9 @@ export function RollyWorkspace({ executingItems, executionComplete }: RollyWorks
   });
 
   const myTasks = tasks.filter((t: any) => t.assigned_to === user?.id);
-  const overdueTasks = myTasks.filter((t: any) => t.due_date && new Date(t.due_date) < new Date());
-  const totalBudget = budgets.reduce((sum: number, b: any) => sum + Number(b.amount || 0), 0);
+  // Use ALL team tasks for overdue count to match dashboard
+  const overdueTasks = tasks.filter((t: any) => t.due_date && new Date(t.due_date) < new Date());
+  const totalBudget = budgets.reduce((sum: number, b: any) => sum + Number(b.amount || 0), 0) + Number(team?.annual_budget || 0);
   const totalExpenses = expenses.reduce((sum: number, e: any) => sum + Math.abs(Number(e.amount || 0)), 0);
 
   const formatCurrency = (val: number) => {

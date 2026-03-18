@@ -295,6 +295,29 @@ export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete, on
           </div>
         </div>
       )}
+
+      {/* Confirmation dialog for adding signed prospect to roster */}
+      {pendingSignedProspect && (
+        <AlertDialog open={!!pendingSignedProspect} onOpenChange={(o) => !o && setPendingSignedProspect(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Add {pendingSignedProspect.artist_name} to your roster?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This prospect has been moved to Signed. Would you like to add them as an artist on your current roster?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setPendingSignedProspect(null)}>Not Now</AlertDialogCancel>
+              <AlertDialogAction onClick={() => {
+                onAddToRoster?.(pendingSignedProspect);
+                setPendingSignedProspect(null);
+              }}>
+                Add to Roster
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </DragDropContext>
   );
 }
