@@ -142,7 +142,15 @@ export function ItemEditor({
       const newValue = activeTrigger.onSelect(item, value);
       onChange(newValue);
       setActiveTrigger(null);
-      inputRef.current?.focus();
+      // After React re-renders with new value, place cursor at end
+      setTimeout(() => {
+        const input = inputRef.current;
+        if (input) {
+          input.focus();
+          const len = newValue.length;
+          input.setSelectionRange(len, len);
+        }
+      }, 0);
     },
     [activeTrigger, value, onChange]
   );
