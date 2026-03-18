@@ -33,6 +33,12 @@ interface ItemEditorProps {
   onDateParsed?: (date: Date | null) => void;
   /** Externally controlled parsed date (for display) */
   parsedDate?: Date | null;
+  /** Enable inline highlight overlay for parsed tokens */
+  enableHighlight?: boolean;
+  /** Team member names for highlight matching */
+  highlightMembers?: string[];
+  /** Campaign names for highlight matching */
+  highlightCampaigns?: string[];
 }
 
 export function ItemEditor({
