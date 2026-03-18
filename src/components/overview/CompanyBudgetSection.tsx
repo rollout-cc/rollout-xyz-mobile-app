@@ -172,11 +172,15 @@ export function CompanyBudgetSection({ readOnly = false }: CompanyBudgetSectionP
   // Calculations
   const annualBudget = Number(team?.annual_budget || 0);
   const totalArtistAllocated = artistBudgets.reduce((s: number, a: any) => s + a.totalBudget, 0);
-  const totalPayroll = staffEmployment.reduce((s: number, e: any) => {
+  const totalPayroll = Math.round(staffEmployment.reduce((s: number, e: any) => {
     if (e.employment_type === "w2") return s + Number(e.annual_salary || 0);
     return s + (Number(e.monthly_retainer || 0) * 12);
-  }, 0);
-  const totalCategorySpend = categories.reduce((s: number, c: any) => s + Number(c.annual_budget || 0), 0);
+  }, 0) * 100) / 100;
+  // Exclude "Staff Payroll" category from totalCategorySpend to avoid double-counting with actual payroll
+  const staffPayrollCatName = "Staff Payroll";
+  const totalCategorySpend = categories
+    .filter((c: any) => c.name !== staffPayrollCatName)
+    .reduce((s: number, c: any) => s + Number(c.annual_budget || 0), 0);
   const remaining = annualBudget - totalArtistAllocated - totalPayroll - totalCategorySpend;
 
   const fmt = (n: number) => `$${Math.abs(n).toLocaleString()}`;
