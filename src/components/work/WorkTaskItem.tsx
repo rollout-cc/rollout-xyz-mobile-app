@@ -455,6 +455,9 @@ export function WorkTaskItem({
               autoFocus={autoFocus || showNew || isEditing}
               triggers={triggers}
               className="text-[15px] font-medium leading-snug"
+              enableDateDetection
+              onDateParsed={setParsedDate}
+              parsedDate={parsedDate}
             />
             <DescriptionEditor
               value={description}
