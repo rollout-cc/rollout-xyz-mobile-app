@@ -143,13 +143,24 @@ function ProspectCard({ p, onSelect, onDelete, dragProvided, dragSnapshot }: any
   );
 }
 
-export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete, onAddToStage }: PipelineBoardProps) {
+export function PipelineBoard({ prospects, onSelect, onStageChange, onDelete, onAddToStage, onAddToRoster }: PipelineBoardProps) {
+  const [pendingSignedProspect, setPendingSignedProspect] = useState<any>(null);
+
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
     const newStage = result.destination.droppableId;
     const prospectId = result.draggableId;
     if (newStage !== result.source.droppableId && onStageChange) {
-      onStageChange(prospectId, newStage);
+      // If moving to "signed", confirm adding to roster
+      if (newStage === "signed") {
+        const prospect = prospects.find((p: any) => p.id === prospectId);
+        if (prospect) {
+          setPendingSignedProspect(prospect);
+        }
+        onStageChange(prospectId, newStage);
+      } else {
+        onStageChange(prospectId, newStage);
+      }
     }
   };
 
