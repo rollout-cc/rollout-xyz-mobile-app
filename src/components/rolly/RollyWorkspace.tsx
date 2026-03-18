@@ -18,6 +18,16 @@ export function RollyWorkspace({ executingItems, executionComplete }: RollyWorks
   const { selectedTeamId } = useSelectedTeam();
   const { user } = useAuth();
 
+  // Fetch team for annual_budget (needed for consistent Total Budget)
+  const { data: team } = useQuery({
+    queryKey: ["team-detail", selectedTeamId],
+    queryFn: async () => {
+      const { data } = await supabase.from("teams").select("id, annual_budget").eq("id", selectedTeamId!).single();
+      return data;
+    },
+    enabled: !!selectedTeamId,
+  });
+
   // Fetch tasks assigned to user
   const { data: tasks = [] } = useQuery({
     queryKey: ["rolly-workspace-tasks", selectedTeamId, user?.id],
