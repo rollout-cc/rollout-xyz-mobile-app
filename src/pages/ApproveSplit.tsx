@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import rolloutLogo from "@/assets/rollout-logo.png";
 
 export default function ApproveSplit() {
@@ -22,13 +23,13 @@ export default function ApproveSplit() {
 
   const loadData = async () => {
     // Fetch the entry by token
-    const { data: entryData } = await supabase
+    const { data: entryData, error: entryError } = await supabase
       .from("split_entries")
       .select("*, contributor:split_contributors(*)")
       .eq("approval_token", token!)
       .single();
 
-    if (!entryData) { setLoading(false); return; }
+    if (entryError || !entryData) { setLoading(false); return; }
     setEntry(entryData);
 
     if (entryData.approval_status !== "pending") {
@@ -36,21 +37,21 @@ export default function ApproveSplit() {
     }
 
     // Fetch song
-    const { data: songData } = await supabase
+    const { data: songData, error: songError } = await supabase
       .from("split_songs")
       .select("*")
       .eq("id", entryData.song_id)
       .single();
-    setSong(songData);
+    if (!songError) setSong(songData);
 
     if (songData) {
       // Fetch project
-      const { data: projData } = await supabase
+      const { data: projData, error: projError } = await supabase
         .from("split_projects")
         .select("*, artist:artists(name)")
         .eq("id", songData.project_id)
         .single();
-      setProject(projData);
+      if (!projError) setProject(projData);
 
       // Fetch all entries for this song
       const { data: allEntriesData } = await supabase
@@ -67,10 +68,15 @@ export default function ApproveSplit() {
   const handleAction = async (status: "approved" | "rejected") => {
     if (!entry) return;
     setSubmitting(true);
-    await supabase
+    const { error } = await supabase
       .from("split_entries")
       .update({ approval_status: status, approved_at: new Date().toISOString() })
       .eq("approval_token", token!);
+    if (error) {
+      toast.error("Failed to save your response. Please try again.");
+      setSubmitting(false);
+      return;
+    }
     setActionDone(status);
     setSubmitting(false);
   };

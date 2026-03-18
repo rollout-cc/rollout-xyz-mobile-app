@@ -128,7 +128,8 @@ export function useUpsertReleaseTracks() {
       }[];
     }) => {
       // Delete existing and re-insert
-      await supabase.from("release_tracks").delete().eq("release_id", releaseId);
+      const { error: deleteError } = await supabase.from("release_tracks").delete().eq("release_id", releaseId);
+      if (deleteError) throw deleteError;
       if (tracks.length > 0) {
         const { error } = await supabase
           .from("release_tracks")
@@ -168,7 +169,8 @@ export function useUpsertReleasePlatforms() {
       releaseId: string;
       platforms: { platform: string; enabled: boolean }[];
     }) => {
-      await supabase.from("release_platforms").delete().eq("release_id", releaseId);
+      const { error: deleteError } = await supabase.from("release_platforms").delete().eq("release_id", releaseId);
+      if (deleteError) throw deleteError;
       if (platforms.length > 0) {
         const { error } = await supabase
           .from("release_platforms")
