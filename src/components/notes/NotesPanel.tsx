@@ -59,6 +59,13 @@ export function NotesPanel({ autoCreate }: NotesPanelProps) {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  // Filter out empty notes (no title and no content) from the list view
+  const visibleNotes = useMemo(() => notes.filter((n) => {
+    const hasTitle = n.title && n.title.trim().length > 0;
+    const hasContent = n.content && n.content.trim().length > 0 && n.content.trim() !== "<p></p>";
+    return hasTitle || hasContent || n.id === selectedId;
+  }), [notes, selectedId]);
+
   const selectedNote = useMemo(() => notes.find((n) => n.id === selectedId), [notes, selectedId]);
   const isOwner = selectedNote?.user_id === user?.id;
 
