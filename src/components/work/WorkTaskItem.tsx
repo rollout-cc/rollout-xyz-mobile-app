@@ -396,6 +396,11 @@ export function WorkTaskItem({
       parsed_title = parsed_title.replace(dateMatch[0], "").trim();
     }
 
+    // Use inline-detected date from ItemEditor if no date was parsed above
+    if (!due_date && parsedDate) {
+      due_date = formatLocalDate(parsedDate);
+    }
+
     if (isNew) {
       addTask.mutate({ title: parsed_title, description: description.trim() || undefined, due_date, expense_amount, initiative_id, assigned_to, budget_id, sub_budget_id });
     } else {
