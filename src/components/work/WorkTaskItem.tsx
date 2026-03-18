@@ -159,6 +159,7 @@ export function WorkTaskItem({
   const [title, setTitle] = useState(task?.title ?? initialTitle ?? "");
   const [description, setDescription] = useState(task?.description || "");
   const [showNew, setShowNew] = useState(false);
+  const [parsedDate, setParsedDate] = useState<Date | null>(null);
 
   useEffect(() => {
     if (task?.title !== undefined) setTitle(task.title);
