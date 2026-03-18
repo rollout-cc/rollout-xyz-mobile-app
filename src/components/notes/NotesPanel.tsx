@@ -137,7 +137,7 @@ export function NotesPanel({ autoCreate }: NotesPanelProps) {
     return (
       <div className="flex flex-col h-full">
         <div className="flex items-center gap-2 py-2 border-b border-border">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedId(null)}>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { cleanupEmptyNote(selectedId!); setSelectedId(null); }}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex-1" />
