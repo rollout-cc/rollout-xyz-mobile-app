@@ -54,6 +54,7 @@ const DEFAULT_PLATFORMS = PLATFORM_LIST.map((p) => p.name);
 
 export function ReleaseWizard({ teamId, artists, releaseId, onClose }: Props) {
   const [step, setStep] = useState(0);
+  const [furthestStep, setFurthestStep] = useState(0);
   const [releaseDbId, setReleaseDbId] = useState<string | undefined>(releaseId);
   const [form, setForm] = useState<ReleaseFormData>({
     artist_id: "",
