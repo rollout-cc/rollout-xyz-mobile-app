@@ -469,10 +469,11 @@ Deno.serve(async (req) => {
     // Check team plan
     const { data: subData } = await usageAdmin
       .from("team_subscriptions")
-      .select("plan")
+      .select("plan, is_grandfathered")
       .eq("team_id", team_id)
       .single();
-    const plan = subData?.plan || "rising";
+    const isGrandfathered = subData?.is_grandfathered === true;
+    const plan = isGrandfathered ? "icon" : (subData?.plan || "rising");
     
     if (plan === "rising") {
       const currentMonth = new Date().toISOString().slice(0, 7); // "2026-03"
