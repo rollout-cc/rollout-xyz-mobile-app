@@ -23,13 +23,13 @@ export default function ApproveSplit() {
 
   const loadData = async () => {
     // Fetch the entry by token
-    const { data: entryData } = await supabase
+    const { data: entryData, error: entryError } = await supabase
       .from("split_entries")
       .select("*, contributor:split_contributors(*)")
       .eq("approval_token", token!)
       .single();
 
-    if (!entryData) { setLoading(false); return; }
+    if (entryError || !entryData) { setLoading(false); return; }
     setEntry(entryData);
 
     if (entryData.approval_status !== "pending") {
