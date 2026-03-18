@@ -464,6 +464,9 @@ export function WorkTaskItem({
               enableDateDetection
               onDateParsed={setParsedDate}
               parsedDate={parsedDate}
+              enableHighlight
+              highlightMembers={teamMembers.map((m: any) => m.full_name || "")}
+              highlightCampaigns={campaigns.map((c: any) => c.name)}
             />
             <DescriptionEditor
               value={description}
