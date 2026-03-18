@@ -128,8 +128,8 @@ export function NotesPanel({ autoCreate }: NotesPanelProps) {
     }
   };
 
-  const pinnedNotes = notes.filter((n) => n.is_pinned);
-  const unpinnedNotes = notes.filter((n) => !n.is_pinned);
+  const pinnedNotes = visibleNotes.filter((n) => n.is_pinned);
+  const unpinnedNotes = visibleNotes.filter((n) => !n.is_pinned);
   const shareCount = selectedNote?.note_shares?.length || 0;
 
   // ── Detail View ──
