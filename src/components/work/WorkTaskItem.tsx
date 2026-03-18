@@ -13,7 +13,7 @@ import { InlineAddTrigger } from "@/components/ui/CollapsibleSection";
 import { ItemEditor, DescriptionEditor } from "@/components/ui/ItemEditor";
 import { MetaBadge } from "@/components/ui/ItemCard";
 import { ToolbarButton } from "@/components/ui/ItemPickers";
-import { cn, formatLocalDate } from "@/lib/utils";
+import { cn, formatLocalDate, parseDateFromText } from "@/lib/utils";
 import {
   DragDropContext, Droppable, Draggable, type DropResult,
 } from "@hello-pangea/dnd";
