@@ -163,6 +163,33 @@ Deno.serve(async (req) => {
     }
 
     const questionCount = previous_qa?.length || 0;
+
+    // Detect if the last answer indicates uncertainty — force plan_ready
+    const lastAnswer = previous_qa?.length > 0 ? String(previous_qa[previous_qa.length - 1]?.answer || "").toLowerCase() : "";
+    const lastAnswerIsUnsure = unsureSignals.some((signal) => lastAnswer.includes(signal));
+
+    // If user expressed uncertainty, skip AI call and return plan_ready immediately
+    if (lastAnswerIsUnsure && questionCount >= 2) {
+      const summaryFromQA = (previous_qa || []).map((qa: any, i: number) => `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}`).join("\n");
+      return new Response(JSON.stringify({
+        type: "complete",
+        summary_prompt: `Generate a plan based on these answers. Fill in ALL gaps with reasonable defaults based on your music industry knowledge.\n\nBrief: ${brief}\n\n${summaryFromQA}`,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Hard cap at 8 questions on backend too
+    if (questionCount >= 8) {
+      const summaryFromQA = (previous_qa || []).map((qa: any, i: number) => `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}`).join("\n");
+      return new Response(JSON.stringify({
+        type: "complete",
+        summary_prompt: `Generate a comprehensive plan based on these answers. Fill in any gaps with reasonable defaults.\n\nBrief: ${brief}\n\n${summaryFromQA}`,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const unsureTopics = (previous_qa || [])
       .filter((qa: any) => {
         const answer = String(qa?.answer || "").toLowerCase();
@@ -180,14 +207,16 @@ Deno.serve(async (req) => {
 - Team members: ${teamMembers.length > 0 ? teamMembers.map(m => `${m.name} (${m.role})`).join(", ") : "No team members yet"}
 - Today's date: ${new Date().toISOString().split("T")[0]}
 - Depth preference: ${depth || "not set yet"}
-- This is question ${question_number || questionCount + 1}
+- Questions asked so far: ${questionCount}
+${questionCount >= 6 ? "You MUST call plan_ready NOW unless there is ONE critical missing piece (like artist name or release date). Do NOT ask another question about timelines, content strategy, promotion, PR, or budgets — use your knowledge to fill those in." : ""}
+${questionCount >= 8 ? "MANDATORY: Call plan_ready immediately. No more questions." : ""}
 ${knowledgeContext}
 
 USER'S BRIEF: "${brief}"
 
 ${previous_qa && previous_qa.length > 0 ? `PREVIOUS Q&A:\n${previous_qa.map((qa: any, i: number) => `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}`).join("\n\n")}` : "No questions asked yet."}
 
-${unsureTopics.length > 0 ? `USER SAID "I DON'T KNOW" ON: ${unsureTopics.join(" | ")}\nDo NOT ask deeper follow-ups on those topics. Move to another missing area.` : ""}
+${unsureTopics.length > 0 ? `USER SAID "I DON'T KNOW" ON: ${unsureTopics.join(" | ")}\nDo NOT ask deeper follow-ups on those topics. Move to another missing area or call plan_ready.` : ""}
 
 Generate the next question based on the depth preference, or signal completion with plan_ready if you have enough info.`,
       },
