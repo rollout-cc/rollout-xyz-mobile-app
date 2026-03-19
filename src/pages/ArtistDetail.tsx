@@ -240,13 +240,13 @@ export default function ArtistDetail() {
     }
   };
 
-  // Build action buttons, conditionally showing Finance based on plan
+  // Build action buttons, conditionally showing Finance based on plan and permissions
   const actionButtons = [
-    { key: "money" as ActiveView, icon: DollarSign, label: "Money" },
+    ...(canViewFinance ? [{ key: "money" as ActiveView, icon: DollarSign, label: "Money" }] : []),
     { key: "information" as ActiveView, icon: Star, label: "Info" },
   ];
 
-  const tabItems: TabView[] = ["work", "links", "timelines", "splits"];
+  const tabItems: TabView[] = ["work", "links", "timelines", ...(canDistribute ? ["splits" as TabView] : [])];
 
   const handleBack = () => {
     navigate(-1);
