@@ -100,14 +100,41 @@ export default function PrivacyPolicy() {
           personal information from children.
         </p>
 
-        <h2>9. Changes to This Policy</h2>
+        <h2>9. Data Access &amp; Ownership</h2>
+        <p>
+          When you become the owner of a team on Rollout, your data is exclusively yours.
+          Rollout staff <strong>cannot</strong> access your account, team data, or any
+          associated information without your explicit written consent.
+        </p>
+        <ul>
+          <li>
+            All ownership transfers are formally documented and require mutual acknowledgment
+            from both parties
+          </li>
+          <li>
+            If Rollout Support needs temporary access to your team for troubleshooting, a
+            formal request is sent that you must approve. These sessions are time-limited
+            (default 2 hours), logged with full timestamps, and you can revoke access at
+            any time
+          </li>
+          <li>
+            Support access sessions are automatically terminated upon expiry — no standing
+            access is ever retained
+          </li>
+          <li>
+            All access events (requests, approvals, sessions, revocations) are recorded in
+            an immutable audit log
+          </li>
+        </ul>
+
+        <h2>10. Changes to This Policy</h2>
         <p>
           We may update this Privacy Policy from time to time. We will notify you of material
           changes by posting the updated policy on this page with a revised "Last updated"
           date.
         </p>
 
-        <h2>10. Contact Us</h2>
+        <h2>11. Contact Us</h2>
         <p>
           If you have questions about this Privacy Policy, please contact us at{" "}
           <a href="mailto:privacy@rollout.cc">privacy@rollout.cc</a>.

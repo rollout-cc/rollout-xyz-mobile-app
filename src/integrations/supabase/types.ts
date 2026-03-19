@@ -1534,6 +1534,24 @@ export type Database = {
           },
         ]
       }
+      platform_admins: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pro_connections: {
         Row: {
           account_email: string | null
@@ -2446,6 +2464,56 @@ export type Database = {
           },
         ]
       }
+      support_access_requests: {
+        Row: {
+          admin_user_id: string
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          ended_at: string | null
+          expires_at: string
+          id: string
+          reason: string | null
+          started_at: string | null
+          status: string
+          team_id: string
+        }
+        Insert: {
+          admin_user_id: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          ended_at?: string | null
+          expires_at?: string
+          id?: string
+          reason?: string | null
+          started_at?: string | null
+          status?: string
+          team_id: string
+        }
+        Update: {
+          admin_user_id?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          ended_at?: string | null
+          expires_at?: string
+          id?: string
+          reason?: string | null
+          started_at?: string | null
+          status?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_access_requests_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           artist_id: string | null
@@ -2524,6 +2592,7 @@ export type Database = {
           assists_user_id: string | null
           created_at: string
           id: string
+          is_support_session: boolean
           perm_distribution: boolean | null
           perm_edit_artists: boolean
           perm_manage_finance: boolean
@@ -2541,6 +2610,7 @@ export type Database = {
           assists_user_id?: string | null
           created_at?: string
           id?: string
+          is_support_session?: boolean
           perm_distribution?: boolean | null
           perm_edit_artists?: boolean
           perm_manage_finance?: boolean
@@ -2558,6 +2628,7 @@ export type Database = {
           assists_user_id?: string | null
           created_at?: string
           id?: string
+          is_support_session?: boolean
           perm_distribution?: boolean | null
           perm_edit_artists?: boolean
           perm_manage_finance?: boolean
@@ -2574,6 +2645,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "team_memberships_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_ownership_transfers: {
+        Row: {
+          admin_acknowledged_at: string | null
+          created_at: string
+          from_user_id: string
+          id: string
+          owner_accepted_at: string | null
+          policy_version: string
+          status: string
+          team_id: string
+          to_user_id: string
+          token: string
+        }
+        Insert: {
+          admin_acknowledged_at?: string | null
+          created_at?: string
+          from_user_id: string
+          id?: string
+          owner_accepted_at?: string | null
+          policy_version?: string
+          status?: string
+          team_id: string
+          to_user_id: string
+          token?: string
+        }
+        Update: {
+          admin_acknowledged_at?: string | null
+          created_at?: string
+          from_user_id?: string
+          id?: string
+          owner_accepted_at?: string | null
+          policy_version?: string
+          status?: string
+          team_id?: string
+          to_user_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_ownership_transfers_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
@@ -3085,6 +3203,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      expire_support_sessions: { Args: never; Returns: undefined }
       get_artist_team_id: { Args: { p_artist_id: string }; Returns: string }
       get_budget_team_id: { Args: { p_budget_id: string }; Returns: string }
       get_invoice_team_id: { Args: { p_invoice_id: string }; Returns: string }
@@ -3119,6 +3238,7 @@ export type Database = {
       is_link_folder_public: { Args: { p_folder_id: string }; Returns: boolean }
       is_member_info_public: { Args: { p_member_id: string }; Returns: boolean }
       is_note_owner: { Args: { p_note_id: string }; Returns: boolean }
+      is_platform_admin: { Args: { p_user_id?: string }; Returns: boolean }
       is_team_member: { Args: { p_team_id: string }; Returns: boolean }
       is_team_owner_or_manager: {
         Args: { p_team_id: string }

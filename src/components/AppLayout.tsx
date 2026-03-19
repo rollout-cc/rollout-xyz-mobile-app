@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { SupportAccessBanner } from "@/components/SupportAccessBanner";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
@@ -165,6 +166,7 @@ export function AppLayout({ children, title, actions, onBack, mobileSubnav }: Ap
 
           {/* Content — bottom padding clears the fixed nav bar (3.5rem) + home indicator safe area */}
           <main className="flex-1 p-4 sm:p-6 pb-[calc(3.5rem_+_1.5rem_+_var(--safe-area-inset-bottom))] sm:pb-6 overflow-x-hidden overflow-y-auto min-w-0 scroll-container">
+            {selectedTeamId && <SupportAccessBanner teamId={selectedTeamId} />}
             {children}
           </main>
         </div>
