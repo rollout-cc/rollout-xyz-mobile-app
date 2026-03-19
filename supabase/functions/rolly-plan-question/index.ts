@@ -323,6 +323,7 @@ Generate the next question based on the depth preference, or signal completion w
         options: fnArgs.options || [],
         multi_select: fnArgs.multi_select || false,
         allow_custom: fnArgs.allow_custom !== false,
+        acknowledgment: fnArgs.acknowledgment || null,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
