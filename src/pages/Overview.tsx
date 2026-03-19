@@ -42,7 +42,7 @@ import { RollyNudge } from "@/components/rolly/RollyNudge";
 
 
 export default function Overview() {
-  const { selectedTeamId: teamId, canManageFinance } = useSelectedTeam();
+  const { selectedTeamId: teamId, canManageFinance, canViewFinance, canViewStaffSalaries, canViewAR } = useSelectedTeam();
   const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const initialTab = searchParams.get("tab") === "finance" ? "finance" : "dashboard";
