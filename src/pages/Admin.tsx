@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { FeedbackDashboard } from "@/components/admin/FeedbackDashboard";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,8 +10,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, UserPlus, Building2, ArrowRightLeft, Gift, Headset, LogOut, XCircle } from "lucide-react";
+import { Shield, UserPlus, Building2, ArrowRightLeft, Gift, Headset, LogOut, Check, ChevronsUpDown } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 function useIsAdmin() {
   const { user } = useAuth();
@@ -23,7 +27,7 @@ function useIsAdmin() {
   return isAdmin;
 }
 
-async function adminAction(action: string, payload: Record<string, unknown>) {
+async function adminAction(action: string, payload: Record<string, unknown> = {}) {
   const { data: { session } } = await supabase.auth.getSession();
   const res = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-actions`,
@@ -40,6 +44,86 @@ async function adminAction(action: string, payload: Record<string, unknown>) {
   const json = await res.json();
   if (!res.ok) throw new Error(json.error || "Action failed");
   return json;
+}
+
+/* ─── Searchable Combobox ─── */
+interface ComboItem { id: string; label: string; name: string; email?: string }
+
+function SearchableCombobox({
+  label,
+  placeholder,
+  action,
+  value,
+  onChange,
+}: {
+  label: string;
+  placeholder: string;
+  action: "list_users" | "list_teams";
+  value: string;
+  onChange: (id: string, item?: ComboItem) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState<ComboItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadItems = useCallback(async () => {
+    if (items.length > 0) return;
+    setLoading(true);
+    try {
+      const res = await adminAction(action);
+      setItems(res.items || []);
+    } catch { /* ignore */ }
+    setLoading(false);
+  }, [action, items.length]);
+
+  const selectedItem = items.find(i => i.id === value);
+
+  return (
+    <div>
+      <Label>{label}</Label>
+      <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o) loadItems(); }}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between font-normal h-10 text-left"
+          >
+            <span className="truncate">
+              {selectedItem ? selectedItem.label : <span className="text-muted-foreground">{placeholder}</span>}
+            </span>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+          <Command>
+            <CommandInput placeholder={`Search ${label.toLowerCase()}…`} />
+            <CommandList>
+              {loading ? (
+                <div className="py-4 text-center text-sm text-muted-foreground">Loading…</div>
+              ) : (
+                <>
+                  <CommandEmpty>No results found.</CommandEmpty>
+                  <CommandGroup>
+                    {items.map(item => (
+                      <CommandItem
+                        key={item.id}
+                        value={item.label}
+                        onSelect={() => { onChange(item.id, item); setOpen(false); }}
+                      >
+                        <Check className={cn("mr-2 h-4 w-4", value === item.id ? "opacity-100" : "opacity-0")} />
+                        {item.label}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </>
+              )}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
 }
 
 export default function Admin() {
@@ -79,14 +163,25 @@ function CreateUserSection() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("team_owner");
+  const [teamName, setTeamName] = useState("");
+  const [trialDays, setTrialDays] = useState(30);
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
     setBusy(true);
     try {
-      const res = await adminAction("create_user", { email, full_name: name, password });
-      toast.success(`User created: ${res.email}`);
-      setEmail(""); setName(""); setPassword("");
+      const payload: Record<string, unknown> = { email, full_name: name, password, role };
+      if (role === "team_owner" && teamName) {
+        payload.team_name = teamName;
+        payload.trial_days = trialDays;
+      }
+      const res = await adminAction("create_user", payload);
+      const msg = res.team_name
+        ? `Created ${res.full_name} (${res.email}) with team "${res.team_name}"`
+        : `Created ${res.full_name} (${res.email})`;
+      toast.success(msg);
+      setEmail(""); setName(""); setPassword(""); setTeamName("");
     } catch (e: any) { toast.error(e.message); }
     setBusy(false);
   };
@@ -102,7 +197,26 @@ function CreateUserSection() {
           <div><Label>Full Name</Label><Input value={name} onChange={e => setName(e.target.value)} placeholder="Jane Doe" /></div>
           <div><Label>Email</Label><Input value={email} onChange={e => setEmail(e.target.value)} placeholder="jane@example.com" type="email" /></div>
         </div>
-        <div><Label>Temporary Password</Label><Input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="••••••••" /></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div><Label>Temporary Password</Label><Input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="••••••••" /></div>
+          <div>
+            <Label>Role</Label>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="team_owner">Owner</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="artist">Artist</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {role === "team_owner" && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg border border-border p-4 bg-muted/30">
+            <div><Label>Team Name</Label><Input value={teamName} onChange={e => setTeamName(e.target.value)} placeholder="Acme Records" /></div>
+            <div><Label>Trial Days</Label><Input type="number" min={1} max={365} value={trialDays} onChange={e => setTrialDays(Number(e.target.value))} /></div>
+          </div>
+        )}
         <Button onClick={submit} disabled={busy || !email || !name || !password}>{busy ? "Creating…" : "Create User"}</Button>
       </CardContent>
     </Card>
@@ -113,14 +227,15 @@ function CreateUserSection() {
 function CreateTeamSection() {
   const [name, setName] = useState("");
   const [ownerId, setOwnerId] = useState("");
+  const [ownerName, setOwnerName] = useState("");
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
     setBusy(true);
     try {
       const res = await adminAction("create_team", { name, owner_user_id: ownerId });
-      toast.success(`Team created: ${res.team_id}`);
-      setName(""); setOwnerId("");
+      toast.success(`Team "${res.team_name}" created for ${ownerName || "selected owner"}`);
+      setName(""); setOwnerId(""); setOwnerName("");
     } catch (e: any) { toast.error(e.message); }
     setBusy(false);
   };
@@ -129,12 +244,18 @@ function CreateTeamSection() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Building2 className="h-5 w-5" /> Create Team</CardTitle>
-        <CardDescription>Set up a new team for a client</CardDescription>
+        <CardDescription>Set up a new team for an existing user</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div><Label>Team Name</Label><Input value={name} onChange={e => setName(e.target.value)} placeholder="Acme Records" /></div>
-          <div><Label>Owner User ID</Label><Input value={ownerId} onChange={e => setOwnerId(e.target.value)} placeholder="uuid" className="font-mono text-xs" /></div>
+          <SearchableCombobox
+            label="Owner"
+            placeholder="Search users…"
+            action="list_users"
+            value={ownerId}
+            onChange={(id, item) => { setOwnerId(id); setOwnerName(item?.name || ""); }}
+          />
         </div>
         <Button onClick={submit} disabled={busy || !name || !ownerId}>{busy ? "Creating…" : "Create Team"}</Button>
       </CardContent>
@@ -145,6 +266,7 @@ function CreateTeamSection() {
 /* ─── Grant Trial ─── */
 function GrantTrialSection() {
   const [teamId, setTeamId] = useState("");
+  const [teamLabel, setTeamLabel] = useState("");
   const [days, setDays] = useState(14);
   const [busy, setBusy] = useState(false);
 
@@ -152,8 +274,8 @@ function GrantTrialSection() {
     setBusy(true);
     try {
       const res = await adminAction("grant_trial", { team_id: teamId, trial_days: days });
-      toast.success(`Trial granted until ${new Date(res.trial_ends_at).toLocaleDateString()}`);
-      setTeamId("");
+      toast.success(`Trial granted for "${res.team_name || teamLabel}" until ${new Date(res.trial_ends_at).toLocaleDateString()}`);
+      setTeamId(""); setTeamLabel("");
     } catch (e: any) { toast.error(e.message); }
     setBusy(false);
   };
@@ -166,7 +288,13 @@ function GrantTrialSection() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div><Label>Team ID</Label><Input value={teamId} onChange={e => setTeamId(e.target.value)} placeholder="uuid" className="font-mono text-xs" /></div>
+          <SearchableCombobox
+            label="Team"
+            placeholder="Search teams…"
+            action="list_teams"
+            value={teamId}
+            onChange={(id, item) => { setTeamId(id); setTeamLabel(item?.name || ""); }}
+          />
           <div><Label>Trial Duration (days)</Label><Input type="number" min={1} max={365} value={days} onChange={e => setDays(Number(e.target.value))} /></div>
         </div>
         <Button onClick={submit} disabled={busy || !teamId}>{busy ? "Granting…" : "Grant Trial"}</Button>
@@ -178,7 +306,9 @@ function GrantTrialSection() {
 /* ─── Transfer Ownership ─── */
 function TransferOwnershipSection() {
   const [teamId, setTeamId] = useState("");
+  const [teamLabel, setTeamLabel] = useState("");
   const [toUserId, setToUserId] = useState("");
+  const [toUserLabel, setToUserLabel] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -186,8 +316,8 @@ function TransferOwnershipSection() {
     setBusy(true);
     try {
       const res = await adminAction("initiate_transfer", { team_id: teamId, to_user_id: toUserId });
-      toast.success(`Transfer initiated. Token: ${res.token}`);
-      setTeamId(""); setToUserId(""); setAcknowledged(false);
+      toast.success(`Transfer initiated for "${res.team_name}" → ${res.recipient_name}. Email sent to ${res.recipient_email}.`);
+      setTeamId(""); setTeamLabel(""); setToUserId(""); setToUserLabel(""); setAcknowledged(false);
     } catch (e: any) { toast.error(e.message); }
     setBusy(false);
   };
@@ -200,8 +330,20 @@ function TransferOwnershipSection() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div><Label>Team ID</Label><Input value={teamId} onChange={e => setTeamId(e.target.value)} placeholder="uuid" className="font-mono text-xs" /></div>
-          <div><Label>New Owner User ID</Label><Input value={toUserId} onChange={e => setToUserId(e.target.value)} placeholder="uuid" className="font-mono text-xs" /></div>
+          <SearchableCombobox
+            label="Team"
+            placeholder="Search teams…"
+            action="list_teams"
+            value={teamId}
+            onChange={(id, item) => { setTeamId(id); setTeamLabel(item?.name || ""); }}
+          />
+          <SearchableCombobox
+            label="New Owner"
+            placeholder="Search users…"
+            action="list_users"
+            value={toUserId}
+            onChange={(id, item) => { setToUserId(id); setToUserLabel(item?.name || ""); }}
+          />
         </div>
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-sm space-y-2">
           <p className="font-medium text-amber-600 dark:text-amber-400">Ownership Transfer Agreement</p>
@@ -209,7 +351,10 @@ function TransferOwnershipSection() {
             By transferring ownership, you acknowledge that the recipient will become the sole owner of this team.
             You will no longer have access to their team data, and you may not log into their account or access their
             information without their written consent, in accordance with Rollout's{" "}
-            <a href="/privacy" className="underline" target="_blank">Privacy Policy</a>.
+            <a href="/privacy" className="underline" target="_blank" rel="noreferrer">Privacy Policy</a>.
+          </p>
+          <p className="text-muted-foreground">
+            The new owner will be notified via <strong>email</strong> and an <strong>in-app notification</strong> asking them to accept ownership.
           </p>
           <label className="flex items-center gap-2 cursor-pointer mt-2">
             <input type="checkbox" checked={acknowledged} onChange={e => setAcknowledged(e.target.checked)} className="rounded" />
@@ -268,7 +413,13 @@ function SupportAccessSection() {
       <CardContent className="space-y-6">
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div><Label>Team ID</Label><Input value={teamId} onChange={e => setTeamId(e.target.value)} placeholder="uuid" className="font-mono text-xs" /></div>
+            <SearchableCombobox
+              label="Team"
+              placeholder="Search teams…"
+              action="list_teams"
+              value={teamId}
+              onChange={(id) => setTeamId(id)}
+            />
             <div><Label>Reason (optional)</Label><Textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Describe the issue…" rows={1} /></div>
           </div>
           <Button onClick={requestAccess} disabled={busy || !teamId}>{busy ? "Requesting…" : "Request Support Access"}</Button>
@@ -280,7 +431,7 @@ function SupportAccessSection() {
             {activeSessions.map(s => (
               <div key={s.id} className="flex items-center justify-between rounded-lg border p-3">
                 <div className="space-y-0.5">
-                  <p className="text-sm font-medium">{(s as any).teams?.name || s.team_id}</p>
+                  <p className="text-sm font-medium">{(s as any).teams?.name || "Unknown team"}</p>
                   {s.reason && <p className="text-xs text-muted-foreground">{s.reason}</p>}
                   <div className="flex items-center gap-2">
                     <Badge variant={s.status === "active" ? "default" : "secondary"} className="text-xs">
