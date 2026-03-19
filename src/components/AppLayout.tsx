@@ -55,6 +55,16 @@ export function AppLayout({ children, title, actions, onBack, mobileSubnav }: Ap
     staleTime: 5 * 60_000,
   });
 
+  const { data: isPlatformAdmin } = useQuery({
+    queryKey: ["is-platform-admin", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_platform_admin", { p_user_id: user!.id });
+      return !!data;
+    },
+    enabled: !!user,
+    staleTime: 10 * 60_000,
+  });
+
   return (
     <SidebarProvider>
       <div className="flex h-dvh w-full overflow-hidden">
