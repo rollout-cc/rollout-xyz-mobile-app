@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { SupportAccessBanner } from "@/components/SupportAccessBanner";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
