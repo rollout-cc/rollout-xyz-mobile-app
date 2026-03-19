@@ -247,6 +247,10 @@ Generate the next question based on the depth preference, or signal completion w
                     type: "boolean",
                     description: "Whether the user can type a custom answer instead. Default true.",
                   },
+                  acknowledgment: {
+                    type: "string",
+                    description: "A brief 5-10 word conversational reaction to their last answer. Only include after Q1. Examples: 'Smart move.', 'That timeline works.', 'Got it.'",
+                  },
                 },
                 required: ["question", "header", "options"],
                 additionalProperties: false,
