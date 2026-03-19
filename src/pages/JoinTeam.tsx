@@ -206,6 +206,21 @@ export default function JoinTeam() {
     await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
   };
 
+  // Fetch full roster for invitee onboarding
+  const { data: allRosterArtists = [] } = useQuery({
+    queryKey: ["roster-artists-join", joinResult?.team_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("artists")
+        .select("id, name, avatar_url")
+        .eq("team_id", joinResult!.team_id)
+        .order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!joinResult?.team_id,
+  });
+
   const handlePersonalSave = async () => {
     setLoading(true);
     try {
@@ -218,7 +233,12 @@ export default function JoinTeam() {
         shoe_size: shoeSize || null,
         dietary_restrictions: dietaryRestrictions || null,
       } as any).eq("id", user!.id);
-      setStep("artists");
+      // If there's a job title, show invitee onboarding; otherwise skip to artists
+      if (joinResult?.job_title) {
+        setStep("onboarding");
+      } else {
+        setStep("artists");
+      }
     } catch (err: any) {
       toast.error(err.message);
     } finally {
