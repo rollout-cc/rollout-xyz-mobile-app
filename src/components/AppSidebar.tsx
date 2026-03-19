@@ -197,6 +197,27 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
             </DropdownMenu>
           </div>
 
+          {/* EA Assisting banner */}
+          {persona === "ea" && assistsUserName && !collapsed && (
+            <div className="px-3 mb-2">
+              <div className="rounded-full bg-accent/60 border border-border px-3 py-1 text-[11px] font-medium text-muted-foreground text-center truncate">
+                Assisting {assistsUserName}
+              </div>
+            </div>
+          )}
+          {persona === "ea" && assistsUserName && collapsed && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex justify-center mb-2">
+                  <div className="h-6 w-6 rounded-full bg-accent/60 border border-border flex items-center justify-center">
+                    <User className="h-3 w-3 text-muted-foreground" />
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right">Assisting {assistsUserName}</TooltipContent>
+            </Tooltip>
+          )}
+
           {/* Nav — all items center-aligned in collapsed via SidebarMenuButton's built-in !size-8 */}
           <SidebarMenu
             className="transition-[padding] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"

@@ -583,7 +583,7 @@ export default function ArtistDetail() {
               </div>
             )}
             {activeView === "objectives" && <ObjectivesPanel artist={artist} />}
-            {activeView === "information" && <ArtistInfoTab artist={artist} />}
+            {activeView === "information" && <ArtistInfoTab artist={artist} readOnly={!canEditArtists} />}
             {activeView === "work" && <WorkTab artistId={artist.id} teamId={artist.team_id} showCompleted={showCompleted} showArchived={showArchived} />}
             {activeView === "links" && <LinksTab artistId={artist.id} />}
             {activeView === "timelines" && <TimelinesTab artistId={artist.id} />}
