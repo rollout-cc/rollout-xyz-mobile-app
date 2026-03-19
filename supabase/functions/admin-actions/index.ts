@@ -179,6 +179,24 @@ Deno.serve(async (req) => {
             perm_distribution: true,
           });
         if (memError) return respond(400, { error: memError.message });
+
+        // Auto-add the calling admin as a manager on the new team
+        if (user.id !== owner_user_id) {
+          await adminClient.from("team_memberships").insert({
+            team_id: team.id,
+            user_id: user.id,
+            role: "manager",
+            perm_view_finance: true,
+            perm_manage_finance: true,
+            perm_view_staff_salaries: true,
+            perm_view_ar: true,
+            perm_view_roster: true,
+            perm_edit_artists: true,
+            perm_view_billing: true,
+            perm_distribution: true,
+          });
+        }
+
         return respond(200, { team_id: team.id, team_name: team.name });
       }
 
