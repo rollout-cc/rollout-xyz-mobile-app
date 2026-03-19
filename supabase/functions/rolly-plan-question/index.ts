@@ -176,7 +176,10 @@ Deno.serve(async (req) => {
         role: "user",
         content: `CONTEXT:
 - Artists on roster: ${artistNames.length > 0 ? artistNames.join(", ") : "None added yet"}
+- Team members: ${teamMembers.length > 0 ? teamMembers.map(m => `${m.name} (${m.role})`).join(", ") : "No team members yet"}
 - Today's date: ${new Date().toISOString().split("T")[0]}
+- Depth preference: ${depth || "not set yet"}
+- This is question ${question_number || questionCount + 1}
 ${knowledgeContext}
 
 USER'S BRIEF: "${brief}"
@@ -185,9 +188,7 @@ ${previous_qa && previous_qa.length > 0 ? `PREVIOUS Q&A:\n${previous_qa.map((qa:
 
 ${unsureTopics.length > 0 ? `USER SAID "I DON'T KNOW" ON: ${unsureTopics.join(" | ")}\nDo NOT ask deeper follow-ups on those topics. Move to another missing area.` : ""}
 
-Questions asked so far: ${questionCount}/14. ${questionCount >= 10 ? "You should strongly consider wrapping up — signal completion with plan_ready unless there's a critical gap." : ""} ${questionCount >= 13 ? "MANDATORY: Call plan_ready NOW. Do NOT ask another question." : ""}
-
-${questionCount >= 10 ? "If you have enough info to build tasks, milestones, and budgets, call plan_ready immediately." : "Generate the next question, or signal completion if you have enough info."}`,
+Generate the next question based on the depth preference, or signal completion with plan_ready if you have enough info.`,
       },
     ];
 
