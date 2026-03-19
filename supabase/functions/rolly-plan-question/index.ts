@@ -86,6 +86,19 @@ Deno.serve(async (req) => {
       artistNames = (artists ?? []).map((a: any) => a.name);
     }
 
+    // Fetch team members for context
+    let teamMembers: { name: string; role: string }[] = [];
+    if (team_id) {
+      const { data: memberships } = await sb
+        .from("team_memberships")
+        .select("role, user_id, profiles(full_name)")
+        .eq("team_id", team_id);
+      teamMembers = (memberships ?? []).map((m: any) => ({
+        name: m.profiles?.full_name || "Unknown",
+        role: m.role || "team_member",
+      }));
+    }
+
     // Search knowledge base for relevant context — use multiple search passes
     let knowledgeContext = "";
     if (brief) {
