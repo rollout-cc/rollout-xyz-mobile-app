@@ -140,7 +140,7 @@ export default function Admin() {
     <div className="h-dvh overflow-y-auto bg-background">
       <header className="border-b border-border px-6 py-4 flex items-center gap-3">
         <button onClick={() => navigate("/roster")} className="hover:opacity-80 transition-opacity">
-          <img src={rolloutLogo} alt="Rollout" className="h-7" />
+          <img src={rolloutLogo} alt="Rollout" className="h-10" />
         </button>
         <span className="text-muted-foreground text-sm font-medium">Admin Console</span>
         <Badge variant="outline" className="ml-auto">Super Admin</Badge>
