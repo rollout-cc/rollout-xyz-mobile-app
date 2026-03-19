@@ -19,7 +19,7 @@ const NotFound = () => {
       />
       <h1 className="mb-4 text-7xl font-black tracking-tight text-foreground">404</h1>
       <p className="mb-2 text-xl font-semibold text-foreground">
-        f*ck, something went wrong
+        F*ck, something went wrong
       </p>
       <p className="mb-8 max-w-sm text-sm text-muted-foreground">
         a ROLLOUT team member just got an email because of this and will be fixing soon

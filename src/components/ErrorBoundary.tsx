@@ -41,7 +41,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             className="h-16 w-16 animate-pulse"
           />
           <p className="text-lg font-semibold text-foreground">
-            f*ck, something went wrong
+            F*ck, something went wrong
           </p>
           <p className="max-w-sm text-sm text-muted-foreground">
             a ROLLOUT team member just got an email because of this and will be fixing soon
