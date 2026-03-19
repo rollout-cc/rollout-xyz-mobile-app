@@ -24,6 +24,16 @@ TASK TITLE RULES:
 - Specific: include the deliverable ("Create 3 TikTok teaser clips", not "Make content")
 - Keep under 60 chars
 
+TASK ASSIGNMENT RULES:
+- For each task, set assign_to_role based on the task's nature:
+  - "marketing" for social media, content creation, ads, PR, press
+  - "ar" for A&R, talent scouting, artist relations, repertoire
+  - "finance" for budgets, accounting, invoices, payments
+  - "operations" for logistics, scheduling, project management, coordination
+  - "creative" for design, video, photography, visual content production
+  - "legal" for contracts, licensing, sync deals, legal review
+  - "general" for anything that doesn't fit the above
+
 CAMPAIGN RULES:
 - Name should be the phase or initiative name ("GUMBO Pre-Release Campaign", "Single Drop Week")
 - Include start and end dates that define the phase
@@ -103,7 +113,7 @@ ${qaText}
 
 SUMMARY: ${summary_prompt}
 
-Now generate the full structured plan. Be specific and actionable. Use the artist names from the roster when applicable.`,
+Now generate the full structured plan. Be specific and actionable. Use the artist names from the roster when applicable. Assign each task to the most appropriate role category.`,
       },
     ];
 
@@ -159,6 +169,11 @@ Now generate the full structured plan. Be specific and actionable. Use the artis
                         due_date: { type: "string", description: "ISO date YYYY-MM-DD" },
                         campaign_name: { type: "string", description: "Name of the campaign this task belongs to" },
                         artist_name: { type: "string" },
+                        assign_to_role: {
+                          type: "string",
+                          enum: ["marketing", "ar", "finance", "operations", "creative", "legal", "general"],
+                          description: "The department/role best suited for this task",
+                        },
                       },
                       required: ["title", "artist_name"],
                     },

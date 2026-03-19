@@ -15,6 +15,7 @@ export type DraftItem = {
   amount?: number;
   artist_name?: string;
   campaign_name?: string;
+  assign_to_role?: string;
 };
 
 interface PlanDraftProps {
@@ -24,6 +25,16 @@ interface PlanDraftProps {
   onCancel: () => void;
   isExecuting: boolean;
 }
+
+const ROLE_LABELS: Record<string, string> = {
+  marketing: "Marketing",
+  ar: "A&R",
+  finance: "Finance",
+  operations: "Ops",
+  creative: "Creative",
+  legal: "Legal",
+  general: "General",
+};
 
 export function PlanDraft({ items: initialItems, artistName, onConfirm, onCancel, isExecuting }: PlanDraftProps) {
   const [items, setItems] = useState<DraftItem[]>(initialItems);
@@ -179,7 +190,14 @@ export function PlanDraft({ items: initialItems, artistName, onConfirm, onCancel
         {typeIcon(item.type)}
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate text-white">{item.title}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium truncate text-white">{item.title}</p>
+            {item.type === "task" && item.assign_to_role && item.assign_to_role !== "general" && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/50 shrink-0">
+                {ROLE_LABELS[item.assign_to_role] || item.assign_to_role}
+              </span>
+            )}
+          </div>
           {item.date && (
             <p className="text-xs text-white/40">{item.date}{item.end_date ? ` → ${item.end_date}` : ""}</p>
           )}

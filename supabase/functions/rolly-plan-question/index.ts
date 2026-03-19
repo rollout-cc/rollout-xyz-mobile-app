@@ -9,15 +9,19 @@ const corsHeaders = {
 const SYSTEM_PROMPT = `You are ROLLY, an expert music manager AI. You ask smart questions to build a rollout plan.
 
 CRITICAL RULES:
-- Ask a MAXIMUM of 8 questions total. After question 6, strongly consider wrapping up.
-- If the user says "quick" or indicates they're in a hurry, ask only 3-4 questions then call plan_ready.
 - NEVER repeat a question that was already answered in the brief or previous Q&A.
-- NEVER ask the user things YOU should know from your music industry knowledge. For example, don't ask "when should you start promoting?" — YOU figure that out and build it into the plan.
-- If a question is about something you can reasonably assume or calculate (timeline math, standard promo windows, typical budget splits), DON'T ask — just use your knowledge.
+- NEVER ask the user things YOU should know from your music industry knowledge.
 - Only ask questions where the user's specific input is needed (artist name, release date, budget amount, which platforms they care about).
 - Keep questions under 15 words.
 - Use plain language, no jargon.
 - If the user says "I don't know" or "you tell me", IMMEDIATELY call plan_ready and fill in the gaps yourself.
+
+KNOWLEDGE-FIRST RULES — NEVER ask about these, just use your expertise:
+- Standard costs: Music video $1-3K indie / $5-15K mid-level, Lyric video $300-800, Social content $500-1500/mo, PR campaign $1-3K/mo, Playlist pitching $200-500
+- Promo windows: 6-8 weeks pre-save campaign, 2-3 weeks press lead time, 4-6 weeks radio promotion, Release week is always the heaviest push
+- Budget splits: 40% content creation, 25% paid promotion, 20% PR/press, 15% contingency (adjust based on goals)
+- Timeline math: Single cycle = 8-12 weeks, EP cycle = 12-16 weeks, Album cycle = 16-24 weeks
+- Standard channels: Spotify, Apple Music, TikTok, Instagram, YouTube are assumed unless told otherwise
 
 YOUR PERSONALITY:
 - You're a knowledgeable music manager who speaks naturally
@@ -27,9 +31,10 @@ YOUR PERSONALITY:
 - Include an optional "acknowledgment" field — a brief 5-10 word reaction to their last answer (e.g., "Smart move.", "That timeline works."). Only after Q1.
 
 DEPTH CALIBRATION:
-- If depth is "quick": Ask 3-4 focused questions, then call plan_ready. Fill in reasonable defaults.
-- If depth is "detailed": Ask 6-8 questions max, go deeper on specifics.
-- If depth is not set: After your first question, gauge the user's pace and default to quick.
+- Q2 MUST always ask about pace: "Need this quick or want to really think it through?"
+- If depth is "quick": Ask 3-5 focused questions total, then call plan_ready. Fill in reasonable defaults.
+- If depth is "deep": Ask 8-12 questions, go deeper on specifics. When done, call plan_ready with preview: true.
+- If depth is not set: Default to quick after Q2.
 
 WHAT YOU NEED (skip topics already covered):
 - What's the project? (release, tour, campaign, etc.)
@@ -74,7 +79,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { brief, previous_qa, team_id, depth, question_number } = await req.json();
+    const { brief, previous_qa, team_id, depth, question_number, is_post_preview, preview_plan, refinement_feedback } = await req.json();
+
+    // Determine hard caps based on depth
+    const isDeep = depth === "deep" || depth === "detailed";
+    const hardCap = isDeep ? 20 : 8;
 
     // Fetch artists for context
     let artistNames: string[] = [];
@@ -88,32 +97,28 @@ Deno.serve(async (req) => {
     }
 
     // Fetch team members for context
-    let teamMembers: { name: string; role: string }[] = [];
+    let teamMembers: { name: string; role: string; job_title: string }[] = [];
     if (team_id) {
       const { data: memberships } = await sb
         .from("team_memberships")
-        .select("role, user_id, profiles(full_name)")
+        .select("role, user_id, job_title, profiles(full_name)")
         .eq("team_id", team_id);
       teamMembers = (memberships ?? []).map((m: any) => ({
         name: m.profiles?.full_name || "Unknown",
         role: m.role || "team_member",
+        job_title: m.job_title || "",
       }));
     }
 
     // Search knowledge base for relevant context — use multiple search passes
     let knowledgeContext = "";
     if (brief) {
-      // Extract meaningful search terms from brief + any answers so far
       const allText = [brief, ...(previous_qa || []).map((qa: any) => `${qa.question} ${qa.answer}`)].join(" ");
       
-      // Build multiple search queries for broader coverage
       const searchQueries: string[] = [];
-      
-      // Direct terms from the brief
       const directTerms = brief.split(/\s+/).filter((w: string) => w.length > 3).slice(0, 6).join(" | ");
       if (directTerms) searchQueries.push(directTerms);
       
-      // Topic-based searches based on what the brief mentions
       const topicMap: Record<string, string> = {
         "ep|album|single|release|drop": "release strategy rollout",
         "merch|merchandise|clothing|apparel": "merch production clothing brand",
@@ -134,7 +139,6 @@ Deno.serve(async (req) => {
         }
       }
       
-      // Deduplicate and run searches
       const knowledgeResults: any[] = [];
       const seenIds = new Set<string>();
       
@@ -156,7 +160,6 @@ Deno.serve(async (req) => {
       }
       
       if (knowledgeResults.length > 0) {
-        // Sort by relevance rank and take top entries
         const top = knowledgeResults.slice(0, 10);
         knowledgeContext = `\nINDUSTRY KNOWLEDGE (use this to ask smarter, more specific questions):\n${top.map((k: any) => `- [${k.chapter}]: ${k.content.slice(0, 400)}`).join("\n\n")}`;
       }
@@ -168,23 +171,24 @@ Deno.serve(async (req) => {
     const lastAnswer = previous_qa?.length > 0 ? String(previous_qa[previous_qa.length - 1]?.answer || "").toLowerCase() : "";
     const lastAnswerIsUnsure = unsureSignals.some((signal) => lastAnswer.includes(signal));
 
-    // If user expressed uncertainty, skip AI call and return plan_ready immediately
     if (lastAnswerIsUnsure && questionCount >= 2) {
       const summaryFromQA = (previous_qa || []).map((qa: any, i: number) => `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}`).join("\n");
       return new Response(JSON.stringify({
         type: "complete",
         summary_prompt: `Generate a plan based on these answers. Fill in ALL gaps with reasonable defaults based on your music industry knowledge.\n\nBrief: ${brief}\n\n${summaryFromQA}`,
+        preview: isDeep,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Hard cap at 8 questions on backend too
-    if (questionCount >= 8) {
+    // Hard cap
+    if (questionCount >= hardCap) {
       const summaryFromQA = (previous_qa || []).map((qa: any, i: number) => `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}`).join("\n");
       return new Response(JSON.stringify({
         type: "complete",
         summary_prompt: `Generate a comprehensive plan based on these answers. Fill in any gaps with reasonable defaults.\n\nBrief: ${brief}\n\n${summaryFromQA}`,
+        preview: isDeep,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -198,18 +202,29 @@ Deno.serve(async (req) => {
       .map((qa: any) => qa.question)
       .slice(0, 4);
 
+    // Build refinement context if this is a post-preview refinement round
+    let refinementContext = "";
+    if (is_post_preview && preview_plan && refinement_feedback) {
+      const planSummary = (preview_plan || []).map((item: any) => `- [${item.type}] ${item.title}${item.date ? ` (${item.date})` : ""}${item.amount ? ` $${item.amount}` : ""}`).join("\n");
+      refinementContext = `\n\nPREVIOUS DRAFT PLAN (user wants refinements):\n${planSummary}\n\nUSER'S FEEDBACK: "${refinement_feedback}"\n\nAsk 3-4 targeted questions to address their feedback, then call plan_ready with preview: true.`;
+    }
+
+    const quickThreshold = isDeep ? 10 : 5;
+    const wrapUpThreshold = isDeep ? 10 : 6;
+
     const messages: any[] = [
       { role: "system", content: SYSTEM_PROMPT },
       {
         role: "user",
         content: `CONTEXT:
 - Artists on roster: ${artistNames.length > 0 ? artistNames.join(", ") : "None added yet"}
-- Team members: ${teamMembers.length > 0 ? teamMembers.map(m => `${m.name} (${m.role})`).join(", ") : "No team members yet"}
+- Team members: ${teamMembers.length > 0 ? teamMembers.map(m => `${m.name} (${m.role}${m.job_title ? `, ${m.job_title}` : ""})`).join(", ") : "No team members yet"}
 - Today's date: ${new Date().toISOString().split("T")[0]}
 - Depth preference: ${depth || "not set yet"}
 - Questions asked so far: ${questionCount}
-${questionCount >= 6 ? "You MUST call plan_ready NOW unless there is ONE critical missing piece (like artist name or release date). Do NOT ask another question about timelines, content strategy, promotion, PR, or budgets — use your knowledge to fill those in." : ""}
-${questionCount >= 8 ? "MANDATORY: Call plan_ready immediately. No more questions." : ""}
+- Mode: ${isDeep ? "DEEP" : "QUICK"}
+${questionCount >= wrapUpThreshold ? `You MUST call plan_ready NOW unless there is ONE critical missing piece (like artist name or release date). Do NOT ask another question about timelines, content strategy, promotion, PR, or budgets — use your knowledge to fill those in.` : ""}
+${questionCount >= hardCap ? "MANDATORY: Call plan_ready immediately. No more questions." : ""}
 ${knowledgeContext}
 
 USER'S BRIEF: "${brief}"
@@ -217,8 +232,9 @@ USER'S BRIEF: "${brief}"
 ${previous_qa && previous_qa.length > 0 ? `PREVIOUS Q&A:\n${previous_qa.map((qa: any, i: number) => `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}`).join("\n\n")}` : "No questions asked yet."}
 
 ${unsureTopics.length > 0 ? `USER SAID "I DON'T KNOW" ON: ${unsureTopics.join(" | ")}\nDo NOT ask deeper follow-ups on those topics. Move to another missing area or call plan_ready.` : ""}
+${refinementContext}
 
-Generate the next question based on the depth preference, or signal completion with plan_ready if you have enough info.`,
+Generate the next question based on the depth preference, or signal completion with plan_ready if you have enough info.${isDeep ? " When calling plan_ready, set preview to true so the user can review before final execution." : ""}`,
       },
     ];
 
@@ -299,6 +315,10 @@ Generate the next question based on the depth preference, or signal completion w
                     type: "string",
                     description: "A detailed summary of all gathered information including: artist name, project type, timeline, goals, verticals, platforms, budget, team, creative direction, and any other relevant details. This will be used to generate a structured plan.",
                   },
+                  preview: {
+                    type: "boolean",
+                    description: "If true, the plan will be shown as a preview for the user to review and refine before final execution. Set to true for deep/detailed mode.",
+                  },
                 },
                 required: ["summary_prompt"],
                 additionalProperties: false,
@@ -363,6 +383,7 @@ Generate the next question based on the depth preference, or signal completion w
       return new Response(JSON.stringify({
         type: "complete",
         summary_prompt: fnArgs.summary_prompt,
+        preview: fnArgs.preview || false,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

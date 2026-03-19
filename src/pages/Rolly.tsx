@@ -23,6 +23,9 @@ export default function Rolly() {
   const [executingItems, setExecutingItems] = useState<DraftItem[] | null>(null);
   const [executionComplete, setExecutionComplete] = useState(false);
 
+  // Preview plan state (for deep mode checkpoint)
+  const [previewItems, setPreviewItems] = useState<DraftItem[] | null>(null);
+
   const handleSendReady = useCallback((fn: (msg: string) => void) => {
     setSendFn(() => fn);
   }, []);
@@ -32,6 +35,7 @@ export default function Rolly() {
     if (!active) {
       setWizardActive(false);
       setWizardContext(null);
+      setPreviewItems(null);
     }
   }, []);
 
@@ -43,22 +47,27 @@ export default function Rolly() {
   const handleExecutionStart = useCallback((items: DraftItem[]) => {
     setExecutingItems(items);
     setExecutionComplete(false);
+    setPreviewItems(null);
     if (isMobile) setMobileTab("workspace");
   }, [isMobile]);
 
   const handleExecutionDone = useCallback(() => {
     setExecutionComplete(true);
-    // Clear after a delay so user sees the completed state
     setTimeout(() => {
       setExecutingItems(null);
       setExecutionComplete(false);
     }, 2500);
   }, []);
 
+  const handlePreviewPlan = useCallback((items: DraftItem[]) => {
+    setPreviewItems(items);
+  }, []);
+
   const handleWizardComplete = useCallback(() => {
     setWizardActive(false);
     setWizardContext(null);
     setPlanMode(false);
+    setPreviewItems(null);
     handleExecutionDone();
     if (isMobile) setMobileTab("workspace");
   }, [isMobile, handleExecutionDone]);
@@ -67,6 +76,7 @@ export default function Rolly() {
     setWizardActive(false);
     setWizardContext(null);
     setPlanMode(false);
+    setPreviewItems(null);
   }, []);
 
   return (
@@ -113,9 +123,14 @@ export default function Rolly() {
                 onWizardComplete={handleWizardComplete}
                 onWizardCancel={handleWizardCancel}
                 onExecutionStart={handleExecutionStart}
+                onPreviewPlan={handlePreviewPlan}
               />
             ) : (
-              <RollyWorkspace executingItems={executingItems} executionComplete={executionComplete} />
+              <RollyWorkspace
+                executingItems={executingItems}
+                executionComplete={executionComplete}
+                previewItems={previewItems}
+              />
             )}
           </div>
         </div>
@@ -134,10 +149,15 @@ export default function Rolly() {
               onWizardComplete={handleWizardComplete}
               onWizardCancel={handleWizardCancel}
               onExecutionStart={handleExecutionStart}
+              onPreviewPlan={handlePreviewPlan}
             />
           </div>
           <div className="flex-1 overflow-y-auto min-w-0">
-            <RollyWorkspace executingItems={executingItems} executionComplete={executionComplete} />
+            <RollyWorkspace
+              executingItems={executingItems}
+              executionComplete={executionComplete}
+              previewItems={previewItems}
+            />
           </div>
         </div>
       )}
