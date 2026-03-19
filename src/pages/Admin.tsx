@@ -139,9 +139,8 @@ export default function Admin() {
   return (
     <div className="h-dvh overflow-y-auto bg-background">
       <header className="border-b border-border px-6 py-4 flex items-center gap-3">
-        <button onClick={() => navigate("/roster")} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <img src="/rollout-flag.png" alt="Rollout" className="h-6" />
-          <span className="text-lg font-bold tracking-tight">ROLLOUT</span>
+        <button onClick={() => navigate("/roster")} className="hover:opacity-80 transition-opacity">
+          <img src={rolloutLogo} alt="Rollout" className="h-7" />
         </button>
         <span className="text-muted-foreground text-sm font-medium">Admin Console</span>
         <Badge variant="outline" className="ml-auto">Super Admin</Badge>
