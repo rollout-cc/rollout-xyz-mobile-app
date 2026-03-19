@@ -139,6 +139,8 @@ function AppRoutes() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+        <Route path="/accept-ownership/:token" element={<AcceptOwnership />} />
         <Route path="/" element={<RootRedirect />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
