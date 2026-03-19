@@ -49,7 +49,7 @@ export default function JoinTeam() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [step, setStep] = useState<"auth" | "profile" | "personal" | "artists" | "welcome">("auth");
+  const [step, setStep] = useState<"auth" | "profile" | "personal" | "onboarding" | "artists" | "welcome">("auth");
   const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
