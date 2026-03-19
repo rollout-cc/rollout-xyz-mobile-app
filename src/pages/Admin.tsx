@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useNavigate } from "react-router-dom";
 import { FeedbackDashboard } from "@/components/admin/FeedbackDashboard";
 import { supabase } from "@/integrations/supabase/client";
