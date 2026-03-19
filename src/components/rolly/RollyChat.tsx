@@ -34,9 +34,10 @@ interface RollyChatProps {
   onWizardComplete?: () => void;
   onWizardCancel?: () => void;
   onExecutionStart?: (items: import("./PlanDraft").DraftItem[]) => void;
+  onPreviewPlan?: (items: import("./PlanDraft").DraftItem[]) => void;
 }
 
-export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: externalPlanMode, onPlanModeChange, onSendReady, onPlanMessage, wizardActive, wizardContext, onWizardComplete, onWizardCancel, onExecutionStart }: RollyChatProps = {}) {
+export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: externalPlanMode, onPlanModeChange, onSendReady, onPlanMessage, wizardActive, wizardContext, onWizardComplete, onWizardCancel, onExecutionStart, onPreviewPlan }: RollyChatProps = {}) {
   const planMode = externalPlanMode ?? false;
   const setPlanMode = (val: boolean) => onPlanModeChange?.(val);
   const { messages, isLoading, send, stop, clear, lastActions } = useRollyChat(planMode);
