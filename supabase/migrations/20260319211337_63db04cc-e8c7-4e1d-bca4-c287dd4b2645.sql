@@ -1,0 +1,1 @@
+UPDATE team_subscriptions SET plan = 'legend', seat_limit = 999, status = 'active', is_grandfathered = true, trial_ends_at = NULL WHERE team_id = '8cbdc650-7f14-4e08-9d52-4b4cc1e11e00';
