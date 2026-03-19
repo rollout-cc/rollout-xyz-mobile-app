@@ -24,7 +24,7 @@ interface MemberConnectionsProps {
   onProChange?: (proName: string) => void;
 }
 
-export function MemberConnections({ memberId }: MemberConnectionsProps) {
+export function MemberConnections({ memberId, onProChange }: MemberConnectionsProps) {
   const queryClient = useQueryClient();
   const [connectingSource, setConnectingSource] = useState<string | null>(null);
   const [email, setEmail] = useState("");
