@@ -1,112 +1,93 @@
 
 
-# Performance Audit: Speed & Flow Improvements
+## Combined Plan: Adaptive Depth + Smart Assignment + Knowledge Base
 
-After reviewing the full codebase, here are the bottlenecks and concrete fixes ranked by impact.
-
----
-
-## 1. Waterfall Query Chains (HIGH IMPACT)
-
-**Problem:** Several pages chain queries sequentially -- each waits for the previous to finish before starting. This creates "waterfall" loading where the page takes 3-4x longer than necessary.
-
-**Where it happens:**
-- **Overview.tsx**: Fetches `artists` first, then waits for that result before fetching `budgets`, `transactions`, and `initiatives` (all use `enabled: artists.length > 0`). That's 3 sequential hops.
-- **FinanceContent.tsx**: Same pattern -- `artists` -> `budgets`, `transactions`, `company_expenses`, etc. Plus `staffEmployment` -> `staffProfiles` is another waterfall.
-- **StaffContent.tsx**: `memberships` -> `memberProfiles`, and `artists` -> `transactions`.
-
-**Fix:** Create a single database function (RPC) that returns all needed data for the Overview and Finance pages in one call. Alternatively, restructure queries to use the team_id directly (budgets, transactions can be fetched via joins or team_id filter) so they all fire in parallel.
+Three approved-but-unimplemented features rolled into one implementation pass.
 
 ---
 
-## 2. `useTeamPlan()` Calls an Edge Function Every 60 Seconds (HIGH IMPACT)
+### 1. Adaptive Depth Plan Mode
 
-**Problem:** `useTeamPlan()` invokes the `check-subscription` edge function (cold-start latency ~200-800ms) on every page load and re-polls every 60s. This is called from at least 8 different components. While React Query deduplicates, the edge function call itself is slow and blocks UI decisions (feature gating).
+**Current state**: Fixed 8-question backend cap, 10-question frontend cap, basic "quick"/"detailed" depth detection from answer keywords. No preview plans, no checkpoints, no refinement loop.
 
-**Fix:**
-- Increase `staleTime` to 5 minutes (from 30s) and `refetchInterval` to 5 minutes (from 60s)
-- Cache the result in `localStorage` as a fallback so the first render doesn't block on network
+**What changes**:
 
----
+#### Edge function (`supabase/functions/rolly-plan-question/index.ts`)
 
-## 3. `useTeams()` Called 14+ Times Across Components (MEDIUM IMPACT)
+- Replace `SYSTEM_PROMPT` depth calibration section:
+  - Q2 must always ask pace: "Need this quick or want to really think it through?"
+  - Quick mode: 4-6 questions, then `plan_ready`
+  - Deep mode: 8-12 questions, then `plan_ready` with `preview: true`. After user reviews preview, 3-4 refinement questions per round, max 2 rounds. Hard cap: 20 questions.
+  - Add knowledge-first rules: ROLLY infers standard costs ($1-3K music video, $300-800 lyric video, $500-1500/mo social content, etc.), promo windows (6-8 weeks pre-save, 2-3 weeks press), budget splits — never asks these.
 
-**Problem:** `useTeams()` is called in 14 places. React Query deduplicates the network call, but each call triggers the hook logic and context lookups. More importantly, the `role` check pattern (`teams.find(t => t.id === teamId)?.role`) is repeated everywhere.
+- Add `preview` boolean param to `plan_ready` tool schema
+- Accept new request fields: `is_post_preview`, `preview_plan`, `refinement_feedback`
+- When `is_post_preview` is true, inject refinement context into the user message (draft plan summary + feedback)
+- Update backend hard caps: quick=8, deep=20, default=8
 
-**Fix:** Move `role` into `TeamContext` so components just read `const { role } = useSelectedTeam()` instead of re-querying teams and filtering.
+#### Frontend (`src/components/rolly/PlanWizard.tsx`)
 
----
+- New state: `previewItems`, `isCheckpoint`, `checkpointFeedback`, `refinementRound`, `isPostPreview`
+- Depth detection: add "deep"/"think it through"/"chat"/"time" → `"deep"` mode
+- Update `fetchNextQuestion`:
+  - Quick cap stays at 10
+  - Deep cap at 22
+  - When API returns `complete` with `preview: true`: generate plan, store as `previewItems`, show checkpoint phase
+- Checkpoint UI: Rolly summary + text input for feedback + two buttons ("Looks good — build it" / "Let's refine")
+- "Let's refine" sends `refinement_feedback` + `preview_plan` in next API call, increments `refinementRound`
+- Add `onPreviewPlan` callback to send preview items to workspace
 
-## 4. Duplicate Data Fetching Between Pages (MEDIUM IMPACT)
+#### Workspace (`src/pages/Rolly.tsx` + `src/components/rolly/RollyWorkspace.tsx`)
 
-**Problem:** Overview.tsx, FinanceContent.tsx, and StaffContent.tsx all fetch the same data (artists, transactions, tasks, memberships, profiles) with different query keys (`overview-artists` vs `finance-artists` vs `staff-artists`). This means navigating between tabs re-fetches everything from scratch.
-
-**Fix:** Unify query keys. Use `["artists", teamId]` everywhere instead of `["overview-artists", teamId]`, `["finance-artists", teamId]`, `["staff-artists", teamId]`. This lets React Query share the cache across all views.
-
----
-
-## 5. Heavy `useMemo` Computations on Every Render (MEDIUM IMPACT)
-
-**Problem:** `staffMembers` computation in Overview.tsx has an O(n*m) loop inside it (for each member, it iterates all other members to compute `maxRevenue`). With more staff, this becomes expensive.
-
-**Fix:** Pre-compute `maxRevenue` once outside the map, then pass it in. Single pass instead of quadratic.
-
----
-
-## 6. Missing Prefetching on Navigation (LOW-MEDIUM IMPACT)
-
-**Problem:** When a user clicks an artist card, it navigates to ArtistDetail which then starts fetching from scratch. No data is prefetched on hover or anticipation.
-
-**Fix:** Add `queryClient.prefetchQuery` on artist card hover/mouse-enter for the artist detail data. This makes the transition feel instant.
+- Wire `previewItems` state through from PlanWizard → Rolly → RollyWorkspace
+- RollyWorkspace: when `previewItems` is set, render read-only draft cards at top with "Draft Preview" label alongside normal workspace content
 
 ---
 
-## 7. Large Bundle: DnD Library Loaded on Every Page (LOW IMPACT)
+### 2. Smart Task Assignment
 
-**Problem:** `@hello-pangea/dnd` (~45KB gzipped) is imported in Roster.tsx and Overview.tsx. It's lazy-loaded via React.lazy, but it's still a significant chunk for pages that may not need drag-and-drop.
+**Current state**: Round-robin assignment across team members with artist access. Ignores job titles and history.
 
-**Fix:** No immediate action needed since pages are already lazy-loaded. Could consider dynamic import of the DnD wrapper only when folders exist.
+**What changes**:
+
+#### Generate function (`supabase/functions/rolly-generate-plan/index.ts`)
+
+- Add `assign_to_role` field to task schema in the `generate_plan` tool: enum `["marketing", "ar", "finance", "operations", "creative", "legal", "general"]`
+- Update system prompt to instruct AI to categorize each task by role
+
+#### Execute function (`supabase/functions/rolly-execute-plan/index.ts`)
+
+- Expand team members query to include `job_title` from `team_memberships`
+- Fetch last 200 tasks per team for historical keyword matching
+- Replace `getAssignee()` with `getBestAssignee(artistId, taskTitle, assignToRole)` scoring function:
+  - Job title keyword match: +3
+  - Historical task keyword overlap: +1 per match
+  - Workload balance: -0.5 per task already assigned in current plan
+  - Artist access: required filter
+  - Fallback: round-robin among owners/managers
+
+#### Frontend (`src/components/rolly/PlanDraft.tsx`)
+
+- Add `assign_to_role?: string` to `DraftItem` type
+- Pass through from generate → review → execute
 
 ---
 
-## 8. Edge Function Cold Starts (LOW IMPACT, Infrastructure)
+### 3. Knowledge Base Content
 
-**Problem:** `spotify-artist`, `check-subscription`, `scrape-chartmasters` all have cold-start latency. The Spotify artist data is fetched via edge function on every artist detail page load (30min staleTime helps but first visit is slow).
-
-**Fix:** Already mitigated by staleTime. Could add a background sync job instead of on-demand fetching.
+The user indicated they want to paste new knowledge base content. This is a separate action — once they share it, we'll insert it into the `rolly_knowledge` table. No code changes needed for this; just awaiting the content.
 
 ---
 
-## Implementation Plan (Ordered by Impact)
+### Files to modify
 
-### Step 1: Unify query keys across Overview/Finance/Staff
-- Change all `["finance-artists", teamId]`, `["overview-artists", teamId]`, `["staff-artists", teamId]` to `["artists-summary", teamId]`
-- Same for transactions, budgets, tasks, memberships, profiles
-- Instant cache sharing = no re-fetch when switching tabs
-
-### Step 2: Remove waterfall queries
-- Fetch budgets and transactions using `team_id` joins instead of waiting for artist IDs
-- Create an RPC function `get_team_finance_summary` that returns artists + budgets + transactions in one call
-
-### Step 3: Optimize useTeamPlan caching
-- Increase staleTime to 5min, refetchInterval to 5min
-- Add localStorage fallback for instant first render
-
-### Step 4: Move role into TeamContext
-- Eliminate 14 redundant `useTeams()` calls for role checking
-
-### Step 5: Fix quadratic staffMembers computation
-- Pre-compute maxRevenue in a single pass
-
-### Step 6: Add prefetching on artist card hover
-- `onMouseEnter` triggers `queryClient.prefetchQuery` for artist detail
-
-### Files to Edit
-1. `src/pages/Overview.tsx` -- unify query keys, remove waterfalls
-2. `src/components/overview/FinanceContent.tsx` -- unify query keys, remove waterfalls
-3. `src/components/overview/StaffContent.tsx` -- unify query keys
-4. `src/hooks/useTeamPlan.ts` -- increase cache times
-5. `src/contexts/TeamContext.tsx` -- add role to context
-6. `src/components/roster/ArtistCard.tsx` -- add prefetch on hover
-7. Database migration -- create RPC function for combined finance data
+| File | Changes |
+|------|---------|
+| `supabase/functions/rolly-plan-question/index.ts` | System prompt, preview flag, refinement context, depth caps, knowledge-first rules |
+| `src/components/rolly/PlanWizard.tsx` | Adaptive caps, checkpoint phase, preview flow, refinement loop, deep mode detection |
+| `src/pages/Rolly.tsx` | Wire `previewItems` state |
+| `src/components/rolly/RollyWorkspace.tsx` | Render preview draft cards |
+| `supabase/functions/rolly-generate-plan/index.ts` | `assign_to_role` in task schema + prompt |
+| `supabase/functions/rolly-execute-plan/index.ts` | Smart assignment scoring logic |
+| `src/components/rolly/PlanDraft.tsx` | Add `assign_to_role` to DraftItem type |
 
