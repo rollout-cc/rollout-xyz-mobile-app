@@ -221,11 +221,6 @@ export default function Settings() {
           </div>
         )}
 
-        {activeSection === "connections" && (
-          <div className="mt-6">
-            <ProConnectionsTab />
-          </div>
-        )}
       </div>
     </AppLayout>
   );
