@@ -15,6 +15,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { RoleGate } from "@/components/RoleGate";
 import { toast } from "sonner";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { FeedbackWidget } from "@/components/FeedbackWidget";
 
 // Lazy-loaded pages
 const Login = React.lazy(() => import("./pages/Login"));
@@ -162,6 +163,7 @@ const App = () => (
               <TourProvider>
                 <TourOverlay />
                 <AppRoutes />
+                <FeedbackWidget />
               </TourProvider>
             </ErrorBoundary>
           </BrowserRouter>

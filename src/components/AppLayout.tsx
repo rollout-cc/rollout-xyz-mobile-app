@@ -11,7 +11,7 @@ import { useTeams } from "@/hooks/useTeams";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, ChevronsUpDown, ArrowLeft } from "lucide-react";
+import { User, ChevronsUpDown, ArrowLeft, Shield } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,6 +53,16 @@ export function AppLayout({ children, title, actions, onBack, mobileSubnav }: Ap
     },
     enabled: !!user,
     staleTime: 5 * 60_000,
+  });
+
+  const { data: isPlatformAdmin } = useQuery({
+    queryKey: ["is-platform-admin", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_platform_admin", { p_user_id: user!.id });
+      return !!data;
+    },
+    enabled: !!user,
+    staleTime: 10 * 60_000,
   });
 
   return (
@@ -158,6 +168,14 @@ export function AppLayout({ children, title, actions, onBack, mobileSubnav }: Ap
                       <DropdownMenuItem onClick={() => navigate("/settings/billing")}>
                         Billing
                       </DropdownMenuItem>
+                    )}
+                    {isPlatformAdmin && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => navigate("/admin")} className="gap-2 text-primary">
+                          <Shield className="h-3.5 w-3.5" /> Admin Console
+                        </DropdownMenuItem>
+                      </>
                     )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={signOut}>

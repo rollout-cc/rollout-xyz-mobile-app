@@ -982,6 +982,59 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback: {
+        Row: {
+          admin_notes: string | null
+          ai_category: string | null
+          ai_priority: string | null
+          ai_summary: string | null
+          created_at: string
+          id: string
+          message: string
+          page_url: string | null
+          status: Database["public"]["Enums"]["feedback_status"]
+          team_id: string
+          type: Database["public"]["Enums"]["feedback_type"]
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          ai_category?: string | null
+          ai_priority?: string | null
+          ai_summary?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          page_url?: string | null
+          status?: Database["public"]["Enums"]["feedback_status"]
+          team_id: string
+          type?: Database["public"]["Enums"]["feedback_type"]
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          ai_category?: string | null
+          ai_priority?: string | null
+          ai_summary?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          page_url?: string | null
+          status?: Database["public"]["Enums"]["feedback_status"]
+          team_id?: string
+          type?: Database["public"]["Enums"]["feedback_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       finance_categories: {
         Row: {
           artist_id: string
@@ -3325,6 +3378,8 @@ export type Database = {
         | "show"
         | "intro"
         | "deal_sent"
+      feedback_status: "new" | "reviewed" | "planned" | "done" | "wont_fix"
+      feedback_type: "bug" | "feature"
       permission_level: "no_access" | "view_access" | "full_access"
       prospect_priority: "low" | "medium" | "high"
       prospect_stage:
@@ -3490,6 +3545,8 @@ export const Constants = {
         "intro",
         "deal_sent",
       ],
+      feedback_status: ["new", "reviewed", "planned", "done", "wont_fix"],
+      feedback_type: ["bug", "feature"],
       permission_level: ["no_access", "view_access", "full_access"],
       prospect_priority: ["low", "medium", "high"],
       prospect_stage: [
