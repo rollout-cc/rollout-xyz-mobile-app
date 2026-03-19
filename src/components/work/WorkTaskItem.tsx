@@ -590,11 +590,18 @@ export function WorkTaskItem({
     compactMetaParts.push(`$${task.expense_amount.toLocaleString()}`);
   }
   const compactMetaLine = compactMetaParts.join(" · ");
+  const descTrim = (task.description || "").trim();
+  const mobileCollapsedSubtitle =
+    hasFilledMeta && descTrim
+      ? `${compactMetaLine} · ${descTrim}`
+      : hasFilledMeta
+        ? compactMetaLine
+        : descTrim || null;
 
   return (
     <div
       className={cn(
-        "flex items-start gap-2.5 py-2.5 md:gap-3 md:py-3.5 group cursor-pointer",
+        "flex items-start gap-2 py-1.5 md:gap-3 md:py-3.5 group cursor-pointer",
         task?.is_completed && "opacity-50",
         task?.priority === 1 && "border-l-2 border-red-500 pl-2",
         task?.priority === 2 && "border-l-2 border-amber-400 pl-2",
@@ -605,7 +612,7 @@ export function WorkTaskItem({
       {dragHandleProps != null && (
         <div
           {...dragHandleProps}
-          className="touch-none p-1 text-muted-foreground/30 hover:text-muted-foreground cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity mt-0.5 shrink-0 -ml-1"
+          className="touch-none p-0.5 md:p-1 text-muted-foreground/30 hover:text-muted-foreground cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity mt-0 shrink-0 -ml-1"
           onClick={(e) => e.stopPropagation()}
         >
           <GripVertical className="h-4 w-4" />
@@ -613,58 +620,58 @@ export function WorkTaskItem({
       )}
 
       <div
-        className="shrink-0 mt-0 md:mt-[2px] flex items-center justify-center min-h-11 min-w-11 md:min-h-[28px] md:min-w-[28px]"
+        className="shrink-0 mt-px md:mt-[2px] flex items-center justify-center min-h-9 min-w-9 md:min-h-[28px] md:min-w-[28px]"
         onClick={(e) => e.stopPropagation()}
       >
         <Checkbox checked={task.is_completed} onCheckedChange={() => toggleTask.mutate()} />
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 min-w-0">
+        <div className="flex items-center gap-1 min-w-0 md:gap-1.5">
           {task.priority != null && (
             <PriorityFlagIcon priority={task.priority} className="h-3 w-3 md:h-3.5 md:w-3.5 shrink-0" />
           )}
           <p
             className={cn(
-              "text-[14px] md:text-[15px] font-medium leading-snug min-w-0",
+              "text-[13px] md:text-[15px] font-medium leading-tight md:leading-snug min-w-0",
               task.is_completed ? "line-through text-muted-foreground" : "text-foreground"
             )}
           >
             {task.title}
           </p>
         </div>
+        {mobileCollapsedSubtitle && (
+          <p className="md:hidden text-[11px] text-muted-foreground mt-0.5 leading-tight line-clamp-1">
+            {mobileCollapsedSubtitle}
+          </p>
+        )}
         {task.description && (
-          <p className="text-xs md:text-sm text-muted-foreground mt-0.5 leading-snug line-clamp-1 md:line-clamp-2">
+          <p className="hidden md:block text-sm text-muted-foreground mt-0.5 leading-snug line-clamp-2">
             {task.description}
           </p>
         )}
 
         {hasFilledMeta && (
-          <>
-            <p className="md:hidden text-[11px] text-muted-foreground mt-1 leading-snug line-clamp-1">
-              {compactMetaLine}
-            </p>
-            <div className="hidden md:flex flex-wrap items-center gap-1.5 mt-2">
-              {assignee?.full_name && (
-                <MetaBadge icon={<User className="h-3 w-3" />} onClick={() => enterEdit()}>
-                  {assignee.full_name}
-                </MetaBadge>
-              )}
-              {task.due_date && (
-                <MetaBadge icon={<Calendar className="h-3 w-3" />} onClick={() => enterEdit()}>
-                  {task.due_date}
-                </MetaBadge>
-              )}
-              {campaign && (
-                <MetaBadge onClick={() => enterEdit()}># {campaign.name}</MetaBadge>
-              )}
-              {task.expense_amount != null && task.expense_amount > 0 && (
-                <MetaBadge icon={<DollarSign className="h-3 w-3" />} onClick={() => enterEdit()}>
-                  ${task.expense_amount.toLocaleString()}
-                </MetaBadge>
-              )}
-            </div>
-          </>
+          <div className="hidden md:flex flex-wrap items-center gap-1.5 mt-2">
+            {assignee?.full_name && (
+              <MetaBadge icon={<User className="h-3 w-3" />} onClick={() => enterEdit()}>
+                {assignee.full_name}
+              </MetaBadge>
+            )}
+            {task.due_date && (
+              <MetaBadge icon={<Calendar className="h-3 w-3" />} onClick={() => enterEdit()}>
+                {task.due_date}
+              </MetaBadge>
+            )}
+            {campaign && (
+              <MetaBadge onClick={() => enterEdit()}># {campaign.name}</MetaBadge>
+            )}
+            {task.expense_amount != null && task.expense_amount > 0 && (
+              <MetaBadge icon={<DollarSign className="h-3 w-3" />} onClick={() => enterEdit()}>
+                ${task.expense_amount.toLocaleString()}
+              </MetaBadge>
+            )}
+          </div>
         )}
       </div>
 
@@ -674,7 +681,7 @@ export function WorkTaskItem({
           e.stopPropagation();
           deleteTask.mutate();
         }}
-        className="shrink-0 flex items-center justify-center min-h-11 min-w-11 md:min-h-8 md:min-w-8 -mr-1 mt-0 md:mt-0.5 rounded-lg text-muted-foreground/30 md:text-muted-foreground/25 hover:text-destructive hover:bg-destructive/5 active:text-destructive active:bg-destructive/5 transition-colors"
+        className="shrink-0 flex items-center justify-center min-h-9 min-w-9 md:min-h-8 md:min-w-8 -mr-1 mt-px md:mt-0.5 rounded-lg text-muted-foreground/30 md:text-muted-foreground/25 hover:text-destructive hover:bg-destructive/5 active:text-destructive active:bg-destructive/5 transition-colors"
         aria-label="Delete task"
       >
         <Trash2 className="h-4 w-4" />

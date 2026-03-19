@@ -11,7 +11,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DollarSign, Target, Star, RefreshCw, Receipt, ArrowLeft, MoreVertical, CheckCheck } from "lucide-react";
+import { DollarSign, Star, RefreshCw, Receipt, MoreVertical, CheckCheck, Maximize2, Minimize2, ChevronRight, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -22,7 +22,7 @@ import { useArtistPerformance } from "@/hooks/useArtistPerformance";
 import { useTeamPlan } from "@/hooks/useTeamPlan";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { ArtistInfoTab } from "@/components/artist/ArtistInfoTab";
-import { WorkTab } from "@/components/artist/WorkTab";
+import { WorkTab, NewCampaignInline } from "@/components/artist/WorkTab";
 import { LinksTab } from "@/components/artist/LinksTab";
 import { TimelinesTab } from "@/components/artist/TimelinesTab";
 import { BudgetSection, useTotalBudget, useTotalSpent } from "@/components/artist/BudgetSection";
@@ -32,14 +32,22 @@ import { InvoiceCreator } from "@/components/finance/InvoiceCreator";
 import { InvoiceList } from "@/components/finance/InvoiceList";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SplitsTab } from "@/components/artist/SplitsTab";
-import { ObjectiveKpiCard, OBJECTIVE_TYPES } from "@/components/artist/ObjectiveKpiCard";
+import { ObjectiveKpiCard } from "@/components/artist/ObjectiveKpiCard";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import defaultBanner from "@/assets/default-banner.png";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type TabView = "work" | "links" | "timelines" | "splits";
 type ActiveView = TabView | "money" | "finance" | "budgets" | "objectives" | "information";
 type MoneySubTab = "accounting" | "budgets" | "invoices";
+
+const ARTIST_TAB_LABELS: Record<TabView, string> = {
+  work: "Work",
+  links: "Links",
+  timelines: "Release Plans",
+  splits: "Splits",
+};
 
 export default function ArtistDetail() {
   const { artistId } = useParams<{ artistId: string }>();
@@ -66,11 +74,17 @@ export default function ArtistDetail() {
   const [moneySubTab, setMoneySubTab] = useState<MoneySubTab>(fromFinance ? "accounting" : "accounting");
   const [showCompleted, setShowCompleted] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [newCampaignId, setNewCampaignId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState("");
+  const [heroExpanded, setHeroExpanded] = useState(true);
+  const artistMetricsSectionId = "artist-metrics-section";
   const queryClient = useQueryClient();
   const { tryStartPageTour } = useTour();
   useEffect(() => { tryStartPageTour("artist-detail-tour"); }, [tryStartPageTour]);
+  useEffect(() => {
+    setHeroExpanded(true);
+  }, [artistId]);
 
   const handleRefreshSpotify = async () => {
     const result = await refetchSpotify();
@@ -176,13 +190,6 @@ export default function ArtistDetail() {
     ? `${(listenerStat / 1_000).toFixed(1).replace(/\.0$/, "")}K`
     : String(listenerStat);
 
-  const formatObjectiveNumber = (n: number, unit: string): string => {
-    const prefix = unit === "$" ? "$" : "";
-    if (n >= 1_000_000) return `${prefix}${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-    if (n >= 1_000) return `${prefix}${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
-    return `${prefix}${n.toLocaleString()}`;
-  };
-
   // Resolve current value for an objective type from tracked data
   const getObjectiveCurrentValue = (type: string | null): number | null => {
     if (!type) return null;
@@ -195,31 +202,13 @@ export default function ArtistDetail() {
     return null;
   };
 
-  const getObjectiveSummary = (slot: 1 | 2): string | null => {
-    const typeKey = `objective_${slot}_type` as const;
-    const targetKey = `objective_${slot}_target` as const;
-    const type = (artist as any)[typeKey] as string | null;
-    if (!type) return null;
-    const meta = OBJECTIVE_TYPES.find((t) => t.value === type);
-    const unit = meta?.unit ?? "";
-    const target = (artist as any)[targetKey] as number | null;
-    const current = getObjectiveCurrentValue(type);
-
-    if (target && current != null) {
-      const progress = Math.min((current / target) * 100, 999);
-      return `${formatObjectiveNumber(current, unit)} → ${formatObjectiveNumber(target, unit)} (${Math.round(progress)}% progress)`;
-    }
-
-    if (target) {
-      return `→ ${formatObjectiveNumber(target, unit)}`;
-    }
-
-    return null;
-  };
-
-  const objectiveSummary1 = getObjectiveSummary(1);
-  const objectiveSummary2 = getObjectiveSummary(2);
-  const hasAnyObjectiveSummary = !!(objectiveSummary1 || objectiveSummary2);
+  const heroBannerSrc = hasBanner ? bannerUrl! : defaultBanner;
+  const heroBudgetDisplay =
+    totalBudget >= 1_000_000
+      ? `${(totalBudget / 1_000_000).toFixed(1)}M`
+      : totalBudget >= 1_000
+        ? `${(totalBudget / 1_000).toFixed(0)}K`
+        : totalBudget.toLocaleString();
 
   const isTopView = (v: ActiveView) => ["money", "finance", "budgets", "objectives", "information"].includes(v);
   const handleViewChange = (v: ActiveView) => {
@@ -273,280 +262,289 @@ export default function ArtistDetail() {
         </div>
       }
     >
-      {/* Back arrow — desktop only; on mobile it lives in the top header */}
-      <button
-        onClick={handleBack}
-        className="hidden sm:flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors mb-2 -mt-1"
+      {/* Hero: fixed-height art (never grows); expanded detail is a separate blurred panel below */}
+      <div
+        className="group relative mb-5 block min-w-0 shrink-0 overflow-hidden rounded-lg bg-background shadow-lg dark:bg-neutral-950 sm:mb-6 sm:rounded-xl sm:shadow-xl"
+        data-tour="artist-banner"
       >
-        <ArrowLeft className="h-4 w-4" />
-      </button>
-      {/* Banner */}
-      <div className="relative rounded-xl overflow-hidden mb-4 shadow-2xl group" data-tour="artist-banner">
-        <div className="relative h-52 sm:h-72 lg:h-[320px] overflow-hidden">
-          <img
-            src={hasBanner ? bannerUrl! : defaultBanner}
-            alt=""
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-          />
-          {/* Gradient: strong at bottom for legibility, fades up */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
-
-          {/* Banner edit actions — revealed on hover */}
-          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center gap-1.5">
-            {artist.spotify_id && (
-              <Button
-                variant="secondary"
-                size="icon"
-                className="h-8 w-8 bg-black/40 hover:bg-black/60 text-white border-0 backdrop-blur-md"
-                onClick={handleRefreshSpotify}
-                disabled={isRefreshingSpotify}
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${isRefreshingSpotify ? "animate-spin" : ""}`} />
-              </Button>
-            )}
-            <BannerUpload artistId={artist.id} currentBannerUrl={artist.banner_url} />
-          </div>
-
-          {/* Goals bar — top of banner */}
-          {hasAnyObjectiveSummary && (
-            <div className="absolute top-0 left-0 px-4 pt-3 sm:px-6 sm:pt-4 z-[5]">
-              <button
-                type="button"
-                onClick={() => handleViewChange("objectives")}
-                className="w-auto rounded-lg bg-black/30 border border-white/10 backdrop-blur-md px-3 py-1.5 flex items-center gap-2 text-[11px] text-white/80 hover:bg-black/45 transition-colors"
-              >
-                <Target className="h-3.5 w-3.5 text-emerald-300 shrink-0" />
-                <span className="uppercase tracking-[0.18em] text-[9px] text-white/55 shrink-0">
-                  Goals
-                </span>
-                <span className="truncate text-left">
-                  {[objectiveSummary1, objectiveSummary2].filter(Boolean).join("  •  ")}
-                </span>
-              </button>
-            </div>
-          )}
-
-          {/* Bottom overlay */}
-          <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 sm:px-6 sm:pb-5 space-y-2.5">
-
-            {/* ── Mobile layout ── */}
-            <div className="flex items-end justify-between gap-3 sm:hidden">
-              {/* Left: avatar + identity */}
-              <div className="flex items-end gap-2.5 min-w-0">
-                <Avatar className="h-12 w-12 border-2 border-white/20 shadow-xl shrink-0 mb-0.5">
-                  <AvatarImage src={avatarUrl ?? undefined} />
-                  <AvatarFallback className="text-base font-bold">{artist.name[0]}</AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <h2 className="text-xl font-bold text-white tracking-tight drop-shadow-lg leading-tight truncate">
-                    {artist.name}
-                  </h2>
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-white/60 mt-0.5">
-                    {artist.genres && artist.genres.length > 0 && (
-                      <span>{artist.genres.slice(0, 1).join(", ")}</span>
-                    )}
-                    {listenerStat > 0 && (
-                      <span className="font-semibold text-white/75">{listenerStatAbbr} {listenerLabel}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Right: stat chips + objectives */}
-              <div className="flex items-end gap-1.5 shrink-0 flex-col">
-                {/* Objectives (only rendered when set) */}
-                <div className="flex items-end gap-1.5">
-                  <ObjectiveKpiCard
-                    artistId={artist.id}
-                    slot={1}
-                    objectiveType={(artist as any).objective_1_type}
-                    objectiveTarget={(artist as any).objective_1_target}
-                    currentValue={getObjectiveCurrentValue((artist as any).objective_1_type)}
-                    variant="banner"
-                  />
-                  <ObjectiveKpiCard
-                    artistId={artist.id}
-                    slot={2}
-                    objectiveType={(artist as any).objective_2_type}
-                    objectiveTarget={(artist as any).objective_2_target}
-                    currentValue={getObjectiveCurrentValue((artist as any).objective_2_type)}
-                    variant="banner"
-                  />
-                </div>
-                {/* Budget + Done unified pill */}
-                <div className="flex items-stretch rounded-xl border border-white/[0.14] bg-black/35 backdrop-blur-xl shadow-lg overflow-hidden">
-                  <div className="px-3 py-2 text-right border-r border-white/[0.10]">
-                    <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-white/40 mb-1 leading-none">Budget</p>
-                    <div className="flex items-center gap-0.5">
-                      <DollarSign className="h-2.5 w-2.5 text-emerald-400 shrink-0" />
-                      <span className="text-sm font-bold text-white tracking-tight tabular-nums leading-none">
-                        {totalBudget >= 1_000_000
-                          ? `${(totalBudget / 1_000_000).toFixed(1)}M`
-                          : totalBudget >= 1_000
-                          ? `${(totalBudget / 1_000).toFixed(0)}K`
-                          : totalBudget.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="px-3 py-2 text-right">
-                    <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-white/40 mb-1 leading-none">Done</p>
-                    <div className="flex items-center gap-0.5">
-                      <CheckCheck className="h-2.5 w-2.5 text-white/45 shrink-0" />
-                      <span className="text-sm font-bold text-white tracking-tight tabular-nums leading-none">{completedCount}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* ── Desktop layout ── */}
-            <div className="hidden sm:flex items-end justify-between gap-4">
-              <div className="flex items-end gap-4 min-w-0">
-                <Avatar className="h-20 w-20 lg:h-24 lg:w-24 border-2 border-white/20 shadow-2xl shrink-0">
-                  <AvatarImage src={avatarUrl ?? undefined} />
-                  <AvatarFallback className="text-xl font-bold">{artist.name[0]}</AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 pb-0.5">
-                  <h2 className="text-2xl lg:text-3xl font-bold text-white tracking-tight truncate drop-shadow-lg leading-tight">
-                    {artist.name}
-                  </h2>
-                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-sm text-white/65 mt-0.5">
-                    {artist.genres && artist.genres.length > 0 && (
-                      <span>{artist.genres.slice(0, 2).join(", ")}</span>
-                    )}
-                    {listenerStat > 0 && (
-                      <span className="font-semibold text-white/80">{listenerStat.toLocaleString()} {listenerLabel}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="shrink-0 flex items-end gap-2">
-                {/* Objectives (only rendered when set) */}
-                <ObjectiveKpiCard
-                  artistId={artist.id}
-                  slot={1}
-                  objectiveType={(artist as any).objective_1_type}
-                  objectiveTarget={(artist as any).objective_1_target}
-                  currentValue={getObjectiveCurrentValue((artist as any).objective_1_type)}
-                  variant="banner"
+              <div className="relative isolate min-h-[12rem] w-full overflow-hidden sm:min-h-[14rem] lg:min-h-[min(16rem,26vw)]">
+                <img
+                  src={heroBannerSrc}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.015] motion-reduce:transform-none"
                 />
-                <ObjectiveKpiCard
-                  artistId={artist.id}
-                  slot={2}
-                  objectiveType={(artist as any).objective_2_type}
-                  objectiveTarget={(artist as any).objective_2_target}
-                  currentValue={getObjectiveCurrentValue((artist as any).objective_2_type)}
-                  variant="banner"
+                <div
+                  className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/72 via-black/28 to-transparent"
+                  aria-hidden
                 />
-                {/* Budget + Done unified pill */}
-                <div className="flex items-stretch rounded-xl border border-white/[0.14] bg-black/35 backdrop-blur-xl shadow-lg overflow-hidden">
-                  <div
-                    className="px-3.5 py-3 text-right border-r border-white/[0.10] cursor-default transition-all"
-                    onMouseEnter={(e) => {
-                      const label = e.currentTarget.querySelector('[data-budget-label]') as HTMLElement;
-                      const val = e.currentTarget.querySelector('[data-budget-value]') as HTMLElement;
-                      if (label) label.textContent = "Remaining";
-                      if (val) {
-                        const remaining = totalBudget - totalSpent;
-                        val.textContent = remaining >= 1_000_000
-                          ? `${(remaining / 1_000_000).toFixed(1)}M`
-                          : remaining >= 1_000
-                          ? `${(remaining / 1_000).toFixed(0)}K`
-                          : remaining.toLocaleString();
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      const label = e.currentTarget.querySelector('[data-budget-label]') as HTMLElement;
-                      const val = e.currentTarget.querySelector('[data-budget-value]') as HTMLElement;
-                      if (label) label.textContent = "Budget";
-                      if (val) {
-                        val.textContent = totalBudget >= 1_000_000
-                          ? `${(totalBudget / 1_000_000).toFixed(1)}M`
-                          : totalBudget >= 1_000
-                          ? `${(totalBudget / 1_000).toFixed(0)}K`
-                          : totalBudget.toLocaleString();
-                      }
-                    }}
+
+                <div className="absolute inset-x-0 top-0 z-20 flex items-start justify-end gap-0.5 px-3 pt-2.5 sm:gap-1 sm:px-5 sm:pt-3.5">
+                  <div className="flex shrink-0 items-center gap-0.5 opacity-100 sm:gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+                    {artist.spotify_id && (
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="h-6 w-6 shrink-0 rounded-md border-0 bg-black/40 text-white shadow-sm backdrop-blur-sm hover:bg-black/55 sm:h-6 sm:w-6 md:h-7 md:w-7"
+                        onClick={handleRefreshSpotify}
+                        disabled={isRefreshingSpotify}
+                        aria-label="Refresh Spotify data"
+                      >
+                        <RefreshCw className={`h-2.5 w-2.5 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3 ${isRefreshingSpotify ? "animate-spin" : ""}`} />
+                      </Button>
+                    )}
+                    <BannerUpload artistId={artist.id} currentBannerUrl={artist.banner_url} compact />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    className="h-6 w-6 shrink-0 rounded-md border-0 bg-black/40 text-white shadow-sm backdrop-blur-sm hover:bg-black/55 sm:h-6 sm:w-6 md:h-7 md:w-7"
+                    onClick={() => setHeroExpanded((o) => !o)}
+                    aria-expanded={heroExpanded}
+                    aria-controls={artistMetricsSectionId}
+                    aria-label={heroExpanded ? "Collapse key metrics" : "Expand key metrics"}
                   >
-                    <p data-budget-label className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/40 mb-1.5 leading-none">Budget</p>
-                    <div className="flex items-center gap-1">
-                      <DollarSign className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                      <span data-budget-value className="text-base font-bold text-white tracking-tight tabular-nums leading-none">
-                        {totalBudget >= 1_000_000
-                          ? `${(totalBudget / 1_000_000).toFixed(1)}M`
-                          : totalBudget >= 1_000
-                          ? `${(totalBudget / 1_000).toFixed(0)}K`
-                          : totalBudget.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="px-3.5 py-3 text-right">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/40 mb-1.5 leading-none">Done</p>
-                    <div className="flex items-center gap-1">
-                      <CheckCheck className="h-3.5 w-3.5 text-white/45 shrink-0" />
-                      <span className="text-base font-bold text-white tracking-tight tabular-nums leading-none">{completedCount}</span>
+                    {heroExpanded ? (
+                      <Minimize2 className="h-2.5 w-2.5 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3" strokeWidth={2} aria-hidden />
+                    ) : (
+                      <Maximize2 className="h-2.5 w-2.5 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3" strokeWidth={2} aria-hidden />
+                    )}
+                  </Button>
+                </div>
+
+                <div className="absolute inset-x-0 bottom-0 z-20 px-3 pb-3 pt-8 sm:px-5 sm:pb-4 sm:pt-10">
+                  <div className="flex w-full flex-row items-center gap-3 sm:gap-4">
+                    <Avatar className="h-16 w-16 shrink-0 border border-white/20 shadow-sm sm:h-[4.5rem] sm:w-[4.5rem] md:h-[5rem] md:w-[5rem] lg:h-[5.25rem] lg:w-[5.25rem]">
+                      <AvatarImage src={avatarUrl ?? undefined} />
+                      <AvatarFallback className="bg-white/10 text-xl font-semibold text-white sm:text-2xl md:text-3xl">
+                        {artist.name[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1 py-0.5">
+                      <h2 className="truncate text-xl font-semibold leading-[1.15] tracking-tight text-white sm:text-2xl md:text-[1.65rem] lg:text-3xl">
+                        {artist.name}
+                      </h2>
+                      {(artist.genres && artist.genres.length > 0) || listenerStat > 0 ? (
+                        <p className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs leading-snug text-white/55 sm:mt-1 sm:text-[13px]">
+                          {artist.genres && artist.genres.length > 0 && (
+                            <span className="truncate font-normal">{artist.genres.slice(0, 2).join(", ")}</span>
+                          )}
+                          {listenerStat > 0 && (
+                            <>
+                              {artist.genres && artist.genres.length > 0 && (
+                                <span className="shrink-0 text-white/25" aria-hidden>
+                                  ·
+                                </span>
+                              )}
+                              <span className="shrink-0 tabular-nums font-medium text-white/50">
+                                <span className="sm:hidden">
+                                  {listenerStatAbbr} {listenerLabel}
+                                </span>
+                                <span className="hidden sm:inline">
+                                  {listenerStat.toLocaleString()} {listenerLabel}
+                                </span>
+                              </span>
+                            </>
+                          )}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-          </div>
-        </div>
+              <Collapsible open={heroExpanded} onOpenChange={setHeroExpanded}>
+                <div
+                  className={cn(
+                    "relative z-[1] border-t border-border dark:border-white/10",
+                  )}
+                >
+                  <div className="flex items-stretch gap-2 px-2 py-3 sm:px-2">
+                    <CollapsibleTrigger asChild>
+                      <button
+                        type="button"
+                        className="flex min-w-0 flex-1 items-center gap-2 rounded-md py-1 pl-0.5 pr-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring dark:focus-visible:ring-white/25"
+                        aria-expanded={heroExpanded}
+                        aria-controls={artistMetricsSectionId}
+                      >
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 dark:text-white/50",
+                            heroExpanded && "rotate-180",
+                          )}
+                          aria-hidden
+                        />
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-white/45">
+                          Key metrics
+                        </span>
+                      </button>
+                    </CollapsibleTrigger>
+                    <button
+                      type="button"
+                      onClick={() => handleViewChange("objectives")}
+                      className="inline-flex shrink-0 items-center gap-0.5 self-center rounded-md px-2 py-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-white/45 dark:hover:text-white/85 dark:focus-visible:ring-white/25"
+                    >
+                      Objectives
+                      <ChevronRight className="h-3 w-3 opacity-70" aria-hidden />
+                    </button>
+                  </div>
+                </div>
+                <CollapsibleContent
+                  id={artistMetricsSectionId}
+                  className="relative isolate min-h-0 overflow-hidden text-foreground antialiased data-[state=closed]:pointer-events-none data-[state=closed]:hidden dark:text-zinc-50"
+                >
+                  <div className="relative z-[1] px-2 pb-2 pt-2 sm:px-2 sm:pb-2">
+                  <div className="grid grid-cols-2 items-stretch gap-3 lg:grid-cols-4">
+                    <div className="flex h-full min-h-[5rem] min-w-0 w-full">
+                      <ObjectiveKpiCard
+                        artistId={artist.id}
+                        slot={1}
+                        objectiveType={(artist as any).objective_1_type}
+                        objectiveTarget={(artist as any).objective_1_target}
+                        currentValue={getObjectiveCurrentValue((artist as any).objective_1_type)}
+                        variant="banner"
+                      />
+                    </div>
+                    <div className="flex h-full min-h-[5rem] min-w-0 w-full">
+                      <ObjectiveKpiCard
+                        artistId={artist.id}
+                        slot={2}
+                        objectiveType={(artist as any).objective_2_type}
+                        objectiveTarget={(artist as any).objective_2_target}
+                        currentValue={getObjectiveCurrentValue((artist as any).objective_2_type)}
+                        variant="banner"
+                      />
+                    </div>
+                    <div
+                      className="flex h-full min-h-[5rem] min-w-0 flex-col rounded-md border border-border bg-card/90 p-3 text-foreground shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-black/25 dark:shadow-none"
+                      onMouseEnter={(e) => {
+                        const label = e.currentTarget.querySelector("[data-budget-label]") as HTMLElement;
+                        const val = e.currentTarget.querySelector("[data-budget-value]") as HTMLElement;
+                        if (label) label.textContent = "Remaining";
+                        if (val) {
+                          const remaining = totalBudget - totalSpent;
+                          val.textContent =
+                            remaining >= 1_000_000
+                              ? `${(remaining / 1_000_000).toFixed(1)}M`
+                              : remaining >= 1_000
+                                ? `${(remaining / 1_000).toFixed(0)}K`
+                                : remaining.toLocaleString();
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        const label = e.currentTarget.querySelector("[data-budget-label]") as HTMLElement;
+                        const val = e.currentTarget.querySelector("[data-budget-value]") as HTMLElement;
+                        if (label) label.textContent = "Budget";
+                        if (val) val.textContent = heroBudgetDisplay;
+                      }}
+                    >
+                      <p
+                        data-budget-label
+                        className="text-[10px] font-semibold uppercase tracking-wider leading-none py-[2px] text-muted-foreground dark:text-white/45"
+                      >
+                        Budget
+                      </p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <DollarSign className="h-4 w-4 shrink-0 text-muted-foreground dark:text-white/50" aria-hidden />
+                        <span
+                          data-budget-value
+                          className="text-xl font-semibold tabular-nums tracking-tight text-foreground dark:text-white"
+                        >
+                          {heroBudgetDisplay}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex h-full min-h-[5rem] min-w-0 flex-col rounded-md border border-border bg-card/90 p-3 text-foreground shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-black/25 dark:shadow-none">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider leading-none py-[2px] text-muted-foreground dark:text-white/45">
+                        Done
+                      </p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <CheckCheck className="h-4 w-4 shrink-0 text-muted-foreground dark:text-white/50" aria-hidden />
+                        <span className="text-xl font-semibold tabular-nums tracking-tight text-foreground dark:text-white">
+                          {completedCount}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
       </div>
 
       <div className="flex gap-6">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-            <div className="flex items-center gap-0 border border-border rounded-lg overflow-hidden shrink-0" data-tour="artist-tabs">
-              {tabItems.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => handleViewChange(tab)}
-                  className={`h-8 px-3 text-xs sm:h-9 sm:px-3.5 sm:text-sm font-medium capitalize transition-colors ${
-                    activeView === tab
-                      ? "bg-foreground text-background"
-                      : "bg-background text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                  }`}
+          <div className="mb-5 space-y-5 sm:mb-6 sm:space-y-0">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+              <div
+                className={cn(
+                  "w-full min-w-0 rounded-[0.875rem] bg-muted/40 p-1 ring-1 ring-inset ring-border/30",
+                  "sm:max-w-xl sm:w-auto sm:flex-none",
+                )}
+                data-tour="artist-tabs"
+                role="tablist"
+                aria-label="Artist sections"
+              >
+                <div
+                  className={cn(
+                    "grid w-full min-w-0 gap-1",
+                    tabItems.length === 4 ? "grid-cols-4" : "grid-cols-3",
+                  )}
                 >
-                  {tab === "timelines" ? "Release Plans" : tab === "work" ? "Work" : tab === "splits" ? "Splits" : tab}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* Mobile: three-dot dropdown for toggles */}
-              <div className="flex sm:hidden">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-9 w-9">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuCheckboxItem checked={showCompleted} onCheckedChange={setShowCompleted}>
-                      Show Completed
-                    </DropdownMenuCheckboxItem>
-                    {activeView === "work" && (
-                      <DropdownMenuCheckboxItem checked={showArchived} onCheckedChange={setShowArchived}>
-                        Show Archived
-                      </DropdownMenuCheckboxItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  {tabItems.map((tabKey) => (
+                    <button
+                      key={tabKey}
+                      type="button"
+                      role="tab"
+                      aria-selected={activeView === tabKey}
+                      onClick={() => handleViewChange(tabKey)}
+                      className={cn(
+                        "flex h-9 w-full min-w-0 items-center justify-center rounded-lg px-1 text-sm font-medium transition-[color,background-color,box-shadow]",
+                        activeView === tabKey
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground/80",
+                      )}
+                    >
+                      <span className="truncate text-center">{ARTIST_TAB_LABELS[tabKey]}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Desktop: inline toggles */}
-              <label className="hidden sm:flex items-center gap-1.5 cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Completed
-                <Switch checked={showCompleted} onCheckedChange={setShowCompleted} />
-              </label>
-              {activeView === "work" && (
-                <div className="hidden sm:flex">
+              <div className="hidden items-center gap-2 sm:flex sm:gap-3">
+                <label className="flex items-center gap-1.5 cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Completed
+                  <Switch checked={showCompleted} onCheckedChange={setShowCompleted} />
+                </label>
+                {activeView === "work" && (
                   <WorkTabControls artistId={artist.id} showArchived={showArchived} setShowArchived={setShowArchived} />
-                </div>
-              )}
+                )}
+              </div>
+            </div>
+
+            {/* Mobile: New Campaign (work) left, overflow menu right — tabs use full width above */}
+            <div className="flex items-center justify-between gap-2 sm:hidden">
+              <div className="min-w-0 shrink">
+                {activeView === "work" && (
+                  <NewCampaignInline artistId={artist.id} onCreated={setNewCampaignId} />
+                )}
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuCheckboxItem checked={showCompleted} onCheckedChange={setShowCompleted}>
+                    Show Completed
+                  </DropdownMenuCheckboxItem>
+                  {activeView === "work" && (
+                    <DropdownMenuCheckboxItem checked={showArchived} onCheckedChange={setShowArchived}>
+                      Show Archived
+                    </DropdownMenuCheckboxItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
@@ -584,7 +582,16 @@ export default function ArtistDetail() {
             )}
             {activeView === "objectives" && <ObjectivesPanel artist={artist} />}
             {activeView === "information" && <ArtistInfoTab artist={artist} readOnly={!canEditArtists} />}
-            {activeView === "work" && <WorkTab artistId={artist.id} teamId={artist.team_id} showCompleted={showCompleted} showArchived={showArchived} />}
+            {activeView === "work" && (
+              <WorkTab
+                artistId={artist.id}
+                teamId={artist.team_id}
+                showCompleted={showCompleted}
+                showArchived={showArchived}
+                newCampaignId={newCampaignId}
+                onNewCampaignCreated={setNewCampaignId}
+              />
+            )}
             {activeView === "links" && <LinksTab artistId={artist.id} />}
             {activeView === "timelines" && <TimelinesTab artistId={artist.id} />}
             {activeView === "splits" && <SplitsTab artistId={artist.id} teamId={artist.team_id} />}

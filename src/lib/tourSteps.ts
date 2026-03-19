@@ -133,7 +133,8 @@ export const ARTIST_DETAIL_TOUR: TourDefinition = {
       id: "artist-banner",
       targetSelector: '[data-tour="artist-banner"]',
       title: "Artist Banner",
-      description: "Hover to upload a custom banner or sync from Spotify.",
+      description:
+        "Hover to upload a custom banner or sync from Spotify. Use Key metrics (or the corner control) to show or hide objectives, budget, and completed work.",
       placement: "bottom",
     },
   ],

@@ -23,13 +23,14 @@ interface WorkTabProps {
   teamId: string;
   showCompleted: boolean;
   showArchived: boolean;
+  newCampaignId: string | null;
+  onNewCampaignCreated: (id: string) => void;
 }
 
-export function WorkTab({ artistId, teamId, showCompleted, showArchived }: WorkTabProps) {
+export function WorkTab({ artistId, teamId, showCompleted, showArchived, newCampaignId, onNewCampaignCreated }: WorkTabProps) {
   const queryClient = useQueryClient();
   const [expandedCampaigns, setExpandedCampaigns] = useState<Record<string, boolean>>({});
   const [activeExpanded, setActiveExpanded] = useState(true);
-  const [newCampaignId, setNewCampaignId] = useState<string | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   const { data: campaigns = [] } = useQuery({
@@ -108,15 +109,15 @@ export function WorkTab({ artistId, teamId, showCompleted, showArchived }: WorkT
   const isEmpty = campaigns.length === 0 && tasks.length === 0;
 
   if (isEmpty) {
-    return <EmptyWorkState artistId={artistId} teamId={teamId} onCampaignCreated={setNewCampaignId} />;
+    return <EmptyWorkState artistId={artistId} teamId={teamId} onCampaignCreated={onNewCampaignCreated} />;
   }
 
   const sharedContext = { artistId, teamId, campaigns, teamMembers, budgets, subBudgets, editingTaskId, setEditingTaskId };
 
   return (
-    <div className="mt-4 space-y-2">
-      <div className="flex items-center justify-end mb-2">
-        <NewCampaignInline artistId={artistId} onCreated={setNewCampaignId} />
+    <div className="mt-6 space-y-2">
+      <div className="mb-2 hidden items-center justify-end sm:flex">
+        <NewCampaignInline artistId={artistId} onCreated={onNewCampaignCreated} />
       </div>
 
       {unsortedTasks.length > 0 && (
@@ -201,7 +202,7 @@ function EmptyWorkState({ artistId, teamId, onCampaignCreated }: { artistId: str
 
   if (mode === "campaign") {
     return (
-      <div className="mt-4">
+      <div className="mt-6">
         <div className="bg-muted/30 rounded-lg px-4 py-3">
           <input
             ref={campaignInputRef} autoFocus placeholder="Campaign name"
@@ -220,7 +221,7 @@ function EmptyWorkState({ artistId, teamId, onCampaignCreated }: { artistId: str
 
   if (mode === "task") {
     return (
-      <div className="mt-4">
+      <div className="mt-6">
         <TaskItem isNew artistId={artistId} teamId={teamId} campaigns={[]} teamMembers={[]} budgets={[]} subBudgets={[]} autoFocus onCancel={() => setMode("idle")} />
       </div>
     );
@@ -373,7 +374,7 @@ function CampaignName({ campaign, artistId }: { campaign: any; artistId: string 
 }
 
 /* ── New Campaign Inline ── */
-function NewCampaignInline({ artistId, onCreated }: { artistId: string; onCreated: (id: string) => void }) {
+export function NewCampaignInline({ artistId, onCreated }: { artistId: string; onCreated: (id: string) => void }) {
   const queryClient = useQueryClient();
   const [show, setShow] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);

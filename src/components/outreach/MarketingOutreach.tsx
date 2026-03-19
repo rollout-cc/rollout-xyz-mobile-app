@@ -184,10 +184,10 @@ export function MarketingOutreach() {
 
   return (
     <div className="space-y-4">
-      {/* Header actions */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      {/* Header — mobile: stacked full-width search + filter + 3-col actions (A&R-style); sm+: single row */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+        <div className="relative w-full min-w-0 sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -196,8 +196,8 @@ export function MarketingOutreach() {
           />
         </div>
         <Select value={platformFilter} onValueChange={setPlatformFilter}>
-          <SelectTrigger className="w-[160px]">
-            <Filter className="h-3.5 w-3.5 mr-1.5" />
+          <SelectTrigger className="w-full sm:w-[160px] shrink-0">
+            <Filter className="h-3.5 w-3.5 mr-1.5 shrink-0" />
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -206,25 +206,41 @@ export function MarketingOutreach() {
             ))}
           </SelectContent>
         </Select>
-        <div className="flex gap-2 ml-auto">
-          <Button variant="outline" size="sm" onClick={handleEnrich} disabled={enriching}>
-            <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-            {enriching ? "Enriching..." : "AI Enrich"}
+        <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleCSVUpload} />
+        <div className="grid grid-cols-3 gap-2 w-full sm:flex sm:w-auto sm:ml-auto sm:shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleEnrich}
+            disabled={enriching}
+            className="min-h-10 min-w-0 gap-1 px-2 text-xs sm:min-h-9 sm:px-3 sm:text-sm"
+          >
+            <Sparkles className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{enriching ? "Enriching…" : "AI Enrich"}</span>
           </Button>
-          <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleCSVUpload} />
-          <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={importing}>
-            <Upload className="h-3.5 w-3.5 mr-1.5" />
-            CSV
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fileRef.current?.click()}
+            disabled={importing}
+            className="min-h-10 min-w-0 gap-1 px-2 text-xs sm:min-h-9 sm:px-3 sm:text-sm"
+          >
+            <Upload className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">CSV</span>
           </Button>
-          <Button size="sm" onClick={() => setShowAddDialog(true)}>
-            <Plus className="h-3.5 w-3.5 mr-1.5" />
-            Add
+          <Button
+            size="sm"
+            onClick={() => setShowAddDialog(true)}
+            className="min-h-10 min-w-0 gap-1 px-2 text-xs sm:min-h-9 sm:px-3 sm:text-sm"
+          >
+            <Plus className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">Add</span>
           </Button>
         </div>
       </div>
 
       {/* Stats bar */}
-      <div className="flex gap-4 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
         <span>{creators.length} creators</span>
         <span>{creators.filter((c: any) => c.platform === "instagram").length} IG</span>
         <span>{creators.filter((c: any) => c.platform === "tiktok").length} TikTok</span>

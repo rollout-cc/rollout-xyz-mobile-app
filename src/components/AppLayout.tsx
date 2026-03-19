@@ -66,12 +66,18 @@ export function AppLayout({ children, title, actions, onBack, mobileSubnav }: Ap
           {/* Top bar — safe-area-top spacer absorbs the notch/Dynamic Island height on iOS */}
           <header className="flex flex-col border-b border-border/60 bg-background/80 shadow-[0_1px_0_rgba(0,0,0,0.03)] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)]">
             <div className="safe-area-top" aria-hidden="true" />
-            <div className="flex h-[3.25rem] items-center justify-between shrink-0 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] sm:px-6 sm:h-14">
-              <div className="flex items-center gap-2">
-                {isMobile && onBack && (
+            <div className="flex h-[3.25rem] items-center justify-between shrink-0 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] sm:h-14 sm:px-6">
+              <div
+                className={cn(
+                  "flex min-w-0 items-center",
+                  onBack && isMobile ? "gap-0.5" : "gap-2",
+                )}
+              >
+                {onBack && (
                   <button
+                    type="button"
                     onClick={onBack}
-                    className="flex items-center justify-center h-8 w-8 -ml-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground -ml-0.5 sm:-ml-0"
                     aria-label="Go back"
                   >
                     <ArrowLeft className="h-5 w-5" />
@@ -166,7 +172,7 @@ export function AppLayout({ children, title, actions, onBack, mobileSubnav }: Ap
               <div
                 className={cn(
                   "overflow-x-auto scrollbar-hide scroll-smooth [-webkit-overflow-scrolling:touch]",
-                  "border-t border-border/35 bg-muted/20 py-2.5",
+                  "border-t border-border/35 bg-muted/20 py-2",
                   "pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]",
                   "supports-[backdrop-filter]:backdrop-blur-md supports-[backdrop-filter]:bg-muted/15",
                 )}
@@ -177,7 +183,7 @@ export function AppLayout({ children, title, actions, onBack, mobileSubnav }: Ap
           </header>
 
           {/* Content — bottom padding clears floating tab bar + FAB; horizontal insets follow safe area on notched devices. */}
-          <main className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto scroll-container pt-4 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] pb-[calc(5.5rem+var(--safe-area-inset-bottom))] sm:p-6 sm:pb-6">
+          <main className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto scroll-container pt-3 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] pb-[calc(6.25rem+var(--safe-area-inset-bottom))] sm:p-6 sm:pb-6">
             {selectedTeamId && <SupportAccessBanner teamId={selectedTeamId} />}
             {children}
           </main>

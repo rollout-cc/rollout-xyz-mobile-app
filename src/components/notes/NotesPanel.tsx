@@ -135,7 +135,7 @@ export function NotesPanel({ autoCreate }: NotesPanelProps) {
   // ── Detail View ──
   if (selectedId && selectedNote) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex h-full w-full min-w-0 flex-col">
         <div className="flex items-center gap-2 py-2 border-b border-border">
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { cleanupEmptyNote(selectedId!); setSelectedId(null); }}>
             <ArrowLeft className="h-4 w-4" />
@@ -173,7 +173,7 @@ export function NotesPanel({ autoCreate }: NotesPanelProps) {
 
   // ── List View ──
   return (
-    <div className="flex flex-col">
+    <div className="flex w-full min-w-0 flex-col">
       <div className="flex items-center justify-between py-2 border-b border-border">
         <span className="text-xs font-semibold text-muted-foreground">Notes</span>
         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCreate}>

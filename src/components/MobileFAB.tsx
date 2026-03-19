@@ -14,7 +14,7 @@ interface QuickAction {
 }
 
 const quickActions: QuickAction[] = [
-  { label: "Add Task",     icon: ListTodo,    to: "/my-work" },
+  { label: "Add Task",     icon: ListTodo,    to: "/my-work", state: { openBlankTask: true } },
   { label: "Create Note",  icon: NotebookPen, to: "/notes",  state: { createNote: true } },
   { label: "Add Prospect", icon: Target,      to: "/roster", state: { openAddProspect: true } },
   { label: "Add Artist",   icon: UserPlus,    to: "/roster", state: { openAddArtist: true } },

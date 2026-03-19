@@ -165,7 +165,16 @@
 
 /* Safe area utilities for iOS notch, Dynamic Island, and home indicator */
 .safe-area-top {
+  flex-shrink: 0;
   height: var(--safe-area-inset-top);
+}
+
+/* Below `sm`, env(safe-area-inset-top) is often 0 (mobile browser chrome / some WebViews).
+   A minimum inset keeps the header off the physical top edge and matches typical status-bar rhythm. */
+@media (max-width: 639px) {
+  .safe-area-top {
+    height: max(var(--safe-area-inset-top), 1rem);
+  }
 }
 
 .safe-area-bottom {

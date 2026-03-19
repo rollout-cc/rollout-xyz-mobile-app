@@ -23,9 +23,11 @@ const ASPECT_RATIO = RECOMMENDED_WIDTH / RECOMMENDED_HEIGHT; // ~2.33
 interface BannerUploadProps {
   artistId: string;
   currentBannerUrl?: string | null;
+  /** Icon-only trigger for banner overlays (e.g. mobile hero) */
+  compact?: boolean;
 }
 
-export function BannerUpload({ artistId, currentBannerUrl }: BannerUploadProps) {
+export function BannerUpload({ artistId, currentBannerUrl, compact }: BannerUploadProps) {
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -117,14 +119,27 @@ export function BannerUpload({ artistId, currentBannerUrl }: BannerUploadProps) 
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="gap-1.5 text-white/80 hover:text-white hover:bg-white/10"
-        onClick={() => setOpen(true)}
-      >
-        <Upload className="h-3.5 w-3.5" /> Change Banner
-      </Button>
+      {compact ? (
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          className="h-6 w-6 shrink-0 rounded-md border-0 bg-black/40 text-white shadow-sm backdrop-blur-sm hover:bg-black/55 sm:h-6 sm:w-6 md:h-7 md:w-7"
+          onClick={() => setOpen(true)}
+          aria-label="Change banner image"
+        >
+          <Upload className="h-2.5 w-2.5 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3" />
+        </Button>
+      ) : (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1.5 text-white/80 hover:text-white hover:bg-white/10"
+          onClick={() => setOpen(true)}
+        >
+          <Upload className="h-3.5 w-3.5" /> Change Banner
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={(v) => !v && reset()}>
         <DialogContent className="sm:max-w-lg">

@@ -91,14 +91,14 @@ export default function Rolly() {
         aria-selected={mobileTab === "chat"}
         onClick={() => setMobileTab("chat")}
         className={cn(
-          "flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-[color,background-color,box-shadow]",
+          "flex h-9 min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg px-1 text-sm font-medium transition-[color,background-color,box-shadow]",
           mobileTab === "chat"
             ? "bg-background text-foreground shadow-sm"
             : "text-muted-foreground hover:text-foreground/80",
         )}
       >
         <MessageSquare className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
-        Chat
+        <span className="truncate">Chat</span>
       </button>
       <button
         type="button"
@@ -106,14 +106,14 @@ export default function Rolly() {
         aria-selected={mobileTab === "workspace"}
         onClick={() => setMobileTab("workspace")}
         className={cn(
-          "flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-[color,background-color,box-shadow]",
+          "flex h-9 min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg px-1 text-sm font-medium transition-[color,background-color,box-shadow]",
           mobileTab === "workspace"
             ? "bg-background text-foreground shadow-sm"
             : "text-muted-foreground hover:text-foreground/80",
         )}
       >
         <LayoutGrid className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
-        Workspace
+        <span className="truncate">Workspace</span>
       </button>
     </div>
   );

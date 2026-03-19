@@ -82,7 +82,7 @@ function MyWorkArtistFilter({
 }) {
   if (taskArtists.length === 0) return null;
   return (
-    <span data-tour="mywork-filter" className="inline-flex min-w-0 max-w-[min(14rem,52vw)] shrink md:max-w-[220px]">
+    <span data-tour="mywork-filter" className="inline-flex min-w-0 max-w-[min(11.75rem,44vw)] shrink-0 md:max-w-[200px]">
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger
           className={cn(
@@ -139,49 +139,49 @@ function WorkNotesTabs({
 }: {
   tab: Tab;
   setTab: (value: Tab) => void;
-  /** When true, grows to share horizontal space (mobile subnav, Rolly-style). */
+  /** When true, grows beside filters; inner tabs stay strict 50/50 via CSS grid. */
   fill?: boolean;
 }) {
+  const segment = (active: boolean) =>
+    cn(
+      "flex h-9 w-full min-w-0 items-center justify-center gap-1.5 rounded-lg px-1 text-sm font-medium transition-[color,background-color,box-shadow]",
+      active
+        ? "bg-background text-foreground shadow-sm"
+        : "text-muted-foreground hover:text-foreground/80",
+    );
+
   return (
     <div
       className={cn(
-        "flex gap-1 rounded-[0.875rem] bg-muted/40 p-1 ring-1 ring-inset ring-border/30",
-        fill ? "min-w-0 flex-1" : "w-max shrink-0",
+        "rounded-[0.875rem] bg-muted/40 p-1 ring-1 ring-inset ring-border/30",
+        fill ? "min-w-0 flex-1 basis-0" : "w-[13.75rem] shrink-0 sm:w-[14.5rem]",
       )}
       role="tablist"
       aria-label="My Work sections"
       data-tour="mywork-tabs"
     >
-      <button
-        type="button"
-        role="tab"
-        aria-selected={tab === "tasks"}
-        onClick={() => setTab("tasks")}
-        className={cn(
-          "flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-[color,background-color,box-shadow]",
-          tab === "tasks"
-            ? "bg-background text-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground/80",
-        )}
-      >
-        <ListChecks className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
-        Work
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={tab === "notes"}
-        onClick={() => setTab("notes")}
-        className={cn(
-          "flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-[color,background-color,box-shadow]",
-          tab === "notes"
-            ? "bg-background text-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground/80",
-        )}
-      >
-        <StickyNote className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
-        Notes
-      </button>
+      <div className={cn("grid w-full min-w-0 grid-cols-2 gap-1")}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "tasks"}
+          onClick={() => setTab("tasks")}
+          className={segment(tab === "tasks")}
+        >
+          <ListChecks className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+          <span className="truncate">Work</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "notes"}
+          onClick={() => setTab("notes")}
+          className={segment(tab === "notes")}
+        >
+          <StickyNote className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+          <span className="truncate">Notes</span>
+        </button>
+      </div>
     </div>
   );
 }
@@ -213,6 +213,21 @@ export default function MyWork() {
   const [revenueSource, setRevenueSource] = useState<string | null>(null);
   const [revenueAmount, setRevenueAmount] = useState<number | null>(null);
   const [titleForParsing, setTitleForParsing] = useState("");
+
+  useEffect(() => {
+    const state = location.state as Record<string, unknown> | null;
+    if (!state?.openBlankTask) return;
+    setSelectedArtistId(null);
+    setExpenseAmount(null);
+    setBudgetId(null);
+    setRevenueMode(false);
+    setRevenueAmount(null);
+    setRevenueSource(null);
+    setTitleForParsing("");
+    setShowFullAddForm(true);
+    setAddFormInitialTitle("");
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.state, location.pathname, navigate]);
 
   const { data: artists = [] } = useArtists(teamId);
   const isMobile = useIsMobile();
@@ -482,27 +497,36 @@ export default function MyWork() {
       title="My Work"
       mobileSubnav={
         isMobile ? (
-          <div className="flex w-full min-w-0 max-w-full items-center justify-between gap-3 pr-0.5">
+          <div
+            className={cn(
+              "w-full min-w-0 max-w-full items-center pr-0.5",
+              tab === "tasks" && taskArtists.length > 0
+                ? "grid grid-cols-[minmax(0,1fr)_auto] gap-2.5"
+                : "flex w-full min-w-0",
+            )}
+          >
             <WorkNotesTabs tab={tab} setTab={setTab} fill />
-            {tab === "tasks" && (
-              <div className="flex min-w-0 shrink justify-end">
-                <MyWorkArtistFilter
-                  value={filterArtistId}
-                  onChange={setFilterArtistId}
-                  taskArtists={taskArtists}
-                />
-              </div>
+            {tab === "tasks" && taskArtists.length > 0 && (
+              <MyWorkArtistFilter
+                value={filterArtistId}
+                onChange={setFilterArtistId}
+                taskArtists={taskArtists}
+              />
             )}
           </div>
         ) : undefined
       }
     >
-      <div className="mx-auto max-w-2xl pb-24">
-        <div className="hidden md:flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <h1 className="text-foreground text-xl font-bold tracking-tight shrink-0">My Work</h1>
-            {!isMobile && <WorkNotesTabs tab={tab} setTab={setTab} />}
-          </div>
+      <div
+        className={cn(
+          "mx-auto w-full min-w-0 pb-24",
+          tab === "notes"
+            ? "max-w-full md:max-w-2xl"
+            : "max-w-2xl",
+        )}
+      >
+        <div className="hidden md:flex items-center justify-between gap-3 mb-4">
+          <WorkNotesTabs tab={tab} setTab={setTab} />
           {tab === "tasks" && !isMobile && (
             <MyWorkArtistFilter
               value={filterArtistId}
@@ -512,7 +536,10 @@ export default function MyWork() {
           )}
         </div>
 
-        <PullToRefresh onRefresh={handleRefresh}>
+        <PullToRefresh
+          onRefresh={handleRefresh}
+          className={cn(tab === "notes" && "w-full min-w-0")}
+        >
           {tab === "tasks" ? (
             !teamId ? (
               <div className="flex flex-col items-center justify-center py-20 text-muted-foreground text-sm">
