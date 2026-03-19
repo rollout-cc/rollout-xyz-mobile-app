@@ -14,7 +14,7 @@ const SCREEN_PROMPTS: Record<string, string> = {
   timelines:
     "You're looking at an artist's timeline/milestones. The user plans release dates, events, and deadlines.",
   overview:
-    "You're looking at the company overview dashboard with KPIs, budget utilization, and task summaries.",
+    "You're looking at the COMPANY-LEVEL overview dashboard — this is NOT the artist roster or artist page. It shows company-wide stats like team task progress, budget utilization across all artists, and staff productivity. Nudges here should be about company operations, team management, or business strategy — NOT about adding artists or roster-level actions.",
   "artist-info":
     "You're looking at an artist's admin info section — band member details, PRO registration, IPI numbers, publisher info.",
   budget:
