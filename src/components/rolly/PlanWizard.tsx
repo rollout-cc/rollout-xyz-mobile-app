@@ -62,6 +62,12 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
   };
 
   const fetchNextQuestion = useCallback(async (history: QAEntry[]) => {
+    // Hard cap: force plan generation after 10 questions
+    if (history.length >= 10) {
+      await generatePlan(history, "Generate a plan based on the answers provided so far. Fill in any gaps with reasonable defaults based on your music industry knowledge.");
+      return;
+    }
+
     setIsLoadingQuestion(true);
     setError(null);
     setSelectedValues([]);
