@@ -319,6 +319,9 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
   return (
     <div className="space-y-6">
 
+      {/* Pending access requests */}
+      {canManage && <PendingRequests />}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

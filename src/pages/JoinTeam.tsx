@@ -484,6 +484,24 @@ export default function JoinTeam() {
             </motion.div>
           )}
 
+          {/* Invitee onboarding step */}
+          {step === "onboarding" && joinResult?.job_title && user && (
+            <motion.div key="onboarding" className="mt-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <InviteeOnboarding
+                teamId={joinResult.team_id}
+                userId={user.id}
+                teamName={joinResult.team_name}
+                teamAvatar={joinResult.team_avatar ?? null}
+                jobTitle={joinResult.job_title}
+                permissions={joinResult.permissions ?? jobTitlePermissions(joinResult.job_title)}
+                assignedArtists={joinResult.artists}
+                allRosterArtists={allRosterArtists}
+                assistsUserName={joinResult.assists_user_name}
+                onComplete={() => setStep("welcome")}
+              />
+            </motion.div>
+          )}
+
           {/* Artist confirmation step */}
           {step === "artists" && (
             <motion.div key="artists" className="mt-8 flex flex-col gap-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
