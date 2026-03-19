@@ -16,6 +16,7 @@ import { RoleGate } from "@/components/RoleGate";
 import { toast } from "sonner";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { OwnershipTransferBanner } from "@/components/OwnershipTransferBanner";
 
 // Lazy-loaded pages
 const Login = React.lazy(() => import("./pages/Login"));
