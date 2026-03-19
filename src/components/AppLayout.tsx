@@ -11,7 +11,7 @@ import { useTeams } from "@/hooks/useTeams";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, ChevronsUpDown, ArrowLeft } from "lucide-react";
+import { User, ChevronsUpDown, ArrowLeft, Shield } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
