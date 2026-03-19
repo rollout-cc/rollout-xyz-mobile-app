@@ -3,12 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, Sparkles, Loader2, Send, CheckCircle2, Pencil } from "lucide-react";
+import { ChevronLeft, Sparkles, Send, CheckCircle2, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { PlanDraft, DraftItem } from "./PlanDraft";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { ThinkingAnimation } from "./ThinkingAnimation";
 
 export type PlanAnswers = Record<string, string | string[]>;
 
@@ -42,11 +43,12 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
   const [selectedValues, setSelectedValues] = useState<string[]>([]);
   const [selectedValue, setSelectedValue] = useState("");
   const [customText, setCustomText] = useState("");
-  const [isCustomMode, setIsCustomMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [questionNumber, setQuestionNumber] = useState(0);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [depth, setDepth] = useState<string | null>(null);
+  const [acknowledgment, setAcknowledgment] = useState<string | null>(null);
 
   // Plan generation states
   const [phase, setPhase] = useState<"questions" | "generating" | "review" | "executing">("questions");
@@ -65,7 +67,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
     setSelectedValues([]);
     setSelectedValue("");
     setCustomText("");
-    setIsCustomMode(false);
+    setAcknowledgment(null);
 
     try {
       const token = await getToken();
@@ -85,6 +87,8 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
           brief: initialContext || "",
           previous_qa: history,
           team_id: selectedTeamId,
+          depth,
+          question_number: history.length + 1,
         }),
       });
 
@@ -98,7 +102,6 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
       const data = await resp.json();
 
       if (data.type === "complete") {
-        // Instead of showing a review of answers, generate the structured plan
         setSummaryPrompt(data.summary_prompt);
         await generatePlan(history, data.summary_prompt);
         return;
@@ -112,6 +115,9 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
           multi_select: data.multi_select || false,
           allow_custom: data.allow_custom !== false,
         });
+        if (data.acknowledgment) {
+          setAcknowledgment(data.acknowledgment);
+        }
         setQuestionNumber((n) => n + 1);
       }
     } catch (e) {
@@ -120,7 +126,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
     } finally {
       setIsLoadingQuestion(false);
     }
-  }, [initialContext, selectedTeamId]);
+  }, [initialContext, selectedTeamId, depth]);
 
   const generatePlan = async (history: QAEntry[], summary: string) => {
     setPhase("generating");
@@ -157,7 +163,6 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
 
       const plan = await resp.json();
 
-      // Convert to DraftItem format
       let counter = 0;
       const items: DraftItem[] = [];
       let detectedArtist = "";
@@ -257,7 +262,6 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
         console.warn("Plan execution failures:", result.results?.filter((r: any) => !r.success));
       }
 
-      // Invalidate workspace queries
       queryClient.invalidateQueries({ queryKey: ["rolly-workspace-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["rolly-workspace-artists"] });
       queryClient.invalidateQueries({ queryKey: ["rolly-workspace-budgets"] });
@@ -288,7 +292,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
     if (!currentQuestion) return;
 
     let answer: string;
-    if ((isCustomMode || currentQuestion.options.length === 0) && customText.trim()) {
+    if (customText.trim()) {
       answer = customText.trim();
     } else if (currentQuestion.multi_select) {
       if (selectedValues.length === 0) return;
@@ -298,16 +302,24 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
       answer = selectedValue;
     }
 
+    // Auto-detect depth from answer
+    const lowerAnswer = answer.toLowerCase();
+    if (/\b(quick|fast|basics)\b/.test(lowerAnswer)) {
+      setDepth("quick");
+    } else if (/\b(detailed|deeper|time)\b/.test(lowerAnswer)) {
+      setDepth("detailed");
+    }
+
     const newEntry: QAEntry = { question: currentQuestion.question, answer };
     const newHistory = [...qaHistory, newEntry];
     setQaHistory(newHistory);
     setCurrentQuestion(null);
+    setAcknowledgment(null);
     fetchNextQuestion(newHistory);
   };
 
   const handleBack = () => {
     if (phase === "review") {
-      // Go back to questions — re-ask from the last Q&A state
       setPhase("questions");
       setDraftItems([]);
       const newHistory = qaHistory.slice(0, -1);
@@ -332,7 +344,6 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
     setSelectedValues((prev) =>
       prev.includes(label) ? prev.filter((v) => v !== label) : [...prev, label]
     );
-    setIsCustomMode(false);
   };
 
   const handleEditAnswer = (index: number) => {
@@ -349,8 +360,8 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
     setEditValue("");
   };
 
-  const canSubmit = (isCustomMode || currentQuestion?.options.length === 0)
-    ? !!customText.trim()
+  const canSubmit = customText.trim()
+    ? true
     : currentQuestion?.multi_select
     ? selectedValues.length > 0
     : !!selectedValue;
@@ -358,15 +369,8 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
   // Plan generation loading
   if (phase === "generating") {
     return (
-      <div className="flex flex-col h-full bg-[hsl(0,0%,5%)] text-white items-center justify-center gap-4">
-        <div className="relative">
-          <Loader2 className="h-8 w-8 animate-spin text-white/70" />
-          <Sparkles className="h-4 w-4 text-white absolute -top-1 -right-1" />
-        </div>
-        <div className="text-center">
-          <p className="text-sm font-semibold text-white">Building your plan…</p>
-          <p className="text-xs text-white/40 mt-1">Rolly is creating tasks, milestones & budgets</p>
-        </div>
+      <div className="flex flex-col h-full bg-[hsl(0,0%,5%)] text-white items-center justify-center">
+        <ThinkingAnimation variant="generating" />
       </div>
     );
   }
@@ -407,12 +411,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
       {/* Single question view */}
       <div className="flex-1 overflow-y-auto px-4 flex flex-col justify-start pt-6">
         {isLoadingQuestion && (
-          <div className="flex flex-col items-center gap-3 py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-white/70" />
-            <span className="text-sm text-white/50">
-              {qaHistory.length === 0 ? "Analyzing your brief…" : "Next question…"}
-            </span>
-          </div>
+          <ThinkingAnimation variant="question" />
         )}
 
         {error && (
@@ -426,6 +425,11 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
 
         {currentQuestion && !isLoadingQuestion && (
           <div className="space-y-5 animate-fade-in py-4">
+            {/* Acknowledgment */}
+            {acknowledgment && (
+              <p className="text-sm italic text-white/50 animate-fade-in">{acknowledgment}</p>
+            )}
+
             <div>
               <span className="text-[10px] uppercase tracking-wider font-bold text-white/50">
                 {currentQuestion.header}
@@ -466,18 +470,22 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
                         key={opt.label}
                         type="button"
                         onClick={() => {
-                          const newEntry: QAEntry = { question: currentQuestion.question, answer: opt.label };
-                          const newHistory = [...qaHistory, newEntry];
-                          setQaHistory(newHistory);
-                          setCurrentQuestion(null);
-                          fetchNextQuestion(newHistory);
+                          setSelectedValue(opt.label);
+                          setCustomText("");
                         }}
                         className={cn(
                           "w-full text-left flex items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-all",
-                          "border-white/15 hover:border-white/40 hover:bg-white/5"
+                          selectedValue === opt.label
+                            ? "border-white bg-white/10"
+                            : "border-white/15 hover:border-white/40 hover:bg-white/5"
                         )}
                       >
-                        <div className="h-4 w-4 rounded-full border border-white/30 mt-0.5 shrink-0" />
+                        <div className={cn(
+                          "h-4 w-4 rounded-full border mt-0.5 shrink-0 transition-all",
+                          selectedValue === opt.label
+                            ? "border-white bg-white"
+                            : "border-white/30"
+                        )} />
                         <div>
                           <span className="text-sm font-medium text-white">{opt.label}</span>
                           {opt.description && (
@@ -491,40 +499,28 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
               </div>
             )}
 
-            {currentQuestion.allow_custom && (
-              <div className="space-y-2">
-                {currentQuestion.options.length > 0 && (
-                  <button
-                    onClick={() => {
-                      setIsCustomMode(!isCustomMode);
-                      setSelectedValue("");
-                      setSelectedValues([]);
-                    }}
-                    className="text-xs text-white/60 font-medium hover:text-white/90 hover:underline"
-                  >
-                    {isCustomMode ? "← Pick from options" : "Or type your own answer"}
-                  </button>
-                )}
-                {(isCustomMode || currentQuestion.options.length === 0) && (
-                  <Input
-                    value={customText}
-                    onChange={(e) => setCustomText(e.target.value)}
-                    placeholder="Type your answer..."
-                    className="rounded-xl bg-white/10 border-white/15 text-white placeholder:text-white/30 focus-visible:ring-white/30"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && canSubmit) handleSubmitAnswer();
-                    }}
-                    autoFocus
-                  />
-                )}
-              </div>
-            )}
+            {/* Always-visible custom text input */}
+            <Input
+              value={customText}
+              onChange={(e) => {
+                setCustomText(e.target.value);
+                if (e.target.value.trim()) {
+                  setSelectedValue("");
+                  setSelectedValues([]);
+                }
+              }}
+              placeholder={currentQuestion.options.length > 0 ? "Or type your own answer…" : "Type your answer..."}
+              className="rounded-xl bg-white/10 border-white/15 text-white placeholder:text-white/30 focus-visible:ring-white/30"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && canSubmit) handleSubmitAnswer();
+              }}
+            />
           </div>
         )}
       </div>
 
-      {/* Bottom action bar */}
-      {currentQuestion && !isLoadingQuestion && (currentQuestion.multi_select || isCustomMode || currentQuestion.options.length === 0) && (
+      {/* Bottom action bar — always visible when question is shown */}
+      {currentQuestion && !isLoadingQuestion && (
         <div className="border-t border-white/10 px-4 py-3 flex items-center gap-2 shrink-0">
           <Button
             onClick={handleSubmitAnswer}
