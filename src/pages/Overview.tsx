@@ -448,10 +448,17 @@ export default function Overview() {
     setOrder(reordered);
   }, [gridSections, setOrder]);
 
+  const availableTabs = useMemo(() => {
+    const tabs: ("dashboard" | "agenda" | "staff" | "finance")[] = ["dashboard", "agenda"];
+    if (canViewStaffSalaries) tabs.push("staff");
+    if (canViewFinance) tabs.push("finance");
+    return tabs;
+  }, [canViewStaffSalaries, canViewFinance]);
+
   // Tab bar rendered in the AppLayout header on mobile
   const mobileTabBar = (
     <div className="flex items-center gap-1 px-4 py-2.5" data-tour="overview-tabs">
-      {(["dashboard", "agenda", "staff", "finance"] as const).map((tab) => (
+      {availableTabs.map((tab) => (
         <button
           key={tab}
           onClick={() => handleCompanyTab(tab)}
