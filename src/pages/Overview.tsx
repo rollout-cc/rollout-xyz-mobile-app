@@ -484,7 +484,7 @@ export default function Overview() {
       <>
       {/* Company tabs — desktop only (mobile version lives in the header via mobileSubnav) */}
       <div className="hidden sm:flex items-center gap-1 mb-5" data-tour="overview-tabs-desktop">
-      {(["dashboard", "agenda", "staff", "finance"] as const).map((tab) => (
+      {availableTabs.map((tab) => (
           <button
             key={tab}
             onClick={() => handleCompanyTab(tab)}
