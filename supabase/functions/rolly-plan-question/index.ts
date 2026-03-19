@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { brief, previous_qa, team_id } = await req.json();
+    const { brief, previous_qa, team_id, depth, question_number } = await req.json();
 
     // Fetch artists for context
     let artistNames: string[] = [];
