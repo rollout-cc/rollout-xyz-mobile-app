@@ -148,6 +148,50 @@ Deno.serve(async (req) => {
           result.trial_ends_at = trialEnd.toISOString();
         }
 
+        // Send welcome email with credentials
+        const resendKey = Deno.env.get("RESEND_API_KEY");
+        if (resendKey) {
+          const loginUrl = "https://rollout-cc.lovable.app/login";
+          await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              from: "Rollout <accounts@rollout.cc>",
+              to: [email],
+              subject: `Welcome to Rollout${team_name ? ` — ${team_name}` : ""}`,
+              html: `
+<!DOCTYPE html>
+<html><body style="margin:0;padding:0;background:#f5f5f0;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f0;padding:40px 0;">
+<tr><td align="center">
+<table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;padding:40px;">
+<tr><td style="text-align:center;padding-bottom:24px;">
+  <img src="https://ctnsworqzzguykzzvdme.supabase.co/storage/v1/object/public/email-assets/rollout-flag.png" alt="Rollout" width="40" style="display:inline-block;" />
+</td></tr>
+<tr><td>
+  <h1 style="margin:0 0 16px;font-size:22px;color:#121212;">Welcome to Rollout, ${full_name}!</h1>
+  <p style="margin:0 0 20px;font-size:15px;color:#55575d;line-height:1.6;">
+    Your account has been created${team_name ? ` and your team <strong>${team_name}</strong> is ready to go` : ""}. Here are your login details:
+  </p>
+  <table width="100%" cellpadding="12" cellspacing="0" style="background:#f5f5f0;border-radius:6px;margin-bottom:24px;">
+    <tr><td style="font-size:13px;color:#55575d;">Email</td><td style="font-size:14px;color:#121212;font-weight:600;">${email}</td></tr>
+    <tr><td style="font-size:13px;color:#55575d;">Password</td><td style="font-size:14px;color:#121212;font-weight:600;">${password}</td></tr>
+  </table>
+  <p style="margin:0 0 24px;font-size:13px;color:#999;">Please change your password after your first login.</p>
+  <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
+    <a href="${loginUrl}" style="display:inline-block;background:#121212;color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:6px;font-size:15px;font-weight:600;">Log In to Rollout</a>
+  </td></tr></table>
+</td></tr>
+<tr><td style="padding-top:32px;text-align:center;">
+  <p style="margin:0;font-size:12px;color:#999;">ROLLOUT</p>
+</td></tr>
+</table>
+</td></tr></table>
+</body></html>`,
+            }),
+          });
+        }
+
         return respond(200, result);
       }
 
