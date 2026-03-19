@@ -138,11 +138,11 @@ export default function Admin() {
 
   return (
     <div className="h-dvh overflow-y-auto bg-background">
-      <header className="border-b border-border px-6 py-4 flex items-center gap-3">
+      <header className="border-b border-border px-6 py-4 flex items-end gap-3">
         <button onClick={() => navigate("/roster")} className="hover:opacity-80 transition-opacity">
           <img src={rolloutLogo} alt="Rollout" className="h-10" />
         </button>
-        <span className="text-muted-foreground text-sm font-medium">Admin Console</span>
+        <span className="text-muted-foreground text-base font-medium mb-0.5">Admin Console</span>
         <Badge variant="outline" className="ml-auto">Super Admin</Badge>
       </header>
       <main className="mx-auto max-w-4xl px-6 py-8 space-y-8">
