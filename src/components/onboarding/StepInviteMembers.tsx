@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Check, Plus, Trash2, UserPlus, Send } from "lucide-react";
+import { Copy, Check, Plus, Trash2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,19 +16,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { OnboardingArtist } from "./CompanyOnboardingWizard";
-import { PermissionToggles, defaultPermissions, roleDefaults, type PermissionFlags } from "@/components/settings/PermissionToggles";
-
-const JOB_TITLES = [
-  "A&R",
-  "Manager",
-  "Finance",
-  "Marketing",
-  "Operations",
-  "Legal",
-  "Creative Director",
-  "Producer",
-  "Other",
-];
+import {
+  PermissionToggles,
+  defaultPermissions,
+  jobTitlePermissions,
+  jobTitleToPersona,
+  jobTitleToRole,
+  type PermissionFlags,
+} from "@/components/settings/PermissionToggles";
+import { JobTitleSelect } from "@/components/ui/JobTitleSelect";
 
 interface MemberEntry {
   firstName: string;
@@ -44,6 +40,7 @@ interface MemberEntry {
   generatedLink: string | null;
   sent: boolean;
   permissions: PermissionFlags;
+  assistsUserId: string | null;
 }
 
 const emptyMember = (): MemberEntry => ({
@@ -59,24 +56,49 @@ const emptyMember = (): MemberEntry => ({
   selectedArtistIds: [],
   generatedLink: null,
   sent: false,
-  permissions: { ...roleDefaults("manager") },
+  permissions: { ...defaultPermissions },
+  assistsUserId: null,
 });
+
+interface TeamMember {
+  user_id: string;
+  full_name: string;
+  role: string;
+}
 
 interface Props {
   teamId: string;
   userId: string;
   addedArtists: OnboardingArtist[];
+  teamMembers?: TeamMember[];
 }
 
-export function StepInviteMembers({ teamId, userId, addedArtists }: Props) {
+export function StepInviteMembers({ teamId, userId, addedArtists, teamMembers = [] }: Props) {
   const [members, setMembers] = useState<MemberEntry[]>([emptyMember()]);
   const [generatingIdx, setGeneratingIdx] = useState<number | null>(null);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+
+  // Filter to owners/managers for EA "assists" dropdown
+  const assistableMembers = teamMembers.filter(
+    (m) => m.role === "team_owner" || m.role === "manager"
+  );
 
   const updateMember = (idx: number, updates: Partial<MemberEntry>) => {
     setMembers((prev) =>
       prev.map((m, i) => (i === idx ? { ...m, ...updates } : m))
     );
+  };
+
+  const handleJobTitleChange = (idx: number, jobTitle: string) => {
+    const perms = jobTitlePermissions(jobTitle);
+    const role = jobTitleToRole(jobTitle);
+    updateMember(idx, {
+      jobTitle,
+      accessLevel: role,
+      permissions: perms,
+      // Clear assists if not EA
+      assistsUserId: jobTitle === "Executive Assistant" ? members[idx].assistsUserId : null,
+    });
   };
 
   const toggleArtist = (idx: number, artistId: string) => {
@@ -115,6 +137,8 @@ export function StepInviteMembers({ teamId, userId, addedArtists }: Props) {
         ? addedArtists.map((a) => ({ artist_id: a.id, permission: "full_access" }))
         : m.selectedArtistIds.map((id) => ({ artist_id: id, permission: "full_access" }));
 
+      const persona = jobTitleToPersona(m.jobTitle);
+
       const { data, error } = await (supabase as any)
         .from("invite_links")
         .insert({
@@ -129,6 +153,7 @@ export function StepInviteMembers({ teamId, userId, addedArtists }: Props) {
           staff_salary: m.salary ? parseFloat(m.salary) : null,
           invitee_email: m.email.trim() || null,
           invitee_phone: m.phone.trim() || null,
+          assists_user_id: m.assistsUserId || null,
           ...m.permissions,
         })
         .select("token")
@@ -145,7 +170,7 @@ export function StepInviteMembers({ teamId, userId, addedArtists }: Props) {
               token: data.token,
               email: m.email.trim() || null,
               phone: m.phone.trim() || null,
-              team_name: null, // Will be fetched by edge function
+              team_name: null,
               invitee_name: `${m.firstName} ${m.lastName}`.trim(),
             },
           });
@@ -231,45 +256,49 @@ export function StepInviteMembers({ teamId, userId, addedArtists }: Props) {
               </div>
             </div>
 
-            {/* Job title + access */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Job title */}
+            <div>
+              <Label className="text-xs mb-1 block">Job Title *</Label>
+              <JobTitleSelect
+                value={m.jobTitle}
+                onChange={(v) => handleJobTitleChange(idx, v)}
+              />
+            </div>
+
+            {/* EA: Who will they assist? */}
+            {m.jobTitle === "Executive Assistant" && assistableMembers.length > 0 && (
               <div>
-                <Label className="text-xs mb-1 block">Job Title *</Label>
+                <Label className="text-xs mb-1 block">Who will they assist?</Label>
                 <Select
-                  value={m.jobTitle}
-                  onValueChange={(v) => updateMember(idx, { jobTitle: v })}
+                  value={m.assistsUserId || ""}
+                  onValueChange={(v) => updateMember(idx, { assistsUserId: v || null })}
                   disabled={!!m.generatedLink}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select" />
+                    <SelectValue placeholder="Select team member" />
                   </SelectTrigger>
                   <SelectContent>
-                    {JOB_TITLES.map((t) => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    {assistableMembers.map((tm) => (
+                      <SelectItem key={tm.user_id} value={tm.user_id}>
+                        {tm.full_name || "Unknown"}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label className="text-xs mb-1 block">Access Level</Label>
-                <Select
-                  value={m.accessLevel}
-                  onValueChange={(v) => updateMember(idx, { accessLevel: v, permissions: { ...roleDefaults(v) } })}
-                  disabled={!!m.generatedLink}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="team_owner">Owner</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="artist">Member</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            )}
 
-            {/* Artist access toggle */}
+            {/* Permission toggles */}
+            {m.jobTitle && (
+              <PermissionToggles
+                role={m.accessLevel}
+                permissions={m.permissions}
+                onChange={(perms) => updateMember(idx, { permissions: perms })}
+                disabled={!!m.generatedLink}
+              />
+            )}
+
+            {/* Artist access */}
             {addedArtists.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -318,15 +347,7 @@ export function StepInviteMembers({ teamId, userId, addedArtists }: Props) {
               </div>
             )}
 
-            {/* Permission toggles */}
-            <PermissionToggles
-              role={m.accessLevel}
-              permissions={m.permissions}
-              onChange={(perms) => updateMember(idx, { permissions: perms })}
-              disabled={!!m.generatedLink}
-            />
-
-            {/* Employment + salary (optional) */}
+            {/* Employment + salary */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs mb-1 block">Employment Type</Label>
