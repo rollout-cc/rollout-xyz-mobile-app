@@ -17,11 +17,14 @@ const SOURCES = [
   { key: "mlc", name: "The MLC", description: "Mechanical Licensing Collective" },
 ] as const;
 
+const PRO_SOURCES = ["bmi", "ascap", "sesac"];
+
 interface MemberConnectionsProps {
   memberId: string;
+  onProChange?: (proName: string) => void;
 }
 
-export function MemberConnections({ memberId }: MemberConnectionsProps) {
+export function MemberConnections({ memberId, onProChange }: MemberConnectionsProps) {
   const queryClient = useQueryClient();
   const [connectingSource, setConnectingSource] = useState<string | null>(null);
   const [email, setEmail] = useState("");
@@ -80,6 +83,11 @@ export function MemberConnections({ memberId }: MemberConnectionsProps) {
         if (error) throw error;
       }
       queryClient.invalidateQueries({ queryKey: ["member-pro-connections", memberId] });
+      // Auto-populate PRO name in admin info when connecting to a PRO source
+      if (PRO_SOURCES.includes(connectingSource)) {
+        const sourceName = SOURCES.find((s) => s.key === connectingSource)?.name;
+        if (sourceName && onProChange) onProChange(sourceName);
+      }
       toast.success("Connection saved");
       setConnectingSource(null);
       setEmail("");

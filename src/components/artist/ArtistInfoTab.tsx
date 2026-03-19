@@ -190,7 +190,7 @@ function MemberCard({
       {/* Collapsible content */}
       {open && (
         <div className="px-4 pb-4 space-y-5">
-          {/* Personal Info */}
+          {/* 1. Personal Info */}
           <div>
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
               <User className="h-3.5 w-3.5" /> Personal Info
@@ -202,25 +202,18 @@ function MemberCard({
             </div>
           </div>
 
-          {/* Travel Info */}
+          {/* 2. PRO & MLC Connections */}
           <div>
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
-              <Plane className="h-3.5 w-3.5" /> Travel Info
+              <Link2 className="h-3.5 w-3.5" /> PRO & MLC Connections
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="KTN Number" value={member.ktn_number ?? ""} placeholder="Enter KTN number" onSave={(v) => onUpdate({ ktn_number: v })} />
-              <Field label="Driver's License #" value={(member as any).drivers_license ?? ""} placeholder="Enter license number" onSave={(v) => onUpdate({ drivers_license: v })} />
-              <SelectField label="Preferred Seat" value={member.preferred_seat ?? ""} options={["Window", "Middle", "Aisle"]} placeholder="Select seat" onSave={(v) => onUpdate({ preferred_seat: v })} />
-              <Field label="Preferred Airline" value={member.preferred_airline ?? ""} placeholder="e.g. Delta, United" onSave={(v) => onUpdate({ preferred_airline: v })} />
-              <Field label="Passport Name" value={member.passport_name ?? ""} placeholder="Enter passport name" onSave={(v) => onUpdate({ passport_name: v })} />
-              <Field label="Dietary Restrictions" value={member.dietary_restrictions ?? ""} placeholder="Enter dietary restrictions" onSave={(v) => onUpdate({ dietary_restrictions: v })} />
-              <div className="sm:col-span-2">
-                <Field label="Notes" value={member.notes ?? ""} placeholder="Enter travel notes" onSave={(v) => onUpdate({ notes: v })} as="textarea" />
-              </div>
-            </div>
+            <MemberConnections
+              memberId={member.id}
+              onProChange={(proName) => onUpdate({ pro_name: proName })}
+            />
           </div>
 
-          {/* Admin Info */}
+          {/* 3. Admin Info */}
           <div>
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
               <Music className="h-3.5 w-3.5" /> Admin Info
@@ -238,7 +231,25 @@ function MemberCard({
             </div>
           </div>
 
-          {/* Clothing */}
+          {/* 4. Travel Info */}
+          <div>
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
+              <Plane className="h-3.5 w-3.5" /> Travel Info
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="KTN Number" value={member.ktn_number ?? ""} placeholder="Enter KTN number" onSave={(v) => onUpdate({ ktn_number: v })} />
+              <Field label="Driver's License #" value={(member as any).drivers_license ?? ""} placeholder="Enter license number" onSave={(v) => onUpdate({ drivers_license: v })} />
+              <SelectField label="Preferred Seat" value={member.preferred_seat ?? ""} options={["Window", "Middle", "Aisle"]} placeholder="Select seat" onSave={(v) => onUpdate({ preferred_seat: v })} />
+              <Field label="Preferred Airline" value={member.preferred_airline ?? ""} placeholder="e.g. Delta, United" onSave={(v) => onUpdate({ preferred_airline: v })} />
+              <Field label="Passport Name" value={member.passport_name ?? ""} placeholder="Enter passport name" onSave={(v) => onUpdate({ passport_name: v })} />
+              <Field label="Dietary Restrictions" value={member.dietary_restrictions ?? ""} placeholder="Enter dietary restrictions" onSave={(v) => onUpdate({ dietary_restrictions: v })} />
+              <div className="sm:col-span-2">
+                <Field label="Notes" value={member.notes ?? ""} placeholder="Enter travel notes" onSave={(v) => onUpdate({ notes: v })} as="textarea" />
+              </div>
+            </div>
+          </div>
+
+          {/* 5. Clothing */}
           <div>
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
               <Shirt className="h-3.5 w-3.5" /> Clothing
@@ -254,14 +265,6 @@ function MemberCard({
                 <BrandTagInput value={member.favorite_brands ?? ""} onSave={(v) => onUpdate({ favorite_brands: v })} />
               </div>
             </div>
-          </div>
-
-          {/* PRO & MLC Connections */}
-          <div>
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
-              <Link2 className="h-3.5 w-3.5" /> PRO & MLC Connections
-            </h4>
-            <MemberConnections memberId={member.id} />
           </div>
 
           <div className="flex justify-end pt-2">
