@@ -47,7 +47,7 @@ export default function ArtistDetail() {
   const [searchParams] = useSearchParams();
   const fromFinance = searchParams.get("from") === "finance";
   const { data: artist, isLoading } = useArtistDetail(artistId!);
-  const { selectedTeamId } = useSelectedTeam();
+  const { selectedTeamId, canViewFinance, canEditArtists, canDistribute } = useSelectedTeam();
 
   // Navigate back to roster when the team is switched while on this page
   const prevTeamIdRef = useRef<string | null>(null);
