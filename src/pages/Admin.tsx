@@ -145,13 +145,23 @@ export default function Admin() {
       <main className="mx-auto max-w-4xl px-6 py-8 space-y-8">
         <CreateUserSection />
         <Separator />
-        <CreateTeamSection />
-        <Separator />
-        <GrantTrialSection />
-        <Separator />
         <TransferOwnershipSection />
         <Separator />
         <SupportAccessSection />
+        <Separator />
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="w-full justify-between text-muted-foreground hover:text-foreground">
+              <span className="flex items-center gap-2"><Settings2 className="h-4 w-4" /> Advanced Actions</span>
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-6 pt-4">
+            <CreateTeamSection />
+            <Separator />
+            <GrantTrialSection />
+          </CollapsibleContent>
+        </Collapsible>
         <Separator />
         <FeedbackDashboard />
       </main>
