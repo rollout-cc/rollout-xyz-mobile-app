@@ -23,10 +23,7 @@ Deno.serve(async (req) => {
     });
     const { data: { user }, error: authError } = await anonClient.auth.getUser();
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return respond(401, { error: "Unauthorized" });
     }
 
     // Service role client for privileged ops
@@ -35,18 +32,48 @@ Deno.serve(async (req) => {
     // Check platform admin
     const { data: isAdmin } = await anonClient.rpc("is_platform_admin", { p_user_id: user.id });
     if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden: not a platform admin" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return respond(403, { error: "Forbidden: not a platform admin" });
     }
 
     const body = await req.json();
     const { action } = body;
 
     switch (action) {
+      /* ─── List Users (for searchable dropdowns) ─── */
+      case "list_users": {
+        const { data: users } = await adminClient
+          .from("profiles")
+          .select("id, full_name, avatar_url")
+          .order("full_name");
+        // Also get emails from auth
+        const { data: { users: authUsers } } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+        const emailMap = new Map((authUsers || []).map(u => [u.id, u.email]));
+        const result = (users || []).map(u => ({
+          id: u.id,
+          label: `${u.full_name || "Unknown"} (${emailMap.get(u.id) || "no email"})`,
+          name: u.full_name || "Unknown",
+          email: emailMap.get(u.id) || "",
+        }));
+        return respond(200, { items: result });
+      }
+
+      /* ─── List Teams (for searchable dropdowns) ─── */
+      case "list_teams": {
+        const { data: teams } = await adminClient
+          .from("teams")
+          .select("id, name")
+          .order("name");
+        const result = (teams || []).map(t => ({
+          id: t.id,
+          label: t.name,
+          name: t.name,
+        }));
+        return respond(200, { items: result });
+      }
+
+      /* ─── Create User (enhanced: optional role + team + trial) ─── */
       case "create_user": {
-        const { email, full_name, password } = body;
+        const { email, full_name, password, role, team_name, trial_days } = body;
         if (!email || !full_name || !password) {
           return respond(400, { error: "email, full_name, and password required" });
         }
@@ -57,7 +84,56 @@ Deno.serve(async (req) => {
           user_metadata: { full_name },
         });
         if (error) return respond(400, { error: error.message });
-        return respond(200, { user_id: newUser.user.id, email });
+
+        const result: Record<string, unknown> = {
+          user_id: newUser.user.id,
+          email,
+          full_name,
+        };
+
+        // If role is team_owner and team_name provided, auto-create team + membership + trial
+        if (role === "team_owner" && team_name) {
+          const { data: team, error: teamError } = await adminClient
+            .from("teams")
+            .insert({
+              name: team_name,
+              created_by: newUser.user.id,
+              onboarding_completed: true,
+            })
+            .select("id")
+            .single();
+          if (teamError) return respond(400, { error: teamError.message });
+
+          await adminClient.from("team_memberships").insert({
+            team_id: team.id,
+            user_id: newUser.user.id,
+            role: "team_owner",
+            perm_view_finance: true,
+            perm_manage_finance: true,
+            perm_view_staff_salaries: true,
+            perm_view_ar: true,
+            perm_view_roster: true,
+            perm_edit_artists: true,
+            perm_view_billing: true,
+            perm_distribution: true,
+          });
+
+          // Grant trial
+          const days = Number(trial_days) || 30;
+          const trialEnd = new Date();
+          trialEnd.setDate(trialEnd.getDate() + days);
+          await adminClient.from("team_subscriptions").upsert({
+            team_id: team.id,
+            status: "trialing",
+            trial_ends_at: trialEnd.toISOString(),
+          }, { onConflict: "team_id" });
+
+          result.team_id = team.id;
+          result.team_name = team_name;
+          result.trial_ends_at = trialEnd.toISOString();
+        }
+
+        return respond(200, result);
       }
 
       case "create_team": {
@@ -68,7 +144,7 @@ Deno.serve(async (req) => {
         const { data: team, error: teamError } = await adminClient
           .from("teams")
           .insert({ name, created_by: owner_user_id, region, company_type, onboarding_completed: true })
-          .select("id")
+          .select("id, name")
           .single();
         if (teamError) return respond(400, { error: teamError.message });
 
@@ -88,7 +164,7 @@ Deno.serve(async (req) => {
             perm_distribution: true,
           });
         if (memError) return respond(400, { error: memError.message });
-        return respond(200, { team_id: team.id });
+        return respond(200, { team_id: team.id, team_name: team.name });
       }
 
       case "grant_trial": {
@@ -106,7 +182,10 @@ Deno.serve(async (req) => {
           })
           .eq("team_id", team_id);
         if (error) return respond(400, { error: error.message });
-        return respond(200, { team_id, trial_ends_at: trialEnd.toISOString() });
+
+        // Fetch team name for response
+        const { data: team } = await adminClient.from("teams").select("name").eq("id", team_id).single();
+        return respond(200, { team_id, team_name: team?.name, trial_ends_at: trialEnd.toISOString() });
       }
 
       case "initiate_transfer": {
@@ -126,11 +205,46 @@ Deno.serve(async (req) => {
           .select("id, token")
           .single();
         if (error) return respond(400, { error: error.message });
-        return respond(200, { transfer_id: transfer.id, token: transfer.token });
+
+        // Fetch team name and recipient info for email
+        const [{ data: team }, { data: { user: recipient } }] = await Promise.all([
+          adminClient.from("teams").select("name").eq("id", team_id).single(),
+          adminClient.auth.admin.getUserById(to_user_id),
+        ]);
+
+        const teamName = team?.name || "your team";
+        const recipientEmail = recipient?.email;
+        const recipientName = recipient?.user_metadata?.full_name || "there";
+
+        // Send ownership transfer email via Resend
+        if (recipientEmail) {
+          const resendKey = Deno.env.get("RESEND_API_KEY");
+          if (resendKey) {
+            const acceptUrl = `${supabaseUrl.replace('.supabase.co', '').includes('localhost') ? 'http://localhost:5173' : 'https://rollout-cc.lovable.app'}/accept-ownership/${transfer.token}`;
+            
+            await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                from: "Rollout <accounts@rollout.cc>",
+                to: [recipientEmail],
+                subject: `You've been given ownership of ${teamName} on Rollout`,
+                html: buildTransferEmail(recipientName, teamName, acceptUrl),
+              }),
+            });
+          }
+        }
+
+        return respond(200, {
+          transfer_id: transfer.id,
+          token: transfer.token,
+          team_name: teamName,
+          recipient_name: recipientName,
+          recipient_email: recipientEmail,
+        });
       }
 
       case "accept_transfer": {
-        // Called by new owner (not necessarily admin) — but we validate via token
         const { token } = body;
         if (!token) return respond(400, { error: "token required" });
 
@@ -142,19 +256,16 @@ Deno.serve(async (req) => {
           .single();
         if (fetchErr || !transfer) return respond(404, { error: "Transfer not found or already completed" });
 
-        // Verify the caller is the intended recipient
         if (transfer.to_user_id !== user.id) {
           return respond(403, { error: "This transfer is not for you" });
         }
 
-        // Update old owner to manager
         await adminClient
           .from("team_memberships")
           .update({ role: "manager" })
           .eq("team_id", transfer.team_id)
           .eq("user_id", transfer.from_user_id);
 
-        // Update new owner to team_owner (or insert if not yet member)
         const { data: existingMember } = await adminClient
           .from("team_memberships")
           .select("id")
@@ -185,7 +296,6 @@ Deno.serve(async (req) => {
             });
         }
 
-        // Mark transfer accepted
         await adminClient
           .from("team_ownership_transfers")
           .update({
@@ -201,7 +311,6 @@ Deno.serve(async (req) => {
         const { team_id, reason } = body;
         if (!team_id) return respond(400, { error: "team_id required" });
 
-        // Expire any stale sessions first
         await adminClient.rpc("expire_support_sessions");
 
         const { data: request, error } = await adminClient
@@ -219,7 +328,6 @@ Deno.serve(async (req) => {
       }
 
       case "approve_support_access": {
-        // Called by team owner — validate they own the team
         const { request_id } = body;
         if (!request_id) return respond(400, { error: "request_id required" });
 
@@ -231,7 +339,6 @@ Deno.serve(async (req) => {
           .single();
         if (fetchErr || !request) return respond(404, { error: "Request not found or expired" });
 
-        // Check if expired
         if (new Date(request.expires_at) < new Date()) {
           await adminClient
             .from("support_access_requests")
@@ -240,7 +347,6 @@ Deno.serve(async (req) => {
           return respond(400, { error: "Request has expired" });
         }
 
-        // Verify caller is team owner/manager
         const { data: membership } = await anonClient
           .from("team_memberships")
           .select("role")
@@ -250,7 +356,6 @@ Deno.serve(async (req) => {
           .maybeSingle();
         if (!membership) return respond(403, { error: "Only team owners/managers can approve" });
 
-        // Insert admin as support session member
         await adminClient
           .from("team_memberships")
           .insert({
@@ -304,7 +409,6 @@ Deno.serve(async (req) => {
           .single();
         if (!request) return respond(404, { error: "Active session not found" });
 
-        // Remove support membership
         await adminClient
           .from("team_memberships")
           .delete()
@@ -324,7 +428,6 @@ Deno.serve(async (req) => {
       }
 
       case "revoke_support_access": {
-        // Called by team owner to revoke an active session
         const { request_id } = body;
         if (!request_id) return respond(400, { error: "request_id required" });
 
@@ -336,7 +439,6 @@ Deno.serve(async (req) => {
           .single();
         if (!request) return respond(404, { error: "Active session not found" });
 
-        // Remove support membership
         await adminClient
           .from("team_memberships")
           .delete()
@@ -373,3 +475,53 @@ Deno.serve(async (req) => {
     });
   }
 });
+
+/* ─── Branded transfer email HTML ─── */
+function buildTransferEmail(name: string, teamName: string, acceptUrl: string): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#ffffff;">
+<tr><td align="center" style="padding:40px 20px;">
+<table width="600" cellpadding="0" cellspacing="0" style="background-color:#e8e4dc;border-radius:8px;padding:48px 40px;">
+<tr><td>
+  <img src="https://app.rollout.cc/rollout-flag.png" alt="Rollout" height="40" style="margin-bottom:24px;" />
+  <h1 style="font-size:28px;font-weight:bold;color:#0d0d0d;margin:0 0 16px;line-height:1.2;">
+    You've been given ownership of ${teamName}
+  </h1>
+  <p style="font-size:16px;color:#0d0d0d;line-height:1.5;margin:0 0 24px;">
+    Hi ${name},
+  </p>
+  <p style="font-size:16px;color:#0d0d0d;line-height:1.5;margin:0 0 24px;">
+    The Rollout team has set up <strong>${teamName}</strong> for you and is ready to transfer full ownership to you.
+  </p>
+  <div style="background-color:#d5d0c8;border-radius:8px;padding:16px 20px;margin:0 0 24px;">
+    <p style="font-size:13px;color:#737373;margin:0 0 4px;line-height:1.3;">What this means</p>
+    <ul style="font-size:15px;color:#0d0d0d;line-height:1.6;margin:8px 0 0;padding-left:20px;">
+      <li>You will become the sole owner of <strong>${teamName}</strong> and all its data</li>
+      <li>No one at Rollout can access your account or data without your explicit written consent</li>
+      <li>This transfer is logged and timestamped for your security</li>
+    </ul>
+  </div>
+  <p style="margin:0 0 32px;">
+    <a href="${acceptUrl}" style="background-color:#0d0d0d;color:#f2ead9;font-size:15px;font-weight:600;border-radius:9999px;padding:14px 32px;text-decoration:none;display:inline-block;">
+      Accept Ownership
+    </a>
+  </p>
+  <hr style="border:none;border-top:1px solid #c4c0b8;margin:32px 0;" />
+  <p style="font-size:14px;color:#666666;line-height:1.5;margin:0 0 8px;">
+    If you didn't expect this, you can safely ignore this email. The transfer will not proceed until you accept it.
+  </p>
+  <p style="font-size:14px;color:#666666;line-height:1.5;margin:0 0 8px;">
+    Questions? Reply to this email or reach out at <a href="mailto:support@rollout.cc" style="color:#0d0d0d;font-weight:bold;text-decoration:none;">support@rollout.cc</a>
+  </p>
+  <img src="https://ctnsworqzzguykzzvdme.supabase.co/storage/v1/object/public/email-assets/rollout-logo.png" alt="ROLLOUT" height="32" style="margin-top:24px;" />
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
