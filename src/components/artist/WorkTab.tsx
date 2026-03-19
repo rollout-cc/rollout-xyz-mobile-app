@@ -102,7 +102,7 @@ export function WorkTab({ artistId, teamId, showCompleted, showArchived, newCamp
   useEffect(() => {
     if (newCampaignId && campaigns.some((c: any) => c.id === newCampaignId)) {
       setExpandedCampaigns(prev => ({ ...prev, [newCampaignId]: true }));
-      setTimeout(() => setNewCampaignId(null), 100);
+      setTimeout(() => onNewCampaignCreated(null as any), 100);
     }
   }, [newCampaignId, campaigns]);
 
