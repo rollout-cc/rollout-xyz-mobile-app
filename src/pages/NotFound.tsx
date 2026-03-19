@@ -22,7 +22,7 @@ const NotFound = () => {
         F*ck, something went wrong
       </p>
       <p className="mb-8 max-w-sm text-sm text-muted-foreground">
-        a ROLLOUT team member just got an email because of this and will be fixing soon
+        A ROLLOUT team member just got an email because of this and will be fixing soon
       </p>
       <Button asChild>
         <Link to="/roster">Back to Roster</Link>
