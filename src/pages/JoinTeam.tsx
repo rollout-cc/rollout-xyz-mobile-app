@@ -18,8 +18,12 @@ import rolloutLogoWhite from "@/assets/rollout-logo-white.png";
 
 interface JoinResult {
   team_name: string;
+  team_id: string;
+  team_avatar?: string | null;
   role: string;
   job_title?: string;
+  permissions?: PermissionFlags;
+  assists_user_name?: string | null;
   artists: { id: string; name: string; avatar_url: string | null }[];
 }
 
