@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
         return respond(200, { items: result });
       }
 
-      /* ─── Create User (enhanced: optional role + team + trial) ─── */
+      /* ─── Create User (enhanced: optional role + team + trial + admin join) ─── */
       case "create_user": {
         const { email, full_name, password, role, team_name, trial_days } = body;
         if (!email || !full_name || !password) {
@@ -91,7 +91,6 @@ Deno.serve(async (req) => {
           full_name,
         };
 
-        // If role is team_owner and team_name provided, auto-create team + membership + trial
         if (role === "team_owner" && team_name) {
           const { data: team, error: teamError } = await adminClient
             .from("teams")
@@ -118,7 +117,23 @@ Deno.serve(async (req) => {
             perm_distribution: true,
           });
 
-          // Grant trial
+          // Auto-add the calling admin as a manager on the new team
+          if (user.id !== newUser.user.id) {
+            await adminClient.from("team_memberships").insert({
+              team_id: team.id,
+              user_id: user.id,
+              role: "manager",
+              perm_view_finance: true,
+              perm_manage_finance: true,
+              perm_view_staff_salaries: true,
+              perm_view_ar: true,
+              perm_view_roster: true,
+              perm_edit_artists: true,
+              perm_view_billing: true,
+              perm_distribution: true,
+            });
+          }
+
           const days = Number(trial_days) || 30;
           const trialEnd = new Date();
           trialEnd.setDate(trialEnd.getDate() + days);
