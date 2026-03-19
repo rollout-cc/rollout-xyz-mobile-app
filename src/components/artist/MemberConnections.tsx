@@ -83,6 +83,11 @@ export function MemberConnections({ memberId, onProChange }: MemberConnectionsPr
         if (error) throw error;
       }
       queryClient.invalidateQueries({ queryKey: ["member-pro-connections", memberId] });
+      // Auto-populate PRO name in admin info when connecting to a PRO source
+      if (PRO_SOURCES.includes(connectingSource)) {
+        const sourceName = SOURCES.find((s) => s.key === connectingSource)?.name;
+        if (sourceName && onProChange) onProChange(sourceName);
+      }
       toast.success("Connection saved");
       setConnectingSource(null);
       setEmail("");
