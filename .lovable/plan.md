@@ -1,35 +1,32 @@
 
 
-# Provision Super Admin Account with Permanent Legend Tier
+# Reorder Member Card Sections + Auto-Populate Admin Info from Connections
 
-## What we're doing
+## New Section Order (inside each member card)
 
-This is a data provisioning task — no code changes needed. Using the existing infrastructure to set up the accounts@rollout.cc super admin account with the highest permanent access.
+```text
+1. Personal Info        (first name, last name, DOB)
+2. PRO & MLC Connections (BMI, ASCAP, SESAC, SoundExchange, The MLC)
+3. Admin Info           (PRO auto-filled from connection, IPI, publisher, pub admin, pub PRO, ISNI, Spotify URI, distributor, record label)
+4. Travel Info          (KTN, license, seat, airline, passport, dietary, notes)
+5. Clothing             (shirt, pants, shoe, dress, hat, brands)
+```
 
-## Steps
+## Auto-Populate Logic
 
-1. **Insert your current account as platform admin** — add `e4dbccd1-221f-467c-ac87-edce2bf8e6db` to `platform_admins` so you can access `/admin` now
+When a user connects to a PRO source (BMI, ASCAP, or SESAC) in the Connections section, automatically update the member's `pro_name` field in `artist_travel_info` to match. This means:
 
-2. **Create accounts@rollout.cc user** — via `admin-actions` edge function (`create_user` action), password as specified, email auto-confirmed
+- In `MemberConnections`, after a successful connect/save to BMI/ASCAP/SESAC, call `onUpdate({ pro_name: sourceName })` on the parent member
+- The PRO field in Admin Info will reflect this automatically (already bound to `member.pro_name`)
+- User can still manually override PRO in Admin Info if needed
 
-3. **Add accounts@rollout.cc to `platform_admins`** — full super admin privileges
+## Changes
 
-4. **Create "Rollout Demo Label" team** — owned by accounts@rollout.cc via `admin-actions` `create_team`
+| File | Change |
+|---|---|
+| `ArtistInfoTab.tsx` | Reorder the 5 sections inside `MemberCard` to: Personal → Connections → Admin → Travel → Clothing |
+| `ArtistInfoTab.tsx` | Pass an `onProChange` callback to `MemberConnections` |
+| `MemberConnections.tsx` | Accept optional `onProChange` prop; call it when BMI/ASCAP/SESAC is connected |
 
-5. **Set team subscription to Legend tier permanently** — instead of a trial, the team_subscriptions row will be:
-   - `plan`: `legend`
-   - `seat_limit`: `999` (unlimited)
-   - `status`: `active` (not `trialing`)
-   - `trial_ends_at`: `null`
-   - `is_grandfathered`: `true`
-   
-   This gives the demo team the highest tier with no expiration.
-
-6. **Add 2-3 sample artists** to the demo team for testing
-
-## Technical details
-
-- Steps 1, 3, 5, 6: Direct DB inserts/updates via the insert tool
-- Steps 2, 4: Call the deployed `admin-actions` edge function
-- No schema changes or code changes required — everything uses existing infrastructure
+No database or schema changes needed.
 
