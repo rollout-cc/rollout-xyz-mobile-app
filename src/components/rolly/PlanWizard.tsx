@@ -2,8 +2,9 @@ import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, Sparkles, Send, CheckCircle2, Pencil } from "lucide-react";
+import { ChevronLeft, Sparkles, Send, CheckCircle2, Pencil, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { PlanDraft, DraftItem } from "./PlanDraft";
@@ -28,13 +29,14 @@ interface PlanWizardProps {
   onCancel: () => void;
   initialContext?: string | null;
   onExecutionStart?: (items: DraftItem[]) => void;
+  onPreviewPlan?: (items: DraftItem[]) => void;
 }
 
 const PLAN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rolly-plan-question`;
 const GENERATE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rolly-generate-plan`;
 const EXECUTE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rolly-execute-plan`;
 
-export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionStart }: PlanWizardProps) {
+export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionStart, onPreviewPlan }: PlanWizardProps) {
   const { selectedTeamId } = useSelectedTeam();
   const queryClient = useQueryClient();
   const [qaHistory, setQaHistory] = useState<QAEntry[]>([]);
@@ -51,19 +53,26 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
   const [acknowledgment, setAcknowledgment] = useState<string | null>(null);
 
   // Plan generation states
-  const [phase, setPhase] = useState<"questions" | "generating" | "review" | "executing">("questions");
+  const [phase, setPhase] = useState<"questions" | "generating" | "review" | "executing" | "checkpoint">("questions");
   const [draftItems, setDraftItems] = useState<DraftItem[]>([]);
   const [primaryArtist, setPrimaryArtist] = useState("");
   const [summaryPrompt, setSummaryPrompt] = useState("");
+
+  // Checkpoint / refinement states
+  const [previewItems, setPreviewItems] = useState<DraftItem[]>([]);
+  const [checkpointFeedback, setCheckpointFeedback] = useState("");
+  const [refinementRound, setRefinementRound] = useState(0);
 
   const getToken = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     return session?.access_token;
   };
 
-  const fetchNextQuestion = useCallback(async (history: QAEntry[]) => {
-    // Hard cap: force plan generation after 10 questions
-    if (history.length >= 10) {
+  const isDeepMode = depth === "deep" || depth === "detailed";
+  const questionCap = isDeepMode ? 22 : 10;
+
+  const fetchNextQuestion = useCallback(async (history: QAEntry[], postPreviewContext?: { feedback: string; plan: DraftItem[] }) => {
+    if (!postPreviewContext && history.length >= questionCap) {
       await generatePlan(history, "Generate a plan based on the answers provided so far. Fill in any gaps with reasonable defaults based on your music industry knowledge.");
       return;
     }
@@ -83,19 +92,28 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
         return;
       }
 
+      const body: any = {
+        brief: initialContext || "",
+        previous_qa: history,
+        team_id: selectedTeamId,
+        depth,
+        question_number: history.length + 1,
+      };
+
+      // Add refinement context if post-preview
+      if (postPreviewContext) {
+        body.is_post_preview = true;
+        body.preview_plan = postPreviewContext.plan;
+        body.refinement_feedback = postPreviewContext.feedback;
+      }
+
       const resp = await fetch(PLAN_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          brief: initialContext || "",
-          previous_qa: history,
-          team_id: selectedTeamId,
-          depth,
-          question_number: history.length + 1,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!resp.ok) {
@@ -109,7 +127,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
 
       if (data.type === "complete") {
         setSummaryPrompt(data.summary_prompt);
-        await generatePlan(history, data.summary_prompt);
+        await generatePlan(history, data.summary_prompt, data.preview);
         return;
       }
 
@@ -132,9 +150,9 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
     } finally {
       setIsLoadingQuestion(false);
     }
-  }, [initialContext, selectedTeamId, depth]);
+  }, [initialContext, selectedTeamId, depth, questionCap]);
 
-  const generatePlan = async (history: QAEntry[], summary: string) => {
+  const generatePlan = async (history: QAEntry[], summary: string, isPreview?: boolean) => {
     setPhase("generating");
     setIsLoadingQuestion(false);
 
@@ -196,6 +214,7 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
           date: t.due_date,
           artist_name: t.artist_name,
           campaign_name: t.campaign_name,
+          assign_to_role: t.assign_to_role,
         });
       }
 
@@ -224,12 +243,39 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
 
       setPrimaryArtist(detectedArtist || "your artist");
       setDraftItems(items);
-      setPhase("review");
+
+      // If preview mode (deep), show checkpoint instead of direct review
+      if (isPreview && refinementRound < 2) {
+        setPreviewItems(items);
+        onPreviewPlan?.(items);
+        setPhase("checkpoint");
+      } else {
+        setPhase("review");
+      }
     } catch (e) {
       console.error("Generate plan error:", e);
       setError("Failed to generate plan. Please try again.");
       setPhase("questions");
     }
+  };
+
+  const handleCheckpointConfirm = () => {
+    // User is happy with the preview — move to full review
+    setDraftItems(previewItems);
+    setPhase("review");
+  };
+
+  const handleCheckpointRefine = () => {
+    if (!checkpointFeedback.trim()) {
+      toast.error("Tell Rolly what to change.");
+      return;
+    }
+    // Go back to questions with refinement context
+    setRefinementRound((r) => r + 1);
+    setPhase("questions");
+    setCurrentQuestion(null);
+    fetchNextQuestion(qaHistory, { feedback: checkpointFeedback.trim(), plan: previewItems });
+    setCheckpointFeedback("");
   };
 
   const executePlan = async (items: DraftItem[]) => {
@@ -312,8 +358,8 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
     const lowerAnswer = answer.toLowerCase();
     if (/\b(quick|fast|basics)\b/.test(lowerAnswer)) {
       setDepth("quick");
-    } else if (/\b(detailed|deeper|time)\b/.test(lowerAnswer)) {
-      setDepth("detailed");
+    } else if (/\b(detailed|deeper|deep|think it through|chat|take our time)\b/.test(lowerAnswer)) {
+      setDepth("deep");
     }
 
     const newEntry: QAEntry = { question: currentQuestion.question, answer };
@@ -325,6 +371,11 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
   };
 
   const handleBack = () => {
+    if (phase === "checkpoint") {
+      setPhase("review");
+      setDraftItems(previewItems);
+      return;
+    }
     if (phase === "review") {
       setPhase("questions");
       setDraftItems([]);
@@ -377,6 +428,90 @@ export function PlanWizard({ onComplete, onCancel, initialContext, onExecutionSt
     return (
       <div className="flex flex-col h-full bg-[hsl(0,0%,5%)] text-white items-center justify-center">
         <ThinkingAnimation variant="generating" />
+      </div>
+    );
+  }
+
+  // Checkpoint phase — preview plan with refine option
+  if (phase === "checkpoint") {
+    return (
+      <div className="flex flex-col h-full bg-[hsl(0,0%,5%)] text-white">
+        <div className="px-4 pt-4 pb-2 flex items-center gap-2 shrink-0">
+          <button onClick={handleBack} className="text-white/40 hover:text-white/70 transition-colors">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <div className="flex items-center gap-2 flex-1">
+            <Sparkles className="h-4 w-4 text-white" />
+            <span className="font-black text-sm uppercase tracking-wide">Plan Preview</span>
+          </div>
+          {refinementRound > 0 && (
+            <span className="text-xs text-white/40 font-mono">Round {refinementRound + 1}</span>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+          <div className="space-y-1">
+            <p className="text-sm italic text-white/50">Here's what I've drafted for {primaryArtist}.</p>
+            <p className="text-xs text-white/40">
+              {previewItems.filter(i => i.type === "campaign").length} campaigns · {previewItems.filter(i => i.type === "task").length} tasks · {previewItems.filter(i => i.type === "milestone").length} milestones · {previewItems.filter(i => i.type === "budget").length} budgets
+            </p>
+          </div>
+
+          {/* Compact preview list */}
+          <div className="space-y-1.5">
+            {previewItems.slice(0, 15).map((item) => (
+              <div key={item.id} className="flex items-center gap-2 text-sm">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-white/30 w-16 shrink-0">
+                  {item.type}
+                </span>
+                <span className="text-white/70 truncate">{item.title}</span>
+                {item.amount != null && (
+                  <span className="text-white/40 text-xs ml-auto shrink-0">${item.amount.toLocaleString()}</span>
+                )}
+              </div>
+            ))}
+            {previewItems.length > 15 && (
+              <p className="text-xs text-white/30">+{previewItems.length - 15} more items</p>
+            )}
+          </div>
+
+          {/* Feedback input */}
+          {refinementRound < 2 && (
+            <div className="space-y-2">
+              <p className="text-xs text-white/50">Want to change anything?</p>
+              <Textarea
+                value={checkpointFeedback}
+                onChange={(e) => setCheckpointFeedback(e.target.value)}
+                placeholder="E.g. 'Add more social media tasks' or 'Push release date to next month'..."
+                className="bg-white/10 border-white/15 text-white placeholder:text-white/30 text-sm resize-none rounded-xl"
+                rows={3}
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 px-4 py-3 border-t border-white/10 shrink-0">
+          {refinementRound < 2 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCheckpointRefine}
+              disabled={!checkpointFeedback.trim()}
+              className="text-white/50 hover:text-white hover:bg-white/10 gap-1"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Refine
+            </Button>
+          )}
+          <Button
+            size="sm"
+            onClick={handleCheckpointConfirm}
+            className="flex-1 bg-white text-black hover:bg-white/90 font-bold rounded-xl gap-2"
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            Looks good — review & build
+          </Button>
+        </div>
       </div>
     );
   }

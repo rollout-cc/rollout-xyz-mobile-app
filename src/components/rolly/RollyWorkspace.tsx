@@ -2,8 +2,9 @@ import { useSelectedTeam } from "@/contexts/TeamContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { CalendarRange, Circle, Clock, DollarSign, Link as LinkIcon, ListTodo, Receipt, TrendingUp, Users } from "lucide-react";
+import { CalendarRange, Circle, Clock, DollarSign, Link as LinkIcon, ListTodo, Receipt, TrendingUp, Users, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { DraftItem } from "./PlanDraft";
@@ -12,9 +13,10 @@ import { PlanExecutionFeed } from "./PlanExecutionFeed";
 interface RollyWorkspaceProps {
   executingItems?: DraftItem[] | null;
   executionComplete?: boolean;
+  previewItems?: DraftItem[] | null;
 }
 
-export function RollyWorkspace({ executingItems, executionComplete }: RollyWorkspaceProps = {}) {
+export function RollyWorkspace({ executingItems, executionComplete, previewItems }: RollyWorkspaceProps = {}) {
   const { selectedTeamId } = useSelectedTeam();
   const { user } = useAuth();
 
@@ -28,7 +30,6 @@ export function RollyWorkspace({ executingItems, executionComplete }: RollyWorks
     enabled: !!selectedTeamId,
   });
 
-  // Fetch tasks assigned to user
   const { data: tasks = [] } = useQuery({
     queryKey: ["rolly-workspace-tasks", selectedTeamId, user?.id],
     queryFn: async () => {
@@ -44,7 +45,6 @@ export function RollyWorkspace({ executingItems, executionComplete }: RollyWorks
     enabled: !!selectedTeamId && !!user,
   });
 
-  // Fetch artists for the team
   const { data: artists = [] } = useQuery({
     queryKey: ["rolly-workspace-artists", selectedTeamId],
     queryFn: async () => {
@@ -60,7 +60,6 @@ export function RollyWorkspace({ executingItems, executionComplete }: RollyWorks
 
   const artistIds = artists.map((a) => a.id);
 
-  // Fetch budgets
   const { data: budgets = [] } = useQuery({
     queryKey: ["rolly-workspace-budgets", selectedTeamId],
     queryFn: async () => {
@@ -75,7 +74,6 @@ export function RollyWorkspace({ executingItems, executionComplete }: RollyWorks
     enabled: artistIds.length > 0,
   });
 
-  // Fetch initiatives (release plans / campaigns)
   const { data: initiatives = [] } = useQuery({
     queryKey: ["rolly-workspace-initiatives", selectedTeamId],
     queryFn: async () => {
@@ -91,7 +89,6 @@ export function RollyWorkspace({ executingItems, executionComplete }: RollyWorks
     enabled: artistIds.length > 0,
   });
 
-  // Fetch recent expenses (transactions with type = 'expense')
   const { data: expenses = [] } = useQuery({
     queryKey: ["rolly-workspace-expenses", selectedTeamId],
     queryFn: async () => {
@@ -108,7 +105,6 @@ export function RollyWorkspace({ executingItems, executionComplete }: RollyWorks
     enabled: artistIds.length > 0,
   });
 
-  // Fetch recent links
   const { data: links = [] } = useQuery({
     queryKey: ["rolly-workspace-links", selectedTeamId],
     queryFn: async () => {
@@ -125,7 +121,6 @@ export function RollyWorkspace({ executingItems, executionComplete }: RollyWorks
   });
 
   const myTasks = tasks.filter((t: any) => t.assigned_to === user?.id);
-  // Use ALL team tasks for overdue count to match dashboard
   const overdueTasks = tasks.filter((t: any) => t.due_date && new Date(t.due_date) < new Date());
   const totalBudget = budgets.reduce((sum: number, b: any) => sum + Number(b.amount || 0), 0) + Number(team?.annual_budget || 0);
   const totalExpenses = expenses.reduce((sum: number, e: any) => sum + Math.abs(Number(e.amount || 0)), 0);
@@ -149,6 +144,43 @@ export function RollyWorkspace({ executingItems, executionComplete }: RollyWorks
           Ask Rolly for help with any of these — finances, tasks, strategy, and more.
         </p>
       </div>
+
+      {/* Draft Preview Banner */}
+      {previewItems && previewItems.length > 0 && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Eye className="h-4 w-4 text-primary" />
+              Draft Preview
+              <Badge variant="secondary" className="ml-auto text-[10px]">
+                {previewItems.length} items
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 pb-3">
+            <div className="divide-y divide-border">
+              {previewItems.slice(0, 8).map((item) => (
+                <div key={item.id} className="flex items-center gap-2 px-6 py-2">
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground w-16 shrink-0">
+                    {item.type}
+                  </span>
+                  <span className="text-sm truncate text-foreground">{item.title}</span>
+                  {item.amount != null && (
+                    <span className="text-xs text-muted-foreground ml-auto shrink-0">
+                      ${item.amount.toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              ))}
+              {previewItems.length > 8 && (
+                <p className="px-6 py-2 text-xs text-muted-foreground">
+                  +{previewItems.length - 8} more items
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
