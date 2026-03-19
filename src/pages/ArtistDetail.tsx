@@ -11,7 +11,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DollarSign, Star, RefreshCw, Receipt, MoreVertical, CheckCheck, Maximize2, Minimize2, ChevronRight, ChevronDown } from "lucide-react";
+import { DollarSign, Star, RefreshCw, Receipt, MoreVertical, CheckCheck, ChevronRight, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -294,22 +294,6 @@ export default function ArtistDetail() {
                     )}
                     <BannerUpload artistId={artist.id} currentBannerUrl={artist.banner_url} compact />
                   </div>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="icon"
-                    className="h-6 w-6 shrink-0 rounded-md border-0 bg-black/40 text-white shadow-sm backdrop-blur-sm hover:bg-black/55 sm:h-6 sm:w-6 md:h-7 md:w-7"
-                    onClick={() => setHeroExpanded((o) => !o)}
-                    aria-expanded={heroExpanded}
-                    aria-controls={artistMetricsSectionId}
-                    aria-label={heroExpanded ? "Collapse key metrics" : "Expand key metrics"}
-                  >
-                    {heroExpanded ? (
-                      <Minimize2 className="h-2.5 w-2.5 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3" strokeWidth={2} aria-hidden />
-                    ) : (
-                      <Maximize2 className="h-2.5 w-2.5 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3" strokeWidth={2} aria-hidden />
-                    )}
-                  </Button>
                 </div>
 
                 <div className="absolute inset-x-0 bottom-0 z-20 px-3 pb-3 pt-8 sm:px-5 sm:pb-4 sm:pt-10">
