@@ -1,112 +1,75 @@
 
 
-# Performance Audit: Speed & Flow Improvements
+# Updated Plan: Admin Console with Support Access Mode
 
-After reviewing the full codebase, here are the bottlenecks and concrete fixes ranked by impact.
+Everything from the previous plan stays intact. This adds one new capability: **temporary support access** to a user's team.
 
----
+## New Feature: Support Access Mode
 
-## 1. Waterfall Query Chains (HIGH IMPACT)
+When a user runs into an issue post-onboarding, you can request temporary access to their team from the Admin Console. The flow:
 
-**Problem:** Several pages chain queries sequentially -- each waits for the previous to finish before starting. This creates "waterfall" loading where the page takes 3-4x longer than necessary.
+1. **You** select a team in the Admin Console and click "Request Support Access"
+2. A `support_access_requests` record is created with status `pending` and an expiry (e.g. 2 hours)
+3. The **team owner** sees a notification/prompt in their app: "Rollout Support is requesting temporary access to your team to help resolve an issue. Grant access?"
+4. If they approve, your user ID is inserted into `team_memberships` with a special role or flag (`is_support_session = true`), and the request status becomes `active`
+5. You can now view their team as if you were a member (read-only or full, depending on what they grant)
+6. When you're done, you click "End Support Session" in the Admin Console — your membership is removed and the request status becomes `completed`
+7. If the session expires (2-hour default) without being ended, a database function auto-removes your membership
 
-**Where it happens:**
-- **Overview.tsx**: Fetches `artists` first, then waits for that result before fetching `budgets`, `transactions`, and `initiatives` (all use `enabled: artists.length > 0`). That's 3 sequential hops.
-- **FinanceContent.tsx**: Same pattern -- `artists` -> `budgets`, `transactions`, `company_expenses`, etc. Plus `staffEmployment` -> `staffProfiles` is another waterfall.
-- **StaffContent.tsx**: `memberships` -> `memberProfiles`, and `artists` -> `transactions`.
+### Safety guarantees
+- Every support session is logged with timestamps (requested, approved, ended)
+- The team owner must approve each time — no standing access
+- Sessions auto-expire so you can't accidentally stay in their team
+- Your membership is visibly marked so the team owner sees "Rollout Support" in their members list during the session
 
-**Fix:** Create a single database function (RPC) that returns all needed data for the Overview and Finance pages in one call. Alternatively, restructure queries to use the team_id directly (budgets, transactions can be fetched via joins or team_id filter) so they all fire in parallel.
+## Database additions
 
----
+```text
+TABLE: support_access_requests
+  id              uuid PK
+  team_id         uuid FK -> teams
+  admin_user_id   uuid FK -> auth.users
+  status          text (pending | approved | active | completed | expired | denied)
+  reason          text (optional note you type when requesting)
+  approved_by     uuid (the team owner who approved)
+  approved_at     timestamptz
+  started_at      timestamptz (when membership was inserted)
+  ended_at        timestamptz
+  expires_at      timestamptz (default: now() + 2 hours)
+  created_at      timestamptz
+```
 
-## 2. `useTeamPlan()` Calls an Edge Function Every 60 Seconds (HIGH IMPACT)
+RLS: platform admins can insert/select. Team owners can select/update (to approve/deny) their own team's requests.
 
-**Problem:** `useTeamPlan()` invokes the `check-subscription` edge function (cold-start latency ~200-800ms) on every page load and re-polls every 60s. This is called from at least 8 different components. While React Query deduplicates, the edge function call itself is slow and blocks UI decisions (feature gating).
+## Edge function changes
 
-**Fix:**
-- Increase `staleTime` to 5 minutes (from 30s) and `refetchInterval` to 5 minutes (from 60s)
-- Cache the result in `localStorage` as a fallback so the first render doesn't block on network
+Add actions to `admin-actions`:
+- `request_support_access` — creates the request record
+- `end_support_session` — removes the temporary membership, marks request completed
 
----
+Add a new action callable by the team owner:
+- `approve_support_access` — verifies the request is pending + not expired, inserts the admin into `team_memberships` with `is_support_session = true`, updates request to `active`
 
-## 3. `useTeams()` Called 14+ Times Across Components (MEDIUM IMPACT)
+## Frontend changes
 
-**Problem:** `useTeams()` is called in 14 places. React Query deduplicates the network call, but each call triggers the hook logic and context lookups. More importantly, the `role` check pattern (`teams.find(t => t.id === teamId)?.role`) is repeated everywhere.
+### Admin Console (`/admin`)
+- New "Support Access" section showing all teams
+- Search/select a team, type a reason, click "Request Access"
+- Shows active sessions with an "End Session" button
 
-**Fix:** Move `role` into `TeamContext` so components just read `const { role } = useSelectedTeam()` instead of re-querying teams and filtering.
+### Team Owner experience
+- When a support request is pending, show a banner/dialog: "Rollout Support has requested temporary access to help with your team. [Approve] [Deny]"
+- During an active session, show a subtle banner: "Rollout Support is currently viewing your team" with a "Revoke Access" button
 
----
+## Files summary
 
-## 4. Duplicate Data Fetching Between Pages (MEDIUM IMPACT)
-
-**Problem:** Overview.tsx, FinanceContent.tsx, and StaffContent.tsx all fetch the same data (artists, transactions, tasks, memberships, profiles) with different query keys (`overview-artists` vs `finance-artists` vs `staff-artists`). This means navigating between tabs re-fetches everything from scratch.
-
-**Fix:** Unify query keys. Use `["artists", teamId]` everywhere instead of `["overview-artists", teamId]`, `["finance-artists", teamId]`, `["staff-artists", teamId]`. This lets React Query share the cache across all views.
-
----
-
-## 5. Heavy `useMemo` Computations on Every Render (MEDIUM IMPACT)
-
-**Problem:** `staffMembers` computation in Overview.tsx has an O(n*m) loop inside it (for each member, it iterates all other members to compute `maxRevenue`). With more staff, this becomes expensive.
-
-**Fix:** Pre-compute `maxRevenue` once outside the map, then pass it in. Single pass instead of quadratic.
-
----
-
-## 6. Missing Prefetching on Navigation (LOW-MEDIUM IMPACT)
-
-**Problem:** When a user clicks an artist card, it navigates to ArtistDetail which then starts fetching from scratch. No data is prefetched on hover or anticipation.
-
-**Fix:** Add `queryClient.prefetchQuery` on artist card hover/mouse-enter for the artist detail data. This makes the transition feel instant.
-
----
-
-## 7. Large Bundle: DnD Library Loaded on Every Page (LOW IMPACT)
-
-**Problem:** `@hello-pangea/dnd` (~45KB gzipped) is imported in Roster.tsx and Overview.tsx. It's lazy-loaded via React.lazy, but it's still a significant chunk for pages that may not need drag-and-drop.
-
-**Fix:** No immediate action needed since pages are already lazy-loaded. Could consider dynamic import of the DnD wrapper only when folders exist.
-
----
-
-## 8. Edge Function Cold Starts (LOW IMPACT, Infrastructure)
-
-**Problem:** `spotify-artist`, `check-subscription`, `scrape-chartmasters` all have cold-start latency. The Spotify artist data is fetched via edge function on every artist detail page load (30min staleTime helps but first visit is slow).
-
-**Fix:** Already mitigated by staleTime. Could add a background sync job instead of on-demand fetching.
-
----
-
-## Implementation Plan (Ordered by Impact)
-
-### Step 1: Unify query keys across Overview/Finance/Staff
-- Change all `["finance-artists", teamId]`, `["overview-artists", teamId]`, `["staff-artists", teamId]` to `["artists-summary", teamId]`
-- Same for transactions, budgets, tasks, memberships, profiles
-- Instant cache sharing = no re-fetch when switching tabs
-
-### Step 2: Remove waterfall queries
-- Fetch budgets and transactions using `team_id` joins instead of waiting for artist IDs
-- Create an RPC function `get_team_finance_summary` that returns artists + budgets + transactions in one call
-
-### Step 3: Optimize useTeamPlan caching
-- Increase staleTime to 5min, refetchInterval to 5min
-- Add localStorage fallback for instant first render
-
-### Step 4: Move role into TeamContext
-- Eliminate 14 redundant `useTeams()` calls for role checking
-
-### Step 5: Fix quadratic staffMembers computation
-- Pre-compute maxRevenue in a single pass
-
-### Step 6: Add prefetching on artist card hover
-- `onMouseEnter` triggers `queryClient.prefetchQuery` for artist detail
-
-### Files to Edit
-1. `src/pages/Overview.tsx` -- unify query keys, remove waterfalls
-2. `src/components/overview/FinanceContent.tsx` -- unify query keys, remove waterfalls
-3. `src/components/overview/StaffContent.tsx` -- unify query keys
-4. `src/hooks/useTeamPlan.ts` -- increase cache times
-5. `src/contexts/TeamContext.tsx` -- add role to context
-6. `src/components/roster/ArtistCard.tsx` -- add prefetch on hover
-7. Database migration -- create RPC function for combined finance data
+| File | Action |
+|---|---|
+| Migration SQL | `platform_admins`, `team_ownership_transfers`, `support_access_requests` tables + functions |
+| `supabase/functions/admin-actions/index.ts` | New edge function (create user, create team, transfer ownership, grant trial, request/end support access) |
+| `src/pages/Admin.tsx` | Admin console UI with all sections including support access |
+| `src/pages/AcceptOwnership.tsx` | Public ownership acceptance page |
+| `src/components/SupportAccessBanner.tsx` | Banner shown to team owners during pending/active support sessions |
+| `src/App.tsx` | Add `/admin` and `/accept-ownership/:token` routes |
+| Privacy Policy page | Add data access and ownership transfer policy language |
 
