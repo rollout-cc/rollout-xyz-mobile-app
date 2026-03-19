@@ -95,10 +95,6 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
       items.push({ to: "/roster", icon: LayoutGrid, label: "Artists", tourId: "nav-artists" });
     }
 
-    // A&R
-    if (canViewAR) {
-      items.push({ to: "/ar", icon: Radar, label: "A&R", tourId: "nav-ar" });
-    }
 
     // Distribution
     if (canDistribute) {
