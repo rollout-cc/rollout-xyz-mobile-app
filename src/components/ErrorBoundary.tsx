@@ -44,7 +44,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             F*ck, something went wrong
           </p>
           <p className="max-w-sm text-sm text-muted-foreground">
-            A ROLLOUT team member just got an email because of this and will be fixing soon
+            A ROLLOUT team member just got an email because of this and will be fixing it soon
           </p>
           {isDev && message && (
             <pre className="mt-2 w-full max-w-md overflow-auto rounded-lg bg-muted/50 p-3 text-left text-[11px] text-muted-foreground/80 max-h-24">
