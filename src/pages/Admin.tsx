@@ -51,7 +51,7 @@ export default function Admin() {
   if (!user || !isAdmin) { navigate("/roster"); return null; }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-dvh overflow-y-auto bg-background">
       <header className="border-b border-border px-6 py-4 flex items-center gap-3">
         <Shield className="h-5 w-5 text-primary" />
         <h1 className="text-lg font-semibold">Rollout Admin Console</h1>
