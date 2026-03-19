@@ -42,6 +42,8 @@ const VendorW9 = React.lazy(() => import("./pages/VendorW9"));
 const VendorInvoice = React.lazy(() => import("./pages/VendorInvoice"));
 const PrivacyPolicy = React.lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = React.lazy(() => import("./pages/TermsOfService"));
+const Admin = React.lazy(() => import("./pages/Admin"));
+const AcceptOwnership = React.lazy(() => import("./pages/AcceptOwnership"));
 
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
