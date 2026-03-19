@@ -18,9 +18,10 @@ import { RollyNudge } from "@/components/rolly/RollyNudge";
 
 interface ArtistInfoTabProps {
   artist: any;
+  readOnly?: boolean;
 }
 
-export function ArtistInfoTab({ artist }: ArtistInfoTabProps) {
+export function ArtistInfoTab({ artist, readOnly }: ArtistInfoTabProps) {
   return (
     <div className="space-y-6 mt-4">
       <MembersSection artistId={artist.id} />

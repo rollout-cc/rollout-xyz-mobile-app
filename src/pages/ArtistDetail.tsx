@@ -47,7 +47,7 @@ export default function ArtistDetail() {
   const [searchParams] = useSearchParams();
   const fromFinance = searchParams.get("from") === "finance";
   const { data: artist, isLoading } = useArtistDetail(artistId!);
-  const { selectedTeamId } = useSelectedTeam();
+  const { selectedTeamId, canViewFinance, canEditArtists, canDistribute } = useSelectedTeam();
 
   // Navigate back to roster when the team is switched while on this page
   const prevTeamIdRef = useRef<string | null>(null);
@@ -240,13 +240,13 @@ export default function ArtistDetail() {
     }
   };
 
-  // Build action buttons, conditionally showing Finance based on plan
+  // Build action buttons, conditionally showing Finance based on plan and permissions
   const actionButtons = [
-    { key: "money" as ActiveView, icon: DollarSign, label: "Money" },
+    ...(canViewFinance ? [{ key: "money" as ActiveView, icon: DollarSign, label: "Money" }] : []),
     { key: "information" as ActiveView, icon: Star, label: "Info" },
   ];
 
-  const tabItems: TabView[] = ["work", "links", "timelines", "splits"];
+  const tabItems: TabView[] = ["work", "links", "timelines", ...(canDistribute ? ["splits" as TabView] : [])];
 
   const handleBack = () => {
     navigate(-1);
@@ -583,7 +583,7 @@ export default function ArtistDetail() {
               </div>
             )}
             {activeView === "objectives" && <ObjectivesPanel artist={artist} />}
-            {activeView === "information" && <ArtistInfoTab artist={artist} />}
+            {activeView === "information" && <ArtistInfoTab artist={artist} readOnly={!canEditArtists} />}
             {activeView === "work" && <WorkTab artistId={artist.id} teamId={artist.team_id} showCompleted={showCompleted} showArchived={showArchived} />}
             {activeView === "links" && <LinksTab artistId={artist.id} />}
             {activeView === "timelines" && <TimelinesTab artistId={artist.id} />}

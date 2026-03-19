@@ -42,7 +42,7 @@ import { RollyNudge } from "@/components/rolly/RollyNudge";
 
 
 export default function Overview() {
-  const { selectedTeamId: teamId, canManageFinance } = useSelectedTeam();
+  const { selectedTeamId: teamId, canManageFinance, canViewFinance, canViewStaffSalaries, canViewAR } = useSelectedTeam();
   const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const initialTab = searchParams.get("tab") === "finance" ? "finance" : "dashboard";
@@ -397,30 +397,36 @@ export default function Overview() {
   } = useOverviewSections();
 
   const sectionRegistry: Record<string, { label: string; content: React.ReactNode }> = {
-    kpis: {
-      label: "Financial Snapshot",
-      content: <KpiCardsSection totalBudget={totalBudget} totalRevenue={totalRevenue} totalExpenses={totalExpenses} netProfit={netProfit} openTasks={openTasks} overdueTasks={overdueTasks} fmt={fmt} fmtSigned={fmtSigned} />,
-    },
-    "budget-utilization": {
-      label: "Overall Company Spend",
-      content: <BudgetUtilizationSection totalExpenses={totalExpenses} budgetRemaining={budgetRemaining} budgetUtilization={budgetUtilization} openTasks={openTasks} overdueTasks={overdueTasks} fmt={fmt} />,
-    },
-    "quarterly-pnl": {
-      label: "Quarterly P&L",
-      content: <QuarterlyPnlSection quarterlyData={quarterlyData} departments={departments} totalRevenue={totalRevenue} totalExpenses={totalExpenses} netProfit={netProfit} fmt={fmt} fmtSigned={fmtSigned} />,
-    },
-    "spending-per-act": {
-      label: "Spending Per Act",
-      content: <SpendingPerActSection artistBreakdown={artistBreakdown} artistCount={artists.length} fmt={fmt} fmtSigned={fmtSigned} />,
-    },
-    "staff-productivity": {
-      label: "Team Metrics",
-      content: <StaffProductivityWidget members={staffMembers} fmt={fmt} />,
-    },
-    "ar-pipeline": {
-      label: "A&R Pipeline",
-      content: <ARPipelineWidget prospects={prospects} />,
-    },
+    ...(canViewFinance ? {
+      kpis: {
+        label: "Financial Snapshot",
+        content: <KpiCardsSection totalBudget={totalBudget} totalRevenue={totalRevenue} totalExpenses={totalExpenses} netProfit={netProfit} openTasks={openTasks} overdueTasks={overdueTasks} fmt={fmt} fmtSigned={fmtSigned} />,
+      },
+      "budget-utilization": {
+        label: "Overall Company Spend",
+        content: <BudgetUtilizationSection totalExpenses={totalExpenses} budgetRemaining={budgetRemaining} budgetUtilization={budgetUtilization} openTasks={openTasks} overdueTasks={overdueTasks} fmt={fmt} />,
+      },
+      "quarterly-pnl": {
+        label: "Quarterly P&L",
+        content: <QuarterlyPnlSection quarterlyData={quarterlyData} departments={departments} totalRevenue={totalRevenue} totalExpenses={totalExpenses} netProfit={netProfit} fmt={fmt} fmtSigned={fmtSigned} />,
+      },
+      "spending-per-act": {
+        label: "Spending Per Act",
+        content: <SpendingPerActSection artistBreakdown={artistBreakdown} artistCount={artists.length} fmt={fmt} fmtSigned={fmtSigned} />,
+      },
+    } : {}),
+    ...(canViewStaffSalaries ? {
+      "staff-productivity": {
+        label: "Team Metrics",
+        content: <StaffProductivityWidget members={staffMembers} fmt={fmt} />,
+      },
+    } : {}),
+    ...(canViewAR ? {
+      "ar-pipeline": {
+        label: "A&R Pipeline",
+        content: <ARPipelineWidget prospects={prospects} />,
+      },
+    } : {}),
     "streaming-trends": {
       label: "Streaming Trends",
       content: <StreamingTrendsWidget artists={artistStreamData} teamId={teamId} />,
@@ -442,10 +448,17 @@ export default function Overview() {
     setOrder(reordered);
   }, [gridSections, setOrder]);
 
+  const availableTabs = useMemo(() => {
+    const tabs: ("dashboard" | "agenda" | "staff" | "finance")[] = ["dashboard", "agenda"];
+    if (canViewStaffSalaries) tabs.push("staff");
+    if (canViewFinance) tabs.push("finance");
+    return tabs;
+  }, [canViewStaffSalaries, canViewFinance]);
+
   // Tab bar rendered in the AppLayout header on mobile
   const mobileTabBar = (
     <div className="flex items-center gap-1 px-4 py-2.5" data-tour="overview-tabs">
-      {(["dashboard", "agenda", "staff", "finance"] as const).map((tab) => (
+      {availableTabs.map((tab) => (
         <button
           key={tab}
           onClick={() => handleCompanyTab(tab)}
@@ -471,7 +484,7 @@ export default function Overview() {
       <>
       {/* Company tabs — desktop only (mobile version lives in the header via mobileSubnav) */}
       <div className="hidden sm:flex items-center gap-1 mb-5" data-tour="overview-tabs-desktop">
-      {(["dashboard", "agenda", "staff", "finance"] as const).map((tab) => (
+      {availableTabs.map((tab) => (
           <button
             key={tab}
             onClick={() => handleCompanyTab(tab)}

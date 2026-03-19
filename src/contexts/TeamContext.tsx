@@ -10,6 +10,9 @@ interface TeamContextType {
   selectedTeamId: string | null;
   setSelectedTeamId: (id: string) => void;
   role: string | null;
+  persona: string | null;
+  assistsUserId: string | null;
+  assistsUserName: string | null;
   canManage: boolean;
   canViewCompany: boolean;
   canViewFinance: boolean;
@@ -19,6 +22,7 @@ interface TeamContextType {
   canViewRoster: boolean;
   canEditArtists: boolean;
   canViewBilling: boolean;
+  canDistribute: boolean;
   isArtistRole: boolean;
   isGuestRole: boolean;
   assignedArtistIds: string[];
@@ -28,6 +32,9 @@ const TeamContext = createContext<TeamContextType>({
   selectedTeamId: null,
   setSelectedTeamId: () => {},
   role: null,
+  persona: null,
+  assistsUserId: null,
+  assistsUserName: null,
   canManage: false,
   canViewCompany: false,
   canViewFinance: false,
@@ -37,6 +44,7 @@ const TeamContext = createContext<TeamContextType>({
   canViewRoster: false,
   canEditArtists: false,
   canViewBilling: false,
+  canDistribute: false,
   isArtistRole: false,
   isGuestRole: false,
   assignedArtistIds: [],
@@ -102,6 +110,24 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     return teams.find((t) => t.id === selectedTeamId) ?? null;
   }, [teams, selectedTeamId]);
 
+  const persona = membershipPerms?.persona ?? null;
+  const assistsUserId = membershipPerms?.assists_user_id ?? null;
+
+  // Fetch assists user's name if set
+  const { data: assistsUserName = null } = useQuery({
+    queryKey: ["assists-user-profile", assistsUserId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", assistsUserId!)
+        .single();
+      return data?.full_name ?? null;
+    },
+    enabled: !!assistsUserId,
+    staleTime: 5 * 60_000,
+  });
+
   const isFinanceJobTitle = useMemo(() => {
     if (!profile?.job_role) return false;
     const lower = profile.job_role.toLowerCase();
@@ -124,6 +150,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
         canViewRoster: true,
         canEditArtists: true,
         canViewBilling: true,
+        canDistribute: true,
       };
     }
 
@@ -138,6 +165,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
         canViewRoster: true,
         canEditArtists: true,
         canViewBilling: !!membershipPerms?.perm_view_billing,
+        canDistribute: !!membershipPerms?.perm_distribution,
       };
     }
 
@@ -151,6 +179,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       canViewRoster: !!membershipPerms?.perm_view_roster,
       canEditArtists: !!membershipPerms?.perm_edit_artists,
       canViewBilling: !!membershipPerms?.perm_view_billing,
+      canDistribute: !!membershipPerms?.perm_distribution,
     };
   }, [role, membershipPerms, isFinanceJobTitle]);
 
@@ -159,6 +188,9 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       selectedTeamId,
       setSelectedTeamId,
       role,
+      persona,
+      assistsUserId,
+      assistsUserName,
       canManage,
       isArtistRole,
       isGuestRole,

@@ -52,7 +52,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const isRollyActive = location.pathname === "/rolly";
-  const { isArtistRole, isGuestRole, assignedArtistIds } = useSelectedTeam();
+  const { isArtistRole, isGuestRole, assignedArtistIds, canViewFinance, canViewStaffSalaries, canViewAR, canViewRoster, canDistribute, persona, assistsUserName } = useSelectedTeam();
 
   const selectedTeam = teams.find((t) => t.id === selectedTeamId);
 
@@ -79,15 +79,36 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
     }
     if (isGuestRole) {
       return [
-        { to: "/roster", icon: LayoutGrid, label: "Artists", tourId: "nav-artists" },
+        ...(canViewRoster ? [{ to: "/roster", icon: LayoutGrid, label: "Artists", tourId: "nav-artists" }] : []),
       ];
     }
-    return [
-      { to: "/overview", icon: Building2, label: "Company", tourId: "nav-company" },
-      { to: "/roster", icon: LayoutGrid, label: "Artists", tourId: "nav-artists" },
-      { to: "/distribution", icon: Disc3, label: "Distribution", tourId: "nav-distribution" },
-      { to: "/my-work", icon: CheckCheck, label: "My Work", tourId: "nav-mywork" },
-    ];
+
+    const items: { to: string; icon: any; label: string; tourId: string }[] = [];
+
+    // Company (Overview) — only if user has finance, staff salaries, or AR visibility
+    if (canViewFinance || canViewStaffSalaries || canViewAR) {
+      items.push({ to: "/overview", icon: Building2, label: "Company", tourId: "nav-company" });
+    }
+
+    // Artists (Roster)
+    if (canViewRoster) {
+      items.push({ to: "/roster", icon: LayoutGrid, label: "Artists", tourId: "nav-artists" });
+    }
+
+    // A&R
+    if (canViewAR) {
+      items.push({ to: "/ar", icon: Radar, label: "A&R", tourId: "nav-ar" });
+    }
+
+    // Distribution
+    if (canDistribute) {
+      items.push({ to: "/distribution", icon: Disc3, label: "Distribution", tourId: "nav-distribution" });
+    }
+
+    // My Work — always for non-guests
+    items.push({ to: "/my-work", icon: CheckCheck, label: "My Work", tourId: "nav-mywork" });
+
+    return items;
   })();
 
   return (
@@ -175,6 +196,27 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+
+          {/* EA Assisting banner */}
+          {persona === "ea" && assistsUserName && !collapsed && (
+            <div className="px-3 mb-2">
+              <div className="rounded-full bg-accent/60 border border-border px-3 py-1 text-[11px] font-medium text-muted-foreground text-center truncate">
+                Assisting {assistsUserName}
+              </div>
+            </div>
+          )}
+          {persona === "ea" && assistsUserName && collapsed && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex justify-center mb-2">
+                  <div className="h-6 w-6 rounded-full bg-accent/60 border border-border flex items-center justify-center">
+                    <User className="h-3 w-3 text-muted-foreground" />
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right">Assisting {assistsUserName}</TooltipContent>
+            </Tooltip>
+          )}
 
           {/* Nav — all items center-aligned in collapsed via SidebarMenuButton's built-in !size-8 */}
           <SidebarMenu
