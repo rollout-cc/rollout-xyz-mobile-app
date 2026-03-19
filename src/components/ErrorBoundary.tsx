@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle } from "lucide-react";
+import RolloutFlag from "@/assets/rollout-flag.svg";
 
 interface Props {
   children: React.ReactNode;
@@ -34,18 +34,25 @@ export class ErrorBoundary extends React.Component<Props, State> {
       const message = this.state.error.message;
       const isDev = import.meta.env.DEV;
       return (
-        <div className="flex flex-col items-center justify-center gap-3 py-12 px-4 text-center min-h-[200px]">
-          <AlertTriangle className="h-8 w-8 text-destructive shrink-0" />
-          <p className="text-sm text-muted-foreground">
-            {this.props.fallbackMessage || "Something went wrong loading this section."}
+        <div className="flex min-h-[300px] flex-col items-center justify-center gap-4 px-4 py-12 text-center">
+          <img
+            src={RolloutFlag}
+            alt="Rollout flag"
+            className="h-16 w-16 animate-pulse"
+          />
+          <p className="text-lg font-semibold text-foreground">
+            f*ck, something went wrong
           </p>
-          {message && (
-            <pre className="text-left w-full max-w-md text-[11px] text-muted-foreground/80 bg-muted/50 rounded-lg p-3 overflow-auto max-h-24">
+          <p className="max-w-sm text-sm text-muted-foreground">
+            a ROLLOUT team member just got an email because of this and will be fixing soon
+          </p>
+          {isDev && message && (
+            <pre className="mt-2 w-full max-w-md overflow-auto rounded-lg bg-muted/50 p-3 text-left text-[11px] text-muted-foreground/80 max-h-24">
               {message}
             </pre>
           )}
           {isDev && this.state.error.stack && (
-            <pre className="text-left w-full max-w-md text-[10px] text-muted-foreground/60 bg-muted/30 rounded p-2 overflow-auto max-h-32">
+            <pre className="w-full max-w-md overflow-auto rounded bg-muted/30 p-2 text-left text-[10px] text-muted-foreground/60 max-h-32">
               {this.state.error.stack}
             </pre>
           )}

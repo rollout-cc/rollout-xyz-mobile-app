@@ -77,10 +77,15 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "flag-wave": {
+          "0%, 100%": { transform: "rotate(-3deg) translateY(-4px)" },
+          "50%": { transform: "rotate(3deg) translateY(4px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "flag-wave": "flag-wave 3s ease-in-out infinite",
       },
     },
   },
