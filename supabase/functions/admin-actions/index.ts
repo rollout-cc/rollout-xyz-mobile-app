@@ -534,6 +534,14 @@ Deno.serve(async (req) => {
         return respond(200, { success: true });
       }
 
+      case "delete_user": {
+        const { user_id: delUserId } = body;
+        if (!delUserId) return respond(400, { error: "user_id required" });
+        const { error: delErr } = await adminClient.auth.admin.deleteUser(delUserId);
+        if (delErr) return respond(400, { error: delErr.message });
+        return respond(200, { success: true, deleted: delUserId });
+      }
+
       default:
         return respond(400, { error: `Unknown action: ${action}` });
     }
