@@ -41,7 +41,7 @@ WHAT YOU NEED (skip topics already covered):
 
 Your job is to get enough info to create tasks, milestones, campaigns, and budgets. Be efficient — get the essentials and fill in the rest with your expertise.`;
 
-const unsureSignals = ["i don't know", "dont know", "not sure", "unsure", "idk", "no idea"];
+const unsureSignals = ["i don't know", "dont know", "not sure", "unsure", "idk", "no idea", "you tell me", "you decide", "figure it out", "whatever you think"];
 
 const simplifyQuestionText = (question: string): string => {
   let q = (question || "").trim();
