@@ -1558,6 +1558,7 @@ export type Database = {
           created_at: string
           id: string
           last_synced_at: string | null
+          member_id: string | null
           source: string
           status: string
           team_id: string
@@ -1567,6 +1568,7 @@ export type Database = {
           created_at?: string
           id?: string
           last_synced_at?: string | null
+          member_id?: string | null
           source: string
           status?: string
           team_id: string
@@ -1576,11 +1578,20 @@ export type Database = {
           created_at?: string
           id?: string
           last_synced_at?: string | null
+          member_id?: string | null
           source?: string
           status?: string
           team_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pro_connections_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "artist_travel_info"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

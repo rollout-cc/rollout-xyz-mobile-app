@@ -8,13 +8,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Upload, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
-import { ProConnectionsTab } from "@/components/settings/ProConnectionsTab";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTour } from "@/contexts/TourContext";
 
-type ProfileSection = "profile" | "notifications" | "connections";
+type ProfileSection = "profile" | "notifications";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -127,7 +126,6 @@ export default function Settings() {
   const tabs: { key: ProfileSection; label: string }[] = [
     { key: "profile", label: "Profile" },
     { key: "notifications", label: "Notifications" },
-    { key: "connections", label: "Connections" },
   ];
 
   return (
@@ -223,11 +221,6 @@ export default function Settings() {
           </div>
         )}
 
-        {activeSection === "connections" && (
-          <div className="mt-6">
-            <ProConnectionsTab />
-          </div>
-        )}
       </div>
     </AppLayout>
   );

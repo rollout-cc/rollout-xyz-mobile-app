@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ChevronDown, ChevronRight, User, Plane, Shirt, CalendarIcon, Share2, Check, Copy, Music } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronRight, User, Plane, Shirt, CalendarIcon, Share2, Check, Copy, Music, Link2 } from "lucide-react";
+import { MemberConnections } from "@/components/artist/MemberConnections";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
 import { cn } from "@/lib/utils";
@@ -253,6 +254,14 @@ function MemberCard({
                 <BrandTagInput value={member.favorite_brands ?? ""} onSave={(v) => onUpdate({ favorite_brands: v })} />
               </div>
             </div>
+          </div>
+
+          {/* PRO & MLC Connections */}
+          <div>
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
+              <Link2 className="h-3.5 w-3.5" /> PRO & MLC Connections
+            </h4>
+            <MemberConnections memberId={member.id} />
           </div>
 
           <div className="flex justify-end pt-2">
