@@ -14,7 +14,7 @@ const SCREEN_PROMPTS: Record<string, string> = {
   timelines:
     "You're looking at an artist's timeline/milestones. The user plans release dates, events, and deadlines.",
   overview:
-    "You're looking at the company overview dashboard with KPIs, budget utilization, and task summaries.",
+    "You're looking at the COMPANY-LEVEL overview dashboard — this is NOT the artist roster or artist page. It shows company-wide stats like team task progress, budget utilization across all artists, and staff productivity. Nudges here should be about company operations, team management, or business strategy — NOT about adding artists or roster-level actions.",
   "artist-info":
     "You're looking at an artist's admin info section — band member details, PRO registration, IPI numbers, publisher info.",
   budget:
@@ -81,7 +81,13 @@ Rules:
 - Sound like a helpful text from a friend, not a system notification
 - If the data looks good/complete, return empty nudge
 - IMPORTANT: If the data_snapshot shows artistCount > 0 or taskCount > 0, the team is NOT new. NEVER suggest "getting started", "build your roster", or "add artists" if they already have artists. Instead, give a contextual nudge about the specific screen data.
+- IMPORTANT: Match your nudge to the SCREEN the user is on. If they're on the company overview, talk about company/team stuff — NOT artist roster actions. If they're on an artist page, talk about that artist.
 - If you cannot find anything specific to nudge about, return an empty nudge.
+
+LANGUAGE RULES (CRITICAL):
+- NEVER use corporate jargon: KPI, ROI, funnel, CAC, LTV, synergy, leverage, optimize, metrics, deliverables, stakeholders, verticals, bandwidth
+- Instead use music industry language: goals, numbers, streams, plays, reach, engagement, rollout, drop, release, campaign, budget, splits, masters, publishing
+- Talk like a music manager texts — casual, direct, industry-native
 ${p1Context}
 
 ${knowledgeContext ? `Industry knowledge:\n${knowledgeContext}\n` : ""}
