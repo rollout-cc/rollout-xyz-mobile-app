@@ -3,7 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { InviteeOnboarding } from "@/components/onboarding/InviteeOnboarding";
+import { jobTitlePermissions, type PermissionFlags } from "@/components/settings/PermissionToggles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,8 +18,12 @@ import rolloutLogoWhite from "@/assets/rollout-logo-white.png";
 
 interface JoinResult {
   team_name: string;
+  team_id: string;
+  team_avatar?: string | null;
   role: string;
   job_title?: string;
+  permissions?: PermissionFlags;
+  assists_user_name?: string | null;
   artists: { id: string; name: string; avatar_url: string | null }[];
 }
 
@@ -43,7 +49,7 @@ export default function JoinTeam() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [step, setStep] = useState<"auth" | "profile" | "personal" | "artists" | "welcome">("auth");
+  const [step, setStep] = useState<"auth" | "profile" | "personal" | "onboarding" | "artists" | "welcome">("auth");
   const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -200,6 +206,21 @@ export default function JoinTeam() {
     await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
   };
 
+  // Fetch full roster for invitee onboarding
+  const { data: allRosterArtists = [] } = useQuery({
+    queryKey: ["roster-artists-join", joinResult?.team_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("artists")
+        .select("id, name, avatar_url")
+        .eq("team_id", joinResult!.team_id)
+        .order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!joinResult?.team_id,
+  });
+
   const handlePersonalSave = async () => {
     setLoading(true);
     try {
@@ -212,7 +233,12 @@ export default function JoinTeam() {
         shoe_size: shoeSize || null,
         dietary_restrictions: dietaryRestrictions || null,
       } as any).eq("id", user!.id);
-      setStep("artists");
+      // If there's a job title, show invitee onboarding; otherwise skip to artists
+      if (joinResult?.job_title) {
+        setStep("onboarding");
+      } else {
+        setStep("artists");
+      }
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -455,6 +481,24 @@ export default function JoinTeam() {
                   {loading ? "Saving..." : "Continue"}
                 </Button>
               </div>
+            </motion.div>
+          )}
+
+          {/* Invitee onboarding step */}
+          {step === "onboarding" && joinResult?.job_title && user && (
+            <motion.div key="onboarding" className="mt-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <InviteeOnboarding
+                teamId={joinResult.team_id}
+                userId={user.id}
+                teamName={joinResult.team_name}
+                teamAvatar={joinResult.team_avatar ?? null}
+                jobTitle={joinResult.job_title}
+                permissions={joinResult.permissions ?? jobTitlePermissions(joinResult.job_title)}
+                assignedArtists={joinResult.artists}
+                allRosterArtists={allRosterArtists}
+                assistsUserName={joinResult.assists_user_name}
+                onComplete={() => setStep("welcome")}
+              />
             </motion.div>
           )}
 

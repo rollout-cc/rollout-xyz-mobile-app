@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { PendingRequests } from "./PendingRequests";
 import { InviteMemberDialog } from "./InviteMemberDialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -317,6 +318,9 @@ export function TeamManagement({ showSection = "members" }: { showSection?: "mem
 
   return (
     <div className="space-y-6">
+
+      {/* Pending access requests */}
+      {canManage && <PendingRequests />}
 
       {/* Header */}
       <div className="flex items-center justify-between">
