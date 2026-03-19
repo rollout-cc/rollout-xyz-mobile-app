@@ -8,62 +8,33 @@ import { Button } from "@/components/ui/button";
 const JOB_TITLE_DEPARTMENTS: { department: string; roles: string[] }[] = [
   {
     department: "A&R",
-    roles: [
-      "A&R Coordinator", "A&R Administrator", "A&R Manager", "A&R Director",
-      "Senior Director of A&R", "VP of A&R", "SVP of A&R", "EVP of A&R", "Head of A&R",
-    ],
+    roles: ["A&R Coordinator", "A&R Manager", "Head of A&R"],
   },
   {
     department: "Management",
-    roles: [
-      "Assistant Manager", "Day-to-Day Manager", "Artist Manager", "Senior Manager",
-      "Tour Manager", "Business Manager", "Head of Management",
-    ],
+    roles: ["Artist Manager", "Senior Manager", "Tour Manager", "Business Manager"],
   },
   {
-    department: "Marketing",
-    roles: [
-      "Marketing Coordinator", "Marketing Associate", "Marketing Manager",
-      "Senior Marketing Manager", "Director of Marketing", "VP of Marketing",
-      "Head of Digital Marketing", "Head of Marketing",
-    ],
+    department: "Marketing & Promotion",
+    roles: ["Marketing Coordinator", "Marketing Manager", "Head of Marketing", "Head of Promotion"],
   },
   {
     department: "Creative & Content",
-    roles: [
-      "Graphic Designer", "Content Creator", "Videographer", "Content Manager",
-      "Art Director", "Creative Director", "Head of Creative",
-    ],
-  },
-  {
-    department: "Legal & Business Affairs",
-    roles: [
-      "Paralegal", "Business Affairs Coordinator", "Business Affairs Manager",
-      "Director of Business Affairs", "VP of Legal", "General Counsel",
-    ],
+    roles: ["Content Creator", "Creative Director"],
   },
   {
     department: "Finance & Accounting",
-    roles: [
-      "Accounting Clerk", "Royalty Analyst", "Accountant", "Senior Accountant",
-      "Controller", "VP of Finance", "CFO",
-    ],
+    roles: ["Accountant", "Controller", "CFO"],
+  },
+  {
+    department: "Legal & Business Affairs",
+    roles: ["Business Affairs Manager", "General Counsel"],
   },
   {
     department: "Operations & Admin",
-    roles: [
-      "Executive Assistant", "Office Manager", "Operations Manager", "Chief of Staff", "COO",
-    ],
-  },
-  {
-    department: "Promotion",
-    roles: [
-      "Regional Promoter", "Radio Promoter", "National Director of Promotion",
-      "VP of Promotion", "Head of Promotion",
-    ],
+    roles: ["Executive Assistant", "Operations Manager", "Chief of Staff", "COO"],
   },
 ];
-
 interface JobTitleSelectProps {
   value: string;
   onChange: (value: string) => void;

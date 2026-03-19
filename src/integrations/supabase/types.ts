@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_requests: {
+        Row: {
+          created_at: string | null
+          detail: Json
+          id: string
+          request_type: string
+          requester_id: string
+          reviewed_by: string | null
+          status: string | null
+          team_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          detail?: Json
+          id?: string
+          request_type: string
+          requester_id: string
+          reviewed_by?: string | null
+          status?: string | null
+          team_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          detail?: Json
+          id?: string
+          request_type?: string
+          requester_id?: string
+          reviewed_by?: string | null
+          status?: string | null
+          team_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_requests_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       artist_clothing: {
         Row: {
           artist_id: string
@@ -1042,6 +1083,7 @@ export type Database = {
         Row: {
           add_to_staff: boolean
           artist_permissions: Json | null
+          assists_user_id: string | null
           created_at: string
           expires_at: string
           id: string
@@ -1050,6 +1092,7 @@ export type Database = {
           invitee_job_title: string | null
           invitee_name: string | null
           invitee_phone: string | null
+          perm_distribution: boolean | null
           perm_edit_artists: boolean
           perm_manage_finance: boolean
           perm_view_ar: boolean
@@ -1067,6 +1110,7 @@ export type Database = {
         Insert: {
           add_to_staff?: boolean
           artist_permissions?: Json | null
+          assists_user_id?: string | null
           created_at?: string
           expires_at?: string
           id?: string
@@ -1075,6 +1119,7 @@ export type Database = {
           invitee_job_title?: string | null
           invitee_name?: string | null
           invitee_phone?: string | null
+          perm_distribution?: boolean | null
           perm_edit_artists?: boolean
           perm_manage_finance?: boolean
           perm_view_ar?: boolean
@@ -1092,6 +1137,7 @@ export type Database = {
         Update: {
           add_to_staff?: boolean
           artist_permissions?: Json | null
+          assists_user_id?: string | null
           created_at?: string
           expires_at?: string
           id?: string
@@ -1100,6 +1146,7 @@ export type Database = {
           invitee_job_title?: string | null
           invitee_name?: string | null
           invitee_phone?: string | null
+          perm_distribution?: boolean | null
           perm_edit_artists?: boolean
           perm_manage_finance?: boolean
           perm_view_ar?: boolean
@@ -2474,8 +2521,10 @@ export type Database = {
       }
       team_memberships: {
         Row: {
+          assists_user_id: string | null
           created_at: string
           id: string
+          perm_distribution: boolean | null
           perm_edit_artists: boolean
           perm_manage_finance: boolean
           perm_view_ar: boolean
@@ -2483,13 +2532,16 @@ export type Database = {
           perm_view_finance: boolean
           perm_view_roster: boolean
           perm_view_staff_salaries: boolean
+          persona: string | null
           role: Database["public"]["Enums"]["app_role"]
           team_id: string
           user_id: string
         }
         Insert: {
+          assists_user_id?: string | null
           created_at?: string
           id?: string
+          perm_distribution?: boolean | null
           perm_edit_artists?: boolean
           perm_manage_finance?: boolean
           perm_view_ar?: boolean
@@ -2497,13 +2549,16 @@ export type Database = {
           perm_view_finance?: boolean
           perm_view_roster?: boolean
           perm_view_staff_salaries?: boolean
+          persona?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           team_id: string
           user_id: string
         }
         Update: {
+          assists_user_id?: string | null
           created_at?: string
           id?: string
+          perm_distribution?: boolean | null
           perm_edit_artists?: boolean
           perm_manage_finance?: boolean
           perm_view_ar?: boolean
@@ -2511,6 +2566,7 @@ export type Database = {
           perm_view_finance?: boolean
           perm_view_roster?: boolean
           perm_view_staff_salaries?: boolean
+          persona?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           team_id?: string
           user_id?: string
