@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Square, Trash2, Sparkles, CheckCircle2, AlertCircle, ClipboardList, Camera } from "lucide-react";
+import { Send, Square, Trash2, CheckCircle2, AlertCircle, ClipboardList, Camera } from "lucide-react";
+import rollyIcon from "@/assets/rolly-icon.png";
 import { PlanWizard } from "@/components/rolly/PlanWizard";
 import { PlanModeHero } from "@/components/rolly/PlanModeHero";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,15 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { VoiceInputButton } from "@/components/ui/VoiceInputButton";
+
+/** Upper bound (px) for composer height before inner scroll; viewport cap keeps long drafts from hiding the thread. */
+const ROLLY_INPUT_MAX_HEIGHT = 360;
+
+function capRollyComposerHeightPx(scrollHeight: number): number {
+  if (typeof window === "undefined") return Math.min(scrollHeight, ROLLY_INPUT_MAX_HEIGHT);
+  const byViewport = Math.round(window.innerHeight * 0.45);
+  return Math.min(scrollHeight, ROLLY_INPUT_MAX_HEIGHT, byViewport);
+}
 
 const QUICK_ACTIONS = [
   { label: "Plan a release", prompt: "Let's plan a release together. Walk me through it step by step — ask me about the artist, timeline, budget, marketing, and anything else you need to build a full plan with tasks, milestones, and budgets." },
@@ -88,6 +98,16 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
     }
   }, [messages]);
 
+  // Keep textarea height in sync when content changes (prefill, voice, etc.)
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el || wizardActive) return;
+    requestAnimationFrame(() => {
+      el.style.height = "auto";
+      el.style.height = `${capRollyComposerHeightPx(el.scrollHeight)}px`;
+    });
+  }, [input, wizardActive]);
+
   const handleSend = () => {
     const text = input.trim();
     if (!text || isLoading) return;
@@ -109,6 +129,16 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
   };
 
   const isEmpty = messages.length === 0;
+  /** Single-line-ish composer — keep vertical footprint small on mobile. */
+  const composerIdle = isEmpty && !input.trim();
+
+  const toolIconBtn = planMode
+    ? "h-9 w-9 shrink-0 rounded-lg text-white/60 hover:bg-white/12 hover:text-white focus-visible:ring-white/30 [&_svg]:stroke-[2]"
+    : "h-9 w-9 shrink-0 rounded-lg text-foreground/55 hover:bg-muted hover:text-foreground focus-visible:ring-ring/40 [&_svg]:stroke-[2]";
+
+  const composerShell = planMode
+    ? "border border-white/18 bg-white/[0.07] shadow-[0_10px_36px_-14px_rgba(0,0,0,0.75)] backdrop-blur-md"
+    : "border border-border/70 bg-card shadow-[0_2px_14px_-4px_rgba(0,0,0,0.14),0_1px_0_rgba(0,0,0,0.03)]";
 
   return (
     <div className={cn("flex flex-col h-full", planMode && "bg-[hsl(0,0%,5%)]")}>
@@ -124,30 +154,41 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
           />
         </div>
       ) : (
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+      <div
+        ref={scrollRef}
+        className={cn(
+          "flex-1 min-h-0 overflow-y-auto space-y-4 px-4",
+          isEmpty ? "py-3 md:py-6" : "py-4 md:py-6"
+        )}
+      >
         {isEmpty && planMode ? (
           <PlanModeHero />
         ) : isEmpty ? (
-          <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
-            <div className="h-16 w-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center">
-              <Sparkles className="h-8 w-8" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold">Hey, I'm ROLLY</h2>
-              <p className="text-muted-foreground mt-1 max-w-md">
-                Your music business advisor. Ask me about deals, splits, royalties, release strategy, or anything industry-related.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-2 max-w-lg w-full">
-              {QUICK_ACTIONS.map((action) => (
-                <button
-                  key={action.label}
-                  onClick={() => send(action.prompt)}
-                  className="text-left p-3 rounded-lg border border-border hover:bg-muted transition-colors text-sm opacity-70"
-                >
-                  <span className="font-medium">{action.label}</span>
-                </button>
-              ))}
+          <div className="flex min-h-full w-full flex-col items-center justify-end pb-1 text-center md:min-h-0 md:justify-start md:pb-0">
+            <div className="flex w-full max-w-md flex-col items-center gap-4 pt-1 md:gap-6 md:pt-3">
+              <div className="flex h-[3.25rem] w-[3.25rem] items-center justify-center rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-black/[0.05] dark:bg-white dark:ring-black/10 sm:h-16 sm:w-16">
+                <img src={rollyIcon} alt="" className="h-[2.85rem] w-[2.85rem] rounded-full object-cover sm:h-14 sm:w-14" />
+              </div>
+              <div className="space-y-2 sm:space-y-2.5">
+                <h2 className="text-[1.3125rem] font-semibold tracking-[-0.02em] text-foreground sm:text-xl">
+                  Hey, I&apos;m ROLLY
+                </h2>
+                <p className="mx-auto max-w-[19rem] text-pretty text-[0.8125rem] leading-relaxed text-muted-foreground/90 sm:max-w-md sm:text-sm">
+                  Your music business advisor — deals, splits, royalties, releases, and anything industry-related.
+                </p>
+              </div>
+              <div className="grid w-full grid-cols-2 gap-2 sm:max-w-lg">
+                {QUICK_ACTIONS.map((action) => (
+                  <button
+                    key={action.label}
+                    type="button"
+                    onClick={() => send(action.prompt)}
+                    className="rounded-xl bg-muted/45 px-3 py-2.5 text-left text-[0.8125rem] font-medium leading-snug text-foreground/90 transition-[background-color,transform] hover:bg-muted/72 active:scale-[0.98] sm:text-sm"
+                  >
+                    {action.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         ) : (
@@ -205,66 +246,133 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
       )}
 
       {/* Input area — hidden during wizard */}
-      {!wizardActive && <div className={cn(
-        "border-t px-4 py-3",
-        planMode ? "border-white/10 bg-[hsl(0,0%,5%)]" : "border-border bg-background"
-      )}>
-        <div className="flex items-end gap-2 max-w-3xl mx-auto">
-          {messages.length > 0 && (
-            <Button variant="ghost" size="icon" className={cn("h-9 w-9 shrink-0", planMode ? "text-white/40 hover:text-white/70" : "text-muted-foreground")} onClick={clear} title="Clear chat">
-              <Trash2 className="h-4 w-4" />
-            </Button>
+      {!wizardActive && (
+        <div
+          className={cn(
+            "shrink-0 px-3 pb-1 pt-1 md:pb-2 md:pt-1.5 sm:px-4",
+            planMode
+              ? "bg-[hsl(0,0%,5%)]"
+              : "bg-gradient-to-t from-muted/20 via-background to-background"
           )}
-            <Textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => {
-              setInput(e.target.value);
-              e.target.style.height = "auto";
-              e.target.style.height = Math.min(e.target.scrollHeight, 160) + "px";
-            }}
-            onKeyDown={handleKeyDown}
-            placeholder={planMode ? "Describe your project..." : "Ask ROLLY anything..."}
+        >
+          <div
             className={cn(
-              "min-h-[48px] max-h-[160px] resize-none rounded-xl py-3 px-4 flex-1 min-w-0 text-sm",
-              planMode && "bg-white/10 border-white/15 text-white placeholder:text-white/40 focus-visible:ring-white/30"
+              "w-full overflow-hidden rounded-2xl transition-[box-shadow,ring] focus-within:shadow-lg",
+              composerShell,
+              planMode
+                ? "focus-within:ring-2 focus-within:ring-white/25 focus-within:ring-offset-2 focus-within:ring-offset-[hsl(0,0%,5%)]"
+                : "focus-within:ring-2 focus-within:ring-ring/35 focus-within:ring-offset-0"
             )}
-            rows={1}
-          />
-          <VoiceInputButton
-            isListening={voice.isListening}
-            isSupported={voice.isSupported}
-            onClick={voice.toggleListening}
-          />
-          <Button
-            size="icon"
-            variant="ghost"
-            className={cn("h-9 w-9 shrink-0", planMode ? "text-white/40 hover:text-white/70" : "text-muted-foreground")}
-            onClick={() => setShowScanner(true)}
-            title="Scan receipt"
           >
-            <Camera className="h-4 w-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant={planMode ? "default" : "ghost"}
-            className={cn("h-9 w-9 shrink-0", planMode ? "bg-white text-black hover:bg-white/90" : "text-muted-foreground")}
-            onClick={() => setPlanMode(!planMode)}
-            title={planMode ? "Exit Plan Mode" : "Enter Plan Mode"}
-          >
-            <ClipboardList className="h-4 w-4" />
-          </Button>
-          {isLoading ? (
-            <Button size="icon" variant="outline" className={cn("h-9 w-9 shrink-0", planMode && "border-white/20 text-white hover:bg-white/10")} onClick={stop}>
-              <Square className="h-4 w-4" />
-            </Button>
-          ) : (
-            <Button size="icon" className={cn("h-9 w-9 shrink-0", planMode && "bg-white text-black hover:bg-white/90")} onClick={handleSend} disabled={!input.trim()}>
-              <Send className="h-4 w-4" />
-            </Button>
-          )}
+            <div className="flex min-w-0 flex-col gap-2 p-2 sm:p-2.5">
+                <Textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    e.target.style.height = "auto";
+                    e.target.style.height = `${capRollyComposerHeightPx(e.target.scrollHeight)}px`;
+                  }}
+                  onKeyDown={handleKeyDown}
+                  placeholder={planMode ? "Describe your project…" : "Ask ROLLY anything…"}
+                  rows={1}
+                  aria-label={planMode ? "Plan description" : "Message to ROLLY"}
+                  className={cn(
+                    "max-h-[min(22.5rem,45dvh)] min-w-0 w-full resize-none overflow-y-auto overflow-x-hidden border-0 bg-transparent px-0 py-1 text-[15px] shadow-none [scrollbar-gutter:stable] placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0",
+                    composerIdle ? "min-h-[2.25rem] leading-snug" : "min-h-[2.75rem] leading-relaxed",
+                    planMode
+                      ? "text-white placeholder:text-white/40"
+                      : "text-foreground"
+                  )}
+                />
+                <div
+                  className={cn(
+                    "flex shrink-0 items-center justify-end gap-0.5 border-t pt-1.5",
+                    planMode ? "border-white/10" : "border-border/30"
+                  )}
+                >
+                  {messages.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className={toolIconBtn}
+                      onClick={clear}
+                      title="Clear chat"
+                      aria-label="Clear chat"
+                    >
+                      <Trash2 className="h-[17px] w-[17px]" />
+                    </Button>
+                  )}
+                  <VoiceInputButton
+                    isListening={voice.isListening}
+                    isSupported={voice.isSupported}
+                    onClick={voice.toggleListening}
+                    className={toolIconBtn}
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className={toolIconBtn}
+                    onClick={() => setShowScanner(true)}
+                    title="Scan receipt"
+                    aria-label="Scan receipt"
+                  >
+                    <Camera className="h-[17px] w-[17px]" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className={cn(
+                      toolIconBtn,
+                      planMode && "text-white/75 hover:bg-white/12 hover:text-white"
+                    )}
+                    onClick={() => setPlanMode(!planMode)}
+                    title={planMode ? "Exit Plan Mode" : "Enter Plan Mode"}
+                    aria-label={planMode ? "Exit Plan Mode" : "Enter Plan Mode"}
+                  >
+                    <ClipboardList className="h-[17px] w-[17px]" />
+                  </Button>
+                  {isLoading ? (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      className={cn(
+                        "ml-0.5 h-10 w-10 shrink-0 rounded-full border-2 shadow-sm",
+                        planMode
+                          ? "border-white/35 bg-white/12 text-white hover:bg-white/18"
+                          : "border-foreground/20 bg-background text-foreground hover:bg-muted"
+                      )}
+                      onClick={stop}
+                      aria-label="Stop generating"
+                    >
+                      <Square className="h-3.5 w-3.5 fill-current" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="icon"
+                      className={cn(
+                        "ml-0.5 h-10 w-10 shrink-0 rounded-full shadow-md transition-[transform,colors] duration-200 active:scale-[0.96] disabled:opacity-100",
+                        planMode
+                          ? "bg-white text-black hover:bg-white/90 disabled:border disabled:border-white/20 disabled:bg-white/15 disabled:text-white/40"
+                          : "bg-primary text-primary-foreground hover:bg-primary/92 disabled:border disabled:border-border disabled:bg-muted disabled:text-muted-foreground"
+                      )}
+                      onClick={handleSend}
+                      disabled={!input.trim()}
+                      aria-label="Send message"
+                    >
+                      <Send className="h-[17px] w-[17px] stroke-[2.25]" />
+                    </Button>
+                  )}
+                </div>
+            </div>
+          </div>
         </div>
-      </div>}
+      )}
 
       <ReceiptScanner
         open={showScanner}

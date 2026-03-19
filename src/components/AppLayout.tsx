@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTeamPlan } from "@/hooks/useTeamPlan";
 import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -63,9 +64,9 @@ export function AppLayout({ children, title, actions, onBack, mobileSubnav }: Ap
 
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Top bar — safe-area-top spacer absorbs the notch/Dynamic Island height on iOS */}
-          <header className="flex flex-col border-b border-border">
+          <header className="flex flex-col border-b border-border/60 bg-background/80 shadow-[0_1px_0_rgba(0,0,0,0.03)] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)]">
             <div className="safe-area-top" aria-hidden="true" />
-            <div className="flex h-14 items-center justify-between px-4 sm:px-6 shrink-0">
+            <div className="flex h-[3.25rem] items-center justify-between shrink-0 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] sm:px-6 sm:h-14">
               <div className="flex items-center gap-2">
                 {isMobile && onBack && (
                   <button
@@ -96,16 +97,16 @@ export function AppLayout({ children, title, actions, onBack, mobileSubnav }: Ap
                         </button>
                       ) : (
                         /* Top-level: full team name + switcher */
-                        <button className="flex items-center gap-1.5 rounded-md px-1 py-1 hover:bg-accent transition-colors">
-                          <div className="flex items-center justify-center rounded-md bg-muted text-xs font-semibold h-7 w-7 overflow-hidden shrink-0">
+                        <button className="flex items-center gap-2 rounded-xl px-1.5 py-1 -ml-0.5 hover:bg-accent/80 active:scale-[0.99] transition-all">
+                          <div className="flex items-center justify-center rounded-lg bg-muted text-xs font-semibold h-8 w-8 overflow-hidden shrink-0 ring-1 ring-border/50 shadow-sm">
                             {selectedTeam?.avatar_url ? (
                               <img src={selectedTeam.avatar_url} alt="" className="h-full w-full object-cover" />
                             ) : (
                               selectedTeam?.name?.[0] ?? "?"
                             )}
                           </div>
-                          <span className="text-base font-semibold truncate max-w-[140px]">{selectedTeam?.name ?? title}</span>
-                          <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="text-[15px] font-semibold tracking-tight truncate max-w-[min(11rem,42vw)]">{selectedTeam?.name ?? title}</span>
+                          <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
                         </button>
                       )}
                     </DropdownMenuTrigger>
@@ -125,8 +126,12 @@ export function AppLayout({ children, title, actions, onBack, mobileSubnav }: Ap
                 {actions}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="flex h-8 w-8 items-center justify-center rounded-full overflow-hidden">
-                      <Avatar className="h-8 w-8">
+                    <button
+                      type="button"
+                      className="flex h-9 w-9 items-center justify-center rounded-full overflow-hidden ring-1 ring-border/45 shadow-sm bg-background active:scale-[0.97] transition-transform"
+                      aria-label="Account menu"
+                    >
+                      <Avatar className="h-9 w-9">
                         <AvatarImage src={profile?.avatar_url ?? undefined} />
                         <AvatarFallback className="bg-muted text-xs font-semibold">
                           {profile?.full_name?.[0] ?? <User className="h-4 w-4 text-muted-foreground" />}
@@ -158,14 +163,21 @@ export function AppLayout({ children, title, actions, onBack, mobileSubnav }: Ap
             </div>
             {/* Mobile secondary nav row — tab bar, filters, etc. passed in by the page */}
             {isMobile && mobileSubnav && (
-              <div className="overflow-x-auto scrollbar-hide border-t border-border/50">
+              <div
+                className={cn(
+                  "overflow-x-auto scrollbar-hide scroll-smooth [-webkit-overflow-scrolling:touch]",
+                  "border-t border-border/35 bg-muted/20 py-2.5",
+                  "pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]",
+                  "supports-[backdrop-filter]:backdrop-blur-md supports-[backdrop-filter]:bg-muted/15",
+                )}
+              >
                 {mobileSubnav}
               </div>
             )}
           </header>
 
-          {/* Content — bottom padding clears the fixed nav bar (3.5rem) + home indicator safe area */}
-          <main className="flex-1 p-4 sm:p-6 pb-[calc(3.5rem_+_1.5rem_+_var(--safe-area-inset-bottom))] sm:pb-6 overflow-x-hidden overflow-y-auto min-w-0 scroll-container">
+          {/* Content — bottom padding clears floating tab bar + FAB; horizontal insets follow safe area on notched devices. */}
+          <main className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto scroll-container pt-4 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] pb-[calc(5.5rem+var(--safe-area-inset-bottom))] sm:p-6 sm:pb-6">
             {selectedTeamId && <SupportAccessBanner teamId={selectedTeamId} />}
             {children}
           </main>

@@ -59,7 +59,7 @@ export function CompanyOnboardingWizard({ teamId, onComplete }: Props) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 px-4 w-full">
+    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 w-full">
       <AnimatePresence mode="wait">
         <motion.div
           key={step}
@@ -88,7 +88,7 @@ export function CompanyOnboardingWizard({ teamId, onComplete }: Props) {
             </div>
           )}
 
-          <div className="flex items-center justify-between mt-8">
+          <div className="flex items-center justify-between gap-4 mt-10 pt-2">
             <span className="text-sm text-muted-foreground">
               {step} of 2
             </span>

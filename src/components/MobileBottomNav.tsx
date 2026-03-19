@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, FolderOpen, CheckCheck, Disc3 } from "lucide-react";
+import { Home, FolderOpen, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import rollyIcon from "@/assets/rolly-icon.png";
 import { useSelectedTeam } from "@/contexts/TeamContext";
@@ -28,10 +28,9 @@ export function MobileBottomNav() {
     // Guest: only assigned artists
     items.push({ to: "/roster", icon: FolderOpen, label: "Artists" });
   } else {
-    // Owner/Manager: full nav
+    // Owner/Manager: full nav (Distro lives in desktop sidebar only)
     items.push({ to: "/overview", icon: Home, label: "Home" });
     items.push({ to: "/roster", icon: FolderOpen, label: "Artists" });
-    items.push({ to: "/distribution", icon: Disc3, label: "Distro" });
     items.push({ to: "/my-work", icon: CheckCheck, label: "My Work" });
     items.push({ to: "/rolly", icon: null, label: "Rolly", isRolly: true });
   }
@@ -47,42 +46,56 @@ export function MobileBottomNav() {
     return (
       <button
         key={to}
+        type="button"
         onClick={() => navigate(to)}
-        className={cn(
-          "relative flex flex-col items-center justify-center gap-1 flex-1 h-full min-w-0 transition-colors",
-          active ? "text-primary" : "text-muted-foreground"
-        )}
+        className="relative flex flex-1 flex-col items-center justify-center min-w-0 min-h-[3.25rem] [-webkit-tap-highlight-color:transparent] active:opacity-90"
       >
-        {isRolly ? (
-          <img src={rollyIcon} alt="Rolly" className="h-6 w-6 rounded-full" />
-        ) : (
-          Icon && <Icon className="h-6 w-6" strokeWidth={active ? 2.25 : 1.75} />
-        )}
-        <span className={cn("text-[11px] leading-none", active ? "font-semibold" : "font-medium")}>
-          {label}
+        <span
+          className={cn(
+            "flex flex-col items-center justify-center gap-0.5 rounded-2xl px-1.5 py-1 w-full max-w-[4.75rem] transition-all duration-300 ease-out",
+            active
+              ? "bg-muted/90 text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:bg-muted/50 dark:shadow-none"
+              : "text-muted-foreground"
+          )}
+        >
+          {isRolly ? (
+            <img src={rollyIcon} alt="" className="h-5 w-5 rounded-full" />
+          ) : (
+            Icon && <Icon className="h-5 w-5 shrink-0" strokeWidth={active ? 2.1 : 1.65} />
+          )}
+          <span className={cn("text-[10px] leading-tight tracking-tight", active ? "font-semibold" : "font-medium")}>
+            {label}
+          </span>
         </span>
       </button>
     );
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 backdrop-blur safe-area-bottom">
-      <div className="flex items-center h-16">
-        {useSplit ? (
-          <>
-            <div className="flex flex-1 items-stretch">
-              {leftItems.map(renderItem)}
-            </div>
-            {/* Dead zone for the centered FAB (w-14 = 56px + breathing room) */}
-            <div className="w-[72px] shrink-0" aria-hidden="true" />
-            <div className="flex flex-1 items-stretch">
-              {rightItems.map(renderItem)}
-            </div>
-          </>
-        ) : (
-          leftItems.map(renderItem)
-        )}
-      </div>
-    </nav>
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))] pb-[max(0.75rem,var(--safe-area-inset-bottom))]">
+      <nav
+        className="pointer-events-auto w-full max-w-xl"
+        aria-label="Main navigation"
+      >
+        <div
+          className={cn(
+            "flex items-stretch rounded-[2rem] border border-border/60 bg-background/80 backdrop-blur-xl px-1.5 py-1.5",
+            "shadow-[0_10px_40px_-10px_rgba(0,0,0,0.18),0_4px_16px_-4px_rgba(0,0,0,0.08)]",
+            "dark:border-border/80 dark:bg-background/75 dark:shadow-[0_12px_48px_-12px_rgba(0,0,0,0.55)]"
+          )}
+        >
+          {useSplit ? (
+            <>
+              <div className="flex flex-1 items-stretch min-w-0">{leftItems.map(renderItem)}</div>
+              {/* Center slot for the elevated quick-action FAB */}
+              <div className="w-[3.25rem] shrink-0" aria-hidden="true" />
+              <div className="flex flex-1 items-stretch min-w-0">{rightItems.map(renderItem)}</div>
+            </>
+          ) : (
+            <div className="flex flex-1 items-stretch w-full">{leftItems.map(renderItem)}</div>
+          )}
+        </div>
+      </nav>
+    </div>
   );
 }

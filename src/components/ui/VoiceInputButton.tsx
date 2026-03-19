@@ -30,10 +30,10 @@ export function VoiceInputButton({
           className={cn(
             "shrink-0 transition-colors",
             size === "icon" ? "h-9 w-9" : "h-7 w-7 p-0",
-            isListening
-              ? "text-destructive hover:text-destructive bg-destructive/10 hover:bg-destructive/20"
-              : "text-muted-foreground",
-            className
+            !isListening && "text-muted-foreground",
+            className,
+            isListening &&
+              "text-destructive hover:text-destructive bg-destructive/10 hover:bg-destructive/20",
           )}
           onClick={onClick}
           title={isListening ? "Stop listening" : "Voice input"}

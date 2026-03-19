@@ -79,60 +79,78 @@ export default function Rolly() {
     setPreviewItems(null);
   }, []);
 
+  const rollyMobileTabs = (
+    <div
+      className="flex min-w-0 flex-1 gap-1 rounded-[0.875rem] bg-muted/40 p-1 ring-1 ring-inset ring-border/30"
+      role="tablist"
+      aria-label="Rolly sections"
+    >
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mobileTab === "chat"}
+        onClick={() => setMobileTab("chat")}
+        className={cn(
+          "flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-[color,background-color,box-shadow]",
+          mobileTab === "chat"
+            ? "bg-background text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground/80",
+        )}
+      >
+        <MessageSquare className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+        Chat
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mobileTab === "workspace"}
+        onClick={() => setMobileTab("workspace")}
+        className={cn(
+          "flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-[color,background-color,box-shadow]",
+          mobileTab === "workspace"
+            ? "bg-background text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground/80",
+        )}
+      >
+        <LayoutGrid className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+        Workspace
+      </button>
+    </div>
+  );
+
   return (
-    <AppLayout title="ROLLY">
+    <AppLayout
+      title="ROLLY"
+      mobileSubnav={
+        isMobile ? (
+          <div className="flex w-full min-w-0 max-w-full items-center pr-0.5">{rollyMobileTabs}</div>
+        ) : undefined
+      }
+    >
       {isMobile ? (
-        <div className="flex flex-col h-[calc(100dvh-7.5rem)]">
-          <div className="flex border-b border-border shrink-0">
-            <button
-              onClick={() => setMobileTab("chat")}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors border-b-2",
-                mobileTab === "chat"
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground"
-              )}
-            >
-              <MessageSquare className="h-4 w-4" />
-              Chat
-            </button>
-            <button
-              onClick={() => setMobileTab("workspace")}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors border-b-2",
-                mobileTab === "workspace"
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground"
-              )}
-            >
-              <LayoutGrid className="h-4 w-4" />
-              Workspace
-            </button>
-          </div>
-          <div className="flex-1 min-h-0">
-            {mobileTab === "chat" ? (
-              <RollyChat
-                prefillPrompt={prefill}
-                onPrefillConsumed={() => setPrefill(null)}
-                planMode={planMode}
-                onPlanModeChange={handlePlanModeToggle}
-                onSendReady={handleSendReady}
-                onPlanMessage={handlePlanMessage}
-                wizardActive={wizardActive}
-                wizardContext={wizardContext}
-                onWizardComplete={handleWizardComplete}
-                onWizardCancel={handleWizardCancel}
-                onExecutionStart={handleExecutionStart}
-                onPreviewPlan={handlePreviewPlan}
-              />
-            ) : (
-              <RollyWorkspace
-                executingItems={executingItems}
-                executionComplete={executionComplete}
-                previewItems={previewItems}
-              />
-            )}
-          </div>
+        <div className="flex min-h-0 flex-1 flex-col">
+          {mobileTab === "chat" ? (
+            <RollyChat
+              prefillPrompt={prefill}
+              onPrefillConsumed={() => setPrefill(null)}
+              planMode={planMode}
+              onPlanModeChange={handlePlanModeToggle}
+              onSendReady={handleSendReady}
+              onPlanMessage={handlePlanMessage}
+              wizardActive={wizardActive}
+              wizardContext={wizardContext}
+              onWizardComplete={handleWizardComplete}
+              onWizardCancel={handleWizardCancel}
+              onExecutionStart={handleExecutionStart}
+              onPreviewPlan={handlePreviewPlan}
+            />
+          ) : (
+            <RollyWorkspace
+              executingItems={executingItems}
+              executionComplete={executionComplete}
+              previewItems={previewItems}
+            />
+          )}
         </div>
       ) : (
         <div className="flex h-[calc(100vh-4rem)] -m-6">

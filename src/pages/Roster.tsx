@@ -298,7 +298,7 @@ export default function Roster() {
 
   // Tab bar for mobile header (Current Roster / A&R Signings)
   const mobileRosterSubnav = (
-    <div className="flex items-center gap-1 px-4 py-2.5" data-tour="roster-tabs">
+    <div className="flex items-center gap-1 py-2.5" data-tour="roster-tabs">
       <button
         onClick={() => setActiveTab("roster")}
         className={cn(

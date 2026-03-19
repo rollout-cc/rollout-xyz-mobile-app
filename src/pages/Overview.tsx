@@ -7,9 +7,9 @@ import { AppLayout } from "@/components/AppLayout";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DragDropContext, Droppable, type DropResult } from "@hello-pangea/dnd";
-import { Plus, Star, StarOff, Rows3, Columns2, Settings2 } from "lucide-react";
+import { Plus, Star, StarOff, Rows3, Columns2, Settings2, X } from "lucide-react";
 import { useState } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { format, startOfQuarter, endOfQuarter, subQuarters, addQuarters } from "date-fns";
 import {
   DropdownMenu,
@@ -457,7 +457,7 @@ export default function Overview() {
 
   // Tab bar rendered in the AppLayout header on mobile
   const mobileTabBar = (
-    <div className="flex items-center gap-1 px-4 py-2.5" data-tour="overview-tabs">
+    <div className="flex items-center gap-1 py-2.5" data-tour="overview-tabs">
       {availableTabs.map((tab) => (
         <button
           key={tab}
@@ -543,11 +543,31 @@ export default function Overview() {
                 <Settings2 className="h-4 w-4" />
               </button>
             </SheetTrigger>
-            <SheetContent className="sm:max-w-lg overflow-y-auto">
-              <SheetHeader>
-                <SheetTitle>Company Budget</SheetTitle>
+            <SheetContent
+              hideClose
+              className={cn(
+                "flex w-full flex-col gap-0 overflow-hidden border border-border/80 bg-background p-0 shadow-2xl",
+                // Mobile: inset “stacked card” over the dimmed layer
+                "max-sm:left-[max(0.75rem,var(--safe-area-inset-left))] max-sm:right-[max(0.75rem,var(--safe-area-inset-right))] max-sm:top-[max(0.75rem,var(--safe-area-inset-top))] max-sm:bottom-[max(0.75rem,var(--safe-area-inset-bottom))] max-sm:h-auto max-sm:w-auto max-sm:rounded-2xl",
+                // Desktop: same card language, anchored to the trailing edge
+                "sm:inset-y-4 sm:right-4 sm:left-auto sm:h-[calc(100%-2rem)] sm:w-full sm:max-w-lg sm:rounded-2xl",
+              )}
+            >
+              <SheetHeader className="relative shrink-0 space-y-0 border-b border-border/60 px-4 pb-4 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
+                <div className="relative flex min-h-[3rem] items-center justify-center sm:min-h-[3.25rem] sm:justify-start">
+                  <SheetTitle className="max-w-[min(100%,16rem)] text-center text-[1.0625rem] font-semibold leading-snug tracking-tight text-foreground sm:max-w-none sm:pr-12 sm:text-left sm:text-lg">
+                    Company Budget
+                  </SheetTitle>
+                  <SheetClose
+                    className="absolute right-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground opacity-80 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 data-[state=open]:bg-secondary/80"
+                    aria-label="Close company budget"
+                  >
+                    <X className="h-5 w-5" strokeWidth={2} />
+                    <span className="sr-only">Close</span>
+                  </SheetClose>
+                </div>
               </SheetHeader>
-              <div className="mt-4">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[max(1rem,var(--safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-6 sm:pt-5">
                 <CompanyBudgetSection readOnly={!canManageFinance} />
               </div>
             </SheetContent>

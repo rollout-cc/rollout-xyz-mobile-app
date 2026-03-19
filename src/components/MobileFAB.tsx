@@ -60,7 +60,7 @@ export function MobileFAB() {
               onClick={() => handleAction(action)}
               className="fixed left-1/2 -translate-x-1/2 z-[46] flex items-center gap-3"
               style={{
-                bottom: `calc(env(safe-area-inset-bottom) + ${82 + index * 58}px)`,
+                bottom: `calc(env(safe-area-inset-bottom) + ${94 + index * 58}px)`,
               }}
             >
               <span className="rounded-lg bg-card px-3 py-1.5 text-sm font-medium shadow-md border border-border whitespace-nowrap">
@@ -78,13 +78,17 @@ export function MobileFAB() {
         onClick={() => setIsOpen(!isOpen)}
         aria-label={isOpen ? "Close menu" : "Quick actions"}
         className={cn(
-          "fixed bottom-[calc(env(safe-area-inset-bottom)+10px)] left-1/2 -translate-x-1/2 z-[46] flex h-14 w-14 items-center justify-center rounded-full shadow-lg active:scale-95 transition-all duration-200",
+          "fixed left-1/2 z-[46] flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full border border-border/40",
+          "bottom-[calc(env(safe-area-inset-bottom)+1.875rem)]",
+          "shadow-[0_10px_32px_-8px_rgba(0,0,0,0.32),0_3px_12px_-3px_rgba(0,0,0,0.18)]",
+          "dark:border-border/30 dark:shadow-[0_12px_40px_-8px_rgba(0,0,0,0.6)]",
+          "active:scale-[0.96] transition-all duration-300 ease-out",
           isOpen
-            ? "bg-muted text-foreground rotate-45"
-            : "bg-foreground text-background"
+            ? "bg-muted text-foreground rotate-45 ring-2 ring-background"
+            : "bg-foreground text-background ring-2 ring-background/90"
         )}
       >
-        <Plus className="h-6 w-6 transition-transform duration-200" />
+        <Plus className="h-6 w-6 transition-transform duration-300" strokeWidth={2.25} />
       </button>
     </>,
     document.body

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { VoiceInputButton } from "@/components/ui/VoiceInputButton";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SuggestionItem {
   id: string;
@@ -32,6 +33,8 @@ interface WorkItemCreatorProps {
   onTitleChange?: (title: string) => void;
   /** When set, Enter or tapping the row opens the full add form with this title instead of submitting inline */
   onOpenFullForm?: (currentTitle: string) => void;
+  /** Shorter placeholder on narrow viewports (defaults to `placeholder` when omitted) */
+  placeholderMobile?: string;
 }
 
 export function WorkItemCreator({
@@ -43,7 +46,9 @@ export function WorkItemCreator({
   metadataPills,
   onTitleChange,
   onOpenFullForm,
+  placeholderMobile,
 }: WorkItemCreatorProps) {
+  const isMobile = useIsMobile();
   const [title, setTitle] = useState("");
   const handleTitleChange = (val: string) => {
     setTitle(val);
@@ -78,12 +83,15 @@ export function WorkItemCreator({
     onCancel?.();
   };
 
+  const resolvedPlaceholder =
+    isMobile && placeholderMobile ? placeholderMobile : placeholder;
+
   if (variant === "inline") {
     const openFullForm = () => onOpenFullForm?.(title);
     return (
-      <div className="py-1">
+      <div className="py-0.5 md:py-1">
         <div
-          className="flex items-center gap-3 px-1 py-2.5 rounded-xl cursor-text active:bg-muted/40 transition-colors"
+          className="flex items-center gap-2.5 md:gap-3 px-0.5 md:px-1 py-2 md:py-2.5 rounded-xl cursor-text active:bg-muted/40 transition-colors"
           onClick={(e) => { if (onOpenFullForm) openFullForm(); else { const input = e.currentTarget.querySelector<HTMLElement>('[contenteditable]'); input?.focus(); } }}
           role={onOpenFullForm ? "button" : undefined}
           tabIndex={onOpenFullForm ? 0 : undefined}
@@ -112,7 +120,7 @@ export function WorkItemCreator({
               onChange={handleTitleChange}
               onSubmit={onOpenFullForm ? openFullForm : handleSubmit}
               onCancel={handleCancel}
-              placeholder={placeholder}
+              placeholder={resolvedPlaceholder}
               autoFocus={false}
               triggers={triggers}
               singleLine
@@ -122,7 +130,7 @@ export function WorkItemCreator({
             />
           </div>
         </div>
-        {metadataPills && <div className="mt-1 ml-[38px]">{metadataPills}</div>}
+        {metadataPills && <div className="mt-0.5 md:mt-1 ml-9 md:ml-[38px]">{metadataPills}</div>}
       </div>
     );
   }
@@ -139,7 +147,7 @@ export function WorkItemCreator({
             onChange={handleTitleChange}
             onSubmit={handleSubmit}
             onCancel={handleCancel}
-            placeholder={placeholder}
+            placeholder={resolvedPlaceholder}
             autoFocus
             triggers={triggers}
             singleLine

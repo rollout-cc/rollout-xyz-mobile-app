@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 interface ArtistBreakdownItem {
   id: string;
-  name: string;
+  name?: string | null;
   avatar_url: string | null;
   budget: number;
   revenue: number;
@@ -15,13 +15,13 @@ interface ArtistBreakdownItem {
   gp: number;
   completedTasks: number;
   totalTasks: number;
-  utilization: number;
+  utilization?: number;
   campaignCount: number;
-  categories: { label: string; budget: number; spent: number; pct: number }[];
+  categories?: { label: string; budget: number; spent: number; pct: number }[] | null;
 }
 
 interface SpendingPerActSectionProps {
-  artistBreakdown: ArtistBreakdownItem[];
+  artistBreakdown?: ArtistBreakdownItem[] | null;
   artistCount: number;
   fmt: (n: number) => string;
   fmtSigned: (n: number) => string;
@@ -29,8 +29,9 @@ interface SpendingPerActSectionProps {
   fromFinanceTab?: boolean;
 }
 
-export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSigned, fromFinanceTab }: SpendingPerActSectionProps) {
+export function SpendingPerActSection({ artistBreakdown = [], artistCount, fmt, fmtSigned, fromFinanceTab }: SpendingPerActSectionProps) {
   const navigate = useNavigate();
+  const rows = artistBreakdown ?? [];
 
   return (
     <div>
@@ -38,8 +39,12 @@ export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSi
         <span className="caption-bold">{artistCount} artists</span>
       </div>
 
-      <div className={artistBreakdown.length > 1 ? "grid grid-cols-1 sm:grid-cols-2 gap-4" : "space-y-4"}>
-        {artistBreakdown.map((artist) => (
+      <div className={rows.length > 1 ? "grid grid-cols-1 sm:grid-cols-2 gap-4" : "space-y-4"}>
+        {rows.map((artist) => {
+          const displayName = artist.name?.trim() || "Unknown";
+          const categories = artist.categories ?? [];
+          const utilization = Number.isFinite(artist.utilization) ? artist.utilization : 0;
+          return (
           <div
             key={artist.id}
             className="rounded-xl border border-border bg-card p-4 cursor-pointer overflow-hidden"
@@ -49,10 +54,10 @@ export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSi
             <div className="flex items-center gap-3 mb-4">
               <Avatar className="h-11 w-11 shrink-0 border border-border">
                 <AvatarImage src={artist.avatar_url ?? undefined} />
-                <AvatarFallback className="text-sm font-bold">{artist.name[0]}</AvatarFallback>
+                <AvatarFallback className="text-sm font-bold">{displayName[0] ?? "?"}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <span className="font-bold text-base text-foreground truncate block">{artist.name}</span>
+                <span className="font-bold text-base text-foreground truncate block">{displayName}</span>
                 <span className="caption text-muted-foreground">
                   {artist.campaignCount} campaigns · <CheckCircle2 className="inline h-3 w-3 text-emerald-500 -mt-px" /> {artist.completedTasks}/{artist.totalTasks} work
                 </span>
@@ -81,10 +86,10 @@ export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSi
             </div>
 
             {/* Category radial progress */}
-            {artist.categories.length > 0 && (
+            {categories.length > 0 && (
               <div className="rounded-lg border border-border bg-muted/30 p-4 mb-4">
                 <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
-                  {artist.categories.map((cat, i) => (
+                  {categories.map((cat, i) => (
                     <RadialProgress
                       key={i}
                       value={cat.pct}
@@ -100,17 +105,18 @@ export function SpendingPerActSection({ artistBreakdown, artistCount, fmt, fmtSi
             <div className="rounded-lg border border-border bg-muted/30 p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-semibold text-foreground">Overall Utilization</span>
-                <span className="text-lg font-bold text-foreground">{artist.utilization.toFixed(0)}%</span>
+                <span className="text-lg font-bold text-foreground">{utilization.toFixed(0)}%</span>
               </div>
               <Progress
-                value={artist.utilization}
-                className={cn("h-3 [&>div]:transition-all", artist.utilization > 90 ? "[&>div]:bg-destructive" : artist.utilization > 70 ? "[&>div]:bg-amber-500" : "[&>div]:bg-emerald-500")}
+                value={utilization}
+                className={cn("h-3 [&>div]:transition-all", utilization > 90 ? "[&>div]:bg-destructive" : utilization > 70 ? "[&>div]:bg-amber-500" : "[&>div]:bg-emerald-500")}
               />
             </div>
           </div>
-        ))}
+          );
+        })}
 
-        {artistBreakdown.length === 0 && (
+        {rows.length === 0 && (
           <div className="text-center py-8 text-sm text-muted-foreground">
             No artists yet. Add artists from the Roster page.
           </div>

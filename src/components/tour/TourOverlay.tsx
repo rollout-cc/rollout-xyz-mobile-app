@@ -11,6 +11,17 @@ interface Rect {
   height: number;
 }
 
+/** Prefer a target that is actually visible (non-zero layout box). */
+function queryVisibleSelector(selector: string): Element | null {
+  const nodes = document.querySelectorAll(selector);
+  for (let i = 0; i < nodes.length; i++) {
+    const el = nodes[i];
+    const rect = el.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) return el;
+  }
+  return null;
+}
+
 function getPlacement(
   targetRect: Rect,
   preferred: string | undefined
@@ -32,7 +43,9 @@ export function TourOverlay() {
       setTargetRect(null);
       return;
     }
-    const el = document.querySelector(currentStep.targetSelector);
+    const el =
+      queryVisibleSelector(currentStep.targetSelector) ??
+      document.querySelector(currentStep.targetSelector);
     if (!el) {
       setTargetRect(null);
       return;

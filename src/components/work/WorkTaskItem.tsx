@@ -580,10 +580,21 @@ export function WorkTaskItem({
 
   const hasFilledMeta = assignee?.full_name || task.due_date || campaign || (task.expense_amount != null && task.expense_amount > 0);
 
+  const compactMetaParts: string[] = [];
+  if (task.due_date) {
+    compactMetaParts.push(format(new Date(`${task.due_date}T00:00:00`), "MMM d"));
+  }
+  if (assignee?.full_name) compactMetaParts.push(assignee.full_name);
+  if (campaign) compactMetaParts.push(`#${campaign.name}`);
+  if (task.expense_amount != null && task.expense_amount > 0) {
+    compactMetaParts.push(`$${task.expense_amount.toLocaleString()}`);
+  }
+  const compactMetaLine = compactMetaParts.join(" · ");
+
   return (
     <div
       className={cn(
-        "flex items-start gap-3 py-3.5 group cursor-pointer",
+        "flex items-start gap-2.5 py-2.5 md:gap-3 md:py-3.5 group cursor-pointer",
         task?.is_completed && "opacity-50",
         task?.priority === 1 && "border-l-2 border-red-500 pl-2",
         task?.priority === 2 && "border-l-2 border-amber-400 pl-2",
@@ -601,60 +612,69 @@ export function WorkTaskItem({
         </div>
       )}
 
-      {/* Checkbox — larger touch target on mobile */}
       <div
-        className="shrink-0 mt-[2px] flex items-center justify-center"
-        style={{ minWidth: 28, minHeight: 28 }}
+        className="shrink-0 mt-0 md:mt-[2px] flex items-center justify-center min-h-11 min-w-11 md:min-h-[28px] md:min-w-[28px]"
         onClick={(e) => e.stopPropagation()}
       >
         <Checkbox checked={task.is_completed} onCheckedChange={() => toggleTask.mutate()} />
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 min-w-0">
           {task.priority != null && (
-            <PriorityFlagIcon priority={task.priority} className="h-3.5 w-3.5 shrink-0" />
+            <PriorityFlagIcon priority={task.priority} className="h-3 w-3 md:h-3.5 md:w-3.5 shrink-0" />
           )}
-          <p className={cn(
-            "text-[15px] font-medium leading-snug",
-            task.is_completed ? "line-through text-muted-foreground" : "text-foreground"
-          )}>
+          <p
+            className={cn(
+              "text-[14px] md:text-[15px] font-medium leading-snug min-w-0",
+              task.is_completed ? "line-through text-muted-foreground" : "text-foreground"
+            )}
+          >
             {task.title}
           </p>
         </div>
         {task.description && (
-          <p className="text-sm text-muted-foreground mt-0.5 leading-snug line-clamp-2">{task.description}</p>
+          <p className="text-xs md:text-sm text-muted-foreground mt-0.5 leading-snug line-clamp-1 md:line-clamp-2">
+            {task.description}
+          </p>
         )}
 
-        {/* Only show meta row when there is actual data */}
         {hasFilledMeta && (
-          <div className="flex flex-wrap items-center gap-1.5 mt-2">
-            {assignee?.full_name && (
-              <MetaBadge icon={<User className="h-3 w-3" />} onClick={() => enterEdit()}>
-                {assignee.full_name}
-              </MetaBadge>
-            )}
-            {task.due_date && (
-              <MetaBadge icon={<Calendar className="h-3 w-3" />} onClick={() => enterEdit()}>
-                {task.due_date}
-              </MetaBadge>
-            )}
-            {campaign && (
-              <MetaBadge onClick={() => enterEdit()}># {campaign.name}</MetaBadge>
-            )}
-            {task.expense_amount != null && task.expense_amount > 0 && (
-              <MetaBadge icon={<DollarSign className="h-3 w-3" />} onClick={() => enterEdit()}>
-                ${task.expense_amount.toLocaleString()}
-              </MetaBadge>
-            )}
-          </div>
+          <>
+            <p className="md:hidden text-[11px] text-muted-foreground mt-1 leading-snug line-clamp-1">
+              {compactMetaLine}
+            </p>
+            <div className="hidden md:flex flex-wrap items-center gap-1.5 mt-2">
+              {assignee?.full_name && (
+                <MetaBadge icon={<User className="h-3 w-3" />} onClick={() => enterEdit()}>
+                  {assignee.full_name}
+                </MetaBadge>
+              )}
+              {task.due_date && (
+                <MetaBadge icon={<Calendar className="h-3 w-3" />} onClick={() => enterEdit()}>
+                  {task.due_date}
+                </MetaBadge>
+              )}
+              {campaign && (
+                <MetaBadge onClick={() => enterEdit()}># {campaign.name}</MetaBadge>
+              )}
+              {task.expense_amount != null && task.expense_amount > 0 && (
+                <MetaBadge icon={<DollarSign className="h-3 w-3" />} onClick={() => enterEdit()}>
+                  ${task.expense_amount.toLocaleString()}
+                </MetaBadge>
+              )}
+            </div>
+          </>
         )}
       </div>
 
-      {/* Delete — always slightly visible so mobile users can tap it */}
       <button
-        onClick={(e) => { e.stopPropagation(); deleteTask.mutate(); }}
-        className="shrink-0 flex items-center justify-center w-8 h-8 -mr-1 mt-0.5 rounded-lg text-muted-foreground/25 hover:text-destructive hover:bg-destructive/5 active:text-destructive active:bg-destructive/5 transition-colors"
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          deleteTask.mutate();
+        }}
+        className="shrink-0 flex items-center justify-center min-h-11 min-w-11 md:min-h-8 md:min-w-8 -mr-1 mt-0 md:mt-0.5 rounded-lg text-muted-foreground/30 md:text-muted-foreground/25 hover:text-destructive hover:bg-destructive/5 active:text-destructive active:bg-destructive/5 transition-colors"
         aria-label="Delete task"
       >
         <Trash2 className="h-4 w-4" />

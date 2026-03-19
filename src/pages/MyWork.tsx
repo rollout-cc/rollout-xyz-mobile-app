@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { format, isToday, isPast } from "date-fns";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Music2, Wallet, CalendarDays, Clock, Inbox } from "lucide-react";
+import { Music2, Users, Wallet, CalendarDays, Clock, Inbox, ListChecks, StickyNote } from "lucide-react";
 import { cn, formatLocalDate } from "@/lib/utils";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { toast } from "sonner";
@@ -24,8 +24,167 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Tab = "tasks" | "notes";
+
+type TaskArtist = { id: string; name: string; avatar_url: string | null };
+
+function ArtistFilterAvatar({
+  name,
+  avatarUrl,
+  className,
+}: {
+  name: string;
+  avatarUrl: string | null;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-full overflow-hidden bg-muted flex items-center justify-center shrink-0",
+        className,
+      )}
+    >
+      {avatarUrl ? (
+        <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <span className="text-[10px] font-semibold text-muted-foreground tabular-nums">
+          {name.trim().slice(0, 1).toUpperCase() || "?"}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** Single icon for “All artists” — avoids duplicating avatars (SelectValue already mirrors the selected row). */
+function AllArtistsGlyph({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "flex h-6 w-6 items-center justify-center rounded-full bg-muted ring-1 ring-border/35 shrink-0",
+        className,
+      )}
+    >
+      <Users className="h-3.5 w-3.5 text-muted-foreground" />
+    </div>
+  );
+}
+
+function MyWorkArtistFilter({
+  value,
+  onChange,
+  taskArtists,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  taskArtists: TaskArtist[];
+}) {
+  if (taskArtists.length === 0) return null;
+  return (
+    <span data-tour="mywork-filter" className="inline-flex min-w-0 max-w-[min(14rem,52vw)] shrink md:max-w-[220px]">
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger
+          className={cn(
+            "h-9 min-h-9 rounded-full border-border/40 bg-background/95 pl-2.5 pr-2 gap-2 shadow-sm",
+            "hover:border-border/55 hover:shadow-md transition-[box-shadow,border-color,background-color] duration-200",
+            "focus:ring-2 focus:ring-ring/25 focus:ring-offset-0",
+            "w-full min-w-[7rem] [&>span]:flex [&>span]:min-w-0 [&>span]:flex-1 [&>span]:items-center [&>span]:gap-2",
+          )}
+        >
+          <SelectValue placeholder="All artists" />
+        </SelectTrigger>
+        <SelectContent
+          position="popper"
+          sideOffset={6}
+          className="rounded-xl border-border/50 bg-popover/95 shadow-xl backdrop-blur-md z-[200] min-w-[var(--radix-select-trigger-width)] max-h-[min(22rem,55dvh)] p-0"
+        >
+          <SelectItem
+            value="all"
+            textValue="All artists"
+            className="py-1.5 pl-8 pr-2 rounded-none text-sm min-h-0 h-auto"
+          >
+            <span className="flex items-center gap-2.5 min-w-0">
+              <AllArtistsGlyph className="h-6 w-6" />
+              <span className="truncate font-medium">All artists</span>
+            </span>
+          </SelectItem>
+          {taskArtists.map((a) => (
+            <SelectItem
+              key={a.id}
+              value={a.id}
+              textValue={a.name}
+              className="py-1.5 pl-8 pr-2 rounded-none text-sm min-h-0 h-auto"
+            >
+              <span className="flex items-center gap-2.5 min-w-0">
+                <ArtistFilterAvatar
+                  name={a.name}
+                  avatarUrl={a.avatar_url}
+                  className="h-6 w-6 ring-1 ring-border/30"
+                />
+                <span className="truncate font-medium">{a.name}</span>
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </span>
+  );
+}
+
+function WorkNotesTabs({
+  tab,
+  setTab,
+  fill = false,
+}: {
+  tab: Tab;
+  setTab: (value: Tab) => void;
+  /** When true, grows to share horizontal space (mobile subnav, Rolly-style). */
+  fill?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex gap-1 rounded-[0.875rem] bg-muted/40 p-1 ring-1 ring-inset ring-border/30",
+        fill ? "min-w-0 flex-1" : "w-max shrink-0",
+      )}
+      role="tablist"
+      aria-label="My Work sections"
+      data-tour="mywork-tabs"
+    >
+      <button
+        type="button"
+        role="tab"
+        aria-selected={tab === "tasks"}
+        onClick={() => setTab("tasks")}
+        className={cn(
+          "flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-[color,background-color,box-shadow]",
+          tab === "tasks"
+            ? "bg-background text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground/80",
+        )}
+      >
+        <ListChecks className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+        Work
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={tab === "notes"}
+        onClick={() => setTab("notes")}
+        className={cn(
+          "flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-[color,background-color,box-shadow]",
+          tab === "notes"
+            ? "bg-background text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground/80",
+        )}
+      >
+        <StickyNote className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+        Notes
+      </button>
+    </div>
+  );
+}
 
 export default function MyWork() {
   const { user } = useAuth();
@@ -43,6 +202,10 @@ export default function MyWork() {
   const [expenseAmount, setExpenseAmount] = useState<number | null>(null);
   const [budgetId, setBudgetId] = useState<string | null>(null);
   const [filterArtistId, setFilterArtistId] = useState<string>("all");
+
+  useEffect(() => {
+    if (filterArtistId === "none") setFilterArtistId("all");
+  }, [filterArtistId]);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [showFullAddForm, setShowFullAddForm] = useState(false);
   const [addFormInitialTitle, setAddFormInitialTitle] = useState("");
@@ -52,6 +215,7 @@ export default function MyWork() {
   const [titleForParsing, setTitleForParsing] = useState("");
 
   const { data: artists = [] } = useArtists(teamId);
+  const isMobile = useIsMobile();
   const { tryStartPageTour } = useTour();
   useEffect(() => { tryStartPageTour("mywork-tour"); }, [tryStartPageTour]);
   useNotes(); // prefetch
@@ -229,19 +393,40 @@ export default function MyWork() {
   const selectedArtist = artists.find((a: any) => a.id === selectedArtistId);
   const selectedBudget = budgets.find((b: any) => b.id === budgetId);
 
-  const tasks = filterArtistId === "all"
-    ? allTasks
-    : filterArtistId === "none"
-      ? allTasks.filter((t) => !t.artist_id)
+  const tasks =
+    filterArtistId === "all"
+      ? allTasks
       : allTasks.filter((t) => t.artist_id === filterArtistId);
 
   const taskArtists = useMemo(() => {
-    const map = new Map<string, { id: string; name: string; avatar_url: string | null }>();
-    allTasks.forEach((t: any) => {
-      const a = t?.artists;
-      if (a && typeof a.id === "string") map.set(a.id, a);
-    });
-    return Array.from(map.values());
+    const map = new Map<string, TaskArtist>();
+    for (const t of allTasks as any[]) {
+      const raw = t?.artists;
+      if (!raw) continue;
+      const rows = Array.isArray(raw) ? raw : [raw];
+      for (const a of rows) {
+        if (!a || typeof a.id !== "string" || map.has(a.id)) continue;
+        const name =
+          typeof a.name === "string" && a.name.trim() ? a.name.trim() : "Artist";
+        map.set(a.id, {
+          id: a.id,
+          name,
+          avatar_url: a.avatar_url ?? null,
+        });
+      }
+    }
+    const list = Array.from(map.values());
+    const seenDisplay = new Set<string>();
+    const deduped: TaskArtist[] = [];
+    for (const a of list.sort((x, y) =>
+      x.name.localeCompare(y.name, undefined, { sensitivity: "base" }),
+    )) {
+      const key = `${a.name.toLowerCase()}|${a.avatar_url ?? ""}`;
+      if (seenDisplay.has(key)) continue;
+      seenDisplay.add(key);
+      deduped.push(a);
+    }
+    return deduped;
   }, [allTasks]);
 
   const grouped = useMemo(() => {
@@ -293,47 +478,37 @@ export default function MyWork() {
   ) : null;
 
   return (
-    <AppLayout title="My Work">
-      <div className="mx-auto max-w-2xl pb-24">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-foreground text-xl font-bold tracking-tight">My Work</h1>
-            <div className="flex items-center rounded-lg bg-muted p-0.5" data-tour="mywork-tabs">
-              <button
-                onClick={() => setTab("tasks")}
-                className={cn(
-                  "px-3.5 py-1.5 text-sm font-medium rounded-md transition-colors",
-                  tab === "tasks" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
-                )}
-              >
-                Work
-              </button>
-              <button
-                onClick={() => setTab("notes")}
-                className={cn(
-                  "px-3.5 py-1.5 text-sm font-medium rounded-md transition-colors",
-                  tab === "notes" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
-                )}
-              >
-                Notes
-              </button>
-            </div>
+    <AppLayout
+      title="My Work"
+      mobileSubnav={
+        isMobile ? (
+          <div className="flex w-full min-w-0 max-w-full items-center justify-between gap-3 pr-0.5">
+            <WorkNotesTabs tab={tab} setTab={setTab} fill />
+            {tab === "tasks" && (
+              <div className="flex min-w-0 shrink justify-end">
+                <MyWorkArtistFilter
+                  value={filterArtistId}
+                  onChange={setFilterArtistId}
+                  taskArtists={taskArtists}
+                />
+              </div>
+            )}
           </div>
-          {tab === "tasks" && taskArtists.length > 0 && (
-            <span data-tour="mywork-filter">
-              <Select value={filterArtistId} onValueChange={setFilterArtistId}>
-                <SelectTrigger className="w-[130px] h-8 text-sm">
-                  <SelectValue placeholder="All Artists" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Artists</SelectItem>
-                  <SelectItem value="none">Me</SelectItem>
-                  {taskArtists.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </span>
+        ) : undefined
+      }
+    >
+      <div className="mx-auto max-w-2xl pb-24">
+        <div className="hidden md:flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <h1 className="text-foreground text-xl font-bold tracking-tight shrink-0">My Work</h1>
+            {!isMobile && <WorkNotesTabs tab={tab} setTab={setTab} />}
+          </div>
+          {tab === "tasks" && !isMobile && (
+            <MyWorkArtistFilter
+              value={filterArtistId}
+              onChange={setFilterArtistId}
+              taskArtists={taskArtists}
+            />
           )}
         </div>
 
@@ -368,6 +543,7 @@ export default function MyWork() {
                   <WorkItemCreator
                     variant="inline"
                     placeholder="Add work… @ artist, $ expense, type a date"
+                    placeholderMobile="Add work…"
                     triggers={triggers}
                     onSubmit={(data) => createTask.mutate(data)}
                     onTitleChange={setTitleForParsing}
@@ -483,7 +659,7 @@ function TaskGroup({
   return (
     <div className="mb-1">
       {showHeader && (
-        <div className="flex items-center gap-2 pt-5 pb-2 px-1">
+        <div className="flex items-center gap-2 pt-3 pb-1.5 px-1 md:pt-5 md:pb-2">
           <span
             className={cn(
               "inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest",

@@ -96,7 +96,7 @@ export function RollyFAB() {
             className={cn(
               "fixed z-[59] bg-card border border-border rounded-xl shadow-lg px-4 py-3 max-w-[220px] text-sm text-foreground",
               isMobile
-                ? "bottom-[calc(env(safe-area-inset-bottom)+134px)] right-4"
+                ? "bottom-[calc(env(safe-area-inset-bottom)+11rem)] right-4"
                 : "bottom-[72px] right-4"
             )}
           >
@@ -119,7 +119,7 @@ export function RollyFAB() {
         className={cn(
           "fixed z-[59] flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-200 active:scale-95",
           isMobile
-            ? "bottom-[calc(env(safe-area-inset-bottom)+74px)] right-4"
+            ? "bottom-[calc(env(safe-area-inset-bottom)+6.5rem)] right-4"
             : "bottom-4 right-4",
           isOpen
             ? "bg-muted text-foreground"
