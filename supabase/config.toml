@@ -65,3 +65,5 @@ project_id = "ctnsworqzzguykzzvdme"
     verify_jwt = false
   [functions.spotify-artist]
     verify_jwt = false
+  [functions.admin-actions]
+    verify_jwt = false
