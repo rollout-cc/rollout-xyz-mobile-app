@@ -169,6 +169,14 @@ export function AppLayout({ children, title, actions, onBack, mobileSubnav }: Ap
                         Billing
                       </DropdownMenuItem>
                     )}
+                    {isPlatformAdmin && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => navigate("/admin")} className="gap-2 text-primary">
+                          <Shield className="h-3.5 w-3.5" /> Admin Console
+                        </DropdownMenuItem>
+                      </>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={signOut}>
                       Sign out

@@ -67,3 +67,5 @@ project_id = "ctnsworqzzguykzzvdme"
     verify_jwt = false
   [functions.admin-actions]
     verify_jwt = false
+  [functions.categorize-feedback]
+    verify_jwt = false

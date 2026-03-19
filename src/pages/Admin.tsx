@@ -67,6 +67,8 @@ export default function Admin() {
         <TransferOwnershipSection />
         <Separator />
         <SupportAccessSection />
+        <Separator />
+        <FeedbackDashboard />
       </main>
     </div>
   );

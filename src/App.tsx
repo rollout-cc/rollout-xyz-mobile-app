@@ -163,6 +163,7 @@ const App = () => (
               <TourProvider>
                 <TourOverlay />
                 <AppRoutes />
+                <FeedbackWidget />
               </TourProvider>
             </ErrorBoundary>
           </BrowserRouter>
