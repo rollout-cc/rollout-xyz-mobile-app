@@ -17,8 +17,11 @@ const SOURCES = [
   { key: "mlc", name: "The MLC", description: "Mechanical Licensing Collective" },
 ] as const;
 
+const PRO_SOURCES = ["bmi", "ascap", "sesac"];
+
 interface MemberConnectionsProps {
   memberId: string;
+  onProChange?: (proName: string) => void;
 }
 
 export function MemberConnections({ memberId }: MemberConnectionsProps) {
