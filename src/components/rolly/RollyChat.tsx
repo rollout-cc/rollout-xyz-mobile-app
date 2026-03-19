@@ -120,6 +120,7 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
             onCancel={onWizardCancel}
             initialContext={wizardContext}
             onExecutionStart={onExecutionStart}
+            onPreviewPlan={onPreviewPlan}
           />
         </div>
       ) : (
