@@ -330,7 +330,7 @@ export default function Roster() {
 
   // Main roster view with DnD
   return (
-    <AppLayout title="Artists" mobileSubnav={mobileRosterSubnav}>
+    <AppLayout title={isArtistRole ? "Outreach" : "Artists"} mobileSubnav={!isArtistRole ? mobileRosterSubnav : undefined}>
       {/* Tabs + Sort row — desktop layout */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
         {/* Desktop tab bar — hidden on mobile (mobile uses header subnav) */}
