@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import { MessageSquarePlus, Bug, Lightbulb, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,18 +8,29 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSelectedTeam } from "@/contexts/TeamContext";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useItemEditorUi } from "@/contexts/ItemEditorUiContext";
+import { useMobileQuickActions } from "@/contexts/MobileQuickActionsContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export function FeedbackWidget() {
   const { user } = useAuth();
   const { selectedTeamId } = useSelectedTeam();
+  const location = useLocation();
+  const isMobile = useIsMobile();
+  const { suggestionsMenuOpen } = useItemEditorUi();
+  const { isOpen: quickActionsMenuOpen } = useMobileQuickActions();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<"bug" | "feature">("bug");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
-  if (!user || !selectedTeamId) return null;
+  const onRolly = location.pathname === "/rolly" || location.pathname.startsWith("/rolly/");
+  const hideOnRollyCompact = onRolly && (isMobile || Capacitor.isNativePlatform());
+
+  if (!user || !selectedTeamId || hideOnRollyCompact) return null;
+  if (isMobile && (suggestionsMenuOpen || quickActionsMenuOpen)) return null;
 
   const submit = async () => {
     if (!message.trim()) return;
@@ -57,7 +70,7 @@ export function FeedbackWidget() {
   };
 
   return (
-    <div className="fixed bottom-20 right-4 z-50 sm:bottom-6 sm:right-6">
+    <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+6.5rem)] right-4 z-50 sm:bottom-6 sm:right-6">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button

@@ -15,9 +15,21 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { VoiceInputButton } from "@/components/ui/VoiceInputButton";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 /** Upper bound (px) for composer height before inner scroll; viewport cap keeps long drafts from hiding the thread. */
 const ROLLY_INPUT_MAX_HEIGHT = 360;
+
+/**
+ * Mobile Plan Mode uses AppLayout `mobileImmersiveDark`: main only applies raw safe-area insets, not the usual 1rem page gutter.
+ * Standard Rolly mobile is inset by max(1rem,safe) on main plus px-4 here. This restores the missing gutter so hero + composer
+ * line up when toggling Plan Mode.
+ */
+const ROLLY_PLAN_MOBILE_SYNC_GUTTERS =
+  "pl-[calc(max(1rem,env(safe-area-inset-left,0px))+1rem-env(safe-area-inset-left,0px))] pr-[calc(max(1rem,env(safe-area-inset-right,0px))+1rem-env(safe-area-inset-right,0px))]";
+
+const ROLLY_PLAN_DESKTOP_GUTTERS =
+  "pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]";
 
 function capRollyComposerHeightPx(scrollHeight: number): number {
   if (typeof window === "undefined") return Math.min(scrollHeight, ROLLY_INPUT_MAX_HEIGHT);
@@ -49,6 +61,7 @@ interface RollyChatProps {
 
 export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: externalPlanMode, onPlanModeChange, onSendReady, onPlanMessage, wizardActive, wizardContext, onWizardComplete, onWizardCancel, onExecutionStart, onPreviewPlan }: RollyChatProps = {}) {
   const planMode = externalPlanMode ?? false;
+  const isMobile = useIsMobile();
   const setPlanMode = (val: boolean) => onPlanModeChange?.(val);
   const { messages, isLoading, send, stop, clear, lastActions } = useRollyChat(planMode);
   const [input, setInput] = useState("");
@@ -140,6 +153,12 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
     ? "border border-white/18 bg-white/[0.07] shadow-[0_10px_36px_-14px_rgba(0,0,0,0.75)] backdrop-blur-md"
     : "border border-border/70 bg-card shadow-[0_2px_14px_-4px_rgba(0,0,0,0.14),0_1px_0_rgba(0,0,0,0.03)]";
 
+  const horizontalContentInset = planMode
+    ? isMobile
+      ? ROLLY_PLAN_MOBILE_SYNC_GUTTERS
+      : ROLLY_PLAN_DESKTOP_GUTTERS
+    : "px-4";
+
   return (
     <div className={cn("flex flex-col h-full", planMode && "bg-[hsl(0,0%,5%)]")}>
       {/* Messages area or Wizard */}
@@ -157,8 +176,9 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
       <div
         ref={scrollRef}
         className={cn(
-          "flex-1 min-h-0 overflow-y-auto space-y-4 px-4",
-          isEmpty ? "py-3 md:py-6" : "py-4 md:py-6"
+          "flex-1 min-h-0 overflow-y-auto space-y-4",
+          horizontalContentInset,
+          isEmpty ? "py-3 md:py-6" : "py-4 md:py-6",
         )}
       >
         {isEmpty && planMode ? (
@@ -170,10 +190,10 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
                 <img src={rollyIcon} alt="" className="h-[2.85rem] w-[2.85rem] rounded-full object-cover sm:h-14 sm:w-14" />
               </div>
               <div className="space-y-2 sm:space-y-2.5">
-                <h2 className="text-[1.3125rem] font-semibold tracking-[-0.02em] text-foreground sm:text-xl">
-                  Hey, I&apos;m ROLLY
+                <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                  Hey, I&apos;m Rolly
                 </h2>
-                <p className="mx-auto max-w-[19rem] text-pretty text-[0.8125rem] leading-relaxed text-muted-foreground/90 sm:max-w-md sm:text-sm">
+                <p className="mx-auto max-w-[22rem] text-pretty text-sm leading-relaxed text-muted-foreground sm:max-w-md">
                   Your music business advisor — deals, splits, royalties, releases, and anything industry-related.
                 </p>
               </div>
@@ -183,7 +203,7 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
                     key={action.label}
                     type="button"
                     onClick={() => send(action.prompt)}
-                    className="rounded-xl bg-muted/45 px-3 py-2.5 text-left text-[0.8125rem] font-medium leading-snug text-foreground/90 transition-[background-color,transform] hover:bg-muted/72 active:scale-[0.98] sm:text-sm"
+                    className="rounded-xl bg-muted/45 px-3.5 py-2.5 text-left text-sm font-medium leading-snug text-foreground/90 transition-[background-color,transform] hover:bg-muted/72 active:scale-[0.98]"
                   >
                     {action.label}
                   </button>
@@ -211,16 +231,16 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
                 <div
                   key={i}
                   className={cn(
-                    "flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium",
+                    "rolly-conversation-text flex items-center gap-2 rounded-lg px-3 py-2 font-normal",
                     action.success
                       ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                       : "bg-destructive/10 text-destructive"
                   )}
                 >
                   {action.success ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 shrink-0 opacity-90" />
                   ) : (
-                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                    <AlertCircle className="h-4 w-4 shrink-0 opacity-90" />
                   )}
                   {action.message}
                 </div>
@@ -233,12 +253,12 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
             <div className="h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0">
               R
             </div>
-            <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-2">
+            <div className="rolly-conversation-text bg-muted rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-2 text-muted-foreground">
               <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary" />
               </span>
-              <span className="text-xs text-muted-foreground">Thinking…</span>
+              <span>Thinking…</span>
             </div>
           </div>
         )}
@@ -249,10 +269,9 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
       {!wizardActive && (
         <div
           className={cn(
-            "shrink-0 px-3 pb-1 pt-1 md:pb-2 md:pt-1.5 sm:px-4",
-            planMode
-              ? "bg-[hsl(0,0%,5%)]"
-              : "bg-gradient-to-t from-muted/20 via-background to-background"
+            "shrink-0 pb-2 pt-2 md:pb-2 md:pt-1.5",
+            horizontalContentInset,
+            planMode ? "bg-[hsl(0,0%,5%)]" : "bg-gradient-to-t from-muted/20 via-background to-background",
           )}
         >
           <div
@@ -264,33 +283,48 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
                 : "focus-within:ring-2 focus-within:ring-ring/35 focus-within:ring-offset-0"
             )}
           >
-            <div className="flex min-w-0 flex-col gap-2 p-2 sm:p-2.5">
-                <Textarea
-                  ref={textareaRef}
-                  value={input}
-                  onChange={(e) => {
-                    setInput(e.target.value);
-                    e.target.style.height = "auto";
-                    e.target.style.height = `${capRollyComposerHeightPx(e.target.scrollHeight)}px`;
-                  }}
-                  onKeyDown={handleKeyDown}
-                  placeholder={planMode ? "Describe your project…" : "Ask ROLLY anything…"}
-                  rows={1}
-                  aria-label={planMode ? "Plan description" : "Message to ROLLY"}
+            <div className="flex min-w-0 flex-col gap-1 p-2 sm:p-2.5">
+              <Textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${capRollyComposerHeightPx(e.target.scrollHeight)}px`;
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder={planMode ? "Describe your project…" : "Ask Rolly anything…"}
+                rows={1}
+                aria-label={planMode ? "Plan description" : "Message to Rolly"}
+                className={cn(
+                  "rolly-conversation-text max-h-[min(22.5rem,45dvh)] min-w-0 w-full resize-none overflow-y-auto overflow-x-hidden border-0 bg-transparent pl-1 pr-1.5 py-[8px] shadow-none [scrollbar-gutter:stable] placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:pl-1.5 sm:pr-2",
+                  composerIdle ? "min-h-[2.25rem] leading-snug" : "min-h-[2.75rem] leading-relaxed",
+                  planMode
+                    ? "text-white placeholder:text-white/40"
+                    : "text-foreground"
+                )}
+              />
+              <div
+                className={cn(
+                  "flex min-w-0 shrink-0 items-center justify-between gap-2 pt-1 pb-1",
+                  planMode && "border-t border-white/10"
+                )}
+              >
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
                   className={cn(
-                    "max-h-[min(22.5rem,45dvh)] min-w-0 w-full resize-none overflow-y-auto overflow-x-hidden border-0 bg-transparent px-0 py-1 text-[15px] shadow-none [scrollbar-gutter:stable] placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0",
-                    composerIdle ? "min-h-[2.25rem] leading-snug" : "min-h-[2.75rem] leading-relaxed",
-                    planMode
-                      ? "text-white placeholder:text-white/40"
-                      : "text-foreground"
+                    toolIconBtn,
+                    planMode && "text-white/75 hover:bg-white/12 hover:text-white"
                   )}
-                />
-                <div
-                  className={cn(
-                    "flex shrink-0 items-center justify-end gap-0.5 border-t pt-1.5",
-                    planMode ? "border-white/10" : "border-border/30"
-                  )}
+                  onClick={() => setPlanMode(!planMode)}
+                  title={planMode ? "Exit Plan Mode" : "Enter Plan Mode"}
+                  aria-label={planMode ? "Exit Plan Mode" : "Enter Plan Mode"}
                 >
+                  <ClipboardList className="h-[17px] w-[17px]" />
+                </Button>
+                <div className="flex min-w-0 shrink-0 items-center justify-end gap-0.5">
                   {messages.length > 0 && (
                     <Button
                       type="button"
@@ -320,20 +354,6 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
                     aria-label="Scan receipt"
                   >
                     <Camera className="h-[17px] w-[17px]" />
-                  </Button>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className={cn(
-                      toolIconBtn,
-                      planMode && "text-white/75 hover:bg-white/12 hover:text-white"
-                    )}
-                    onClick={() => setPlanMode(!planMode)}
-                    title={planMode ? "Exit Plan Mode" : "Enter Plan Mode"}
-                    aria-label={planMode ? "Exit Plan Mode" : "Enter Plan Mode"}
-                  >
-                    <ClipboardList className="h-[17px] w-[17px]" />
                   </Button>
                   {isLoading ? (
                     <Button
@@ -369,6 +389,7 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
                     </Button>
                   )}
                 </div>
+              </div>
             </div>
           </div>
         </div>

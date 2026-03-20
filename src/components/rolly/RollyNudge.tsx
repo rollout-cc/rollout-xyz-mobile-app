@@ -30,45 +30,74 @@ export function RollyNudge({ screen, dataSnapshot, entityId }: Props) {
     }, 0);
   };
 
-  // Mobile: full-bleed bar above nav; pr clears Rolly FAB (right-4 + h-14)
+  // Mobile: outer shell has no fill — only the inner card paints. `right` inset clears the
+  // feedback FAB (right-4 + h-12) so the bar never sits under a higher stacking layer on iOS.
   // Desktop expanded sidebar: pinned in sidebar area (left, above Rolly button)
   // Desktop collapsed sidebar: bottom-right toast
-  const positionClass = isMobile
-    ? "fixed bottom-[calc(env(safe-area-inset-bottom)+6.5rem)] z-[55] min-w-0 inset-x-0 w-full pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[calc(max(1rem,env(safe-area-inset-right,0px))+5rem)]"
-    : collapsed
+  const mobileShellClass =
+    "fixed bottom-[calc(env(safe-area-inset-bottom,0px)+6.5rem)] z-[55] pointer-events-none left-[max(1rem,env(safe-area-inset-left,0px))] right-[calc(max(1rem,env(safe-area-inset-right,0px))+5rem)]";
+
+  const desktopPositionClass = collapsed
     ? "fixed bottom-6 right-6 z-[55] max-w-[320px]"
     : "fixed bottom-[180px] left-4 z-[55] w-[calc(var(--sidebar-width,16rem)-2rem)]";
 
+  const motionProps = {
+    initial: { opacity: 0, y: 8, scale: 0.96 } as const,
+    animate: { opacity: 1, y: 0, scale: 1 } as const,
+    exit: { opacity: 0, y: 8, scale: 0.96 } as const,
+    transition: { duration: 0.2, ease: "easeOut" as const },
+  };
+
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0, y: 8, scale: 0.96 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 8, scale: 0.96 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
-        className={cn(
-          positionClass,
-          "flex cursor-pointer items-center border border-border bg-card shadow-lg transition-shadow hover:shadow-xl",
-          isMobile
-            ? "gap-3 rounded-none border-x-0 py-3"
-            : "gap-2.5 rounded-xl px-3.5 py-2.5"
-        )}
-        onClick={handleClick}
-      >
-        <img src={rollyIcon} alt="" className="h-5 w-5 rounded-full shrink-0" />
-        <span className="text-xs text-foreground leading-snug flex-1 min-w-0">{nudge}</span>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            dismiss();
-          }}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-accent transition-colors sm:h-8 sm:w-8"
-          aria-label="Dismiss"
+      {isMobile ? (
+        <motion.div {...motionProps} className={mobileShellClass}>
+          <div
+            onClick={handleClick}
+            className={cn(
+              "pointer-events-auto flex w-full min-w-0 cursor-pointer items-center gap-2.5 rounded-2xl border border-border bg-card px-3 py-2.5 shadow-lg transition-shadow hover:shadow-xl",
+              "[-webkit-tap-highlight-color:transparent]"
+            )}
+          >
+            <img src={rollyIcon} alt="" className="h-5 w-5 shrink-0 rounded-full" />
+            <span className="min-w-0 flex-1 text-xs leading-snug text-foreground">{nudge}</span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                dismiss();
+              }}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-accent [-webkit-tap-highlight-color:transparent]"
+              aria-label="Dismiss"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </motion.div>
+      ) : (
+        <motion.div
+          {...motionProps}
+          className={cn(
+            desktopPositionClass,
+            "flex cursor-pointer items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 py-2.5 shadow-lg transition-shadow hover:shadow-xl"
+          )}
+          onClick={handleClick}
         >
-          <X className="h-4 w-4 sm:h-3 sm:w-3" />
-        </button>
-      </motion.div>
+          <img src={rollyIcon} alt="" className="h-5 w-5 shrink-0 rounded-full" />
+          <span className="min-w-0 flex-1 text-xs leading-snug text-foreground">{nudge}</span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              dismiss();
+            }}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-accent"
+            aria-label="Dismiss"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 }

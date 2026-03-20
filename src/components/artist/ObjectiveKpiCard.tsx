@@ -118,7 +118,7 @@ export function ObjectiveKpiCard({
 
   const isBanner = variant === "banner";
   const cardBase = isBanner
-    ? "flex h-full min-h-[5rem] min-w-0 w-full flex-col rounded-md border border-border bg-card/90 p-3 text-foreground shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-black/25 dark:text-zinc-50 dark:shadow-none"
+    ? "flex h-full min-h-[4.5rem] min-w-0 w-full flex-col rounded-lg border border-white/[0.08] bg-white/[0.04] p-3 text-white shadow-none backdrop-blur-xl"
     : "rounded-xl border border-border bg-card shadow-sm";
 
   // Empty state — picker opens in a portaled popover over the banner, not inline
@@ -138,15 +138,16 @@ export function ObjectiveKpiCard({
               className={cn(
                 "inline-flex items-center justify-center gap-1.5 rounded-[calc(var(--radius)-2px)] px-3 py-2 text-center text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 isBanner
-                  ? "text-muted-foreground hover:bg-muted/60 hover:text-foreground dark:text-white/55 dark:hover:bg-white/10 dark:hover:text-white"
+                  ? "text-white/50 hover:bg-white/[0.08] hover:text-white focus-visible:ring-white/30"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
               )}
             >
               <Target
                 className={cn(
                   "h-4 w-4 shrink-0",
-                  isBanner && "text-muted-foreground dark:text-white/45",
+                  isBanner && "text-white/45",
                 )}
+                strokeWidth={isBanner ? 1.75 : 2}
               />
               <span className="font-medium">Set goal</span>
             </button>
@@ -192,14 +193,14 @@ export function ObjectiveKpiCard({
           className={cn(
             "font-semibold uppercase tracking-wider",
             isBanner
-              ? "text-[10px] leading-none py-[2px] text-muted-foreground dark:text-white/45"
+              ? "text-[10px] font-medium leading-none tracking-[0.14em] text-white/40"
               : "text-xs leading-none text-muted-foreground",
           )}
         >
           {typeDef?.label ?? "Objective"}
         </p>
         <div className="mt-1 flex items-center gap-2">
-          <Icon className={cn("h-4 w-4 shrink-0", isBanner ? "text-muted-foreground dark:text-white/50" : "text-primary")} />
+          <Icon className={cn("h-4 w-4 shrink-0", isBanner ? "text-white/45" : "text-primary")} strokeWidth={isBanner ? 1.75 : 2} />
           <input
             type="text"
             value={targetInput}
@@ -212,7 +213,7 @@ export function ObjectiveKpiCard({
               isBelowCurrent
                 ? "text-amber-600 border-amber-500/50 placeholder:text-amber-500/40 dark:text-amber-400 dark:border-amber-400/40 dark:placeholder:text-amber-400/30"
                 : isBanner
-                  ? "border-border text-foreground placeholder:text-muted-foreground/50 dark:border-white/25 dark:text-white dark:placeholder:text-white/35"
+                  ? "border-white/25 text-white placeholder:text-white/35"
                   : "border-border text-foreground placeholder:text-muted-foreground/40",
             )}
           />
@@ -222,7 +223,7 @@ export function ObjectiveKpiCard({
             className={cn(
               "rounded px-1.5 py-0.5 text-xs font-medium",
               isBanner
-                ? "text-muted-foreground hover:bg-muted hover:text-foreground dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-white"
+                ? "text-white/55 hover:bg-white/10 hover:text-white"
                 : "text-muted-foreground hover:bg-accent hover:text-foreground",
             )}
           >
@@ -255,7 +256,7 @@ export function ObjectiveKpiCard({
         className={cn(
           "absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full opacity-0 transition-opacity group-hover/obj:opacity-100",
           isBanner
-            ? "bg-muted text-muted-foreground hover:bg-muted/80 dark:bg-white/20 dark:text-white dark:hover:bg-white/30"
+            ? "bg-white/15 text-white hover:bg-white/25"
             : "bg-muted text-muted-foreground hover:bg-destructive/10 hover:text-destructive",
         )}
       >
@@ -264,21 +265,21 @@ export function ObjectiveKpiCard({
 
       <p
         className={cn(
-          "font-semibold uppercase tracking-wider",
+          "uppercase",
           isBanner
-            ? "text-[10px] leading-none py-[2px] text-muted-foreground dark:text-white/45"
-            : "text-xs leading-none text-muted-foreground",
+            ? "py-[2px] text-[10px] font-medium leading-none tracking-[0.14em] text-white/40"
+            : "text-xs font-semibold leading-none tracking-wider text-muted-foreground",
         )}
       >
         {typeDef?.label ?? "Objective"}
       </p>
 
-      <div className="mt-1 flex items-center gap-2">
-        <Icon className={cn("h-4 w-4 shrink-0", isBanner ? "text-muted-foreground dark:text-white/50" : "text-primary")} />
+      <div className="mt-2 flex items-center gap-2">
+        <Icon className={cn("shrink-0", isBanner ? "h-3.5 w-3.5 text-white/45" : "h-4 w-4 text-primary")} strokeWidth={isBanner ? 1.75 : 2} />
         <span
           className={cn(
-            "text-xl font-semibold tabular-nums leading-none tracking-tight",
-            isBanner ? "text-foreground dark:text-white" : "text-foreground",
+            "font-semibold tabular-nums leading-none tracking-tight",
+            isBanner ? "text-[1.35rem] text-white" : "text-xl text-foreground",
           )}
         >
           {currentValue != null
@@ -290,10 +291,16 @@ export function ObjectiveKpiCard({
             className={cn(
               "text-xs font-semibold tabular-nums",
               progress >= 100
-                ? "text-emerald-600 dark:text-emerald-400"
+                ? isBanner
+                  ? "text-emerald-400"
+                  : "text-emerald-600 dark:text-emerald-400"
                 : progress >= 75
-                  ? "text-amber-600 dark:text-amber-300"
-                  : "text-muted-foreground dark:text-white/50",
+                  ? isBanner
+                    ? "text-amber-300"
+                    : "text-amber-600 dark:text-amber-300"
+                  : isBanner
+                    ? "text-white/45"
+                    : "text-muted-foreground dark:text-white/50",
             )}
           >
             {Math.round(progress)}%
@@ -307,15 +314,19 @@ export function ObjectiveKpiCard({
           <div
             className={cn(
               "h-0.5 w-full overflow-hidden rounded-full",
-              isBanner ? "bg-muted dark:bg-white/10" : "bg-muted",
+              isBanner ? "bg-white/10" : "bg-muted",
             )}
           >
             <div
               className={cn(
                 "h-full rounded-full transition-all duration-500",
                 progress != null && progress >= 100
-                  ? "bg-emerald-500 dark:bg-emerald-400"
-                  : "bg-amber-500 dark:bg-amber-400",
+                  ? isBanner
+                    ? "bg-emerald-400"
+                    : "bg-emerald-500 dark:bg-emerald-400"
+                  : isBanner
+                    ? "bg-amber-400"
+                    : "bg-amber-500 dark:bg-amber-400",
               )}
               style={{ width: `${progress ?? 0}%` }}
             />
@@ -329,7 +340,7 @@ export function ObjectiveKpiCard({
           className={cn(
             "mt-auto pt-3 text-sm font-medium transition-colors",
             isBanner
-              ? "text-muted-foreground hover:text-foreground dark:text-white/40 dark:hover:text-white/70"
+              ? "text-white/45 hover:text-white/80"
               : "text-muted-foreground/80 hover:text-muted-foreground",
           )}
         >

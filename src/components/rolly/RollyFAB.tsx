@@ -67,8 +67,8 @@ export function RollyFAB() {
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
               <div className="flex items-center gap-2">
-                <img src={rollyIcon} alt="ROLLY" className="h-7 w-7 rounded-full" />
-                <span className="font-semibold text-sm text-foreground">ROLLY</span>
+                <img src={rollyIcon} alt="" className="h-7 w-7 rounded-full" />
+                <span className="text-base font-semibold tracking-tight text-foreground">Rolly</span>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
@@ -107,7 +107,7 @@ export function RollyFAB() {
               ✕
             </button>
             <p className="font-medium">Hey! 👋</p>
-            <p className="text-muted-foreground text-xs mt-0.5">Need help with anything? Ask ROLLY.</p>
+            <p className="text-muted-foreground text-sm leading-relaxed mt-0.5">Need help with anything? Ask Rolly.</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -115,7 +115,7 @@ export function RollyFAB() {
       {/* FAB button */}
       <button
         onClick={handleOpen}
-        aria-label={isOpen ? "Close ROLLY" : "Open ROLLY"}
+        aria-label={isOpen ? "Close Rolly" : "Open Rolly"}
         className={cn(
           "fixed z-[59] flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-200 active:scale-95",
           isMobile
@@ -131,7 +131,7 @@ export function RollyFAB() {
         ) : (
           <motion.img
             src={rollyIcon}
-            alt="ROLLY"
+            alt=""
             className="h-10 w-10 invert dark:invert-0"
             animate={{ rotate: [0, 0, 15, -15, 0] }}
             transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 4 }}

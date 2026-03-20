@@ -124,11 +124,11 @@ export function BannerUpload({ artistId, currentBannerUrl, compact }: BannerUplo
           type="button"
           variant="secondary"
           size="icon"
-          className="h-6 w-6 shrink-0 rounded-md border-0 bg-black/40 text-white shadow-sm backdrop-blur-sm hover:bg-black/55 sm:h-6 sm:w-6 md:h-7 md:w-7"
+          className="h-9 w-9 shrink-0 rounded-full border border-white/15 bg-black/30 text-white shadow-none backdrop-blur-md hover:bg-white/10 hover:border-white/25"
           onClick={() => setOpen(true)}
-          aria-label="Change banner image"
+          aria-label="Upload banner image"
         >
-          <Upload className="h-2.5 w-2.5 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3" />
+          <Upload className="h-3.5 w-3.5 opacity-90" strokeWidth={1.75} />
         </Button>
       ) : (
         <Button

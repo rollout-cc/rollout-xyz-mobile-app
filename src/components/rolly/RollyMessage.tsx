@@ -20,9 +20,9 @@ export function RollyMessage({ message, isStreaming }: Props) {
       )}
       <div
         className={cn(
-          "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm",
+          "rolly-conversation-text max-w-[80%] rounded-2xl px-4 py-2.5",
           isUser
-            ? "bg-primary text-primary-foreground rounded-br-md"
+            ? "bg-primary text-primary-foreground rounded-br-md font-medium"
             : "bg-muted text-foreground rounded-bl-md"
         )}
       >
@@ -95,7 +95,7 @@ function TypewriterText({ content, isStreaming }: { content: string; isStreaming
 
   if (fullyRevealed) {
     return (
-      <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-li:my-0.5 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1">
+      <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-li:my-0.5 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-p:leading-relaxed">
         <ReactMarkdown>{content}</ReactMarkdown>
       </div>
     );
@@ -104,7 +104,7 @@ function TypewriterText({ content, isStreaming }: { content: string; isStreaming
   return (
     <div className="whitespace-pre-wrap break-words">
       {content.slice(0, revealed)}
-      <span className="inline-block h-4 w-[2px] bg-foreground/70 rounded-full ml-0.5 align-baseline animate-pulse" />
+      <span className="inline-block h-[1em] min-h-[1rem] w-[2px] bg-foreground/70 rounded-full ml-0.5 align-baseline animate-pulse" />
     </div>
   );
 }

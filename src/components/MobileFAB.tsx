@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Plus, ListTodo, NotebookPen, UserPlus, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useMobileQuickActions } from "@/contexts/MobileQuickActionsContext";
 import { AnimatePresence, motion } from "framer-motion";
 
 interface QuickAction {
@@ -21,9 +22,17 @@ const quickActions: QuickAction[] = [
 ];
 
 export function MobileFAB() {
-  const [isOpen, setIsOpen] = useState(false);
+  const { isOpen, setIsOpen } = useMobileQuickActions();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    if (!isMobile) setIsOpen(false);
+  }, [isMobile, setIsOpen]);
+
+  useEffect(() => {
+    return () => setIsOpen(false);
+  }, [setIsOpen]);
 
   if (!isMobile) return null;
 

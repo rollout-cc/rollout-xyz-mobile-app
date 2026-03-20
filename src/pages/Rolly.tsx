@@ -120,7 +120,8 @@ export default function Rolly() {
 
   return (
     <AppLayout
-      title="ROLLY"
+      title="Rolly"
+      mobileImmersiveDark={isMobile && planMode && mobileTab === "chat"}
       mobileSubnav={
         isMobile ? (
           <div className="flex w-full min-w-0 max-w-full items-center pr-0.5">{rollyMobileTabs}</div>

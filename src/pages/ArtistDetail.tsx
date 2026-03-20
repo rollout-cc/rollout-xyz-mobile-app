@@ -11,7 +11,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DollarSign, Star, RefreshCw, Receipt, MoreVertical, CheckCheck, ChevronRight, ChevronDown } from "lucide-react";
+import { DollarSign, Star, RefreshCw, Receipt, MoreVertical, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -36,7 +36,6 @@ import { ObjectiveKpiCard } from "@/components/artist/ObjectiveKpiCard";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import defaultBanner from "@/assets/default-banner.png";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type TabView = "work" | "links" | "timelines" | "splits";
 type ActiveView = TabView | "money" | "finance" | "budgets" | "objectives" | "information";
@@ -77,14 +76,9 @@ export default function ArtistDetail() {
   const [newCampaignId, setNewCampaignId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState("");
-  const [heroExpanded, setHeroExpanded] = useState(true);
-  const artistMetricsSectionId = "artist-metrics-section";
   const queryClient = useQueryClient();
   const { tryStartPageTour } = useTour();
   useEffect(() => { tryStartPageTour("artist-detail-tour"); }, [tryStartPageTour]);
-  useEffect(() => {
-    setHeroExpanded(true);
-  }, [artistId]);
 
   const handleRefreshSpotify = async () => {
     const result = await refetchSpotify();
@@ -203,12 +197,6 @@ export default function ArtistDetail() {
   };
 
   const heroBannerSrc = hasBanner ? bannerUrl! : defaultBanner;
-  const heroBudgetDisplay =
-    totalBudget >= 1_000_000
-      ? `${(totalBudget / 1_000_000).toFixed(1)}M`
-      : totalBudget >= 1_000
-        ? `${(totalBudget / 1_000).toFixed(0)}K`
-        : totalBudget.toLocaleString();
 
   const isTopView = (v: ActiveView) => ["money", "finance", "budgets", "objectives", "information"].includes(v);
   const handleViewChange = (v: ActiveView) => {
@@ -262,197 +250,177 @@ export default function ArtistDetail() {
         </div>
       }
     >
-      {/* Hero: fixed-height art (never grows); expanded detail is a separate blurred panel below */}
+      {/* Hero: immersive art + fused frosted stats (Spotify / Apple / Revolut–inspired) */}
       <div
-        className="group relative mb-5 block min-w-0 shrink-0 overflow-hidden rounded-lg bg-background shadow-lg dark:bg-neutral-950 sm:mb-6 sm:rounded-xl sm:shadow-xl"
+        className="group relative mb-4 block min-w-0 shrink-0 overflow-hidden rounded-xl bg-[#121212] shadow-[0_16px_48px_-12px_rgba(0,0,0,0.5)] ring-1 ring-black/5 dark:ring-white/[0.06] sm:mb-5"
         data-tour="artist-banner"
       >
-              <div className="relative isolate min-h-[12rem] w-full overflow-hidden sm:min-h-[14rem] lg:min-h-[min(16rem,26vw)]">
-                <img
-                  src={heroBannerSrc}
-                  alt=""
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.015] motion-reduce:transform-none"
-                />
-                <div
-                  className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/72 via-black/28 to-transparent"
-                  aria-hidden
-                />
+        <div className="relative isolate">
+          <div className="relative z-10 min-h-[13.5rem] w-full overflow-hidden sm:min-h-[min(17.5rem,32vw)] lg:min-h-[min(19rem,26vw)]">
+            {/* Image only covers the hero band; object-top keeps the upper portion of the art in frame */}
+            <img
+              src={heroBannerSrc}
+              alt=""
+              className="absolute inset-0 z-0 h-full w-full object-cover object-top transition-transform duration-1000 ease-out group-hover:scale-[1.02] motion-reduce:transform-none"
+            />
+            {/* Figma-style scrim: #121212 @ 0% → 100% opacity for a smooth melt into the stats footer */}
+            <div
+              className="pointer-events-none absolute inset-0 z-[1] bg-[linear-gradient(180deg,rgba(18,18,18,0)_0%,rgba(18,18,18,0)_34%,rgba(18,18,18,0.18)_52%,rgba(18,18,18,0.52)_69%,rgba(18,18,18,0.88)_86%,rgb(18,18,18)_100%)]"
+              aria-hidden
+            />
 
-                <div className="absolute inset-x-0 top-0 z-20 flex items-start justify-end gap-0.5 px-3 pt-2.5 sm:gap-1 sm:px-5 sm:pt-3.5">
-                  <div className="flex shrink-0 items-center gap-0.5 opacity-100 sm:gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
-                    {artist.spotify_id && (
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        className="h-6 w-6 shrink-0 rounded-md border-0 bg-black/40 text-white shadow-sm backdrop-blur-sm hover:bg-black/55 sm:h-6 sm:w-6 md:h-7 md:w-7"
-                        onClick={handleRefreshSpotify}
-                        disabled={isRefreshingSpotify}
-                        aria-label="Refresh Spotify data"
-                      >
-                        <RefreshCw className={`h-2.5 w-2.5 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3 ${isRefreshingSpotify ? "animate-spin" : ""}`} />
-                      </Button>
-                    )}
-                    <BannerUpload artistId={artist.id} currentBannerUrl={artist.banner_url} compact />
+            <div className="absolute inset-x-0 top-0 z-30 flex items-start justify-end gap-1.5 px-3 pt-2.5 sm:px-5 sm:pt-3">
+              <div className="flex shrink-0 items-center gap-1.5">
+                {artist.spotify_id && (
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-9 w-9 shrink-0 rounded-full border border-white/15 bg-black/30 text-white shadow-none backdrop-blur-md hover:bg-white/10 hover:border-white/25"
+                    onClick={handleRefreshSpotify}
+                    disabled={isRefreshingSpotify}
+                    aria-label="Refresh Spotify data"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 opacity-90 ${isRefreshingSpotify ? "animate-spin" : ""}`} strokeWidth={1.75} />
+                  </Button>
+                )}
+                {canEditArtists && <BannerUpload artistId={artist.id} currentBannerUrl={artist.banner_url} compact />}
+              </div>
+            </div>
+
+            <div className="absolute inset-x-0 bottom-0 z-30 px-3 pb-3 pt-10 sm:px-5 sm:pb-4 sm:pt-14">
+              <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                <div className="shrink-0">
+                  <Avatar className="h-14 w-14 border-2 border-white/25 shadow-[0_8px_28px_-6px_rgba(0,0,0,0.6)] ring-2 ring-black/20 sm:h-[4.25rem] sm:w-[4.25rem] md:h-[4.5rem] md:w-[4.5rem]">
+                    <AvatarImage src={avatarUrl ?? undefined} className="object-cover" />
+                    <AvatarFallback className="bg-white/10 text-lg font-semibold text-white sm:text-2xl">
+                      {artist.name[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-pretty text-xl font-bold leading-tight tracking-[-0.02em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)] sm:text-2xl md:text-3xl">
+                    {artist.name}
+                  </h2>
+                  {(artist.genres && artist.genres.length > 0) || listenerStat > 0 ? (
+                    <p className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs leading-snug text-white/55 drop-shadow-[0_1px_8px_rgba(0,0,0,0.5)] sm:text-sm">
+                      {artist.genres && artist.genres.length > 0 && (
+                        <span className="font-medium text-white/70">{artist.genres.slice(0, 2).join(", ")}</span>
+                      )}
+                      {listenerStat > 0 && (
+                        <>
+                          {artist.genres && artist.genres.length > 0 && (
+                            <span className="text-white/30" aria-hidden>
+                              ·
+                            </span>
+                          )}
+                          <span className="tabular-nums text-white/60">
+                            <span className="sm:hidden">
+                              {listenerStatAbbr} {listenerLabel}
+                            </span>
+                            <span className="hidden sm:inline">
+                              {listenerStat.toLocaleString()} {listenerLabel}
+                            </span>
+                          </span>
+                        </>
+                      )}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="relative z-10 isolate min-h-0 overflow-hidden bg-[#121212] text-white antialiased"
+            data-tour="artist-metrics"
+          >
+            <div className="relative z-[1] px-2.5 pb-2.5 pt-2 sm:px-3 sm:pb-3">
+              <div className="grid grid-cols-2 items-stretch gap-1.5 sm:gap-2 lg:grid-cols-4">
+                <div className="flex h-full min-h-[4.5rem] min-w-0 w-full">
+                  <ObjectiveKpiCard
+                    artistId={artist.id}
+                    slot={1}
+                    objectiveType={(artist as any).objective_1_type}
+                    objectiveTarget={(artist as any).objective_1_target}
+                    currentValue={getObjectiveCurrentValue((artist as any).objective_1_type)}
+                    variant="banner"
+                  />
+                </div>
+                <div className="flex h-full min-h-[4.5rem] min-w-0 w-full">
+                  <ObjectiveKpiCard
+                    artistId={artist.id}
+                    slot={2}
+                    objectiveType={(artist as any).objective_2_type}
+                    objectiveTarget={(artist as any).objective_2_target}
+                    currentValue={getObjectiveCurrentValue((artist as any).objective_2_type)}
+                    variant="banner"
+                  />
+                </div>
+                <div
+                  className="flex h-full min-h-[4.5rem] min-w-0 flex-col rounded-lg border border-white/[0.08] bg-white/[0.04] p-3 shadow-none backdrop-blur-xl"
+                  onMouseEnter={(e) => {
+                    const label = e.currentTarget.querySelector("[data-budget-label]") as HTMLElement;
+                    const val = e.currentTarget.querySelector("[data-budget-value]") as HTMLElement;
+                    if (label) label.textContent = "Remaining";
+                    if (val) {
+                      const remaining = totalBudget - totalSpent;
+                      val.textContent =
+                        remaining >= 1_000_000
+                          ? `$${(remaining / 1_000_000).toFixed(1)}M`
+                          : remaining >= 1_000
+                            ? `$${(remaining / 1_000).toFixed(0)}K`
+                            : `$${remaining.toLocaleString()}`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    const label = e.currentTarget.querySelector("[data-budget-label]") as HTMLElement;
+                    const val = e.currentTarget.querySelector("[data-budget-value]") as HTMLElement;
+                    if (label) label.textContent = "Budget";
+                    if (val) {
+                      val.textContent =
+                        totalBudget >= 1_000_000
+                          ? `$${(totalBudget / 1_000_000).toFixed(1)}M`
+                          : totalBudget >= 1_000
+                            ? `$${(totalBudget / 1_000).toFixed(0)}K`
+                            : `$${totalBudget.toLocaleString()}`;
+                    }
+                  }}
+                >
+                  <p
+                    data-budget-label
+                    className="py-[2px] text-[10px] font-medium uppercase leading-none tracking-[0.14em] text-white/40"
+                  >
+                    Budget
+                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <DollarSign className="h-3.5 w-3.5 shrink-0 text-white/45" strokeWidth={1.75} aria-hidden />
+                    <span
+                      data-budget-value
+                      className="text-[1.35rem] font-semibold tabular-nums leading-none tracking-tight text-white"
+                    >
+                      {totalBudget >= 1_000_000
+                        ? `$${(totalBudget / 1_000_000).toFixed(1)}M`
+                        : totalBudget >= 1_000
+                          ? `$${(totalBudget / 1_000).toFixed(0)}K`
+                          : `$${totalBudget.toLocaleString()}`}
+                    </span>
                   </div>
                 </div>
-
-                <div className="absolute inset-x-0 bottom-0 z-20 px-3 pb-3 pt-8 sm:px-5 sm:pb-4 sm:pt-10">
-                  <div className="flex w-full flex-row items-center gap-3 sm:gap-4">
-                    <Avatar className="h-16 w-16 shrink-0 border border-white/20 shadow-sm sm:h-[4.5rem] sm:w-[4.5rem] md:h-[5rem] md:w-[5rem] lg:h-[5.25rem] lg:w-[5.25rem]">
-                      <AvatarImage src={avatarUrl ?? undefined} />
-                      <AvatarFallback className="bg-white/10 text-xl font-semibold text-white sm:text-2xl md:text-3xl">
-                        {artist.name[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1 py-0.5">
-                      <h2 className="truncate text-xl font-semibold leading-[1.15] tracking-tight text-white sm:text-2xl md:text-[1.65rem] lg:text-3xl">
-                        {artist.name}
-                      </h2>
-                      {(artist.genres && artist.genres.length > 0) || listenerStat > 0 ? (
-                        <p className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs leading-snug text-white/55 sm:mt-1 sm:text-[13px]">
-                          {artist.genres && artist.genres.length > 0 && (
-                            <span className="truncate font-normal">{artist.genres.slice(0, 2).join(", ")}</span>
-                          )}
-                          {listenerStat > 0 && (
-                            <>
-                              {artist.genres && artist.genres.length > 0 && (
-                                <span className="shrink-0 text-white/25" aria-hidden>
-                                  ·
-                                </span>
-                              )}
-                              <span className="shrink-0 tabular-nums font-medium text-white/50">
-                                <span className="sm:hidden">
-                                  {listenerStatAbbr} {listenerLabel}
-                                </span>
-                                <span className="hidden sm:inline">
-                                  {listenerStat.toLocaleString()} {listenerLabel}
-                                </span>
-                              </span>
-                            </>
-                          )}
-                        </p>
-                      ) : null}
-                    </div>
+                <div className="flex h-full min-h-[4.5rem] min-w-0 flex-col rounded-lg border border-white/[0.08] bg-white/[0.04] p-3 shadow-none backdrop-blur-xl">
+                  <p className="py-[2px] text-[10px] font-medium uppercase leading-none tracking-[0.14em] text-white/40">
+                    Done
+                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <CheckCheck className="h-3.5 w-3.5 shrink-0 text-white/45" strokeWidth={1.75} aria-hidden />
+                    <span className="text-[1.35rem] font-semibold tabular-nums leading-none tracking-tight text-white">
+                      {completedCount}
+                    </span>
                   </div>
                 </div>
               </div>
-
-              <Collapsible open={heroExpanded} onOpenChange={setHeroExpanded}>
-                <div
-                  className={cn(
-                    "relative z-[1] border-t border-border dark:border-white/10",
-                  )}
-                >
-                  <div className="flex items-stretch gap-2 px-2 py-3 sm:px-2">
-                    <CollapsibleTrigger asChild>
-                      <button
-                        type="button"
-                        className="flex min-w-0 flex-1 items-center gap-2 rounded-md py-1 pl-0.5 pr-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring dark:focus-visible:ring-white/25"
-                        aria-expanded={heroExpanded}
-                        aria-controls={artistMetricsSectionId}
-                      >
-                        <ChevronDown
-                          className={cn(
-                            "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 dark:text-white/50",
-                            heroExpanded && "rotate-180",
-                          )}
-                          aria-hidden
-                        />
-                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-white/45">
-                          Key metrics
-                        </span>
-                      </button>
-                    </CollapsibleTrigger>
-                    <button
-                      type="button"
-                      onClick={() => handleViewChange("objectives")}
-                      className="inline-flex shrink-0 items-center gap-0.5 self-center rounded-md px-2 py-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-white/45 dark:hover:text-white/85 dark:focus-visible:ring-white/25"
-                    >
-                      Objectives
-                      <ChevronRight className="h-3 w-3 opacity-70" aria-hidden />
-                    </button>
-                  </div>
-                </div>
-                <CollapsibleContent
-                  id={artistMetricsSectionId}
-                  className="relative isolate min-h-0 overflow-hidden text-foreground antialiased data-[state=closed]:pointer-events-none data-[state=closed]:hidden dark:text-zinc-50"
-                >
-                  <div className="relative z-[1] px-2 pb-2 pt-2 sm:px-2 sm:pb-2">
-                  <div className="grid grid-cols-2 items-stretch gap-3 lg:grid-cols-4">
-                    <div className="flex h-full min-h-[5rem] min-w-0 w-full">
-                      <ObjectiveKpiCard
-                        artistId={artist.id}
-                        slot={1}
-                        objectiveType={(artist as any).objective_1_type}
-                        objectiveTarget={(artist as any).objective_1_target}
-                        currentValue={getObjectiveCurrentValue((artist as any).objective_1_type)}
-                        variant="banner"
-                      />
-                    </div>
-                    <div className="flex h-full min-h-[5rem] min-w-0 w-full">
-                      <ObjectiveKpiCard
-                        artistId={artist.id}
-                        slot={2}
-                        objectiveType={(artist as any).objective_2_type}
-                        objectiveTarget={(artist as any).objective_2_target}
-                        currentValue={getObjectiveCurrentValue((artist as any).objective_2_type)}
-                        variant="banner"
-                      />
-                    </div>
-                    <div
-                      className="flex h-full min-h-[5rem] min-w-0 flex-col rounded-md border border-border bg-card/90 p-3 text-foreground shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-black/25 dark:shadow-none"
-                      onMouseEnter={(e) => {
-                        const label = e.currentTarget.querySelector("[data-budget-label]") as HTMLElement;
-                        const val = e.currentTarget.querySelector("[data-budget-value]") as HTMLElement;
-                        if (label) label.textContent = "Remaining";
-                        if (val) {
-                          const remaining = totalBudget - totalSpent;
-                          val.textContent =
-                            remaining >= 1_000_000
-                              ? `${(remaining / 1_000_000).toFixed(1)}M`
-                              : remaining >= 1_000
-                                ? `${(remaining / 1_000).toFixed(0)}K`
-                                : remaining.toLocaleString();
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        const label = e.currentTarget.querySelector("[data-budget-label]") as HTMLElement;
-                        const val = e.currentTarget.querySelector("[data-budget-value]") as HTMLElement;
-                        if (label) label.textContent = "Budget";
-                        if (val) val.textContent = heroBudgetDisplay;
-                      }}
-                    >
-                      <p
-                        data-budget-label
-                        className="text-[10px] font-semibold uppercase tracking-wider leading-none py-[2px] text-muted-foreground dark:text-white/45"
-                      >
-                        Budget
-                      </p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <DollarSign className="h-4 w-4 shrink-0 text-muted-foreground dark:text-white/50" aria-hidden />
-                        <span
-                          data-budget-value
-                          className="text-xl font-semibold tabular-nums tracking-tight text-foreground dark:text-white"
-                        >
-                          {heroBudgetDisplay}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex h-full min-h-[5rem] min-w-0 flex-col rounded-md border border-border bg-card/90 p-3 text-foreground shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-black/25 dark:shadow-none">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider leading-none py-[2px] text-muted-foreground dark:text-white/45">
-                        Done
-                      </p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <CheckCheck className="h-4 w-4 shrink-0 text-muted-foreground dark:text-white/50" aria-hidden />
-                        <span className="text-xl font-semibold tabular-nums tracking-tight text-foreground dark:text-white">
-                          {completedCount}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="flex gap-6">

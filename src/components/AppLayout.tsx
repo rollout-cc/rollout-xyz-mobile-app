@@ -30,9 +30,14 @@ interface AppLayoutProps {
   onBack?: () => void;
   /** Optional secondary nav row rendered below the title bar, mobile only. */
   mobileSubnav?: ReactNode;
+  /**
+   * Mobile: remove horizontal page gutters and paint the main column dark edge-to-edge
+   * (e.g. Rolly plan mode) so content can sit under the floating bottom nav visually.
+   */
+  mobileImmersiveDark?: boolean;
 }
 
-export function AppLayout({ children, title, actions, onBack, mobileSubnav }: AppLayoutProps) {
+export function AppLayout({ children, title, actions, onBack, mobileSubnav, mobileImmersiveDark }: AppLayoutProps) {
   const { selectedTeamId, setSelectedTeamId } = useSelectedTeam();
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
@@ -201,7 +206,14 @@ export function AppLayout({ children, title, actions, onBack, mobileSubnav }: Ap
           </header>
 
           {/* Content — bottom padding clears floating tab bar + FAB; horizontal insets follow safe area on notched devices. */}
-          <main className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto scroll-container pt-3 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] pb-[calc(6.25rem+var(--safe-area-inset-bottom))] sm:p-6 sm:pb-6">
+          <main
+            className={cn(
+              "flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto scroll-container",
+              mobileImmersiveDark && isMobile
+                ? "bg-[hsl(0,0%,5%)] pt-3 pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)] pb-[calc(6.25rem+var(--safe-area-inset-bottom))]"
+                : "pt-3 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] pb-[calc(6.25rem+var(--safe-area-inset-bottom))] sm:p-6 sm:pb-6",
+            )}
+          >
             {selectedTeamId && <SupportAccessBanner teamId={selectedTeamId} />}
             {children}
           </main>

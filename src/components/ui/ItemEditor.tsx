@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useItemEditorUi } from "@/contexts/ItemEditorUiContext";
 import { cn, parseDateFromText } from "@/lib/utils";
 import { format } from "date-fns";
 import { CalendarIcon, X } from "lucide-react";
@@ -58,6 +59,7 @@ export function ItemEditor({
   highlightMembers = [],
   highlightCampaigns = [],
 }: ItemEditorProps) {
+  const { beginSuggestions, endSuggestions } = useItemEditorUi();
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [activeTrigger, setActiveTrigger] = useState<TriggerConfig | null>(null);
@@ -135,6 +137,15 @@ export function ItemEditor({
       setDropdownPos(null);
     }
   }, [activeTrigger, filteredItems.length]);
+
+  const suggestionsMenuVisible =
+    !!activeTrigger && filteredItems.length > 0 && dropdownPos != null;
+
+  useEffect(() => {
+    if (!suggestionsMenuVisible) return;
+    beginSuggestions();
+    return () => endSuggestions();
+  }, [suggestionsMenuVisible, beginSuggestions, endSuggestions]);
 
   const selectItem = useCallback(
     (item: SuggestionItem) => {

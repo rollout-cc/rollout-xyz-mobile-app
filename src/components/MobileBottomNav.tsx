@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, FolderOpen, CheckCheck } from "lucide-react";
+import { Building2, FolderOpen, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import rollyIcon from "@/assets/rolly-icon.png";
 import { useSelectedTeam } from "@/contexts/TeamContext";
@@ -19,23 +19,24 @@ export function MobileBottomNav() {
   const items: { to: string; icon: any; label: string; isRolly?: boolean }[] = [];
 
   if (isArtistRole) {
-    // Artist: their artist page as home, My Work, Rolly
+    // Artist: My Work, Artists, (FAB), Company (their artist), Rolly
     const artistHome = assignedArtistIds.length > 0 ? `/roster/${assignedArtistIds[0]}` : "/roster";
-    items.push({ to: artistHome, icon: Home, label: "Home" });
     items.push({ to: "/my-work", icon: CheckCheck, label: "My Work" });
+    items.push({ to: "/roster", icon: FolderOpen, label: "Artists" });
+    items.push({ to: artistHome, icon: Building2, label: "Company" });
     items.push({ to: "/rolly", icon: null, label: "Rolly", isRolly: true });
   } else if (isGuestRole) {
     // Guest: only assigned artists
     items.push({ to: "/roster", icon: FolderOpen, label: "Artists" });
   } else {
-    // Owner/Manager: full nav (Distro lives in desktop sidebar only)
-    items.push({ to: "/overview", icon: Home, label: "Home" });
-    items.push({ to: "/roster", icon: FolderOpen, label: "Artists" });
+    // Owner/Manager: My Work, Artists, (FAB), Company, Rolly — Distro is desktop sidebar only
     items.push({ to: "/my-work", icon: CheckCheck, label: "My Work" });
+    items.push({ to: "/roster", icon: FolderOpen, label: "Artists" });
+    items.push({ to: "/overview", icon: Building2, label: "Company" });
     items.push({ to: "/rolly", icon: null, label: "Rolly", isRolly: true });
   }
 
-  // Split items around the center FAB slot when there are enough items
+  // Split items around the center quick-action FAB (MobileFAB): left | FAB | right
   const useSplit = items.length >= 3;
   const mid = Math.ceil(items.length / 2);
   const leftItems = useSplit ? items.slice(0, mid) : items;

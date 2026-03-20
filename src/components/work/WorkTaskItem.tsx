@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,154 @@ import { cn, formatLocalDate, parseDateFromText } from "@/lib/utils";
 import {
   DragDropContext, Droppable, Draggable, type DropResult,
 } from "@hello-pangea/dnd";
+
+/** Tailwind `md` and below — used for iOS-style list interactions */
+const MOBILE_MAX_CSS = "(max-width: 767px)";
+
+function useIsMobileListLayout() {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia(MOBILE_MAX_CSS).matches : false,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_MAX_CSS);
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return isMobile;
+}
+
+const SWIPE_DELETE_WIDTH = 80;
+const SWIPE_COMMIT_PX = 52;
+
+/**
+ * iOS-style swipe left to reveal delete; release past threshold deletes.
+ * Uses non-passive touchmove so horizontal drag does not scroll the page.
+ */
+function MobileSwipeToDeleteRow({
+  children,
+  onDelete,
+  onSwipeGesture,
+  disabled,
+}: {
+  children: React.ReactNode;
+  onDelete: () => void;
+  onSwipeGesture: () => void;
+  disabled?: boolean;
+}) {
+  const [offset, setOffset] = useState(0);
+  const [transitionOn, setTransitionOn] = useState(true);
+  const offsetRef = useRef(0);
+  const lockRef = useRef<"none" | "horizontal" | "vertical">("none");
+  const startRef = useRef({ x: 0, y: 0, base: 0 });
+  const maxAbsDxRef = useRef(0);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const onDeleteRef = useRef(onDelete);
+  const onSwipeGestureRef = useRef(onSwipeGesture);
+
+  useEffect(() => {
+    onDeleteRef.current = onDelete;
+    onSwipeGestureRef.current = onSwipeGesture;
+  }, [onDelete, onSwipeGesture]);
+
+  useEffect(() => {
+    offsetRef.current = offset;
+  }, [offset]);
+
+  useEffect(() => {
+    const el = sheetRef.current;
+    if (!el || disabled) return;
+
+    const onMove = (e: TouchEvent) => {
+      if (e.touches.length === 0) return;
+      const t = e.touches[0];
+      const dx = t.clientX - startRef.current.x;
+      const dy = t.clientY - startRef.current.y;
+
+      if (lockRef.current === "none") {
+        if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) {
+          lockRef.current = "horizontal";
+        } else if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) {
+          lockRef.current = "vertical";
+          return;
+        } else {
+          return;
+        }
+      }
+
+      if (lockRef.current !== "horizontal") return;
+
+      e.preventDefault();
+      maxAbsDxRef.current = Math.max(maxAbsDxRef.current, Math.abs(dx));
+      const next = Math.min(0, Math.max(-SWIPE_DELETE_WIDTH, startRef.current.base + dx));
+      setOffset(next);
+    };
+
+    const finish = () => {
+      setTransitionOn(true);
+      if (lockRef.current === "horizontal") {
+        if (maxAbsDxRef.current > 14) onSwipeGestureRef.current();
+        const o = offsetRef.current;
+        if (o <= -SWIPE_COMMIT_PX) {
+          onDeleteRef.current();
+        }
+        setOffset(0);
+      }
+      lockRef.current = "none";
+      maxAbsDxRef.current = 0;
+    };
+
+    el.addEventListener("touchmove", onMove, { passive: false });
+    el.addEventListener("touchend", finish);
+    el.addEventListener("touchcancel", finish);
+    return () => {
+      el.removeEventListener("touchmove", onMove);
+      el.removeEventListener("touchend", finish);
+      el.removeEventListener("touchcancel", finish);
+    };
+  }, [disabled]);
+
+  return (
+    <div className="relative overflow-hidden">
+      <div
+        className="absolute inset-y-0 right-0 z-0 flex w-[80px] items-stretch justify-end bg-destructive"
+        aria-hidden
+      >
+        <button
+          type="button"
+          className="flex flex-1 items-center justify-center text-destructive-foreground active:opacity-90"
+          aria-label="Delete task"
+          disabled={disabled}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!disabled) onDeleteRef.current();
+          }}
+        >
+          <Trash2 className="h-5 w-5" />
+        </button>
+      </div>
+      <div
+        ref={sheetRef}
+        onTouchStart={(e) => {
+          if (disabled) return;
+          const t = e.touches[0];
+          lockRef.current = "none";
+          maxAbsDxRef.current = 0;
+          setTransitionOn(false);
+          startRef.current = { x: t.clientX, y: t.clientY, base: offsetRef.current };
+        }}
+        style={{
+          transform: `translate3d(${offset}px,0,0)`,
+          transition: transitionOn ? "transform 0.2s ease-out" : "none",
+        }}
+        className="relative z-[1] min-w-0 bg-background touch-pan-y"
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 /* ── Task List with drag-and-drop (optional) ── */
 
@@ -114,6 +262,7 @@ export function WorkTaskItem({
   onCancel,
 }: WorkTaskItemProps) {
   const queryClient = useQueryClient();
+  const isMobileListLayout = useIsMobileListLayout();
 
   const { data: fetchedCampaigns = [] } = useQuery({
     queryKey: ["initiatives", artistId],
@@ -327,6 +476,11 @@ export function WorkTaskItem({
     },
   });
 
+  const swipeSuppressUntil = useRef(0);
+  const onMobileSwipeGesture = useCallback(() => {
+    swipeSuppressUntil.current = Date.now() + 450;
+  }, []);
+
   const parseAndSubmit = useCallback(() => {
     if (!title.trim()) return;
     let parsed_title = title.trim();
@@ -460,7 +614,7 @@ export function WorkTaskItem({
               placeholder="Task title… @ assign, # campaign, $ budget"
               autoFocus={autoFocus || showNew || isEditing}
               triggers={triggers}
-              className="text-[15px] font-medium leading-snug"
+              className="text-[14px] font-medium leading-snug"
               enableDateDetection
               onDateParsed={setParsedDate}
               parsedDate={parsedDate}
@@ -580,34 +734,19 @@ export function WorkTaskItem({
 
   const hasFilledMeta = assignee?.full_name || task.due_date || campaign || (task.expense_amount != null && task.expense_amount > 0);
 
-  const compactMetaParts: string[] = [];
-  if (task.due_date) {
-    compactMetaParts.push(format(new Date(`${task.due_date}T00:00:00`), "MMM d"));
-  }
-  if (assignee?.full_name) compactMetaParts.push(assignee.full_name);
-  if (campaign) compactMetaParts.push(`#${campaign.name}`);
-  if (task.expense_amount != null && task.expense_amount > 0) {
-    compactMetaParts.push(`$${task.expense_amount.toLocaleString()}`);
-  }
-  const compactMetaLine = compactMetaParts.join(" · ");
-  const descTrim = (task.description || "").trim();
-  const mobileCollapsedSubtitle =
-    hasFilledMeta && descTrim
-      ? `${compactMetaLine} · ${descTrim}`
-      : hasFilledMeta
-        ? compactMetaLine
-        : descTrim || null;
-
-  return (
+  const readModeRow = (
     <div
       className={cn(
-        "flex items-start gap-2 py-1.5 md:gap-3 md:py-3.5 group cursor-pointer",
+        "flex items-center gap-2 py-1.5 md:gap-3 md:py-3.5 group cursor-pointer",
         task?.is_completed && "opacity-50",
         task?.priority === 1 && "border-l-2 border-red-500 pl-2",
         task?.priority === 2 && "border-l-2 border-amber-400 pl-2",
         task?.priority === 3 && "border-l-2 border-emerald-500 pl-2",
       )}
-      onClick={enterEdit}
+      onClick={() => {
+        if (Date.now() < swipeSuppressUntil.current) return;
+        enterEdit();
+      }}
     >
       {dragHandleProps != null && (
         <div
@@ -620,7 +759,7 @@ export function WorkTaskItem({
       )}
 
       <div
-        className="shrink-0 mt-px md:mt-[2px] flex items-center justify-center min-h-9 min-w-9 md:min-h-[28px] md:min-w-[28px]"
+        className="shrink-0 flex items-center justify-center min-h-9 min-w-9 md:min-h-[28px] md:min-w-[28px]"
         onClick={(e) => e.stopPropagation()}
       >
         <Checkbox checked={task.is_completed} onCheckedChange={() => toggleTask.mutate()} />
@@ -633,18 +772,13 @@ export function WorkTaskItem({
           )}
           <p
             className={cn(
-              "text-[13px] md:text-[15px] font-medium leading-tight md:leading-snug min-w-0",
+              "text-[14px] font-medium leading-snug min-w-0",
               task.is_completed ? "line-through text-muted-foreground" : "text-foreground"
             )}
           >
             {task.title}
           </p>
         </div>
-        {mobileCollapsedSubtitle && (
-          <p className="md:hidden text-[11px] text-muted-foreground mt-0.5 leading-tight line-clamp-1">
-            {mobileCollapsedSubtitle}
-          </p>
-        )}
         {task.description && (
           <p className="hidden md:block text-sm text-muted-foreground mt-0.5 leading-snug line-clamp-2">
             {task.description}
@@ -674,20 +808,22 @@ export function WorkTaskItem({
           </div>
         )}
       </div>
-
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          deleteTask.mutate();
-        }}
-        className="shrink-0 flex items-center justify-center min-h-9 min-w-9 md:min-h-8 md:min-w-8 -mr-1 mt-px md:mt-0.5 rounded-lg text-muted-foreground/30 md:text-muted-foreground/25 hover:text-destructive hover:bg-destructive/5 active:text-destructive active:bg-destructive/5 transition-colors"
-        aria-label="Delete task"
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
     </div>
   );
+
+  if (isMobileListLayout) {
+    return (
+      <MobileSwipeToDeleteRow
+        onDelete={() => deleteTask.mutate()}
+        onSwipeGesture={onMobileSwipeGesture}
+        disabled={deleteTask.isPending}
+      >
+        {readModeRow}
+      </MobileSwipeToDeleteRow>
+    );
+  }
+
+  return readModeRow;
 }
 
 /** Small metadata chip that replaces a toolbar icon when metadata is detected */

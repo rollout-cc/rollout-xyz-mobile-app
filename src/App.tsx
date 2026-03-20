@@ -16,6 +16,8 @@ import { RoleGate } from "@/components/RoleGate";
 import { toast } from "sonner";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { ItemEditorUiProvider } from "@/contexts/ItemEditorUiContext";
+import { MobileQuickActionsProvider } from "@/contexts/MobileQuickActionsContext";
 import { OwnershipTransferBanner } from "@/components/OwnershipTransferBanner";
 
 // Lazy-loaded pages
@@ -161,12 +163,16 @@ const App = () => (
             <ScrollToTop />
             <ErrorBoundary fallbackMessage="Something went wrong. Please reload the page.">
               <UnhandledRejectionHandler />
-              <TourProvider>
-                <TourOverlay />
-                <AppRoutes />
-                <FeedbackWidget />
-                <OwnershipTransferBanner />
-              </TourProvider>
+              <ItemEditorUiProvider>
+                <MobileQuickActionsProvider>
+                  <TourProvider>
+                    <TourOverlay />
+                    <AppRoutes />
+                    <FeedbackWidget />
+                    <OwnershipTransferBanner />
+                  </TourProvider>
+                </MobileQuickActionsProvider>
+              </ItemEditorUiProvider>
             </ErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>

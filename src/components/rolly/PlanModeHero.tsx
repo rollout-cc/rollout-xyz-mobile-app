@@ -35,7 +35,7 @@ export function PlanModeHero() {
   const showCursor = charIndex < TYPEWRITER_TEXT.length;
 
   return (
-    <div className="flex flex-col items-start justify-end h-full px-4 pb-6 animate-fade-in">
+    <div className="flex flex-col items-start justify-end h-full w-full pb-6 animate-fade-in">
       <div className="space-y-5 w-full">
         {/* Typewriter heading */}
         <h2
@@ -49,7 +49,7 @@ export function PlanModeHero() {
         </h2>
 
         {/* Subtitle */}
-        <p className="text-[15px] text-white/60 max-w-[300px] leading-relaxed font-medium">
+        <p className="text-sm text-white/60 max-w-[min(20rem,88vw)] leading-relaxed">
           {SUBTITLE}
         </p>
 

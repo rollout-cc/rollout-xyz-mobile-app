@@ -219,7 +219,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
                 >
                   <img 
                     src={rollyIcon} 
-                    alt="ROLLY" 
+                    alt="" 
                     className="h-7 w-7 rounded-full shrink-0 object-contain invert dark:invert-0 transition-transform duration-500 ease-linear group-hover:rotate-180"
                   />
                   <span>Rolly</span>
@@ -237,7 +237,7 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
                     >
                       <img 
                         src={rollyIcon} 
-                        alt="ROLLY" 
+                        alt="" 
                         className="h-6 w-6 shrink-0 object-contain invert dark:invert-0 transition-transform duration-500 ease-linear group-hover:rotate-180"
                       />
                     </motion.button>
