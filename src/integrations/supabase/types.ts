@@ -2651,6 +2651,42 @@ export type Database = {
           },
         ]
       }
+      team_applications: {
+        Row: {
+          company_name: string
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       team_memberships: {
         Row: {
           assists_user_id: string | null
