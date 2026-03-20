@@ -128,6 +128,71 @@ function SearchableCombobox({
   );
 }
 
+/* ─── Pending Applications ─── */
+function PendingApplicationsSection() {
+  const { user } = useAuth();
+  const [apps, setApps] = useState<any[]>([]);
+  const [loadingApps, setLoadingApps] = useState(true);
+
+  const loadApps = async () => {
+    setLoadingApps(true);
+    const { data } = await (supabase as any)
+      .from("team_applications")
+      .select("*")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+    setApps(data || []);
+    setLoadingApps(false);
+  };
+
+  useEffect(() => { loadApps(); }, []);
+
+  const updateStatus = async (id: string, status: string) => {
+    await (supabase as any)
+      .from("team_applications")
+      .update({ status, reviewed_at: new Date().toISOString(), reviewed_by: user?.id })
+      .eq("id", id);
+    toast.success(status === "approved" ? "Application approved" : "Application dismissed");
+    loadApps();
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><Inbox className="h-5 w-5" /> Pending Applications</CardTitle>
+        <CardDescription>People who requested access to Rollout</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {loadingApps ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : apps.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No pending applications.</p>
+        ) : (
+          <div className="space-y-3">
+            {apps.map((app: any) => (
+              <div key={app.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{app.full_name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{app.email}</p>
+                  <p className="text-xs text-muted-foreground">{app.company_name} · {new Date(app.created_at).toLocaleDateString()}</p>
+                </div>
+                <div className="flex gap-2 shrink-0 ml-3">
+                  <Button size="sm" variant="outline" onClick={() => updateStatus(app.id, "approved")}>
+                    <Check className="h-3.5 w-3.5 mr-1" /> Approve
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => updateStatus(app.id, "dismissed")}>
+                    <X className="h-3.5 w-3.5 mr-1" /> Dismiss
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Admin() {
   const { user, loading } = useAuth();
   const isAdmin = useIsAdmin();
