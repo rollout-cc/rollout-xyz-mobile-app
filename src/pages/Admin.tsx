@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, UserPlus, Building2, ArrowRightLeft, Gift, Headset, LogOut, Check, ChevronsUpDown, ChevronDown, Settings2 } from "lucide-react";
+import { Shield, UserPlus, Building2, ArrowRightLeft, Gift, Headset, LogOut, Check, ChevronsUpDown, ChevronDown, Settings2, Inbox, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
