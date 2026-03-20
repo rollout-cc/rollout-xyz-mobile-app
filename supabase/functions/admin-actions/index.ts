@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
             body: JSON.stringify({
               from: "Rollout <accounts@rollout.cc>",
               to: [email],
-              subject: `Welcome to Rollout${team_name ? ` — ${team_name}` : ""}`,
+              subject: `Welcome to Rollout, ${full_name.split(" ")[0]}!`,
               html: `
 <!DOCTYPE html>
 <html><body style="margin:0;padding:0;background:#f5f5f0;font-family:Arial,sans-serif;">
@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
   </td></tr></table>
 </td></tr>
 <tr><td style="padding-top:32px;text-align:center;">
-  <p style="margin:0;font-size:12px;color:#999;">ROLLOUT</p>
+  <img src="https://ctnsworqzzguykzzvdme.supabase.co/storage/v1/object/public/email-assets/rollout-logo.png" alt="ROLLOUT" height="24" style="display:inline-block;" />
 </td></tr>
 </table>
 </td></tr></table>

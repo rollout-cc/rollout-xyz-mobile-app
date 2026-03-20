@@ -35,7 +35,7 @@ const PublicAgenda = React.lazy(() => import("./pages/PublicAgenda"));
 const JoinTeam = React.lazy(() => import("./pages/JoinTeam"));
 const Staff = React.lazy(() => import("./pages/Staff"));
 const StaffDetail = React.lazy(() => import("./pages/StaffDetail"));
-const ARList = React.lazy(() => import("./pages/ARList"));
+
 const Rolly = React.lazy(() => import("./pages/Rolly"));
 const Distribution = React.lazy(() => import("./pages/Distribution"));
 const ApproveSplit = React.lazy(() => import("./pages/ApproveSplit"));
@@ -125,8 +125,6 @@ function AppRoutes() {
         <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
         <Route path="/staff" element={<Navigate to="/overview" replace />} />
         <Route path="/staff/:memberId" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager"]}><StaffDetail /></RoleGate></ProtectedRoute>} />
-        <Route path="/ar" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager"]}><ARList /></RoleGate></ProtectedRoute>} />
-        <Route path="/ar/:prospectId" element={<Navigate to="/ar" replace />} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/settings/team" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager"]}><TeamSettings /></RoleGate></ProtectedRoute>} />
         <Route path="/settings/billing" element={<ProtectedRoute><RoleGate allow={["team_owner"]}><BillingPage /></RoleGate></ProtectedRoute>} />
