@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { LayoutGrid, ChevronsUpDown, Building2, ClipboardList, Users, CheckCheck, PanelLeftOpen, PanelRightOpen, Settings, User, CreditCard, Sparkles, Disc3 } from "lucide-react";
+import { LayoutGrid, ChevronsUpDown, Building2, ClipboardList, Users, CheckCheck, PanelLeftOpen, PanelRightOpen, Settings, User, CreditCard, Sparkles, Disc3, Home, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import rolloutLogo from "@/assets/rollout-logo.png";
 import rolloutFlag from "@/assets/rollout-flag.svg";
@@ -45,8 +45,9 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
     if (isArtistRole) {
       const artistHome = assignedArtistIds.length > 0 ? `/roster/${assignedArtistIds[0]}` : "/roster";
       return [
-        { to: artistHome, icon: Building2, label: "My Artist", tourId: "nav-artists" },
+        { to: artistHome, icon: Home, label: "Home", tourId: "nav-artists" },
         { to: "/my-work", icon: CheckCheck, label: "My Work", tourId: "nav-mywork" },
+        { to: "/roster?tab=outreach", icon: Globe, label: "Outreach", tourId: "nav-outreach" },
       ];
     }
     if (isGuestRole) {

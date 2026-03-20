@@ -61,7 +61,7 @@ function sortArtists(list: any[], sort: SortOption): any[] {
 export default function Roster() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { selectedTeamId } = useSelectedTeam();
+  const { selectedTeamId, isArtistRole } = useSelectedTeam();
   const isMobile = useIsMobile();
   const { data: artists = [], isLoading } = useArtists(selectedTeamId);
   const { data: folders = [] } = useRosterFolders(selectedTeamId);
@@ -87,7 +87,8 @@ export default function Roster() {
 
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<"roster" | "ar" | "outreach">(
-    searchParams.get("tab") === "ar" || (location.state as Record<string, unknown>)?.openAddProspect ? "ar" 
+    isArtistRole ? "outreach"
+    : searchParams.get("tab") === "ar" || (location.state as Record<string, unknown>)?.openAddProspect ? "ar" 
     : searchParams.get("tab") === "outreach" ? "outreach" : "roster"
   );
   const [showAddArtist, setShowAddArtist] = useState(false);
@@ -329,8 +330,9 @@ export default function Roster() {
 
   // Main roster view with DnD
   return (
-    <AppLayout title="Artists" mobileSubnav={mobileRosterSubnav}>
+    <AppLayout title={isArtistRole ? "Outreach" : "Artists"} mobileSubnav={!isArtistRole ? mobileRosterSubnav : undefined}>
       {/* Tabs + Sort row — desktop layout */}
+      {!isArtistRole && (
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
         {/* Desktop tab bar — hidden on mobile (mobile uses header subnav) */}
         <div className="hidden sm:flex items-center gap-1 h-9" data-tour="roster-tabs-desktop">
@@ -380,6 +382,7 @@ export default function Roster() {
         </div>
         )}
       </div>
+      )}
 
       {activeTab === "ar" ? (
         <ARContent openNew={openNewProspect} onNewHandled={() => setOpenNewProspect(false)} />
