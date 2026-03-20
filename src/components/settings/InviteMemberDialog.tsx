@@ -226,7 +226,21 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
               {/* Job Title */}
               <div className="space-y-2">
                 <Label>Job Title</Label>
-                <JobTitleSelect value={jobTitle} onChange={setJobTitle} />
+                <JobTitleSelect value={jobTitle} onChange={(title) => {
+                  setJobTitle(title);
+                  const titlePerms = jobTitlePermissions(title);
+                  const rPerms = roleDefaults(inviteRole);
+                  setPermissions({
+                    perm_view_finance: rPerms.perm_view_finance || titlePerms.perm_view_finance,
+                    perm_manage_finance: rPerms.perm_manage_finance || titlePerms.perm_manage_finance,
+                    perm_view_staff_salaries: rPerms.perm_view_staff_salaries || titlePerms.perm_view_staff_salaries,
+                    perm_view_ar: rPerms.perm_view_ar || titlePerms.perm_view_ar,
+                    perm_view_roster: rPerms.perm_view_roster || titlePerms.perm_view_roster,
+                    perm_edit_artists: rPerms.perm_edit_artists || titlePerms.perm_edit_artists,
+                    perm_view_billing: rPerms.perm_view_billing || titlePerms.perm_view_billing,
+                    perm_distribution: rPerms.perm_distribution || titlePerms.perm_distribution,
+                  });
+                }} />
               </div>
 
               {/* Permission toggles */}
