@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { LayoutGrid, ChevronsUpDown, Building2, ClipboardList, Users, CheckCheck, PanelLeftOpen, PanelRightOpen, Settings, User, CreditCard, Sparkles, Disc3 } from "lucide-react";
+import { LayoutGrid, ChevronsUpDown, Building2, ClipboardList, Users, CheckCheck, PanelLeftOpen, PanelRightOpen, Settings, User, CreditCard, Sparkles, Disc3, Home, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import rolloutLogo from "@/assets/rollout-logo.png";
 import rolloutFlag from "@/assets/rollout-flag.svg";
