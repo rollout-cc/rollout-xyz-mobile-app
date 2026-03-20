@@ -125,8 +125,6 @@ function AppRoutes() {
         <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
         <Route path="/staff" element={<Navigate to="/overview" replace />} />
         <Route path="/staff/:memberId" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager"]}><StaffDetail /></RoleGate></ProtectedRoute>} />
-        <Route path="/ar" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager"]}><ARList /></RoleGate></ProtectedRoute>} />
-        <Route path="/ar/:prospectId" element={<Navigate to="/ar" replace />} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/settings/team" element={<ProtectedRoute><RoleGate allow={["team_owner", "manager"]}><TeamSettings /></RoleGate></ProtectedRoute>} />
         <Route path="/settings/billing" element={<ProtectedRoute><RoleGate allow={["team_owner"]}><BillingPage /></RoleGate></ProtectedRoute>} />
