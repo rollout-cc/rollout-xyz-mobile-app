@@ -332,6 +332,7 @@ export default function Roster() {
   return (
     <AppLayout title={isArtistRole ? "Outreach" : "Artists"} mobileSubnav={!isArtistRole ? mobileRosterSubnav : undefined}>
       {/* Tabs + Sort row — desktop layout */}
+      {!isArtistRole && (
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
         {/* Desktop tab bar — hidden on mobile (mobile uses header subnav) */}
         <div className="hidden sm:flex items-center gap-1 h-9" data-tour="roster-tabs-desktop">
@@ -381,6 +382,7 @@ export default function Roster() {
         </div>
         )}
       </div>
+      )}
 
       {activeTab === "ar" ? (
         <ARContent openNew={openNewProspect} onNewHandled={() => setOpenNewProspect(false)} />
