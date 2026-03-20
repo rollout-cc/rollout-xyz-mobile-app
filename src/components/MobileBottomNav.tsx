@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Building2, FolderOpen, CheckCheck } from "lucide-react";
+import { Home, Globe, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import rollyIcon from "@/assets/rolly-icon.png";
 import { useSelectedTeam } from "@/contexts/TeamContext";
