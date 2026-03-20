@@ -158,12 +158,12 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     if (isManager) {
       return {
         canViewCompany: true,
-        canViewFinance: true,
+        canViewFinance: !!membershipPerms?.perm_view_finance || isFinanceJobTitle,
         canManageFinance: !!membershipPerms?.perm_manage_finance || isFinanceJobTitle,
         canViewStaffSalaries: !!membershipPerms?.perm_view_staff_salaries,
-        canViewAR: true,
-        canViewRoster: true,
-        canEditArtists: true,
+        canViewAR: !!membershipPerms?.perm_view_ar,
+        canViewRoster: !!membershipPerms?.perm_view_roster,
+        canEditArtists: !!membershipPerms?.perm_edit_artists,
         canViewBilling: !!membershipPerms?.perm_view_billing,
         canDistribute: !!membershipPerms?.perm_distribution,
       };
