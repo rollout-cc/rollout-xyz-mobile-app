@@ -1,77 +1,35 @@
 
 
-# Admin Console UX Overhaul + Ownership Transfer Notifications
+## Plan: Fix Welcome Email Subject + Remove A&R Route (Keep A&R Feature)
 
-## Summary
+### 1. Fix Welcome Email Subject Line
+**File:** `supabase/functions/admin-actions/index.ts`
 
-Three changes: (1) replace all UUID inputs with searchable dropdowns, (2) streamline Create User to auto-create team+trial when role is Owner, (3) send email + in-app notification when ownership is transferred.
+The subject currently says: `Welcome to Rollout — ${team_name}` (e.g., "Welcome to Rollout — Slatersworld").
 
----
+Change to: `Welcome to Rollout, ${full_name.split(' ')[0]}!` (e.g., "Welcome to Rollout, Donny!") — uses the person's first name instead of the company name.
 
-## 1. Searchable Dropdowns — Replace All UUID Inputs
+### 2. Fix Welcome Email Logo (broken image)
+Upload the rollout flag image to the `email-assets` storage bucket so the `<img>` tag in the email resolves correctly. Update the `src` URL if needed.
 
-Add two new actions to the `admin-actions` edge function: `list_users` and `list_teams`. These return `[{id, label}]` arrays (name + email for users, team name for teams).
+### 3. Replace Footer Plain-Text "ROLLOUT" with Logo Image
+Replace the text-based "ROLLOUT" footer with an `<img>` tag pointing to the hosted wordmark (same logo used in the admin console header).
 
-In `Admin.tsx`, replace every UUID `<Input>` with a Combobox (Popover + Command pattern) that searches by name. The UUID is stored internally but never shown to the admin.
+### 4. Remove `/ar` Route from App.tsx — Keep All A&R Components
+**File:** `src/App.tsx`
+- Remove the `ARList` lazy import (line 38)
+- Remove the `/ar` route (line 128) and `/ar/:prospectId` route (line 129)
 
-**Affected fields:**
-- Create Team → "Owner" (search users by name/email)
-- Grant Trial → "Team" (search teams by name)
-- Transfer Ownership → "Team" and "New Owner" (search both)
-- Support Access → "Team" (search teams by name)
+**File:** `src/pages/ARList.tsx` — Delete this file (it just redirects to `/roster?tab=ar`)
 
-**Success messages** will show human names instead of UUIDs.
+**Keep everything else:** All A&R components (`ARContent`, `PipelineBoard`, `ProspectTable`, `ProspectDrawer`, `NewProspectDialog`, `DealTermsCard`), the `useProspects` hook, and the A&R tab inside the Roster page remain fully intact.
 
----
+### 5. Clean Up Unused Import
+**File:** `src/components/AppSidebar.tsx`
+- Remove `Radar` from the lucide-react import if it's no longer used anywhere.
 
-## 2. Streamlined Create User Flow
-
-Add a **Role** dropdown to the Create User form with options: Owner, Manager, Artist, Guest.
-
-When "Owner" is selected, show an inline **Team Name** field and a **Trial Days** field (default 30).
-
-On submit, the backend `create_user` action will:
-1. Create the auth user
-2. If `team_name` is provided: create team, add membership as `team_owner` with all permissions, grant trial
-3. Return `{ user_id, email, full_name, team_name }` — no UUIDs in the toast
-
-This mirrors the existing onboarding flow but driven by the admin.
-
----
-
-## 3. Ownership Transfer Email + In-App Pop-up
-
-When the admin initiates a transfer via the `initiate_transfer` action:
-
-**Email**: The edge function sends a branded email (via Resend, same pattern as `send-notification`) to the new owner with:
-- Subject: "You've been given ownership of [Team Name] on Rollout"
-- Body: explains they're now the owner, Rollout cannot access their data without consent, and a CTA button linking to `/accept-ownership/{token}`
-
-**In-app notification**: Add a `pending_ownership_transfers` check to the authenticated app shell. When a user logs in and has a pending transfer for their `user_id`, show a prominent banner/dialog that:
-- Explains they've been given ownership
-- Shows the same privacy acknowledgment as the AcceptOwnership page
-- Lets them accept inline (calls `accept_transfer`) or click through to the full page
-
-This ensures the new owner sees it both via email and the next time they open Rollout.
-
----
-
-## Files Changed
-
-| File | Change |
-|---|---|
-| `supabase/functions/admin-actions/index.ts` | Add `list_users`, `list_teams` actions; extend `create_user` to accept `role`, `team_name`, `trial_days`; add email send on `initiate_transfer` via Resend |
-| `src/pages/Admin.tsx` | Replace all UUID inputs with searchable Combobox; add Role + Team Name fields to Create User; update success toasts to show names |
-| `src/components/OwnershipTransferBanner.tsx` | New component — checks for pending transfers on mount, shows a dialog/banner with accept flow |
-| `src/App.tsx` | Render `<OwnershipTransferBanner />` in the authenticated layout alongside `<FeedbackWidget />` |
-
----
-
-## Technical Details
-
-**Combobox pattern**: Uses existing shadcn `Popover` + `Command` components. On open, calls `adminAction("list_users")` or `adminAction("list_teams")`. Filters client-side. Displays `Name (email)` or team name. Stores UUID internally.
-
-**Email sending**: The `initiate_transfer` action in the edge function will look up the recipient's email from `auth.admin.getUserById()`, then POST to Resend API using the existing `RESEND_API_KEY` secret. Uses the same branded flat-beige template style as other Rollout emails.
-
-**In-app banner**: `OwnershipTransferBanner` queries `team_ownership_transfers` where `to_user_id = auth.uid()` and `status = 'pending'`. If found, renders a full-screen dialog (not dismissable) with the accept flow. After accepting, the dialog closes and the page refreshes.
+### Summary of What's Preserved
+- A&R Signings tab inside the Artists (Roster) page — fully functional
+- All prospect CRUD, pipeline board, Spotify search, deal terms
+- The `/roster?tab=ar` URL still works to deep-link to the A&R tab
 
