@@ -61,7 +61,7 @@ function sortArtists(list: any[], sort: SortOption): any[] {
 export default function Roster() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { selectedTeamId } = useSelectedTeam();
+  const { selectedTeamId, isArtistRole } = useSelectedTeam();
   const isMobile = useIsMobile();
   const { data: artists = [], isLoading } = useArtists(selectedTeamId);
   const { data: folders = [] } = useRosterFolders(selectedTeamId);
