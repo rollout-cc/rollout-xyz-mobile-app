@@ -6,7 +6,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { ARContent } from "@/components/ar/ARContent";
 import { MarketingOutreach } from "@/components/outreach/MarketingOutreach";
 import { useArtists, useCreateArtist, useDeleteArtist } from "@/hooks/useArtists";
-import { useCreateTeam } from "@/hooks/useTeams";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { useRosterFolders, useCreateRosterFolder, useDeleteRosterFolder, useSetArtistFolder } from "@/hooks/useRosterFolders";
 import { useTeamPlan } from "@/hooks/useTeamPlan";
@@ -68,7 +67,6 @@ export default function Roster() {
   const { data: folders = [] } = useRosterFolders(selectedTeamId);
   const createArtist = useCreateArtist();
   const deleteArtist = useDeleteArtist();
-  const createTeam = useCreateTeam();
   const createFolder = useCreateRosterFolder();
   const deleteFolder = useDeleteRosterFolder();
   const setArtistFolder = useSetArtistFolder();
@@ -141,17 +139,14 @@ export default function Roster() {
     [artists]
   );
 
-  const ensureTeam = async (): Promise<string> => {
-    if (selectedTeamId) return selectedTeamId;
-    const team = await createTeam.mutateAsync({ name: "My Team" });
-    return team.id;
-  };
-
   const handleAddToRoster = async (artist: { id: string; name: string; genres: string[]; images: { url: string }[] }) => {
+    if (!selectedTeamId) {
+      toast.error("Your account is pending approval.");
+      return;
+    }
     try {
-      const teamId = await ensureTeam();
       await createArtist.mutateAsync({
-        team_id: teamId,
+        team_id: selectedTeamId,
         name: artist.name,
         avatar_url: artist.images?.[0]?.url,
         spotify_id: artist.id,
@@ -164,9 +159,12 @@ export default function Roster() {
   };
 
   const handleCreateManual = async (name: string) => {
+    if (!selectedTeamId) {
+      toast.error("Your account is pending approval.");
+      return;
+    }
     try {
-      const teamId = await ensureTeam();
-      await createArtist.mutateAsync({ team_id: teamId, name });
+      await createArtist.mutateAsync({ team_id: selectedTeamId, name });
       toast.success(`${name} created!`);
     } catch (err: any) {
       toast.error(err.message);

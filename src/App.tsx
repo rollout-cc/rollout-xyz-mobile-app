@@ -83,15 +83,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
-  if (user) return <Navigate to="/roster" replace />;
+  const { data: teams, isLoading: teamsLoading } = useTeams();
+  if (loading || (user && teamsLoading)) return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+  if (user) return <Navigate to={teams && teams.length > 0 ? "/roster" : "/onboarding"} replace />;
   return <>{children}</>;
 }
 
 function RootRedirect() {
   const { user, loading } = useAuth();
-  if (loading) return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
-  if (user) return <Navigate to="/roster" replace />;
+  const { data: teams, isLoading: teamsLoading } = useTeams();
+  if (loading || (user && teamsLoading)) return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+  if (user) return <Navigate to={teams && teams.length > 0 ? "/roster" : "/onboarding"} replace />;
   return <Navigate to="/login" replace />;
 }
 

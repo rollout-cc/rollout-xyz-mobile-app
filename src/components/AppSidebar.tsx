@@ -1,7 +1,6 @@
-import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { LayoutGrid, Plus, ChevronsUpDown, Building2, ClipboardList, Users, CheckCheck, PanelLeftOpen, PanelRightOpen, Settings, User, CreditCard, Sparkles, Disc3 } from "lucide-react";
+import { LayoutGrid, ChevronsUpDown, Building2, ClipboardList, Users, CheckCheck, PanelLeftOpen, PanelRightOpen, Settings, User, CreditCard, Sparkles, Disc3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import rolloutLogo from "@/assets/rollout-logo.png";
 import rolloutFlag from "@/assets/rollout-flag.svg";
@@ -23,19 +22,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useTeams, useCreateTeam } from "@/hooks/useTeams";
-import { toast } from "sonner";
+import { useTeams } from "@/hooks/useTeams";
 
 interface AppSidebarProps {
   selectedTeamId: string | null;
@@ -45,9 +33,6 @@ interface AppSidebarProps {
 export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
   const navigate = useNavigate();
   const { data: teams = [] } = useTeams();
-  const createTeam = useCreateTeam();
-  const [showCreateTeam, setShowCreateTeam] = useState(false);
-  const [newTeamName, setNewTeamName] = useState("");
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
@@ -55,19 +40,6 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
   const { isArtistRole, isGuestRole, assignedArtistIds, canViewFinance, canViewStaffSalaries, canViewAR, canViewRoster, canDistribute, persona, assistsUserName } = useSelectedTeam();
 
   const selectedTeam = teams.find((t) => t.id === selectedTeamId);
-
-  const handleCreateTeam = async () => {
-    if (!newTeamName.trim()) return;
-    try {
-      const team = await createTeam.mutateAsync({ name: newTeamName.trim() });
-      onSelectTeam(team.id);
-      setShowCreateTeam(false);
-      setNewTeamName("");
-      toast.success("Team created!");
-    } catch (err: any) {
-      toast.error(err.message);
-    }
-  };
 
   const navItems = (() => {
     if (isArtistRole) {
@@ -185,10 +157,6 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
                     {team.name}
                   </DropdownMenuItem>
                 ))}
-                <DropdownMenuItem onClick={() => setShowCreateTeam(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create team
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -308,24 +276,6 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
         </SidebarContent>
       </Sidebar>
 
-      <Dialog open={showCreateTeam} onOpenChange={setShowCreateTeam}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create team</DialogTitle>
-            <DialogDescription>Add a new team to manage artists.</DialogDescription>
-          </DialogHeader>
-          <Input
-            value={newTeamName}
-            onChange={(e) => setNewTeamName(e.target.value)}
-            placeholder="Team name"
-            onKeyDown={(e) => e.key === "Enter" && handleCreateTeam()}
-          />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateTeam(false)}>Cancel</Button>
-            <Button onClick={handleCreateTeam} disabled={createTeam.isPending}>Continue</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

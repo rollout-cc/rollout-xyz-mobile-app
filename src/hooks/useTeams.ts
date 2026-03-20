@@ -40,6 +40,10 @@ export function useCreateTeam() {
 
   return useMutation({
     mutationFn: async ({ name, companyType }: { name: string; companyType?: string }) => {
+      const { data: isPlatformAdmin, error: adminError } = await supabase.rpc("is_platform_admin", { p_user_id: user!.id });
+      if (adminError) throw adminError;
+      if (!isPlatformAdmin) throw new Error("Only approved admin provisioning can create teams.");
+
       // Create team
       const { data: team, error: teamError } = await supabase
         .from("teams")
