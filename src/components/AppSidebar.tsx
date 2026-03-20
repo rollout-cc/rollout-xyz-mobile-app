@@ -45,8 +45,9 @@ export function AppSidebar({ selectedTeamId, onSelectTeam }: AppSidebarProps) {
     if (isArtistRole) {
       const artistHome = assignedArtistIds.length > 0 ? `/roster/${assignedArtistIds[0]}` : "/roster";
       return [
-        { to: artistHome, icon: Building2, label: "My Artist", tourId: "nav-artists" },
+        { to: artistHome, icon: Home, label: "Home", tourId: "nav-artists" },
         { to: "/my-work", icon: CheckCheck, label: "My Work", tourId: "nav-mywork" },
+        { to: "/roster?tab=outreach", icon: Globe, label: "Outreach", tourId: "nav-outreach" },
       ];
     }
     if (isGuestRole) {

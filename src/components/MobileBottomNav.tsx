@@ -19,11 +19,10 @@ export function MobileBottomNav() {
   const items: { to: string; icon: any; label: string; isRolly?: boolean }[] = [];
 
   if (isArtistRole) {
-    // Artist: My Work, Artists, (FAB), Company (their artist), Rolly
     const artistHome = assignedArtistIds.length > 0 ? `/roster/${assignedArtistIds[0]}` : "/roster";
     items.push({ to: "/my-work", icon: CheckCheck, label: "My Work" });
-    items.push({ to: "/roster", icon: FolderOpen, label: "Artists" });
-    items.push({ to: artistHome, icon: Building2, label: "Company" });
+    items.push({ to: artistHome, icon: Home, label: "Home" });
+    items.push({ to: "/roster?tab=outreach", icon: Globe, label: "Outreach" });
     items.push({ to: "/rolly", icon: null, label: "Rolly", isRolly: true });
   } else if (isGuestRole) {
     // Guest: only assigned artists
