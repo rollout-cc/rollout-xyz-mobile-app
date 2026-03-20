@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
             body: JSON.stringify({
               from: "Rollout <accounts@rollout.cc>",
               to: [email],
-              subject: `Welcome to Rollout${team_name ? ` — ${team_name}` : ""}`,
+              subject: `Welcome to Rollout, ${full_name.split(" ")[0]}!`,
               html: `
 <!DOCTYPE html>
 <html><body style="margin:0;padding:0;background:#f5f5f0;font-family:Arial,sans-serif;">
