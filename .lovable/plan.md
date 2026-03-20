@@ -1,40 +1,24 @@
 
 
-# Artist Role Access Control — Implementation Plan
+# Updated Cleanup Plan — Add Company Finance Reset
 
-## What We're Fixing
+## Addition to Previous Plan
 
-Artists currently see the full roster list, A&R Signings tab, and "Company" in mobile nav. They should only see: **Home** (their artist profile), **My Work**, **Outreach**, and **Rolly**.
+On top of deleting Cool Guy Records and wiping Club Hous artist dummy data, also reset company finance for Club Hous:
 
-## Changes
+### What gets reset
+- **`teams.annual_budget`** → set to `NULL` (currently $500,000)
+- **`company_budget_categories`** → delete all 6 rows for Club Hous team
+- **`company_expenses`** → already empty, no action needed
 
-### 1. Sidebar — Update artist nav items
-**File**: `src/components/AppSidebar.tsx`
+### Implementation
+Add these statements to the same database migration:
 
-- Rename "My Artist" to **"Home"** (keep `Building2` icon or switch to `Home` icon)
-- Add **"Outreach"** nav item linking to `/roster?tab=outreach` with `Globe` icon
+```sql
+-- Reset Club Hous company finance
+DELETE FROM company_budget_categories WHERE team_id = 'c6bed68e-7740-4b31-af16-b619126d1fe6';
+UPDATE teams SET annual_budget = NULL WHERE id = 'c6bed68e-7740-4b31-af16-b619126d1fe6';
+```
 
-### 2. Mobile Bottom Nav — Fix artist items
-**File**: `src/components/MobileBottomNav.tsx`
-
-Replace current artist items with:
-- **My Work** → `/my-work`
-- **Home** → `/roster/:artistId` (their profile)
-- **Outreach** → `/roster?tab=outreach`
-- **Rolly**
-
-### 3. Roster Page — Hide tabs for artist role
-**File**: `src/pages/Roster.tsx`
-
-When `isArtistRole`:
-- Force `activeTab` to `"outreach"`
-- Hide the tab bar entirely
-- Only render `<MarketingOutreach />`
-- Show page title as "Outreach"
-
-### Technical Details
-
-- No database changes — purely UI/routing
-- Uses existing `isArtistRole` and `assignedArtistIds` from `useSelectedTeam()`
-- Import `Globe` and `Home` icons from `lucide-react`
+This goes into the single migration alongside the Cool Guy Records deletion and Club Hous artist data wipe from the previously approved plan.
 
