@@ -46,7 +46,7 @@ export default function Login() {
         return;
       }
       if (signUpData.user) {
-        // Insert application row
+        // Insert application row before anything else
         const { error: appError } = await supabase.from("team_applications" as any).insert({
           user_id: signUpData.user.id,
           email: email.trim(),
@@ -56,6 +56,9 @@ export default function Login() {
         if (appError) {
           console.error("Failed to insert application:", appError);
         }
+        // Sign out immediately so auto-confirm doesn't redirect the user
+        // into the app. They'll see the confirmation message here instead.
+        await supabase.auth.signOut();
         setSubmitted(true);
       }
     } catch (err: any) {
