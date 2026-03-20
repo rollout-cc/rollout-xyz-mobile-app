@@ -5,7 +5,6 @@ import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { ChevronRight } from "lucide-react";
 import rolloutLogo from "@/assets/rollout-logo.png";
 import { Capacitor } from "@capacitor/core";
 import { Keyboard } from "@capacitor/keyboard";
@@ -18,7 +17,9 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,20 +29,37 @@ export default function Login() {
     setLoading(false);
   };
 
-  const handleEmailSignup = async (e: React.FormEvent) => {
+  const handleRequestAccess = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { data: signUpData, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-      },
-    });
-    if (error) {
-      toast.error(error.message);
-    } else if (signUpData.user) {
-      toast.success("Account created!");
+    try {
+      const { data: signUpData, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName },
+        },
+      });
+      if (error) {
+        toast.error(error.message);
+        setLoading(false);
+        return;
+      }
+      if (signUpData.user) {
+        // Insert application row
+        const { error: appError } = await supabase.from("team_applications" as any).insert({
+          user_id: signUpData.user.id,
+          email: email.trim(),
+          full_name: fullName.trim(),
+          company_name: companyName.trim(),
+        } as any);
+        if (appError) {
+          console.error("Failed to insert application:", appError);
+        }
+        setSubmitted(true);
+      }
+    } catch (err: any) {
+      toast.error(err.message);
     }
     setLoading(false);
   };
@@ -72,9 +90,6 @@ export default function Login() {
     else toast.success("Password reset email sent!");
   };
 
-  // On iOS, the Capacitor Keyboard plugin + scrollEnabled:false can prevent the
-  // keyboard from appearing when focusing inputs. Enabling WebView scroll for
-  // this screen restores native behavior so tap-to-focus shows the keyboard.
   useEffect(() => {
     if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "ios") return;
     Keyboard.setScroll({ isDisabled: false });
@@ -84,16 +99,9 @@ export default function Login() {
   }, []);
 
   return (
-    // h-dvh = dynamic viewport height: adjusts when the iOS keyboard appears,
-    // unlike min-h-screen / 100vh which are fixed to the layout viewport.
     <div className="flex h-dvh">
-
       {/* Left panel – form */}
       <div className="flex flex-1 flex-col justify-between bg-[hsl(35,25%,91%)] px-8 sm:px-16 lg:px-24 overflow-y-auto">
-        {/*
-          Safe-area spacer: absorbs the Dynamic Island / notch height on iOS
-          (same pattern used by AppLayout's header). Zero height on desktop.
-        */}
         <div className="safe-area-top" aria-hidden="true" />
 
         <div className="py-10 sm:py-12">
@@ -175,13 +183,31 @@ export default function Login() {
                   Sign in with Apple
                 </Button>
               </form>
+
+              <button
+                type="button"
+                onClick={() => setMode("signup")}
+                className="text-sm text-muted-foreground hover:text-foreground mt-6 transition-colors touch-manipulation"
+              >
+                Don't have an account? Request access →
+              </button>
+            </div>
+          ) : submitted ? (
+            <div className="max-w-md">
+              <h2 className="text-2xl font-semibold text-foreground mb-3">You're all set!</h2>
+              <p className="text-muted-foreground leading-relaxed mb-6">
+                Your team account is being set up and we will reach out to onboard you shortly.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Keep an eye on your inbox at <span className="font-medium text-foreground">{email}</span> — a member of our team will be in touch soon.
+              </p>
             </div>
           ) : (
             <div className="max-w-md">
-              <h2 className="text-2xl font-semibold text-foreground mb-2">Try for free</h2>
-              <p className="text-sm text-muted-foreground mb-6">Start your 30-day free trial. No credit card required.</p>
+              <h2 className="text-2xl font-semibold text-foreground mb-2">Request Access</h2>
+              <p className="text-sm text-muted-foreground mb-6">Tell us about your company and we'll get you set up.</p>
 
-              <form onSubmit={handleEmailSignup} className="flex flex-col gap-4">
+              <form onSubmit={handleRequestAccess} className="flex flex-col gap-4">
                 <Input
                   type="text"
                   inputMode="text"
@@ -191,6 +217,17 @@ export default function Login() {
                   onChange={(e) => setFullName(e.target.value)}
                   required
                   placeholder="Full Name"
+                  className="h-12 rounded-lg border-[hsl(0,0%,75%)] bg-transparent text-foreground placeholder:text-muted-foreground touch-manipulation"
+                />
+                <Input
+                  type="text"
+                  inputMode="text"
+                  autoComplete="organization"
+                  autoCorrect="off"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  required
+                  placeholder="Company Name"
                   className="h-12 rounded-lg border-[hsl(0,0%,75%)] bg-transparent text-foreground placeholder:text-muted-foreground touch-manipulation"
                 />
                 <Input
@@ -220,7 +257,7 @@ export default function Login() {
                   disabled={loading}
                   className="h-12 rounded-full bg-foreground text-background hover:bg-foreground/90 font-medium mt-2 touch-manipulation"
                 >
-                  {loading ? "Creating account..." : "Start Free Trial"}
+                  {loading ? "Submitting..." : "Request Access"}
                 </Button>
 
                 <button

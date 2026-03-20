@@ -28,7 +28,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Copy, Check, Mail } from "lucide-react";
 import { toast } from "sonner";
-import { PermissionToggles, defaultPermissions, roleDefaults, type PermissionFlags } from "@/components/settings/PermissionToggles";
+import { PermissionToggles, defaultPermissions, roleDefaults, jobTitlePermissions, type PermissionFlags } from "@/components/settings/PermissionToggles";
 
 const roleLabelMap: Record<string, string> = {
   team_owner: "Team Owner",
