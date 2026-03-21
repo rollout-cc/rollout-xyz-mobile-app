@@ -474,7 +474,13 @@ export default function JoinTeam() {
               </div>
 
               <div className="flex gap-3">
-                <Button variant="ghost" onClick={() => setStep("artists")}
+                <Button variant="ghost" onClick={() => {
+                    if (joinResult?.artists && joinResult.artists.length > 0) {
+                      setStep("artists");
+                    } else {
+                      setStep("welcome");
+                    }
+                  }}
                   className="flex-1 h-12 rounded-full text-[hsl(0,0%,55%)] hover:text-[hsl(40,30%,90%)] hover:bg-[hsl(0,0%,15%)]">
                   Skip
                 </Button>
