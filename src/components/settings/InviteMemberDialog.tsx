@@ -78,6 +78,23 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [permissions, setPermissions] = useState<PermissionFlags>({ ...roleDefaults("manager") });
+  const [artistAccess, setArtistAccess] = useState<ArtistAccess[]>([]);
+
+  const showArtistPicker = inviteRole === "artist" || inviteRole === "guest";
+
+  const { data: teamArtists = [] } = useQuery({
+    queryKey: ["team-artists-for-invite", teamId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("artists")
+        .select("id, name, avatar_url")
+        .eq("team_id", teamId!)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!teamId && showArtistPicker,
+  });
 
   const hasEmail = inviteEmail.trim().length > 0;
 
