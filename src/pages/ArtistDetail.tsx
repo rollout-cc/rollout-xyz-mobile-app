@@ -466,6 +466,12 @@ export default function ArtistDetail() {
               </div>
 
               <div className="hidden items-center gap-2 sm:flex sm:gap-3">
+                {activeView === "work" && (
+                  <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setTranscriptOpen(true)}>
+                    <Mic className="h-3 w-3" />
+                    Import Transcript
+                  </Button>
+                )}
                 <label className="flex items-center gap-1.5 cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Completed
                   <Switch checked={showCompleted} onCheckedChange={setShowCompleted} />
