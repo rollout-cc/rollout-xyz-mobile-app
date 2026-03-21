@@ -26,9 +26,13 @@ import { JobTitleSelect } from "@/components/ui/JobTitleSelect";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Copy, Check, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { PermissionToggles, defaultPermissions, roleDefaults, jobTitlePermissions, type PermissionFlags } from "@/components/settings/PermissionToggles";
+
+type ArtistAccess = { artistId: string; level: "view_access" | "full_access" };
 
 const roleLabelMap: Record<string, string> = {
   team_owner: "Team Owner",
