@@ -120,7 +120,7 @@ export default function JoinTeam() {
         throw new Error(data.error);
       }
       setJoinResult(data);
-      setStep("profile");
+      setStep("personal");
     } catch (err: any) {
       setError(err.message || "Failed to accept invite");
       toast.error(err.message || "Failed to accept invite");
