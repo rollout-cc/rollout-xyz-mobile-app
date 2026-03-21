@@ -233,11 +233,13 @@ export default function JoinTeam() {
         shoe_size: shoeSize || null,
         dietary_restrictions: dietaryRestrictions || null,
       } as any).eq("id", user!.id);
-      // If there's a job title, show invitee onboarding; otherwise skip to artists
+      // If there's a job title, show invitee onboarding; otherwise check artists
       if (joinResult?.job_title) {
         setStep("onboarding");
-      } else {
+      } else if (joinResult?.artists && joinResult.artists.length > 0) {
         setStep("artists");
+      } else {
+        setStep("welcome");
       }
     } catch (err: any) {
       toast.error(err.message);
