@@ -3,8 +3,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSelectedTeam } from "@/contexts/TeamContext";
 import { useQueryClient } from "@tanstack/react-query";
 
-export type RollyMessage = { role: "user" | "assistant"; content: string };
+export type RollyMessageContent =
+  | string
+  | Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }>;
+
+export type RollyMessage = {
+  role: "user" | "assistant";
+  content: RollyMessageContent;
+  /** Optional image data URI for display in user bubbles */
+  imagePreview?: string;
+};
+
 export type RollyToolAction = { tool: string; success: boolean; message: string; data?: any };
+
+/** Extract plain text from a message content field */
+export function getMessageText(content: RollyMessageContent): string {
+  if (typeof content === "string") return content;
+  const textPart = content.find((p) => p.type === "text");
+  return textPart && "text" in textPart ? textPart.text : "";
+}
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rolly-chat`;
 
@@ -16,13 +33,33 @@ export function useRollyChat(planMode: boolean = false) {
   const { selectedTeamId } = useSelectedTeam();
   const queryClient = useQueryClient();
 
-  const send = useCallback(async (input: string) => {
+  const send = useCallback(async (input: string, imageData?: { base64: string; mimeType: string }) => {
+    const text = input || (imageData ? "What's in this image?" : "");
+    if (!text && !imageData) return;
+
     // Prefix with plan mode hint if active (hidden from display)
-    const contentForApi = planMode ? `[PLAN MODE] ${input}` : input;
-    const userMsg: RollyMessage = { role: "user", content: contentForApi };
-    // Display version without the prefix
-    const displayMsg: RollyMessage = { role: "user", content: input };
-    
+    const textForApi = planMode ? `[PLAN MODE] ${text}` : text;
+
+    // Build the API content — multimodal array if image is attached
+    let apiContent: RollyMessageContent;
+    if (imageData) {
+      apiContent = [
+        { type: "image_url", image_url: { url: `data:${imageData.mimeType};base64,${imageData.base64}` } },
+        { type: "text", text: textForApi },
+      ];
+    } else {
+      apiContent = textForApi;
+    }
+
+    const userMsg: RollyMessage = { role: "user", content: apiContent };
+
+    // Display version — show text without plan prefix, plus image preview
+    const displayMsg: RollyMessage = {
+      role: "user",
+      content: text,
+      imagePreview: imageData ? `data:${imageData.mimeType};base64,${imageData.base64}` : undefined,
+    };
+
     const updatedMessages = [...messages, userMsg];
     setMessages(prev => [...prev, displayMsg]);
     setIsLoading(true);

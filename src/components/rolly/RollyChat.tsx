@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { Send, Square, Trash2, CheckCircle2, AlertCircle, ClipboardList, Camera } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Send, Square, Trash2, CheckCircle2, AlertCircle, ClipboardList, Camera, X } from "lucide-react";
 import rollyIcon from "@/assets/rolly-icon.png";
 import { PlanWizard } from "@/components/rolly/PlanWizard";
 import { PlanModeHero } from "@/components/rolly/PlanModeHero";
@@ -8,11 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { RollyMessage } from "./RollyMessage";
 import { useRollyChat, RollyToolAction } from "@/hooks/useRollyChat";
 import { cn } from "@/lib/utils";
-import { ReceiptScanner } from "@/components/finance/ReceiptScanner";
-import { supabase } from "@/integrations/supabase/client";
-import { useSelectedTeam } from "@/contexts/TeamContext";
-import { useQuery } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { VoiceInputButton } from "@/components/ui/VoiceInputButton";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -20,11 +15,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 /** Upper bound (px) for composer height before inner scroll; viewport cap keeps long drafts from hiding the thread. */
 const ROLLY_INPUT_MAX_HEIGHT = 360;
 
-/**
- * Mobile Plan Mode uses AppLayout `mobileImmersiveDark`: main only applies raw safe-area insets, not the usual 1rem page gutter.
- * Standard Rolly mobile is inset by max(1rem,safe) on main plus px-4 here. This restores the missing gutter so hero + composer
- * line up when toggling Plan Mode.
- */
 const ROLLY_PLAN_MOBILE_SYNC_GUTTERS =
   "pl-[calc(max(1rem,env(safe-area-inset-left,0px))+1rem-env(safe-area-inset-left,0px))] pr-[calc(max(1rem,env(safe-area-inset-right,0px))+1rem-env(safe-area-inset-right,0px))]";
 
@@ -35,6 +25,50 @@ function capRollyComposerHeightPx(scrollHeight: number): number {
   if (typeof window === "undefined") return Math.min(scrollHeight, ROLLY_INPUT_MAX_HEIGHT);
   const byViewport = Math.round(window.innerHeight * 0.45);
   return Math.min(scrollHeight, ROLLY_INPUT_MAX_HEIGHT, byViewport);
+}
+
+const MAX_IMAGE_SIZE = 1024 * 1024; // 1MB
+
+/** Compress / resize an image file to a max 1MB base64 data URI */
+async function compressImage(file: File): Promise<{ base64: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let { width, height } = img;
+
+        // Scale down if needed
+        const maxDim = 1600;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Try quality levels until under 1MB
+        let quality = 0.85;
+        let dataUrl = canvas.toDataURL("image/jpeg", quality);
+        while (dataUrl.length > MAX_IMAGE_SIZE * 1.37 && quality > 0.3) {
+          quality -= 0.15;
+          dataUrl = canvas.toDataURL("image/jpeg", quality);
+        }
+
+        const base64 = dataUrl.split(",")[1];
+        resolve({ base64, mimeType: "image/jpeg" });
+      };
+      img.onerror = reject;
+      img.src = reader.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 const QUICK_ACTIONS = [
@@ -65,29 +99,17 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
   const setPlanMode = (val: boolean) => onPlanModeChange?.(val);
   const { messages, isLoading, send, stop, clear, lastActions } = useRollyChat(planMode);
   const [input, setInput] = useState("");
-  const [showScanner, setShowScanner] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Image attachment state
+  const [pendingImage, setPendingImage] = useState<{ base64: string; mimeType: string; previewUrl: string } | null>(null);
 
   const voice = useVoiceInput({
     onResult: (text) => {
       setInput((prev) => (prev ? prev + " " + text : text));
     },
-  });
-  const { selectedTeamId } = useSelectedTeam();
-
-  // Fetch artists for receipt → expense linking
-  const { data: artists = [] } = useQuery({
-    queryKey: ["rolly-receipt-artists", selectedTeamId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("artists")
-        .select("id, name")
-        .eq("team_id", selectedTeamId!)
-        .order("name");
-      return data ?? [];
-    },
-    enabled: !!selectedTeamId,
   });
 
   // Expose send function to parent
@@ -121,17 +143,38 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
     });
   }, [input, wizardActive]);
 
+  const handleImageSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input so re-selecting same file works
+    e.target.value = "";
+    try {
+      const compressed = await compressImage(file);
+      setPendingImage({
+        ...compressed,
+        previewUrl: `data:${compressed.mimeType};base64,${compressed.base64}`,
+      });
+    } catch (err) {
+      console.error("Image compression failed:", err);
+    }
+  }, []);
+
   const handleSend = () => {
     const text = input.trim();
-    if (!text || isLoading) return;
+    if (!text && !pendingImage) return;
+    if (isLoading) return;
     setInput("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
+
     // In plan mode, route the first message to the wizard instead of chat
-    if (planMode && onPlanMessage) {
+    if (planMode && onPlanMessage && !pendingImage) {
       onPlanMessage(text);
       return;
     }
-    send(text);
+
+    const imageData = pendingImage ? { base64: pendingImage.base64, mimeType: pendingImage.mimeType } : undefined;
+    setPendingImage(null);
+    send(text, imageData);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -142,8 +185,7 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
   };
 
   const isEmpty = messages.length === 0;
-  /** Single-line-ish composer — keep vertical footprint small on mobile. */
-  const composerIdle = isEmpty && !input.trim();
+  const composerIdle = isEmpty && !input.trim() && !pendingImage;
 
   const toolIconBtn = planMode
     ? "h-9 w-9 shrink-0 rounded-lg text-white/60 hover:bg-white/12 hover:text-white focus-visible:ring-white/30 [&_svg]:stroke-[2]"
@@ -265,6 +307,16 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
       </div>
       )}
 
+      {/* Hidden file input for image capture/upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleImageSelect}
+      />
+
       {/* Input area — hidden during wizard */}
       {!wizardActive && (
         <div
@@ -284,6 +336,24 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
             )}
           >
             <div className="flex min-w-0 flex-col gap-1 p-2 sm:p-2.5">
+              {/* Image preview */}
+              {pendingImage && (
+                <div className="relative inline-block self-start ml-1">
+                  <img
+                    src={pendingImage.previewUrl}
+                    alt="Attached"
+                    className="h-20 w-auto rounded-lg object-cover ring-1 ring-border/40"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPendingImage(null)}
+                    className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background shadow-sm hover:bg-foreground/80"
+                    aria-label="Remove image"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
               <Textarea
                 ref={textareaRef}
                 value={input}
@@ -293,7 +363,7 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
                   e.target.style.height = `${capRollyComposerHeightPx(e.target.scrollHeight)}px`;
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder={planMode ? "Describe your project…" : "Ask Rolly anything…"}
+                placeholder={pendingImage ? "Add a message about this image…" : planMode ? "Describe your project…" : "Ask Rolly anything…"}
                 rows={1}
                 aria-label={planMode ? "Plan description" : "Message to Rolly"}
                 className={cn(
@@ -349,9 +419,9 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
                     size="icon"
                     variant="ghost"
                     className={toolIconBtn}
-                    onClick={() => setShowScanner(true)}
-                    title="Scan receipt"
-                    aria-label="Scan receipt"
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Attach image"
+                    aria-label="Attach image"
                   >
                     <Camera className="h-[17px] w-[17px]" />
                   </Button>
@@ -382,7 +452,7 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
                           : "bg-primary text-primary-foreground hover:bg-primary/92 disabled:border disabled:border-border disabled:bg-muted disabled:text-muted-foreground"
                       )}
                       onClick={handleSend}
-                      disabled={!input.trim()}
+                      disabled={!input.trim() && !pendingImage}
                       aria-label="Send message"
                     >
                       <Send className="h-[17px] w-[17px] stroke-[2.25]" />
@@ -394,33 +464,6 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
           </div>
         </div>
       )}
-
-      <ReceiptScanner
-        open={showScanner}
-        onOpenChange={setShowScanner}
-        onConfirm={async (data) => {
-          // If there's only one artist, auto-assign; otherwise tell user
-          if (artists.length === 0) {
-            toast.error("Add an artist first to log expenses");
-            return;
-          }
-          const artistId = artists.length === 1 ? artists[0].id : artists[0].id;
-          const insert: any = {
-            artist_id: artistId,
-            description: data.description,
-            amount: -Math.abs(data.amount),
-            transaction_date: data.date,
-            type: "expense",
-          };
-          const { error } = await supabase.from("transactions").insert(insert);
-          if (error) {
-            toast.error(error.message);
-          } else {
-            toast.success(`Expense added: $${data.amount.toFixed(2)} — ${data.description}`);
-            send(`I just logged a $${data.amount.toFixed(2)} expense for "${data.description}" from a receipt scan. Any thoughts on categorization or budgeting?`);
-          }
-        }}
-      />
     </div>
   );
 }
