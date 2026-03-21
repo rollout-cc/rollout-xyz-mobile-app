@@ -12,10 +12,10 @@
  *   0 */12 * * * /usr/bin/node /path/to/rollout-bug-scanner.js >> /var/log/rollout-scanner.log 2>&1
  */
 
-const { Octokit } = require("@octokit/rest");
-const fetch = require("node-fetch");
-const fs = require("fs");
-const path = require("path");
+import { Octokit } from '@octokit/rest';
+import fetch from 'node-fetch';
+import fs from 'fs';
+import path from 'path';
 
 // CONFIG
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
