@@ -1344,6 +1344,60 @@ export type Database = {
           },
         ]
       }
+      meeting_transcripts: {
+        Row: {
+          artist_id: string | null
+          created_at: string
+          created_by: string
+          extracted_tasks: Json | null
+          id: string
+          raw_text: string
+          source: string
+          status: string
+          team_id: string
+          title: string | null
+        }
+        Insert: {
+          artist_id?: string | null
+          created_at?: string
+          created_by: string
+          extracted_tasks?: Json | null
+          id?: string
+          raw_text: string
+          source?: string
+          status?: string
+          team_id: string
+          title?: string | null
+        }
+        Update: {
+          artist_id?: string | null
+          created_at?: string
+          created_by?: string
+          extracted_tasks?: Json | null
+          id?: string
+          raw_text?: string
+          source?: string
+          status?: string
+          team_id?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_transcripts_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_transcripts_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       milestone_folders: {
         Row: {
           created_at: string

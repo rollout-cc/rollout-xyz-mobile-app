@@ -11,7 +11,9 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DollarSign, Star, RefreshCw, Receipt, MoreVertical, CheckCheck } from "lucide-react";
+import { DollarSign, Star, RefreshCw, Receipt, MoreVertical, CheckCheck, Mic } from "lucide-react";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { ImportTranscriptDialog } from "@/components/meetings/ImportTranscriptDialog";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -76,6 +78,7 @@ export default function ArtistDetail() {
   const [newCampaignId, setNewCampaignId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState("");
+  const [transcriptOpen, setTranscriptOpen] = useState(false);
   const queryClient = useQueryClient();
   const { tryStartPageTour } = useTour();
   useEffect(() => { tryStartPageTour("artist-detail-tour"); }, [tryStartPageTour]);
@@ -463,6 +466,12 @@ export default function ArtistDetail() {
               </div>
 
               <div className="hidden items-center gap-2 sm:flex sm:gap-3">
+                {activeView === "work" && (
+                  <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setTranscriptOpen(true)}>
+                    <Mic className="h-3 w-3" />
+                    Import Transcript
+                  </Button>
+                )}
                 <label className="flex items-center gap-1.5 cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Completed
                   <Switch checked={showCompleted} onCheckedChange={setShowCompleted} />
@@ -491,9 +500,15 @@ export default function ArtistDetail() {
                     Show Completed
                   </DropdownMenuCheckboxItem>
                   {activeView === "work" && (
-                    <DropdownMenuCheckboxItem checked={showArchived} onCheckedChange={setShowArchived}>
-                      Show Archived
-                    </DropdownMenuCheckboxItem>
+                    <>
+                      <DropdownMenuCheckboxItem checked={showArchived} onCheckedChange={setShowArchived}>
+                        Show Archived
+                      </DropdownMenuCheckboxItem>
+                      <DropdownMenuItem onClick={() => setTranscriptOpen(true)}>
+                        <Mic className="h-4 w-4 mr-2" />
+                        Import Transcript
+                      </DropdownMenuItem>
+                    </>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -551,6 +566,7 @@ export default function ArtistDetail() {
         </div>
       </div>
       <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} feature={upgradeFeature} />
+      <ImportTranscriptDialog open={transcriptOpen} onOpenChange={setTranscriptOpen} artistId={artist.id} teamId={artist.team_id} />
     </AppLayout>
   );
 }
