@@ -252,8 +252,14 @@ export default function JoinTeam() {
     await queryClient.invalidateQueries({ queryKey: ["teams"] });
     const teamName = joinResult?.team_name || invitePreview?.team_name;
     toast.success(`Welcome to ${teamName}!`);
-    const route = getDepartmentRoute(joinResult?.job_title || invitePreview?.role);
-    navigate(route, { replace: true });
+    // Artists go straight to their assigned artist profile
+    const isArtist = (joinResult?.role || invitePreview?.role) === "artist";
+    if (isArtist && joinResult?.artists && joinResult.artists.length > 0) {
+      navigate(`/roster/${joinResult.artists[0].id}`, { replace: true });
+    } else {
+      const route = getDepartmentRoute(joinResult?.job_title || invitePreview?.role);
+      navigate(route, { replace: true });
+    }
   };
 
   const roleLabel = (role: string) => {
