@@ -148,4 +148,4 @@ async function runScan() {
   return report;
 }
 
-runScan().catch(console.error);
+runScan().catch(err => { console.error('SCANNER ERROR:', err); process.exit(1); });
