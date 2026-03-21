@@ -78,6 +78,7 @@ export default function ArtistDetail() {
   const [newCampaignId, setNewCampaignId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState("");
+  const [transcriptOpen, setTranscriptOpen] = useState(false);
   const queryClient = useQueryClient();
   const { tryStartPageTour } = useTour();
   useEffect(() => { tryStartPageTour("artist-detail-tour"); }, [tryStartPageTour]);
