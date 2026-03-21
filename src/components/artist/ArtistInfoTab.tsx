@@ -240,7 +240,7 @@ function MemberCard({
               <Field label="KTN Number" value={member.ktn_number ?? ""} placeholder="Enter KTN number" onSave={(v) => onUpdate({ ktn_number: v })} />
               <Field label="Driver's License #" value={(member as any).drivers_license ?? ""} placeholder="Enter license number" onSave={(v) => onUpdate({ drivers_license: v })} />
               <SelectField label="Preferred Seat" value={member.preferred_seat ?? ""} options={["Window", "Middle", "Aisle"]} placeholder="Select seat" onSave={(v) => onUpdate({ preferred_seat: v })} />
-              <Field label="Preferred Airline" value={member.preferred_airline ?? ""} placeholder="e.g. Delta, United" onSave={(v) => onUpdate({ preferred_airline: v })} />
+              <SelectField label="Preferred Airline" value={member.preferred_airline ?? ""} options={AIRLINES} placeholder="Select airline" onSave={(v) => onUpdate({ preferred_airline: v })} />
               <Field label="Passport Name" value={member.passport_name ?? ""} placeholder="Enter passport name" onSave={(v) => onUpdate({ passport_name: v })} />
               <Field label="Dietary Restrictions" value={member.dietary_restrictions ?? ""} placeholder="Enter dietary restrictions" onSave={(v) => onUpdate({ dietary_restrictions: v })} />
               <div className="sm:col-span-2">
