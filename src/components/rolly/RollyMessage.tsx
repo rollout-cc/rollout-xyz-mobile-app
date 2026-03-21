@@ -1,5 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import type { RollyMessage as RollyMessageType } from "@/hooks/useRollyChat";
+import { getMessageText } from "@/hooks/useRollyChat";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState, useCallback } from "react";
 
@@ -10,6 +11,7 @@ interface Props {
 
 export function RollyMessage({ message, isStreaming }: Props) {
   const isUser = message.role === "user";
+  const text = getMessageText(message.content);
 
   return (
     <div className={cn("flex gap-3 animate-fade-in", isUser ? "justify-end" : "justify-start")}>
@@ -26,10 +28,18 @@ export function RollyMessage({ message, isStreaming }: Props) {
             : "bg-muted text-foreground rounded-bl-md"
         )}
       >
+        {/* Image preview for user messages */}
+        {isUser && message.imagePreview && (
+          <img
+            src={message.imagePreview}
+            alt="Attached image"
+            className="mb-2 max-h-48 w-auto rounded-lg object-cover"
+          />
+        )}
         {isUser ? (
-          <p className="whitespace-pre-wrap">{message.content}</p>
+          <p className="whitespace-pre-wrap">{text}</p>
         ) : (
-          <TypewriterText content={message.content} isStreaming={!!isStreaming} />
+          <TypewriterText content={text} isStreaming={!!isStreaming} />
         )}
       </div>
     </div>
