@@ -500,9 +500,15 @@ export default function ArtistDetail() {
                     Show Completed
                   </DropdownMenuCheckboxItem>
                   {activeView === "work" && (
-                    <DropdownMenuCheckboxItem checked={showArchived} onCheckedChange={setShowArchived}>
-                      Show Archived
-                    </DropdownMenuCheckboxItem>
+                    <>
+                      <DropdownMenuCheckboxItem checked={showArchived} onCheckedChange={setShowArchived}>
+                        Show Archived
+                      </DropdownMenuCheckboxItem>
+                      <DropdownMenuItem onClick={() => setTranscriptOpen(true)}>
+                        <Mic className="h-4 w-4 mr-2" />
+                        Import Transcript
+                      </DropdownMenuItem>
+                    </>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
