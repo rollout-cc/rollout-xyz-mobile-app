@@ -71,3 +71,5 @@ project_id = "ctnsworqzzguykzzvdme"
     verify_jwt = false
   [functions.extract-meeting-tasks]
     verify_jwt = false
+  [functions.debug-api]
+    verify_jwt = false
