@@ -63,8 +63,6 @@ export function TaskReviewList({ tasks, setTasks, artistId, teamId, memberContex
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      let nextSort = 0;
-
       const rows = selected.map((t) => {
         const assigneeId = assignees[t.id];
         const campaignId = campaigns[t.id];
@@ -72,11 +70,9 @@ export function TaskReviewList({ tasks, setTasks, artistId, teamId, memberContex
           title: t.title,
           artist_id: artistId,
           team_id: teamId,
-          created_by: user.id,
           assigned_to: assigneeId || null,
           initiative_id: campaignId || null,
           due_date: t.due_date || null,
-          sort_order: nextSort++,
           is_completed: false,
         };
       });

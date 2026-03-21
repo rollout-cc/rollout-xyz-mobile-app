@@ -11,7 +11,9 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DollarSign, Star, RefreshCw, Receipt, MoreVertical, CheckCheck } from "lucide-react";
+import { DollarSign, Star, RefreshCw, Receipt, MoreVertical, CheckCheck, Mic } from "lucide-react";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { ImportTranscriptDialog } from "@/components/meetings/ImportTranscriptDialog";
 import { toast } from "sonner";
 import { InlineField } from "@/components/ui/InlineField";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
