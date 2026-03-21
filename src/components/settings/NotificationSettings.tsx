@@ -196,7 +196,7 @@ export function NotificationSettings() {
             .filter((card) => {
               // Artists only see notifications relevant to their own profile
               if (myTeam?.role === "artist") {
-                const artistVisible: string[] = ["task_assigned_email", "task_due_soon_email", "task_overdue_email", "milestone_email"];
+                const artistVisible: string[] = ["task_assigned_email", "task_due_soon_email", "task_overdue_email", "milestone_email", "budget_alert_email"];
                 return artistVisible.includes(card.emailCol);
               }
               return true;
