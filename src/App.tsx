@@ -83,19 +83,26 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function getHomeRoute(isArtistRole: boolean, assignedArtistIds: string[]) {
+  if (isArtistRole && assignedArtistIds.length > 0) return `/roster/${assignedArtistIds[0]}`;
+  return "/roster";
+}
+
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const { data: teams, isLoading: teamsLoading } = useTeams();
+  const { isArtistRole, assignedArtistIds } = useSelectedTeam();
   if (loading || (user && teamsLoading)) return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
-  if (user) return <Navigate to={teams && teams.length > 0 ? "/roster" : "/onboarding"} replace />;
+  if (user) return <Navigate to={teams && teams.length > 0 ? getHomeRoute(isArtistRole, assignedArtistIds) : "/onboarding"} replace />;
   return <>{children}</>;
 }
 
 function RootRedirect() {
   const { user, loading } = useAuth();
   const { data: teams, isLoading: teamsLoading } = useTeams();
+  const { isArtistRole, assignedArtistIds } = useSelectedTeam();
   if (loading || (user && teamsLoading)) return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
-  if (user) return <Navigate to={teams && teams.length > 0 ? "/roster" : "/onboarding"} replace />;
+  if (user) return <Navigate to={teams && teams.length > 0 ? getHomeRoute(isArtistRole, assignedArtistIds) : "/onboarding"} replace />;
   return <Navigate to="/login" replace />;
 }
 
