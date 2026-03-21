@@ -118,7 +118,7 @@ Deno.serve(async (req: Request) => {
       const permRows = artistPerms.map((p: any) => ({
         user_id: user.id,
         artist_id: p.artist_id,
-        permission: p.permission || "view_access",
+        permission: p.level || p.permission || "view_access",
       }));
       const { error: permError } = await supabaseAdmin
         .from("artist_permissions")
