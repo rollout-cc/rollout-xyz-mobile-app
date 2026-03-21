@@ -81,7 +81,7 @@ export default function JoinTeam() {
     });
   }, [token]);
 
-  // When user becomes authenticated, move to profile step
+  // When user becomes authenticated, skip profile if name already known
   useEffect(() => {
     if (authLoading) return;
     if (user && step === "auth") {
@@ -91,9 +91,9 @@ export default function JoinTeam() {
         .eq("id", user.id)
         .single()
         .then(({ data }) => {
-          if (data?.full_name && invitePreview?.invitee_name) {
-            // Has name from invite, go to accepting
-            setFullName(data.full_name);
+          const nameAlready = data?.full_name || fullName;
+          if (nameAlready) {
+            setFullName(nameAlready);
             acceptInvite();
           } else {
             setStep("profile");
