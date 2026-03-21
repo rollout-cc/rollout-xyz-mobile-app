@@ -3,6 +3,7 @@ import rolloutLogo from "@/assets/rollout-logo.png";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useNavigate } from "react-router-dom";
 import { FeedbackDashboard } from "@/components/admin/FeedbackDashboard";
+import { BugDashboard } from "@/components/admin/BugDashboard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -232,6 +233,8 @@ export default function Admin() {
             <GrantTrialSection />
           </CollapsibleContent>
         </Collapsible>
+        <Separator />
+        <BugDashboard />
         <Separator />
         <FeedbackDashboard />
       </main>
