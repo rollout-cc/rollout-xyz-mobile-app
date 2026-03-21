@@ -1,47 +1,42 @@
 
 
-# Enable Image Uploads in Rolly Chat
+# Fix Three Pre-Launch Issues
 
-## Summary
-Replace the receipt-only camera button with a general image upload. Users can attach screenshots (or any image) to their message, and Rolly will understand the content contextually — extracting tasks from a screenshot, reading a receipt, interpreting a flyer, etc. No separate receipt scanner needed; Rolly handles it all through its existing tool-calling (e.g. `create_task`, `create_expense`).
+## Issue 1: Black Logo on Dark Background
+The JoinTeam page imports `rollout-logo-white.png` from `src/assets/`, but the current file may be the black version. Replace `src/assets/rollout-logo-white.png` with the uploaded white logo (`Rollout_Logo_Flag_white-2.png`).
 
-## What Changes
+**File**: Copy `user-uploads://Rollout_Logo_Flag_white-2.png` to `src/assets/rollout-logo-white.png`
 
-### 1. `src/hooks/useRollyChat.ts` — Multimodal message support
-- Extend `RollyMessage` type so `content` can be `string | Array<{type: string; text?: string; image_url?: {url: string}}>}`
-- Add optional `imageData` param to `send()`: `{ base64: string; mimeType: string }`
-- When image is provided, construct a multimodal content array:
-  ```
-  [
-    { type: "image_url", image_url: { url: "data:image/jpeg;base64,..." } },
-    { type: "text", text: "user's message or 'What's in this image?'" }
-  ]
-  ```
-- Display message uses the text portion only (image shown separately in bubble)
+## Issue 2: Redundant Name Entry
+The user enters their name on the signup form (step "auth"), then is asked to "Confirm your profile" with a name field again (step "profile"). 
 
-### 2. `src/components/rolly/RollyChat.tsx` — Image picker replaces receipt scanner
-- Remove `ReceiptScanner` import and all receipt-specific logic (the `onConfirm` handler, artists query for receipts)
-- Camera button opens a hidden `<input type="file" accept="image/*" capture="environment">` 
-- When image selected: compress/resize to max 1MB, store as base64 in state, show thumbnail preview above textarea with X to remove
-- On send: pass `imageData` to `send()` alongside typed text
-- If no text typed, default to: "What's in this image?"
+**Fix**: When the user already provided a name during signup (stored in `fullName` state which is pre-populated from the invite), skip the "profile" step entirely and go straight to "personal" details. The logic in the `useEffect` at line 85-103 partially does this but only when `invitePreview?.invitee_name` is set. We need to also skip when `fullName` is already populated from the signup form.
 
-### 3. `src/components/rolly/RollyMessage.tsx` — Render images in bubbles
-- Detect when `message.content` is an array (multimodal)
-- For user messages with images: render a small thumbnail above the text content
-- Assistant messages remain text-only (markdown)
+**File**: `src/pages/JoinTeam.tsx`
+- In the `useEffect` that fires when user authenticates (line 85-103), after checking the profile, if `fullName` is already set (from signup form or invite), skip the profile step and go directly to accepting the invite then the personal details step.
 
-### 4. `supabase/functions/rolly-chat/index.ts` — No changes needed
-- The gateway already passes multimodal content arrays through to Gemini 3 Flash, which natively supports vision
-- Rolly's existing tools (`create_task`, `create_expense`, etc.) let it act on what it sees — no new tools required
-- Add a line to the system prompt: "When the user sends an image, analyze it contextually. If it contains tasks or action items, offer to create them. If it's a receipt, offer to log the expense. Otherwise, describe what you see and ask how you can help."
+## Issue 3: Showing All Artists Instead of Assigned Ones
+The `accept-invite` edge function queries ALL artists on the team roster and returns them, rather than only the ones assigned to the invited user via `artist_permissions`.
 
-## Files
+**Fix**: Change the artist query in `accept-invite/index.ts` to only return artists that the user was given explicit permissions to via the `artist_permissions` table.
 
-| File | Change |
-|------|--------|
-| `src/hooks/useRollyChat.ts` | Multimodal content type + `imageData` in `send()` |
-| `src/components/rolly/RollyChat.tsx` | Image picker, preview, remove ReceiptScanner |
-| `src/components/rolly/RollyMessage.tsx` | Render image thumbnails in user bubbles |
-| `supabase/functions/rolly-chat/index.ts` | Add image-awareness hint to system prompt |
+**File**: `supabase/functions/accept-invite/index.ts` (lines 188-192)
+- Replace the broad `artists` query with a query that joins `artist_permissions` to only return artists the user has access to:
+```sql
+SELECT a.id, a.name, a.avatar_url 
+FROM artists a 
+JOIN artist_permissions ap ON ap.artist_id = a.id 
+WHERE ap.user_id = <user_id>
+```
+
+Additionally, in the "artists" step of JoinTeam.tsx (lines 506-535), if the user has no assigned artists, skip this step entirely instead of showing "No specific artist assignments yet."
+
+## Technical Details
+
+| Change | File | Type |
+|--------|------|------|
+| Replace logo asset | `src/assets/rollout-logo-white.png` | Asset copy |
+| Skip redundant name step | `src/pages/JoinTeam.tsx` | Frontend logic |
+| Filter artists to assigned only | `supabase/functions/accept-invite/index.ts` | Edge function |
+| Skip empty artists step | `src/pages/JoinTeam.tsx` | Frontend logic |
 
