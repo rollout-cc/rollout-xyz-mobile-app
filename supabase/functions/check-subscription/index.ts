@@ -29,39 +29,28 @@ serve(async (req) => {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
-
-    // Use anon-key client with auth header for getUser (ES256 compatible)
-    const anonClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: userError } = await anonClient.auth.getUser();
-    if (userError || !user) {
-      logStep("Auth failed, returning default rising plan", { error: userError?.message });
-      return new Response(JSON.stringify({
-        plan: "rising",
-        seat_limit: 1,
-        status: "active",
-        is_trialing: false,
-        trial_days_left: 0,
-        current_period_end: null,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
-    const userId = user.id;
-    const userEmail = user.email;
-    logStep("User authenticated", { userId, email: userEmail });
-
-    // Get team_id from request body
+    // Get team_id from request body first so plan lookup can still work even if auth is stale
     const body = await req.json().catch(() => ({}));
     const teamId = body.team_id;
     if (!teamId) throw new Error("team_id is required");
+
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      const anonClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+        { global: { headers: { Authorization: authHeader } } }
+      );
+
+      const { data: { user }, error: userError } = await anonClient.auth.getUser();
+      if (userError || !user) {
+        logStep("Auth unavailable, continuing with team-only lookup", { error: userError?.message, teamId });
+      } else {
+        logStep("User authenticated", { userId: user.id, email: user.email });
+      }
+    } else {
+      logStep("No authorization header, continuing with team-only lookup", { teamId });
+    }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
