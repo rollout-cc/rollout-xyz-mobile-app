@@ -26,9 +26,13 @@ import { JobTitleSelect } from "@/components/ui/JobTitleSelect";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Copy, Check, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { PermissionToggles, defaultPermissions, roleDefaults, jobTitlePermissions, type PermissionFlags } from "@/components/settings/PermissionToggles";
+
+type ArtistAccess = { artistId: string; level: "view_access" | "full_access" };
 
 const roleLabelMap: Record<string, string> = {
   team_owner: "Team Owner",
@@ -74,11 +78,32 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [permissions, setPermissions] = useState<PermissionFlags>({ ...roleDefaults("manager") });
+  const [artistAccess, setArtistAccess] = useState<ArtistAccess[]>([]);
+
+  const showArtistPicker = inviteRole === "artist" || inviteRole === "guest";
+
+  const { data: teamArtists = [] } = useQuery({
+    queryKey: ["team-artists-for-invite", teamId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("artists")
+        .select("id, name, avatar_url")
+        .eq("team_id", teamId!)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!teamId && showArtistPicker,
+  });
 
   const hasEmail = inviteEmail.trim().length > 0;
 
   const createInvite = useMutation({
     mutationFn: async (role: string) => {
+      const artistPermsPayload = showArtistPicker && artistAccess.length > 0
+        ? artistAccess.map((a) => ({ artist_id: a.artistId, level: a.level }))
+        : null;
+
       const { data, error } = await (supabase as any)
         .from("invite_links")
         .insert({
@@ -90,6 +115,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
           invitee_job_title: jobTitle || null,
           invitee_email: inviteEmail.trim() || null,
           invitee_name: inviteeName.trim() || null,
+          artist_permissions: artistPermsPayload,
           ...permissions,
         })
         .select("token")
@@ -166,6 +192,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
     setStaffEmploymentType("w2");
     setJobTitle("");
     setPermissions({ ...roleDefaults("manager") });
+    setArtistAccess([]);
   };
 
   return (
@@ -204,7 +231,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
               {/* Role */}
               <div className="space-y-2">
                 <Label>Role</Label>
-                <Select value={inviteRole} onValueChange={(v) => { setInviteRole(v); setPermissions({ ...roleDefaults(v) }); }}>
+                <Select value={inviteRole} onValueChange={(v) => { setInviteRole(v); setPermissions({ ...roleDefaults(v) }); setArtistAccess([]); }}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -222,6 +249,63 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
                     : "Guests have view-only access. Ideal for PR, videographers, etc."}
                 </p>
               </div>
+
+              {/* Artist Access Picker — shown for Artist & Guest roles */}
+              {showArtistPicker && (
+                <div className="space-y-2">
+                  <Label>Artist Access</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Select which artists this person can access and their permission level.
+                  </p>
+                  <div className="rounded-lg border border-border divide-y divide-border max-h-48 overflow-y-auto">
+                    {teamArtists.map((artist) => {
+                      const entry = artistAccess.find((a) => a.artistId === artist.id);
+                      const isSelected = !!entry;
+
+                      const toggleArtist = () => {
+                        if (isSelected) {
+                          setArtistAccess((prev) => prev.filter((a) => a.artistId !== artist.id));
+                        } else {
+                          setArtistAccess((prev) => [...prev, { artistId: artist.id, level: "view_access" }]);
+                        }
+                      };
+
+                      const setLevel = (level: "view_access" | "full_access") => {
+                        setArtistAccess((prev) =>
+                          prev.map((a) => (a.artistId === artist.id ? { ...a, level } : a))
+                        );
+                      };
+
+                      return (
+                        <div key={artist.id} className="flex items-center gap-3 px-3 py-2">
+                          <Checkbox checked={isSelected} onCheckedChange={toggleArtist} />
+                          <Avatar className="h-7 w-7">
+                            <AvatarImage src={artist.avatar_url ?? undefined} />
+                            <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">
+                              {artist.name?.[0]?.toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm text-foreground flex-1 truncate">{artist.name}</span>
+                          {isSelected && (
+                            <Select value={entry!.level} onValueChange={(v) => setLevel(v as any)}>
+                              <SelectTrigger className="h-7 w-[120px] text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="view_access">View Only</SelectItem>
+                                <SelectItem value="full_access">Full Access</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {teamArtists.length === 0 && (
+                      <p className="text-xs text-muted-foreground p-3">No artists on roster yet.</p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Job Title */}
               <div className="space-y-2">
