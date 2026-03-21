@@ -250,6 +250,63 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
                 </p>
               </div>
 
+              {/* Artist Access Picker — shown for Artist & Guest roles */}
+              {showArtistPicker && (
+                <div className="space-y-2">
+                  <Label>Artist Access</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Select which artists this person can access and their permission level.
+                  </p>
+                  <div className="rounded-lg border border-border divide-y divide-border max-h-48 overflow-y-auto">
+                    {teamArtists.map((artist) => {
+                      const entry = artistAccess.find((a) => a.artistId === artist.id);
+                      const isSelected = !!entry;
+
+                      const toggleArtist = () => {
+                        if (isSelected) {
+                          setArtistAccess((prev) => prev.filter((a) => a.artistId !== artist.id));
+                        } else {
+                          setArtistAccess((prev) => [...prev, { artistId: artist.id, level: "view_access" }]);
+                        }
+                      };
+
+                      const setLevel = (level: "view_access" | "full_access") => {
+                        setArtistAccess((prev) =>
+                          prev.map((a) => (a.artistId === artist.id ? { ...a, level } : a))
+                        );
+                      };
+
+                      return (
+                        <div key={artist.id} className="flex items-center gap-3 px-3 py-2">
+                          <Checkbox checked={isSelected} onCheckedChange={toggleArtist} />
+                          <Avatar className="h-7 w-7">
+                            <AvatarImage src={artist.avatar_url ?? undefined} />
+                            <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">
+                              {artist.name?.[0]?.toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm text-foreground flex-1 truncate">{artist.name}</span>
+                          {isSelected && (
+                            <Select value={entry!.level} onValueChange={(v) => setLevel(v as any)}>
+                              <SelectTrigger className="h-7 w-[120px] text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="view_access">View Only</SelectItem>
+                                <SelectItem value="full_access">Full Access</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {teamArtists.length === 0 && (
+                      <p className="text-xs text-muted-foreground p-3">No artists on roster yet.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Job Title */}
               <div className="space-y-2">
                 <Label>Job Title</Label>
