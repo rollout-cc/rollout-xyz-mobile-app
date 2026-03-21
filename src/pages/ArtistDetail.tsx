@@ -566,6 +566,7 @@ export default function ArtistDetail() {
         </div>
       </div>
       <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} feature={upgradeFeature} />
+      <ImportTranscriptDialog open={transcriptOpen} onOpenChange={setTranscriptOpen} artistId={artist.id} teamId={artist.team_id} />
     </AppLayout>
   );
 }
