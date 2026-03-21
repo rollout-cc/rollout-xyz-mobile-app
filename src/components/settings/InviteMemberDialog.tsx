@@ -192,6 +192,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
     setStaffEmploymentType("w2");
     setJobTitle("");
     setPermissions({ ...roleDefaults("manager") });
+    setArtistAccess([]);
   };
 
   return (
