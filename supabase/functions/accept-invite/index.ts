@@ -185,17 +185,27 @@ Deno.serve(async (req: Request) => {
       .eq("id", invite.team_id)
       .single();
 
-    // Get artists this user now has access to
-    const { data: artists } = await supabaseAdmin
-      .from("artists")
-      .select("id, name, avatar_url")
-      .eq("team_id", invite.team_id);
+    // Get only artists this user was explicitly assigned permissions to
+    const { data: permRows } = await supabaseAdmin
+      .from("artist_permissions")
+      .select("artist_id")
+      .eq("user_id", user.id);
+
+    let assignedArtists: { id: string; name: string; avatar_url: string | null }[] = [];
+    if (permRows && permRows.length > 0) {
+      const artistIds = permRows.map((p: any) => p.artist_id);
+      const { data: artists } = await supabaseAdmin
+        .from("artists")
+        .select("id, name, avatar_url")
+        .in("id", artistIds);
+      assignedArtists = artists || [];
+    }
 
     return new Response(JSON.stringify({
       success: true,
       team_name: team?.name,
       role: invite.role,
-      artists: artists || [],
+      artists: assignedArtists,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

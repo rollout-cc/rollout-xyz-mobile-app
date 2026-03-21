@@ -81,7 +81,7 @@ export default function JoinTeam() {
     });
   }, [token]);
 
-  // When user becomes authenticated, move to profile step
+  // When user becomes authenticated, skip profile if name already known
   useEffect(() => {
     if (authLoading) return;
     if (user && step === "auth") {
@@ -91,9 +91,9 @@ export default function JoinTeam() {
         .eq("id", user.id)
         .single()
         .then(({ data }) => {
-          if (data?.full_name && invitePreview?.invitee_name) {
-            // Has name from invite, go to accepting
-            setFullName(data.full_name);
+          const nameAlready = data?.full_name || fullName;
+          if (nameAlready) {
+            setFullName(nameAlready);
             acceptInvite();
           } else {
             setStep("profile");
@@ -120,7 +120,7 @@ export default function JoinTeam() {
         throw new Error(data.error);
       }
       setJoinResult(data);
-      setStep("profile");
+      setStep("personal");
     } catch (err: any) {
       setError(err.message || "Failed to accept invite");
       toast.error(err.message || "Failed to accept invite");
@@ -233,11 +233,13 @@ export default function JoinTeam() {
         shoe_size: shoeSize || null,
         dietary_restrictions: dietaryRestrictions || null,
       } as any).eq("id", user!.id);
-      // If there's a job title, show invitee onboarding; otherwise skip to artists
+      // If there's a job title, show invitee onboarding; otherwise check artists
       if (joinResult?.job_title) {
         setStep("onboarding");
-      } else {
+      } else if (joinResult?.artists && joinResult.artists.length > 0) {
         setStep("artists");
+      } else {
+        setStep("welcome");
       }
     } catch (err: any) {
       toast.error(err.message);
@@ -472,7 +474,13 @@ export default function JoinTeam() {
               </div>
 
               <div className="flex gap-3">
-                <Button variant="ghost" onClick={() => setStep("artists")}
+                <Button variant="ghost" onClick={() => {
+                    if (joinResult?.artists && joinResult.artists.length > 0) {
+                      setStep("artists");
+                    } else {
+                      setStep("welcome");
+                    }
+                  }}
                   className="flex-1 h-12 rounded-full text-[hsl(0,0%,55%)] hover:text-[hsl(40,30%,90%)] hover:bg-[hsl(0,0%,15%)]">
                   Skip
                 </Button>
