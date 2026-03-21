@@ -7,9 +7,6 @@
  * Setup:
  *   npm install node-fetch @octokit/rest
  *   node rollout-bug-scanner.js
- *
- * Cron (every 12 hours):
- *   0 */12 * * * /usr/bin/node /path/to/rollout-bug-scanner.js >> /var/log/rollout-scanner.log 2>&1
  */
 
 import { Octokit } from '@octokit/rest';
