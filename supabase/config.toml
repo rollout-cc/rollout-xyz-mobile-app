@@ -69,3 +69,5 @@ project_id = "ctnsworqzzguykzzvdme"
     verify_jwt = false
   [functions.categorize-feedback]
     verify_jwt = false
+  [functions.extract-meeting-tasks]
+    verify_jwt = false
