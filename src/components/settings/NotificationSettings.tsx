@@ -192,7 +192,16 @@ export function NotificationSettings() {
 
         {/* Notification cards */}
         <div className="space-y-2">
-          {NOTIFICATION_CARDS.map((card) => (
+          {NOTIFICATION_CARDS
+            .filter((card) => {
+              // Artists only see notifications relevant to their own profile
+              if (myTeam?.role === "artist") {
+                const artistVisible: string[] = ["task_assigned_email", "task_due_soon_email", "task_overdue_email", "milestone_email"];
+                return artistVisible.includes(card.emailCol);
+              }
+              return true;
+            })
+            .map((card) => (
             <div
               key={card.title}
               className="flex items-center justify-between gap-4 p-4 rounded-lg border border-border bg-card"

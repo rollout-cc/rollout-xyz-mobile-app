@@ -156,7 +156,8 @@ export async function notifyNewArtist(
     const { data: members } = await supabase
       .from("team_memberships")
       .select("user_id")
-      .eq("team_id", teamId);
+      .eq("team_id", teamId)
+      .in("role", ["team_owner", "manager"]);
 
     for (const member of members || []) {
       await notifyUser(member.user_id, "new_artist_email", (email, name) => ({
