@@ -100,6 +100,10 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
 
   const createInvite = useMutation({
     mutationFn: async (role: string) => {
+      const artistPermsPayload = showArtistPicker && artistAccess.length > 0
+        ? artistAccess.map((a) => ({ artist_id: a.artistId, level: a.level }))
+        : null;
+
       const { data, error } = await (supabase as any)
         .from("invite_links")
         .insert({
@@ -111,6 +115,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
           invitee_job_title: jobTitle || null,
           invitee_email: inviteEmail.trim() || null,
           invitee_name: inviteeName.trim() || null,
+          artist_permissions: artistPermsPayload,
           ...permissions,
         })
         .select("token")
