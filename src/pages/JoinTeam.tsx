@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, Loader2, Users, Shield, Camera } from "lucide-react";
 import { toast } from "sonner";
+import { AIRLINES } from "@/lib/airlines";
 import { motion, AnimatePresence } from "framer-motion";
 import rolloutLogoWhite from "@/assets/rollout-logo-white.png";
 
@@ -77,6 +78,7 @@ export default function JoinTeam() {
       if (data && !data.error) {
         setInvitePreview(data);
         if (data.invitee_name) setFullName(data.invitee_name);
+        if (data.invitee_email) setEmail(data.invitee_email);
       }
     });
   }, [token]);
@@ -433,8 +435,16 @@ export default function JoinTeam() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs text-[hsl(40,30%,85%)]">Preferred Airline</Label>
-                    <Input value={preferredAirline} onChange={(e) => setPreferredAirline(e.target.value)} placeholder="e.g. Delta"
-                      className="h-10 rounded-lg border-[hsl(0,0%,25%)] bg-[hsl(0,0%,12%)] text-[hsl(40,30%,95%)] placeholder:text-[hsl(0,0%,40%)]" />
+                    <Select value={preferredAirline} onValueChange={setPreferredAirline}>
+                      <SelectTrigger className="h-10 rounded-lg border-[hsl(0,0%,25%)] bg-[hsl(0,0%,12%)] text-[hsl(40,30%,95%)] placeholder:text-[hsl(0,0%,40%)]">
+                        <SelectValue placeholder="Select airline" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {AIRLINES.map((a) => (
+                          <SelectItem key={a} value={a}>{a}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-[hsl(40,30%,85%)]">Preferred Seat</Label>
