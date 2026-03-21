@@ -77,6 +77,7 @@ export default function JoinTeam() {
       if (data && !data.error) {
         setInvitePreview(data);
         if (data.invitee_name) setFullName(data.invitee_name);
+        if (data.invitee_email) setEmail(data.invitee_email);
       }
     });
   }, [token]);
