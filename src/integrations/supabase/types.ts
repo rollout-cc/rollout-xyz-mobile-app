@@ -3357,6 +3357,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      execute_readonly_query: { Args: { query_text: string }; Returns: Json }
       expire_support_sessions: { Args: never; Returns: undefined }
       get_artist_team_id: { Args: { p_artist_id: string }; Returns: string }
       get_budget_team_id: { Args: { p_budget_id: string }; Returns: string }
