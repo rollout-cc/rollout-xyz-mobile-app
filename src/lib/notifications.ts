@@ -122,7 +122,18 @@ export async function checkBudgetThreshold(
           .eq("team_id", artist.team_id)
           .in("role", ["team_owner", "manager"]);
 
-        for (const member of members || []) {
+        // Also get artists with access to this specific artist profile
+        const { data: artistUsers } = await supabase
+          .from("artist_permissions")
+          .select("user_id")
+          .eq("artist_id", budget.artist_id);
+
+        const notifiedIds = new Set<string>();
+        const allRecipients = [...(members || []), ...(artistUsers || [])];
+
+        for (const member of allRecipients) {
+          if (notifiedIds.has(member.user_id)) continue;
+          notifiedIds.add(member.user_id);
           await notifyUser(member.user_id, "budget_alert_email", (email, name) => ({
             type: "budget_threshold",
             to_email: email,
