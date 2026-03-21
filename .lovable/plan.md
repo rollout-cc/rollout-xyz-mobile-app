@@ -1,24 +1,59 @@
 
 
-# Updated Cleanup Plan — Add Company Finance Reset
+# Meeting Transcript → Tasks
 
-## Addition to Previous Plan
+## Summary
+Add an "Import Transcript" button next to the Completed toggle on each artist's Work tab. Users select a source (Otter, Zoom, Google Meet, Granola, or Manual), paste/upload a transcript, and AI extracts tasks that get reviewed and bulk-created for that artist.
 
-On top of deleting Cool Guy Records and wiping Club Hous artist dummy data, also reset company finance for Club Hous:
+## What Gets Built
 
-### What gets reset
-- **`teams.annual_budget`** → set to `NULL` (currently $500,000)
-- **`company_budget_categories`** → delete all 6 rows for Club Hous team
-- **`company_expenses`** → already empty, no action needed
+### 1. Database: `meeting_transcripts` table
+- `id`, `team_id`, `artist_id` (nullable), `source` (otter/zoom/google_meet/granola/manual), `title`, `raw_text`, `extracted_tasks` (jsonb), `status` (pending/processed), `created_by`, `created_at`
+- RLS: team members can read/write via `is_team_member()`
 
-### Implementation
-Add these statements to the same database migration:
+### 2. Edge Function: `extract-meeting-tasks`
+- Accepts `{ transcript, source, artist_id, team_id }`
+- Fetches artist name + team member names for context matching
+- Calls Lovable AI Gateway (Gemini 2.5 Flash) with structured extraction prompt
+- Returns JSON array: `[{ title, assignee_hint, due_date, campaign_hint }]`
+- Uses existing anonClient + JWT validation pattern from other edge functions
 
-```sql
--- Reset Club Hous company finance
-DELETE FROM company_budget_categories WHERE team_id = 'c6bed68e-7740-4b31-af16-b619126d1fe6';
-UPDATE teams SET annual_budget = NULL WHERE id = 'c6bed68e-7740-4b31-af16-b619126d1fe6';
-```
+### 3. UI: `ImportTranscriptDialog.tsx`
+A dialog with 3 steps:
 
-This goes into the single migration alongside the Cool Guy Records deletion and Club Hous artist data wipe from the previously approved plan.
+**Step 1 — Source & Input**
+- 5 source chips: Otter, Zoom AI Companion, Google Meet, Granola, Manual
+- Per-source instruction card:
+  - Otter: "Open conversation → Share → Copy transcript"
+  - Zoom: "Go to zoom.us → Recordings → open meeting → copy transcript or download .vtt"
+  - Google Meet: "Open the meeting notes doc in Google Docs → Select All → Copy"
+  - Granola: "Open meeting in Granola → transcript tab → Select All → Copy"
+  - Manual: "Paste any meeting transcript or notes"
+- Textarea for paste + file upload button (.txt, .vtt, .srt)
+- Client-side VTT/SRT → plain text parser
+
+**Step 2 — Extracting** (loading state)
+
+**Step 3 — Review & Create**
+- Checklist of extracted tasks (toggle on/off)
+- Editable title per task
+- Campaign dropdown (pre-filled from AI hint, populated from artist's initiatives)
+- Assignee dropdown (team members)
+- "Create Selected" → bulk insert into `tasks` table with `artist_id` pre-set
+
+### 4. Integration Points
+
+**Desktop (ArtistDetail.tsx, line ~465-473):** Add an "Import Transcript" button next to the "Completed" switch, matching existing control styling.
+
+**Mobile (ArtistDetail.tsx, line ~489-498):** Add "Import Transcript" as a menu item in the existing `DropdownMenu`.
+
+## Files
+
+| File | Action |
+|------|--------|
+| DB migration | Create `meeting_transcripts` table + RLS |
+| `supabase/functions/extract-meeting-tasks/index.ts` | Create — AI extraction edge function |
+| `src/components/meetings/ImportTranscriptDialog.tsx` | Create — full dialog component |
+| `src/components/meetings/TaskReviewList.tsx` | Create — review/edit/bulk-create component |
+| `src/pages/ArtistDetail.tsx` | Add import button next to Completed toggle (desktop + mobile menu) |
 
