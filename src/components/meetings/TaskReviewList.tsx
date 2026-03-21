@@ -63,16 +63,7 @@ export function TaskReviewList({ tasks, setTasks, artistId, teamId, memberContex
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Find max sort_order for this artist
-      const { data: maxTask } = await supabase
-        .from("tasks")
-        .select("sort_order")
-        .eq("artist_id", artistId)
-        .order("sort_order", { ascending: false })
-        .limit(1)
-        .single();
-
-      let nextSort = (maxTask?.sort_order ?? 0) + 1;
+      let nextSort = 0;
 
       const rows = selected.map((t) => {
         const assigneeId = assignees[t.id];
