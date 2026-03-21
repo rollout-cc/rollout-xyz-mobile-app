@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, Loader2, Users, Shield, Camera } from "lucide-react";
 import { toast } from "sonner";
+import { AIRLINES } from "@/lib/airlines";
 import { motion, AnimatePresence } from "framer-motion";
 import rolloutLogoWhite from "@/assets/rollout-logo-white.png";
 

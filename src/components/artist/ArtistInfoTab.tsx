@@ -16,6 +16,7 @@ import { IndustryEntitySelect } from "@/components/ui/IndustryEntitySelect";
 import { useTeamRegion } from "@/hooks/useTeamRegion";
 import { getPROsForRegion } from "@/lib/regionConfig";
 import { RollyNudge } from "@/components/rolly/RollyNudge";
+import { AIRLINES } from "@/lib/airlines";
 
 interface ArtistInfoTabProps {
   artist: any;
