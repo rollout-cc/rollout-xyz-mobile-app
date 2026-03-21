@@ -234,6 +234,8 @@ export default function Admin() {
           </CollapsibleContent>
         </Collapsible>
         <Separator />
+        <BugDashboard />
+        <Separator />
         <FeedbackDashboard />
       </main>
     </div>

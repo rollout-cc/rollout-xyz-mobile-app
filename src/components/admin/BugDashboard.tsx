@@ -73,8 +73,10 @@ export function BugDashboard() {
       const reader = new ZipReader(new BlobReader(blob));
       const entries = await reader.getEntries();
       const jsonEntry = entries.find((e) => e.filename.endsWith(".json"));
-      if (!jsonEntry || !jsonEntry.getData) { toast.error("No JSON in artifact zip"); setLoading(false); return; }
-      const text = await jsonEntry.getData(new TextWriter());
+      if (!jsonEntry || !("getData" in jsonEntry) || typeof (jsonEntry as any).getData !== "function") {
+        toast.error("No JSON in artifact zip"); setLoading(false); return;
+      }
+      const text = await (jsonEntry as any).getData(new TextWriter()) as string;
       await reader.close();
 
       const parsed = JSON.parse(text);
