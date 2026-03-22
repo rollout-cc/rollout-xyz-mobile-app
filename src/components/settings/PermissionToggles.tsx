@@ -10,6 +10,7 @@ export interface PermissionFlags {
   perm_edit_artists: boolean;
   perm_view_billing: boolean;
   perm_distribution: boolean;
+  perm_view_full_roster: boolean;
 }
 
 export const defaultPermissions: PermissionFlags = {
@@ -21,6 +22,7 @@ export const defaultPermissions: PermissionFlags = {
   perm_edit_artists: false,
   perm_view_billing: false,
   perm_distribution: false,
+  perm_view_full_roster: false,
 };
 
 /** Returns role-based defaults; toggles are additive on top of these */
