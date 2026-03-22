@@ -126,6 +126,7 @@ Your expertise: revenue streams, deal structures, splits & royalties, recoupment
 When uncertain about advice, say so and suggest consulting an entertainment attorney.`;
 
 const TOOLS = [
+  // === CREATE TOOLS ===
   {
     type: "function",
     function: {
@@ -233,15 +234,201 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "create_campaign",
+      description: "Create a campaign/initiative for an artist with optional date range.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+          name: { type: "string", description: "Campaign name" },
+          description: { type: "string", description: "What this campaign is about" },
+          start_date: { type: "string", description: "ISO date for start" },
+          end_date: { type: "string", description: "ISO date for end" },
+        },
+        required: ["artist_name", "name"],
+      },
+    },
+  },
+  // === UPDATE TOOLS ===
+  {
+    type: "function",
+    function: {
+      name: "update_tasks",
+      description: "Update one or more existing tasks by title match. Can change title, description, due date, completion status, assignee, or expense amount.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+          updates: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                current_title: { type: "string", description: "Current title of the task to find and update" },
+                new_title: { type: "string", description: "New title (if renaming)" },
+                description: { type: "string", description: "New description" },
+                due_date: { type: "string", description: "New due date (ISO)" },
+                is_completed: { type: "boolean", description: "Mark as completed or reopen" },
+                expense_amount: { type: "number", description: "New expense amount" },
+                assignee_name: { type: "string", description: "New assignee name" },
+              },
+              required: ["current_title"],
+            },
+          },
+        },
+        required: ["artist_name", "updates"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_milestone",
+      description: "Update an existing milestone by title match. Can change title, date, or description.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+          current_title: { type: "string", description: "Current milestone title to find" },
+          new_title: { type: "string", description: "New title" },
+          date: { type: "string", description: "New date (ISO)" },
+          description: { type: "string", description: "New description" },
+        },
+        required: ["artist_name", "current_title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_budget",
+      description: "Update an existing budget category by label match. Can change label or amount.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+          current_label: { type: "string", description: "Current budget label to find" },
+          new_label: { type: "string", description: "New label" },
+          amount: { type: "number", description: "New budget amount" },
+        },
+        required: ["artist_name", "current_label"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_campaign",
+      description: "Update an existing campaign/initiative by name match. Can change name, description, dates, or archive it.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+          current_name: { type: "string", description: "Current campaign name to find" },
+          new_name: { type: "string", description: "New name" },
+          description: { type: "string", description: "New description" },
+          start_date: { type: "string", description: "New start date (ISO)" },
+          end_date: { type: "string", description: "New end date (ISO)" },
+          is_archived: { type: "boolean", description: "Set to true to archive the campaign" },
+        },
+        required: ["artist_name", "current_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_expense",
+      description: "Update an existing expense/transaction by description match. Can change description, amount, date, or status.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+          current_description: { type: "string", description: "Current expense description to find" },
+          new_description: { type: "string", description: "New description" },
+          amount: { type: "number", description: "New amount" },
+          transaction_date: { type: "string", description: "New date (ISO)" },
+          status: { type: "string", enum: ["pending", "completed"], description: "New status" },
+        },
+        required: ["artist_name", "current_description"],
+      },
+    },
+  },
+  // === DELETE TOOLS ===
+  {
+    type: "function",
+    function: {
+      name: "delete_tasks",
+      description: "Delete one or more tasks for an artist. Use when the user asks to remove, delete, or clear tasks. Can delete all open tasks for an artist or specific tasks by title.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist whose tasks to delete" },
+          task_titles: { type: "array", items: { type: "string" }, description: "Optional list of specific task titles to delete. If omitted, deletes ALL open tasks for the artist." },
+          delete_completed_too: { type: "boolean", description: "If true, also delete completed tasks. Default false (only open tasks)." },
+        },
+        required: ["artist_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_milestones",
+      description: "Delete milestones for an artist by title. If no titles given, deletes all future milestones.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+          milestone_titles: { type: "array", items: { type: "string" }, description: "Specific titles to delete. If omitted, deletes all future milestones." },
+        },
+        required: ["artist_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_budgets",
+      description: "Delete budget categories for an artist by label.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+          budget_labels: { type: "array", items: { type: "string" }, description: "Specific labels to delete. If omitted, deletes ALL budgets." },
+        },
+        required: ["artist_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_expenses",
+      description: "Delete expense transactions for an artist by description match.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+          descriptions: { type: "array", items: { type: "string" }, description: "Descriptions of expenses to delete." },
+        },
+        required: ["artist_name", "descriptions"],
+      },
+    },
+  },
+  // === READ / RECALL TOOLS ===
+  {
+    type: "function",
+    function: {
       name: "search_creators",
-      description: "Search the creator intelligence database for influencers, repost pages, playlist curators, venues, and industry contacts. Use when the user asks about promotion, marketing, playlisting, content creators, influencers, repost pages, venues, or outreach targets.",
+      description: "Search the creator intelligence database for influencers, repost pages, playlist curators, venues, and industry contacts.",
       parameters: {
         type: "object",
         properties: {
           query: { type: "string", description: "Search term — creator name, category, genre, or keyword" },
           platform: { type: "string", description: "Filter by platform: instagram, tiktok, spotify_playlist, youtube, venue, contact" },
-          category: { type: "string", description: "Filter by category: Culture News, Comedy, Moshpit, Hipster, etc." },
-          genre: { type: "string", description: "Filter by genre fit: hip-hop, r&b, trap, indie-pop, etc." },
+          category: { type: "string", description: "Filter by category" },
+          genre: { type: "string", description: "Filter by genre fit" },
           min_confidence: { type: "number", description: "Minimum confidence score 0-1. Default 0." },
           limit: { type: "number", description: "Max results to return. Default 10." },
         },
@@ -249,7 +436,20 @@ const TOOLS = [
       },
     },
   },
-  // --- Read tools ---
+  {
+    type: "function",
+    function: {
+      name: "get_artist_info",
+      description: "Fetch full artist profile info: name, genres, goals, focus areas, Spotify ID, objectives, monthly listeners. Use when the user asks about an artist's details, setup, or profile.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+        },
+        required: ["artist_name"],
+      },
+    },
+  },
   {
     type: "function",
     function: {
@@ -268,7 +468,7 @@ const TOOLS = [
     type: "function",
     function: {
       name: "get_artist_campaigns",
-      description: "Fetch active campaigns/initiatives for an artist. Use before creating campaigns to avoid duplicates.",
+      description: "Fetch active campaigns/initiatives for an artist.",
       parameters: {
         type: "object",
         properties: {
@@ -282,11 +482,12 @@ const TOOLS = [
     type: "function",
     function: {
       name: "get_artist_tasks",
-      description: "Fetch open (non-done) tasks for an artist. Use before creating tasks to check what already exists and avoid duplicates.",
+      description: "Fetch open tasks for an artist. Also use to recall what tasks exist, check status, or answer questions about what's on the to-do list.",
       parameters: {
         type: "object",
         properties: {
           artist_name: { type: "string", description: "Name of the artist" },
+          include_completed: { type: "boolean", description: "If true, also return completed tasks. Default false." },
         },
         required: ["artist_name"],
       },
@@ -309,8 +510,80 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "get_artist_transactions",
+      description: "Fetch recent expenses and revenue transactions for an artist. Use when the user asks about spending, costs, revenue, or financial history.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+          type: { type: "string", enum: ["expense", "revenue", "all"], description: "Filter by type. Default 'all'." },
+          limit: { type: "number", description: "Max results. Default 20." },
+        },
+        required: ["artist_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_artist_contacts",
+      description: "Fetch contacts associated with an artist (managers, agents, publicists, lawyers, etc). Use when the user asks about who works with an artist or needs contact info.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+        },
+        required: ["artist_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_artist_links",
+      description: "Fetch saved links/resources for an artist (social profiles, press kits, drive folders, etc). Use when the user asks for an artist's links or resources.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+        },
+        required: ["artist_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_artist_travel_info",
+      description: "Fetch travel and personal info for an artist's team members: passport names, dietary restrictions, airline preferences, clothing sizes, PRO/publishing info. Use when recalling any personal, travel, or business registration details.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+        },
+        required: ["artist_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_artist_splits",
+      description: "Fetch split sheet projects and songs for an artist. Use when discussing royalties, splits, or publishing.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+        },
+        required: ["artist_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "search_knowledge",
-      description: "Search the industry knowledge base for best practices, strategies, and guidance. Use when the user asks about industry topics or when you need to inform task creation with industry knowledge.",
+      description: "Search the industry knowledge base for best practices, strategies, and guidance.",
       parameters: {
         type: "object",
         properties: {
@@ -320,24 +593,7 @@ const TOOLS = [
       },
     },
   },
-  {
-    type: "function",
-    function: {
-      name: "delete_tasks",
-      description: "Delete one or more tasks for an artist. Use when the user asks to remove, delete, or clear tasks. Can delete all open tasks for an artist or specific tasks by title.",
-      parameters: {
-        type: "object",
-        properties: {
-          artist_name: { type: "string", description: "Name of the artist whose tasks to delete" },
-          task_titles: { type: "array", items: { type: "string" }, description: "Optional list of specific task titles to delete. If omitted, deletes ALL open tasks for the artist." },
-          delete_completed_too: { type: "boolean", description: "If true, also delete completed tasks. Default false (only open tasks)." },
-        },
-        required: ["artist_name"],
-      },
-    },
-  },
 ];
-
 async function resolveArtistId(adminClient: any, teamId: string, artistName: string): Promise<string | null> {
   const { data } = await adminClient
     .from("artists")
