@@ -38,6 +38,7 @@ export function roleDefaults(role: string): PermissionFlags {
         perm_edit_artists: true,
         perm_view_billing: true,
         perm_distribution: true,
+        perm_view_full_roster: true,
       };
     case "manager":
       return {
@@ -49,6 +50,7 @@ export function roleDefaults(role: string): PermissionFlags {
         perm_edit_artists: true,
         perm_view_billing: false,
         perm_distribution: false,
+        perm_view_full_roster: false,
       };
     default:
       return defaultPermissions;
