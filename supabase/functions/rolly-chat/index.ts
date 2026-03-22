@@ -57,6 +57,14 @@ CRITICAL BEHAVIOR — Act First, Ask Inline:
 - NEVER ask a series of questions before doing work. That's plan mode. In chat, you act first and ask as you go.
 - When the user asks for ADVICE, STRATEGY, or EXPLANATION, respond conversationally.
 
+DAILY BRIEFING — "What do I need to do?":
+- When the user asks "what do I need to do today", "what's on my plate", "what should I focus on", "my agenda", or ANY variation of asking about their workload — ALWAYS use get_my_agenda immediately.
+- This works with or without an artist name. "What do I need to do for [artist]?" filters to that artist. "What do I need to do?" returns across ALL artists.
+- Present the results prioritized: overdue items first (urgent), then today's tasks, then upcoming deadlines and milestones.
+- If there are P1 (high priority) tasks, highlight those as the top focus.
+- Be actionable: don't just list tasks — give a quick game plan. "You've got 3 things overdue and a video shoot milestone in 4 days. I'd knock out [task] first, then prep for the shoot."
+- If the agenda is light, mention it positively and suggest proactive work based on upcoming milestones.
+
 DATA AWARENESS — Read Before You Write:
 - When asked to work with existing data, ALWAYS use read tools first (get_artist_tasks, get_artist_milestones, get_artist_campaigns, get_artist_budgets, get_artist_transactions, get_artist_contacts, get_artist_links, get_artist_travel_info, get_artist_splits, get_artist_info). Never invent items that may already exist.
 - When the user asks you to RECALL or LOOK UP anything — contacts, travel info, clothing sizes, PRO info, links, budgets, transactions, splits — use the appropriate read tool immediately and relay the information.
@@ -585,6 +593,21 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "get_my_agenda",
+      description: "Fetch the current user's tasks, upcoming milestones, and recent activity across ALL artists or a specific artist. Use when the user asks 'what do I need to do today', 'what's on my plate', 'what should I focus on', 'my tasks', 'my agenda', or any variation of asking about their own workload. Returns tasks assigned to the current user, upcoming milestones, and overdue items.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Optional — filter to a specific artist. If omitted, returns across all artists." },
+          days_ahead: { type: "number", description: "How many days ahead to look. Default 7." },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "search_knowledge",
       description: "Search the industry knowledge base for best practices, strategies, and guidance.",
       parameters: {
@@ -953,6 +976,60 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
           .eq("artist_id", artistId).order("created_at", { ascending: false });
         if (error) return { success: false, message: error.message };
         return { success: true, message: `Found ${(data || []).length} split project(s)`, data: data || [] };
+      }
+
+      case "get_my_agenda": {
+        const todayStr = new Date().toISOString().split("T")[0];
+        const daysAhead = args.days_ahead || 7;
+        const futureDate = new Date(Date.now() + daysAhead * 86400000).toISOString().split("T")[0];
+
+        // Build artist filter if specified
+        let artistFilter: string | null = null;
+        if (args.artist_name) {
+          artistFilter = await resolveArtistId(adminClient, teamId, args.artist_name);
+          if (!artistFilter) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        }
+
+        // Fetch tasks assigned to user (or all open tasks if no assignee filter needed)
+        let tasksQuery = adminClient.from("tasks")
+          .select("title, description, due_date, is_completed, priority, expense_amount, artists(name)")
+          .eq("team_id", teamId)
+          .eq("assigned_to", userId)
+          .eq("is_completed", false)
+          .order("priority", { ascending: true, nullsFirst: false })
+          .order("due_date", { ascending: true, nullsFirst: false })
+          .limit(30);
+        if (artistFilter) tasksQuery = tasksQuery.eq("artist_id", artistFilter);
+        const { data: myTasks } = await tasksQuery;
+
+        // Separate overdue, today, and upcoming
+        const overdue = (myTasks || []).filter((t: any) => t.due_date && t.due_date < todayStr);
+        const today = (myTasks || []).filter((t: any) => t.due_date === todayStr);
+        const upcoming = (myTasks || []).filter((t: any) => t.due_date && t.due_date > todayStr && t.due_date <= futureDate);
+        const noDueDate = (myTasks || []).filter((t: any) => !t.due_date);
+
+        // Fetch upcoming milestones
+        let msQuery = adminClient.from("artist_milestones")
+          .select("title, date, description, artists!inner(name, team_id)")
+          .eq("artists.team_id", teamId)
+          .gte("date", todayStr)
+          .lte("date", futureDate)
+          .order("date", { ascending: true })
+          .limit(10);
+        if (artistFilter) msQuery = msQuery.eq("artist_id", artistFilter);
+        const { data: milestones } = await msQuery;
+
+        return {
+          success: true,
+          message: `Found ${overdue.length} overdue, ${today.length} due today, ${upcoming.length} upcoming, ${noDueDate.length} undated tasks, and ${(milestones || []).length} milestones`,
+          data: {
+            overdue: overdue.map((t: any) => ({ title: t.title, due_date: t.due_date, priority: t.priority, artist: t.artists?.name })),
+            due_today: today.map((t: any) => ({ title: t.title, priority: t.priority, artist: t.artists?.name, description: t.description })),
+            upcoming: upcoming.map((t: any) => ({ title: t.title, due_date: t.due_date, priority: t.priority, artist: t.artists?.name })),
+            no_due_date: noDueDate.slice(0, 10).map((t: any) => ({ title: t.title, priority: t.priority, artist: t.artists?.name })),
+            milestones: (milestones || []).map((m: any) => ({ title: m.title, date: m.date, artist: m.artists?.name })),
+          },
+        };
       }
 
       case "search_knowledge": {
