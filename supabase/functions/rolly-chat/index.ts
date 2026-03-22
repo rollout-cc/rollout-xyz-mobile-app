@@ -617,38 +617,23 @@ async function resolveUserId(adminClient: any, teamId: string, memberName: strin
 async function executeTool(adminClient: any, toolName: string, args: any, teamId: string, userId: string): Promise<{ success: boolean; message: string; data?: any }> {
   try {
     switch (toolName) {
+      // === CREATE TOOLS ===
       case "create_tasks": {
         const results: any[] = [];
         for (const task of args.tasks) {
           let artistId: string | null = null;
           if (task.artist_name) {
             artistId = await resolveArtistId(adminClient, teamId, task.artist_name);
-            if (!artistId) {
-              results.push({ title: task.title, error: `Artist "${task.artist_name}" not found` });
-              continue;
-            }
+            if (!artistId) { results.push({ title: task.title, error: `Artist "${task.artist_name}" not found` }); continue; }
           }
           let assigneeId = userId;
-          if (task.assignee_name) {
-            const resolved = await resolveUserId(adminClient, teamId, task.assignee_name);
-            if (resolved) {
-              assigneeId = resolved;
-            }
-          }
+          if (task.assignee_name) { const resolved = await resolveUserId(adminClient, teamId, task.assignee_name); if (resolved) assigneeId = resolved; }
           const { data, error } = await adminClient.from("tasks").insert({
-            title: task.title,
-            description: task.description || null,
-            artist_id: artistId,
-            team_id: teamId,
-            assigned_to: assigneeId,
-            due_date: task.due_date || null,
-            expense_amount: task.expense_amount || null,
+            title: task.title, description: task.description || null, artist_id: artistId, team_id: teamId,
+            assigned_to: assigneeId, due_date: task.due_date || null, expense_amount: task.expense_amount || null,
           }).select("id, title").single();
-          if (error) {
-            results.push({ title: task.title, error: error.message });
-          } else {
-            results.push({ id: data.id, title: data.title, status: "created" });
-          }
+          if (error) results.push({ title: task.title, error: error.message });
+          else results.push({ id: data.id, title: data.title, status: "created" });
         }
         const created = results.filter(r => r.status === "created").length;
         return { success: created > 0, message: `Created ${created} task(s)`, data: results };
@@ -658,12 +643,8 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
         const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
         if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
         const { data, error } = await adminClient.from("transactions").insert({
-          artist_id: artistId,
-          description: args.description,
-          amount: args.amount,
-          type: "expense",
-          transaction_date: args.transaction_date || new Date().toISOString().split("T")[0],
-          status: "completed",
+          artist_id: artistId, description: args.description, amount: args.amount, type: "expense",
+          transaction_date: args.transaction_date || new Date().toISOString().split("T")[0], status: "completed",
         }).select("id, description, amount").single();
         if (error) return { success: false, message: error.message };
         return { success: true, message: `Logged $${args.amount} expense: "${args.description}"`, data };
@@ -673,10 +654,7 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
         const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
         if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
         const { data, error } = await adminClient.from("artist_milestones").insert({
-          artist_id: artistId,
-          title: args.title,
-          date: args.date,
-          description: args.description || null,
+          artist_id: artistId, title: args.title, date: args.date, description: args.description || null,
         }).select("id, title, date").single();
         if (error) return { success: false, message: error.message };
         return { success: true, message: `Added milestone "${args.title}" on ${args.date}`, data };
@@ -686,16 +664,10 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
         const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
         if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
         const { data: project, error: projErr } = await adminClient.from("split_projects").insert({
-          artist_id: artistId,
-          name: args.project_name,
-          project_type: args.project_type,
+          artist_id: artistId, name: args.project_name, project_type: args.project_type,
         }).select("id, name").single();
         if (projErr) return { success: false, message: projErr.message };
-        const tracks = args.track_names.map((name: string, i: number) => ({
-          project_id: project.id,
-          title: name,
-          track_number: i + 1,
-        }));
+        const tracks = args.track_names.map((name: string, i: number) => ({ project_id: project.id, title: name, track_number: i + 1 }));
         const { error: trackErr } = await adminClient.from("split_songs").insert(tracks);
         if (trackErr) return { success: true, message: `Created project "${args.project_name}" but failed to add tracks: ${trackErr.message}`, data: project };
         return { success: true, message: `Created split project "${args.project_name}" with ${tracks.length} track(s)`, data: project };
@@ -707,61 +679,192 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
         const results: any[] = [];
         for (const budget of args.budgets) {
           const { data, error } = await adminClient.from("budgets").insert({
-            artist_id: artistId,
-            label: budget.label,
-            amount: budget.amount,
+            artist_id: artistId, label: budget.label, amount: budget.amount,
           }).select("id, label, amount").single();
-          if (error) {
-            results.push({ label: budget.label, error: error.message });
-          } else {
-            results.push({ id: data.id, label: data.label, amount: data.amount, status: "created" });
-          }
+          if (error) results.push({ label: budget.label, error: error.message });
+          else results.push({ id: data.id, label: data.label, amount: data.amount, status: "created" });
         }
         const created = results.filter(r => r.status === "created").length;
         return { success: created > 0, message: `Created ${created} budget(s)`, data: results };
       }
 
+      case "create_campaign": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        const { data, error } = await adminClient.from("initiatives").insert({
+          artist_id: artistId, name: args.name, description: args.description || null,
+          start_date: args.start_date || null, end_date: args.end_date || null,
+        }).select("id, name").single();
+        if (error) return { success: false, message: error.message };
+        return { success: true, message: `Created campaign "${args.name}"`, data };
+      }
+
+      // === UPDATE TOOLS ===
+      case "update_tasks": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        const results: any[] = [];
+        for (const upd of args.updates) {
+          const { data: found } = await adminClient.from("tasks").select("id")
+            .eq("artist_id", artistId).ilike("title", `%${upd.current_title}%`).limit(1);
+          if (!found || found.length === 0) { results.push({ title: upd.current_title, error: "Task not found" }); continue; }
+          const updates: any = {};
+          if (upd.new_title) updates.title = upd.new_title;
+          if (upd.description !== undefined) updates.description = upd.description;
+          if (upd.due_date) updates.due_date = upd.due_date;
+          if (upd.is_completed !== undefined) { updates.is_completed = upd.is_completed; updates.completed_at = upd.is_completed ? new Date().toISOString() : null; }
+          if (upd.expense_amount !== undefined) updates.expense_amount = upd.expense_amount;
+          if (upd.assignee_name) { const resolved = await resolveUserId(adminClient, teamId, upd.assignee_name); if (resolved) updates.assigned_to = resolved; }
+          const { error } = await adminClient.from("tasks").update(updates).eq("id", found[0].id);
+          if (error) results.push({ title: upd.current_title, error: error.message });
+          else results.push({ title: upd.new_title || upd.current_title, status: "updated" });
+        }
+        const updated = results.filter(r => r.status === "updated").length;
+        return { success: updated > 0, message: `Updated ${updated} task(s)`, data: results };
+      }
+
+      case "update_milestone": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        const { data: found } = await adminClient.from("artist_milestones").select("id")
+          .eq("artist_id", artistId).ilike("title", `%${args.current_title}%`).limit(1);
+        if (!found?.length) return { success: false, message: `Milestone "${args.current_title}" not found` };
+        const updates: any = {};
+        if (args.new_title) updates.title = args.new_title;
+        if (args.date) updates.date = args.date;
+        if (args.description !== undefined) updates.description = args.description;
+        const { error } = await adminClient.from("artist_milestones").update(updates).eq("id", found[0].id);
+        if (error) return { success: false, message: error.message };
+        return { success: true, message: `Updated milestone "${args.new_title || args.current_title}"` };
+      }
+
+      case "update_budget": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        const { data: found } = await adminClient.from("budgets").select("id")
+          .eq("artist_id", artistId).ilike("label", `%${args.current_label}%`).limit(1);
+        if (!found?.length) return { success: false, message: `Budget "${args.current_label}" not found` };
+        const updates: any = {};
+        if (args.new_label) updates.label = args.new_label;
+        if (args.amount !== undefined) updates.amount = args.amount;
+        const { error } = await adminClient.from("budgets").update(updates).eq("id", found[0].id);
+        if (error) return { success: false, message: error.message };
+        return { success: true, message: `Updated budget "${args.new_label || args.current_label}"` };
+      }
+
+      case "update_campaign": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        const { data: found } = await adminClient.from("initiatives").select("id")
+          .eq("artist_id", artistId).ilike("name", `%${args.current_name}%`).limit(1);
+        if (!found?.length) return { success: false, message: `Campaign "${args.current_name}" not found` };
+        const updates: any = {};
+        if (args.new_name) updates.name = args.new_name;
+        if (args.description !== undefined) updates.description = args.description;
+        if (args.start_date) updates.start_date = args.start_date;
+        if (args.end_date) updates.end_date = args.end_date;
+        if (args.is_archived !== undefined) updates.is_archived = args.is_archived;
+        const { error } = await adminClient.from("initiatives").update(updates).eq("id", found[0].id);
+        if (error) return { success: false, message: error.message };
+        return { success: true, message: `Updated campaign "${args.new_name || args.current_name}"` };
+      }
+
+      case "update_expense": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        const { data: found } = await adminClient.from("transactions").select("id")
+          .eq("artist_id", artistId).ilike("description", `%${args.current_description}%`).limit(1);
+        if (!found?.length) return { success: false, message: `Expense "${args.current_description}" not found` };
+        const updates: any = {};
+        if (args.new_description) updates.description = args.new_description;
+        if (args.amount !== undefined) updates.amount = args.amount;
+        if (args.transaction_date) updates.transaction_date = args.transaction_date;
+        if (args.status) updates.status = args.status;
+        const { error } = await adminClient.from("transactions").update(updates).eq("id", found[0].id);
+        if (error) return { success: false, message: error.message };
+        return { success: true, message: `Updated expense "${args.new_description || args.current_description}"` };
+      }
+
+      // === DELETE TOOLS ===
+      case "delete_tasks": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        let query = adminClient.from("tasks").delete().eq("artist_id", artistId);
+        if (!args.delete_completed_too) query = query.eq("is_completed", false);
+        if (args.task_titles?.length > 0) query = query.in("title", args.task_titles);
+        const { data, error } = await query.select("id");
+        if (error) return { success: false, message: error.message };
+        return { success: true, message: `Deleted ${data?.length || 0} task(s)`, data: { deleted: data?.length || 0 } };
+      }
+
+      case "delete_milestones": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        let query = adminClient.from("artist_milestones").delete().eq("artist_id", artistId);
+        if (args.milestone_titles?.length > 0) query = query.in("title", args.milestone_titles);
+        else query = query.gte("date", new Date().toISOString().split("T")[0]);
+        const { data, error } = await query.select("id");
+        if (error) return { success: false, message: error.message };
+        return { success: true, message: `Deleted ${data?.length || 0} milestone(s)`, data: { deleted: data?.length || 0 } };
+      }
+
+      case "delete_budgets": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        let query = adminClient.from("budgets").delete().eq("artist_id", artistId);
+        if (args.budget_labels?.length > 0) query = query.in("label", args.budget_labels);
+        const { data, error } = await query.select("id");
+        if (error) return { success: false, message: error.message };
+        return { success: true, message: `Deleted ${data?.length || 0} budget(s)`, data: { deleted: data?.length || 0 } };
+      }
+
+      case "delete_expenses": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        const results: any[] = [];
+        for (const desc of args.descriptions) {
+          const { data, error } = await adminClient.from("transactions").delete()
+            .eq("artist_id", artistId).ilike("description", `%${desc}%`).select("id");
+          if (error) results.push({ description: desc, error: error.message });
+          else results.push({ description: desc, deleted: data?.length || 0 });
+        }
+        const total = results.reduce((sum: number, r: any) => sum + (r.deleted || 0), 0);
+        return { success: true, message: `Deleted ${total} expense(s)`, data: results };
+      }
+
+      // === READ / RECALL TOOLS ===
       case "search_creators": {
         const { data, error } = await adminClient.rpc("search_creator_intelligence", {
-          search_query: args.query || "",
-          platform_filter: args.platform || null,
-          category_filter: args.category || null,
-          genre_filter: args.genre || null,
-          min_confidence: args.min_confidence || 0,
-          match_limit: args.limit || 10,
-          p_team_id: teamId,
+          search_query: args.query || "", platform_filter: args.platform || null,
+          category_filter: args.category || null, genre_filter: args.genre || null,
+          min_confidence: args.min_confidence || 0, match_limit: args.limit || 10, p_team_id: teamId,
         });
         if (error) return { success: false, message: error.message };
-        if (!data || data.length === 0) return { success: true, message: "No creators found matching your criteria.", data: [] };
+        if (!data?.length) return { success: true, message: "No creators found.", data: [] };
         const formatted = data.map((c: any) => ({
-          handle: c.handle,
-          platform: c.platform,
-          category: c.category,
-          genre_fit: c.genre_fit,
-          follower_count: c.follower_count,
-          average_views: c.average_views,
-          engagement_rate: c.engagement_rate,
-          rate: c.rate,
-          contact_info: c.contact_info,
-          confidence_label: c.confidence_label,
-          url: c.url,
-          audience_type: c.audience_type,
-          notes: c.notes,
+          handle: c.handle, platform: c.platform, category: c.category, genre_fit: c.genre_fit,
+          follower_count: c.follower_count, average_views: c.average_views, engagement_rate: c.engagement_rate,
+          rate: c.rate, contact_info: c.contact_info, confidence_label: c.confidence_label,
+          url: c.url, audience_type: c.audience_type, notes: c.notes,
         }));
         return { success: true, message: `Found ${data.length} creator(s)`, data: formatted };
       }
 
-      // --- Read tools ---
+      case "get_artist_info": {
+        const { data, error } = await adminClient.from("artists")
+          .select("name, genres, primary_focus, secondary_focus, primary_goal, secondary_goal, primary_metric, secondary_metric, spotify_id, monthly_listeners, objective_1_type, objective_1_target, objective_2_type, objective_2_target, rolly_profile")
+          .eq("team_id", teamId).ilike("name", `%${args.artist_name}%`).limit(1).single();
+        if (error) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        return { success: true, message: `Artist info for "${data.name}"`, data };
+      }
+
       case "get_artist_milestones": {
         const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
         if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
-        const { data, error } = await adminClient
-          .from("artist_milestones")
+        const { data, error } = await adminClient.from("artist_milestones")
           .select("title, date, description, artist_timelines(name)")
-          .eq("artist_id", artistId)
-          .gte("date", new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0])
-          .order("date", { ascending: true })
-          .limit(20);
+          .eq("artist_id", artistId).gte("date", new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0])
+          .order("date", { ascending: true }).limit(20);
         if (error) return { success: false, message: error.message };
         return { success: true, message: `Found ${(data || []).length} milestone(s)`, data: data || [] };
       }
@@ -769,13 +872,10 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
       case "get_artist_campaigns": {
         const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
         if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
-        const { data, error } = await adminClient
-          .from("initiatives")
+        const { data, error } = await adminClient.from("initiatives")
           .select("name, description, start_date, end_date")
-          .eq("artist_id", artistId)
-          .eq("is_archived", false)
-          .order("start_date", { ascending: false })
-          .limit(10);
+          .eq("artist_id", artistId).eq("is_archived", false)
+          .order("start_date", { ascending: false }).limit(10);
         if (error) return { success: false, message: error.message };
         return { success: true, message: `Found ${(data || []).length} campaign(s)`, data: data || [] };
       }
@@ -783,47 +883,73 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
       case "get_artist_tasks": {
         const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
         if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
-        const { data, error } = await adminClient
-          .from("tasks")
-          .select("title, due_date, is_completed, assigned_to")
-          .eq("artist_id", artistId)
-          .eq("is_completed", false)
-          .order("due_date", { ascending: true, nullsFirst: false })
-          .limit(30);
+        let query = adminClient.from("tasks")
+          .select("title, description, due_date, is_completed, assigned_to, expense_amount")
+          .eq("artist_id", artistId);
+        if (!args.include_completed) query = query.eq("is_completed", false);
+        const { data, error } = await query.order("due_date", { ascending: true, nullsFirst: false }).limit(50);
         if (error) return { success: false, message: error.message };
-        return { success: true, message: `Found ${(data || []).length} open task(s)`, data: data || [] };
+        return { success: true, message: `Found ${(data || []).length} task(s)`, data: data || [] };
       }
 
       case "get_artist_budgets": {
         const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
         if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
-        const { data, error } = await adminClient
-          .from("budgets")
-          .select("label, amount")
-          .eq("artist_id", artistId)
-          .order("label");
+        const { data, error } = await adminClient.from("budgets")
+          .select("label, amount").eq("artist_id", artistId).order("label");
         if (error) return { success: false, message: error.message };
         return { success: true, message: `Found ${(data || []).length} budget(s)`, data: data || [] };
       }
 
-      case "delete_tasks": {
+      case "get_artist_transactions": {
         const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
         if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
-
-        let query = adminClient.from("tasks").delete().eq("artist_id", artistId);
-
-        if (!args.delete_completed_too) {
-          query = query.eq("is_completed", false);
-        }
-
-        if (args.task_titles && args.task_titles.length > 0) {
-          query = query.in("title", args.task_titles);
-        }
-
-        const { data, error, count } = await query.select("id");
+        let query = adminClient.from("transactions")
+          .select("description, amount, type, transaction_date, status, revenue_source, revenue_category")
+          .eq("artist_id", artistId);
+        if (args.type && args.type !== "all") query = query.eq("type", args.type);
+        const { data, error } = await query.order("transaction_date", { ascending: false }).limit(args.limit || 20);
         if (error) return { success: false, message: error.message };
-        const deleted = data?.length || 0;
-        return { success: true, message: `Deleted ${deleted} task(s) for "${args.artist_name}"`, data: { deleted } };
+        return { success: true, message: `Found ${(data || []).length} transaction(s)`, data: data || [] };
+      }
+
+      case "get_artist_contacts": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        const { data, error } = await adminClient.from("artist_contacts")
+          .select("name, role, email, phone").eq("artist_id", artistId).order("name");
+        if (error) return { success: false, message: error.message };
+        return { success: true, message: `Found ${(data || []).length} contact(s)`, data: data || [] };
+      }
+
+      case "get_artist_links": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        const { data, error } = await adminClient.from("artist_links")
+          .select("title, url, description, artist_link_folders(name)")
+          .eq("artist_id", artistId).order("sort_order");
+        if (error) return { success: false, message: error.message };
+        return { success: true, message: `Found ${(data || []).length} link(s)`, data: data || [] };
+      }
+
+      case "get_artist_travel_info": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        const { data, error } = await adminClient.from("artist_travel_info")
+          .select("member_name, first_name, last_name, passport_name, date_of_birth, dietary_restrictions, preferred_airline, preferred_seat, ktn_number, tsa_precheck_number, shirt_size, pant_size, shoe_size, dress_size, hat_size, favorite_brands, drivers_license, pro_name, ipi_number, publisher_name, publishing_admin, publisher_pro, isni, spotify_uri, record_label, distributor, notes")
+          .eq("artist_id", artistId);
+        if (error) return { success: false, message: error.message };
+        return { success: true, message: `Found ${(data || []).length} member record(s)`, data: data || [] };
+      }
+
+      case "get_artist_splits": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        const { data, error } = await adminClient.from("split_projects")
+          .select("name, project_type, split_songs(title, track_number)")
+          .eq("artist_id", artistId).order("created_at", { ascending: false });
+        if (error) return { success: false, message: error.message };
+        return { success: true, message: `Found ${(data || []).length} split project(s)`, data: data || [] };
       }
 
       case "search_knowledge": {
