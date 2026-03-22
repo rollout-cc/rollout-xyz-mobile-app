@@ -833,20 +833,25 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
         return { success: true, message: `Updated campaign "${args.new_name || args.current_name}"` };
       }
 
-      case "update_expense": {
+      case "update_expense":
+      case "update_transaction": {
         const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
         if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
-        const { data: found } = await adminClient.from("transactions").select("id")
+        const { data: found } = await adminClient.from("transactions").select("id, type")
           .eq("artist_id", artistId).ilike("description", `%${args.current_description}%`).limit(1);
-        if (!found?.length) return { success: false, message: `Expense "${args.current_description}" not found` };
+        if (!found?.length) return { success: false, message: `Transaction "${args.current_description}" not found` };
         const updates: any = {};
         if (args.new_description) updates.description = args.new_description;
         if (args.amount !== undefined) updates.amount = args.amount;
         if (args.transaction_date) updates.transaction_date = args.transaction_date;
         if (args.status) updates.status = args.status;
+        if (args.type) updates.type = args.type;
+        if (args.revenue_source !== undefined) updates.revenue_source = args.revenue_source;
+        if (args.revenue_category) updates.revenue_category = args.revenue_category;
         const { error } = await adminClient.from("transactions").update(updates).eq("id", found[0].id);
         if (error) return { success: false, message: error.message };
-        return { success: true, message: `Updated expense "${args.new_description || args.current_description}"` };
+        const label = args.status === "completed" ? "Marked as paid" : `Updated transaction`;
+        return { success: true, message: `${label}: "${args.new_description || args.current_description}"` };
       }
 
       // === DELETE TOOLS ===
