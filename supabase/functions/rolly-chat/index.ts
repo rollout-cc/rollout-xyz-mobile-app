@@ -502,7 +502,7 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
         if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
         const { data, error } = await adminClient
           .from("tasks")
-          .select("title, due_date, status, assigned_to, profiles(full_name)")
+          .select("title, due_date, status, assigned_to")
           .eq("artist_id", artistId)
           .neq("status", "done")
           .order("due_date", { ascending: true, nullsFirst: false })
