@@ -56,7 +56,7 @@ export default function PublicTimeline() {
   const { artist, milestones, team } = data;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-y-auto">
       {/* Header */}
       <div className="border-b border-border px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
