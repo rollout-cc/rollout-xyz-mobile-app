@@ -68,8 +68,8 @@ DAILY BRIEFING — "What do I need to do?":
 DATA AWARENESS — Read Before You Write:
 - When asked to work with existing data, ALWAYS use read tools first (get_artist_tasks, get_artist_milestones, get_artist_campaigns, get_artist_budgets, get_artist_transactions, get_artist_contacts, get_artist_links, get_artist_travel_info, get_artist_splits, get_artist_info). Never invent items that may already exist.
 - When the user asks you to RECALL or LOOK UP anything — contacts, travel info, clothing sizes, PRO info, links, budgets, transactions, splits — use the appropriate read tool immediately and relay the information.
-- You can edit anything you can create: use update_tasks, update_milestone, update_budget, update_campaign, update_expense to modify existing items.
-- You can delete anything: use delete_tasks, delete_milestones, delete_budgets, delete_expenses.
+- You can edit anything you can create: use update_tasks, update_milestone, update_budget, update_campaign, update_transaction to modify existing items (expenses AND revenue).
+- You can delete anything: use delete_tasks, delete_milestones, delete_budgets, delete_transactions.
 - After reading, use search_knowledge to look up industry best practices when relevant.
 - Infer additional tasks from knowledge (e.g. "Shoot music video" → pre-production, crew, locations, wardrobe).
 - Check existing tasks to avoid duplicates before creating new ones.
@@ -371,17 +371,20 @@ const TOOLS = [
   {
     type: "function",
     function: {
-      name: "update_expense",
-      description: "Update an existing expense/transaction by description match. Can change description, amount, date, or status.",
+      name: "update_transaction",
+      description: "Update an existing expense OR revenue transaction by description match. Can change description, amount, date, status, type (expense/revenue), revenue_source, revenue_category, or mark as paid.",
       parameters: {
         type: "object",
         properties: {
           artist_name: { type: "string", description: "Name of the artist" },
-          current_description: { type: "string", description: "Current expense description to find" },
+          current_description: { type: "string", description: "Current transaction description to find" },
           new_description: { type: "string", description: "New description" },
           amount: { type: "number", description: "New amount" },
           transaction_date: { type: "string", description: "New date (ISO)" },
-          status: { type: "string", enum: ["pending", "completed"], description: "New status" },
+          status: { type: "string", enum: ["pending", "completed"], description: "Transaction status — use 'completed' to mark as paid" },
+          type: { type: "string", enum: ["expense", "revenue"], description: "Change transaction type" },
+          revenue_source: { type: "string", description: "Update revenue source (who paid)" },
+          revenue_category: { type: "string", enum: ["Royalty", "Live/Touring", "Merchandise", "Brand Deal", "Show Fee", "Feature", "Publishing", "Other"], description: "Update revenue category" },
         },
         required: ["artist_name", "current_description"],
       },
@@ -437,13 +440,13 @@ const TOOLS = [
   {
     type: "function",
     function: {
-      name: "delete_expenses",
-      description: "Delete expense transactions for an artist by description match.",
+      name: "delete_transactions",
+      description: "Delete expense or revenue transactions for an artist by description match.",
       parameters: {
         type: "object",
         properties: {
           artist_name: { type: "string", description: "Name of the artist" },
-          descriptions: { type: "array", items: { type: "string" }, description: "Descriptions of expenses to delete." },
+          descriptions: { type: "array", items: { type: "string" }, description: "Descriptions of transactions to delete." },
         },
         required: ["artist_name", "descriptions"],
       },
@@ -830,20 +833,25 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
         return { success: true, message: `Updated campaign "${args.new_name || args.current_name}"` };
       }
 
-      case "update_expense": {
+      case "update_expense":
+      case "update_transaction": {
         const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
         if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
-        const { data: found } = await adminClient.from("transactions").select("id")
+        const { data: found } = await adminClient.from("transactions").select("id, type")
           .eq("artist_id", artistId).ilike("description", `%${args.current_description}%`).limit(1);
-        if (!found?.length) return { success: false, message: `Expense "${args.current_description}" not found` };
+        if (!found?.length) return { success: false, message: `Transaction "${args.current_description}" not found` };
         const updates: any = {};
         if (args.new_description) updates.description = args.new_description;
         if (args.amount !== undefined) updates.amount = args.amount;
         if (args.transaction_date) updates.transaction_date = args.transaction_date;
         if (args.status) updates.status = args.status;
+        if (args.type) updates.type = args.type;
+        if (args.revenue_source !== undefined) updates.revenue_source = args.revenue_source;
+        if (args.revenue_category) updates.revenue_category = args.revenue_category;
         const { error } = await adminClient.from("transactions").update(updates).eq("id", found[0].id);
         if (error) return { success: false, message: error.message };
-        return { success: true, message: `Updated expense "${args.new_description || args.current_description}"` };
+        const label = args.status === "completed" ? "Marked as paid" : `Updated transaction`;
+        return { success: true, message: `${label}: "${args.new_description || args.current_description}"` };
       }
 
       // === DELETE TOOLS ===
@@ -879,7 +887,8 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
         return { success: true, message: `Deleted ${data?.length || 0} budget(s)`, data: { deleted: data?.length || 0 } };
       }
 
-      case "delete_expenses": {
+      case "delete_expenses":
+      case "delete_transactions": {
         const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
         if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
         const results: any[] = [];
@@ -890,7 +899,7 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
           else results.push({ description: desc, deleted: data?.length || 0 });
         }
         const total = results.reduce((sum: number, r: any) => sum + (r.deleted || 0), 0);
-        return { success: true, message: `Deleted ${total} expense(s)`, data: results };
+        return { success: true, message: `Deleted ${total} transaction(s)`, data: results };
       }
 
       // === READ / RECALL TOOLS ===
