@@ -371,17 +371,20 @@ const TOOLS = [
   {
     type: "function",
     function: {
-      name: "update_expense",
-      description: "Update an existing expense/transaction by description match. Can change description, amount, date, or status.",
+      name: "update_transaction",
+      description: "Update an existing expense OR revenue transaction by description match. Can change description, amount, date, status, type (expense/revenue), revenue_source, revenue_category, or mark as paid.",
       parameters: {
         type: "object",
         properties: {
           artist_name: { type: "string", description: "Name of the artist" },
-          current_description: { type: "string", description: "Current expense description to find" },
+          current_description: { type: "string", description: "Current transaction description to find" },
           new_description: { type: "string", description: "New description" },
           amount: { type: "number", description: "New amount" },
           transaction_date: { type: "string", description: "New date (ISO)" },
-          status: { type: "string", enum: ["pending", "completed"], description: "New status" },
+          status: { type: "string", enum: ["pending", "completed"], description: "Transaction status — use 'completed' to mark as paid" },
+          type: { type: "string", enum: ["expense", "revenue"], description: "Change transaction type" },
+          revenue_source: { type: "string", description: "Update revenue source (who paid)" },
+          revenue_category: { type: "string", enum: ["Royalty", "Live/Touring", "Merchandise", "Brand Deal", "Show Fee", "Feature", "Publishing", "Other"], description: "Update revenue category" },
         },
         required: ["artist_name", "current_description"],
       },
