@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, DragEvent } from "react";
 import { Send, Square, Trash2, CheckCircle2, AlertCircle, ClipboardList, Camera, X } from "lucide-react";
 import rollyIcon from "@/assets/rolly-icon.png";
 import { PlanWizard } from "@/components/rolly/PlanWizard";
