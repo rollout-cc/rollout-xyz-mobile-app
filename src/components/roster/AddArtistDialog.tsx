@@ -130,6 +130,13 @@ export function AddArtistDialog({ open, onOpenChange, existingSpotifyIds, onAdd,
                   </div>
                 );
               })}
+              {searchQuery.trim().length > 0 && (
+                <div className="flex items-center justify-center pt-2 pb-1">
+                  <Button variant="outline" size="sm" onClick={() => onCreateManual(searchQuery.trim())}>
+                    Don't see them? Create "{searchQuery.trim()}" manually
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center gap-4">
@@ -140,12 +147,9 @@ export function AddArtistDialog({ open, onOpenChange, existingSpotifyIds, onAdd,
                 {searchQuery.trim().length > 0 ? "No results found" : "Search Spotify to add artists to your roster"}
               </p>
               {searchQuery.trim().length > 0 && (
-                <>
-                  <p className="text-sm text-muted-foreground">or</p>
-                  <Button onClick={() => onCreateManual(searchQuery.trim())}>
-                    Create "{searchQuery.trim()}" manually
-                  </Button>
-                </>
+                <Button onClick={() => onCreateManual(searchQuery.trim())}>
+                  Create "{searchQuery.trim()}" manually
+                </Button>
               )}
             </div>
           )}
