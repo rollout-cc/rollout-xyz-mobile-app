@@ -320,6 +320,22 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "delete_tasks",
+      description: "Delete one or more tasks for an artist. Use when the user asks to remove, delete, or clear tasks. Can delete all open tasks for an artist or specific tasks by title.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist whose tasks to delete" },
+          task_titles: { type: "array", items: { type: "string" }, description: "Optional list of specific task titles to delete. If omitted, deletes ALL open tasks for the artist." },
+          delete_completed_too: { type: "boolean", description: "If true, also delete completed tasks. Default false (only open tasks)." },
+        },
+        required: ["artist_name"],
+      },
+    },
+  },
 ];
 
 async function resolveArtistId(adminClient: any, teamId: string, artistName: string): Promise<string | null> {
@@ -532,6 +548,26 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
           .order("label");
         if (error) return { success: false, message: error.message };
         return { success: true, message: `Found ${(data || []).length} budget(s)`, data: data || [] };
+      }
+
+      case "delete_tasks": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+
+        let query = adminClient.from("tasks").delete().eq("artist_id", artistId);
+
+        if (!args.delete_completed_too) {
+          query = query.eq("is_completed", false);
+        }
+
+        if (args.task_titles && args.task_titles.length > 0) {
+          query = query.in("title", args.task_titles);
+        }
+
+        const { data, error, count } = await query.select("id");
+        if (error) return { success: false, message: error.message };
+        const deleted = data?.length || 0;
+        return { success: true, message: `Deleted ${deleted} task(s) for "${args.artist_name}"`, data: { deleted } };
       }
 
       case "search_knowledge": {
