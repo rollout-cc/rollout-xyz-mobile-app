@@ -1151,6 +1151,7 @@ export type Database = {
           perm_view_ar: boolean
           perm_view_billing: boolean
           perm_view_finance: boolean
+          perm_view_full_roster: boolean
           perm_view_roster: boolean
           perm_view_staff_salaries: boolean
           role: Database["public"]["Enums"]["app_role"]
@@ -1178,6 +1179,7 @@ export type Database = {
           perm_view_ar?: boolean
           perm_view_billing?: boolean
           perm_view_finance?: boolean
+          perm_view_full_roster?: boolean
           perm_view_roster?: boolean
           perm_view_staff_salaries?: boolean
           role?: Database["public"]["Enums"]["app_role"]
@@ -1205,6 +1207,7 @@ export type Database = {
           perm_view_ar?: boolean
           perm_view_billing?: boolean
           perm_view_finance?: boolean
+          perm_view_full_roster?: boolean
           perm_view_roster?: boolean
           perm_view_staff_salaries?: boolean
           role?: Database["public"]["Enums"]["app_role"]
@@ -2753,6 +2756,7 @@ export type Database = {
           perm_view_ar: boolean
           perm_view_billing: boolean
           perm_view_finance: boolean
+          perm_view_full_roster: boolean
           perm_view_roster: boolean
           perm_view_staff_salaries: boolean
           persona: string | null
@@ -2771,6 +2775,7 @@ export type Database = {
           perm_view_ar?: boolean
           perm_view_billing?: boolean
           perm_view_finance?: boolean
+          perm_view_full_roster?: boolean
           perm_view_roster?: boolean
           perm_view_staff_salaries?: boolean
           persona?: string | null
@@ -2789,6 +2794,7 @@ export type Database = {
           perm_view_ar?: boolean
           perm_view_billing?: boolean
           perm_view_finance?: boolean
+          perm_view_full_roster?: boolean
           perm_view_roster?: boolean
           perm_view_staff_salaries?: boolean
           persona?: string | null

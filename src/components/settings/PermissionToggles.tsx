@@ -10,6 +10,7 @@ export interface PermissionFlags {
   perm_edit_artists: boolean;
   perm_view_billing: boolean;
   perm_distribution: boolean;
+  perm_view_full_roster: boolean;
 }
 
 export const defaultPermissions: PermissionFlags = {
@@ -21,6 +22,7 @@ export const defaultPermissions: PermissionFlags = {
   perm_edit_artists: false,
   perm_view_billing: false,
   perm_distribution: false,
+  perm_view_full_roster: false,
 };
 
 /** Returns role-based defaults; toggles are additive on top of these */
@@ -36,6 +38,7 @@ export function roleDefaults(role: string): PermissionFlags {
         perm_edit_artists: true,
         perm_view_billing: true,
         perm_distribution: true,
+        perm_view_full_roster: true,
       };
     case "manager":
       return {
@@ -47,6 +50,7 @@ export function roleDefaults(role: string): PermissionFlags {
         perm_edit_artists: true,
         perm_view_billing: false,
         perm_distribution: false,
+        perm_view_full_roster: false,
       };
     default:
       return defaultPermissions;
@@ -107,6 +111,7 @@ export function jobTitlePermissions(jobTitle: string): PermissionFlags {
       perm_edit_artists: true,
       perm_view_billing: true,
       perm_distribution: true,
+      perm_view_full_roster: true,
     };
   }
 
@@ -157,11 +162,12 @@ export function jobTitleToRole(jobTitle: string): string {
 }
 
 const PERM_ITEMS: { key: keyof PermissionFlags; label: string; description: string }[] = [
+  { key: "perm_view_full_roster", label: "Full Roster Access", description: "See all artists on the team, not just assigned ones" },
   { key: "perm_view_finance", label: "View Finance", description: "See financial data & budgets" },
   { key: "perm_manage_finance", label: "Manage Finance", description: "Edit budgets & approve transactions" },
   { key: "perm_view_staff_salaries", label: "View Staff Salaries", description: "See salary & payroll info" },
   { key: "perm_view_ar", label: "View A&R", description: "Access the A&R pipeline" },
-  { key: "perm_view_roster", label: "View Roster", description: "See all artists on the roster" },
+  { key: "perm_view_roster", label: "View Roster", description: "Access the roster page" },
   { key: "perm_edit_artists", label: "Edit Artists", description: "Modify artist profiles & data" },
   { key: "perm_view_billing", label: "View Billing", description: "See subscription & billing info" },
   { key: "perm_distribution", label: "Distribution", description: "Access distribution & splits" },

@@ -109,6 +109,7 @@ Deno.serve(async (req: Request) => {
         perm_edit_artists: invite.perm_edit_artists ?? false,
         perm_view_billing: invite.perm_view_billing ?? false,
         perm_distribution: invite.perm_distribution ?? false,
+        perm_view_full_roster: invite.perm_view_full_roster ?? false,
       });
 
     if (memberError) throw memberError;

@@ -80,7 +80,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
   const [permissions, setPermissions] = useState<PermissionFlags>({ ...roleDefaults("manager") });
   const [artistAccess, setArtistAccess] = useState<ArtistAccess[]>([]);
 
-  const showArtistPicker = inviteRole === "artist" || inviteRole === "guest";
+  const showArtistPicker = inviteRole !== "team_owner";
 
   const { data: teamArtists = [] } = useQuery({
     queryKey: ["team-artists-for-invite", teamId],
@@ -243,7 +243,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
                 </Select>
                 <p className="text-xs text-muted-foreground">
                   {inviteRole === "manager"
-                    ? "Managers can view and edit all artists on the team."
+                    ? "Managers can view and edit assigned artists. Toggle 'Full Roster' in permissions for full access."
                     : inviteRole === "artist"
                     ? "Artists have limited access to assigned artists only."
                     : "Guests have view-only access. Ideal for PR, videographers, etc."}
@@ -323,6 +323,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
                     perm_edit_artists: rPerms.perm_edit_artists || titlePerms.perm_edit_artists,
                     perm_view_billing: rPerms.perm_view_billing || titlePerms.perm_view_billing,
                     perm_distribution: rPerms.perm_distribution || titlePerms.perm_distribution,
+                    perm_view_full_roster: rPerms.perm_view_full_roster || titlePerms.perm_view_full_roster,
                   });
                 }} />
               </div>
