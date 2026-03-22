@@ -320,6 +320,22 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "delete_tasks",
+      description: "Delete one or more tasks for an artist. Use when the user asks to remove, delete, or clear tasks. Can delete all open tasks for an artist or specific tasks by title.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist whose tasks to delete" },
+          task_titles: { type: "array", items: { type: "string" }, description: "Optional list of specific task titles to delete. If omitted, deletes ALL open tasks for the artist." },
+          delete_completed_too: { type: "boolean", description: "If true, also delete completed tasks. Default false (only open tasks)." },
+        },
+        required: ["artist_name"],
+      },
+    },
+  },
 ];
 
 async function resolveArtistId(adminClient: any, teamId: string, artistName: string): Promise<string | null> {
