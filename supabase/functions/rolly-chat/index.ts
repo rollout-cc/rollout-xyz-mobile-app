@@ -1473,7 +1473,7 @@ Deno.serve(async (req) => {
     let toolActions: any[] = [];
     let finalMessages = [...aiMessages];
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 5; i++) {
       const toolResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
