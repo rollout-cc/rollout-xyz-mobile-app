@@ -887,7 +887,8 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
         return { success: true, message: `Deleted ${data?.length || 0} budget(s)`, data: { deleted: data?.length || 0 } };
       }
 
-      case "delete_expenses": {
+      case "delete_expenses":
+      case "delete_transactions": {
         const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
         if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
         const results: any[] = [];
@@ -898,7 +899,7 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
           else results.push({ description: desc, deleted: data?.length || 0 });
         }
         const total = results.reduce((sum: number, r: any) => sum + (r.deleted || 0), 0);
-        return { success: true, message: `Deleted ${total} expense(s)`, data: results };
+        return { success: true, message: `Deleted ${total} transaction(s)`, data: results };
       }
 
       // === READ / RECALL TOOLS ===
