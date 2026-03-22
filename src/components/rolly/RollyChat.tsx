@@ -249,7 +249,22 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
     : "px-4";
 
   return (
-    <div className={cn("flex flex-col h-full", planMode && "bg-[hsl(0,0%,5%)]")}>
+    <div
+      className={cn("flex flex-col h-full relative", planMode && "bg-[hsl(0,0%,5%)]")}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Drop overlay */}
+      {isDragging && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center rounded-xl bg-primary/10 backdrop-blur-sm ring-2 ring-inset ring-primary/40 pointer-events-none">
+          <div className="flex flex-col items-center gap-2 text-primary">
+            <Camera className="h-8 w-8" />
+            <span className="text-sm font-semibold">Drop image here</span>
+          </div>
+        </div>
+      )}
       {/* Messages area or Wizard */}
       {wizardActive && onWizardComplete && onWizardCancel ? (
         <div className="flex-1 min-h-0">
