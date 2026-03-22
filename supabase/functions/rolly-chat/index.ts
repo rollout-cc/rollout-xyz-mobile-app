@@ -440,13 +440,13 @@ const TOOLS = [
   {
     type: "function",
     function: {
-      name: "delete_expenses",
-      description: "Delete expense transactions for an artist by description match.",
+      name: "delete_transactions",
+      description: "Delete expense or revenue transactions for an artist by description match.",
       parameters: {
         type: "object",
         properties: {
           artist_name: { type: "string", description: "Name of the artist" },
-          descriptions: { type: "array", items: { type: "string" }, description: "Descriptions of expenses to delete." },
+          descriptions: { type: "array", items: { type: "string" }, description: "Descriptions of transactions to delete." },
         },
         required: ["artist_name", "descriptions"],
       },
