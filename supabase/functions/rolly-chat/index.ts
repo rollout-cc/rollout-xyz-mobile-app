@@ -442,14 +442,23 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
-    const { data: { user }, error: authErr } = await anonClient.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
-    if (authErr || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsErr } = await anonClient.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims?.sub) {
+      // Fallback to getUser if getClaims fails
+      const { data: { user: fallbackUser }, error: fallbackErr } = await anonClient.auth.getUser(token);
+      if (fallbackErr || !fallbackUser) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      var user = fallbackUser;
+      var userId = fallbackUser.id;
+    } else {
+      var userId = claimsData.claims.sub;
+      // Create a minimal user object for compatibility
+      var user = { id: userId, email: claimsData.claims.email } as any;
     }
 
     const { messages, conversation_id, team_id } = await req.json();
