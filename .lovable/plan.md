@@ -1,42 +1,41 @@
 
 
-# Fix Three Pre-Launch Issues
 
-## Issue 1: Black Logo on Dark Background
-The JoinTeam page imports `rollout-logo-white.png` from `src/assets/`, but the current file may be the black version. Replace `src/assets/rollout-logo-white.png` with the uploaded white logo (`Rollout_Logo_Flag_white-2.png`).
+# Rolly Intelligence Upgrade — IMPLEMENTED
 
-**File**: Copy `user-uploads://Rollout_Logo_Flag_white-2.png` to `src/assets/rollout-logo-white.png`
+## What was built
 
-## Issue 2: Redundant Name Entry
-The user enters their name on the signup form (step "auth"), then is asked to "Confirm your profile" with a name field again (step "profile"). 
+### 1. Session Memory (Internal)
+- New `rolly_session_summaries` table — service-role only, no user RLS
+- After every conversation, Rolly auto-summarizes using gemini-2.5-flash-lite and stores it
+- Last 5 summaries injected into system prompt every request as passive context
+- Rolly references past sessions naturally without announcing it has memory
 
-**Fix**: When the user already provided a name during signup (stored in `fullName` state which is pre-populated from the invite), skip the "profile" step entirely and go straight to "personal" details. The logic in the `useEffect` at line 85-103 partially does this but only when `invitePreview?.invitee_name` is set. We need to also skip when `fullName` is already populated from the signup form.
+### 2. Proactive Milestone Alerts
+- Every request, fetches milestones within 14 days for all team artists
+- For each milestone, counts tasks within ±7 days to assess coverage density
+- Thin coverage (< 3 tasks) flagged in system prompt context
+- Rolly mentions it naturally when relevant — no forced alerts
 
-**File**: `src/pages/JoinTeam.tsx`
-- In the `useEffect` that fires when user authenticates (line 85-103), after checking the profile, if `fullName` is already set (from signup form or invite), skip the profile step and go directly to accepting the invite then the personal details step.
+### 3. Artist Tone Profiles (Auto-generated)
+- New `rolly_profile` text column on `artists` table
+- After each conversation, AI auto-generates/updates the profile based on what it learned
+- Profiles injected into system prompt so Rolly calibrates tone per artist
+- No UI — fully backend/AI-managed
 
-## Issue 3: Showing All Artists Instead of Assigned Ones
-The `accept-invite` edge function queries ALL artists on the team roster and returns them, rather than only the ones assigned to the invited user via `artist_permissions`.
+### 4. Five New Read Tools
+- `get_artist_milestones` — fetch upcoming/recent milestones
+- `get_artist_campaigns` — fetch active initiatives
+- `get_artist_tasks` — fetch open tasks (non-done)
+- `get_artist_budgets` — fetch budget categories
+- `search_knowledge` — query industry knowledge base
 
-**Fix**: Change the artist query in `accept-invite/index.ts` to only return artists that the user was given explicit permissions to via the `artist_permissions` table.
+### 5. System Prompt Upgrades
+- DATA AWARENESS: Read before write, check existing data, avoid duplicates
+- ARTIST PROFILES: Calibrate tone per artist stage/priority
+- SESSION CONTINUITY: Use past context naturally
+- MILESTONE AWARENESS: Surface thin coverage when relevant
 
-**File**: `supabase/functions/accept-invite/index.ts` (lines 188-192)
-- Replace the broad `artists` query with a query that joins `artist_permissions` to only return artists the user has access to:
-```sql
-SELECT a.id, a.name, a.avatar_url 
-FROM artists a 
-JOIN artist_permissions ap ON ap.artist_id = a.id 
-WHERE ap.user_id = <user_id>
-```
-
-Additionally, in the "artists" step of JoinTeam.tsx (lines 506-535), if the user has no assigned artists, skip this step entirely instead of showing "No specific artist assignments yet."
-
-## Technical Details
-
-| Change | File | Type |
-|--------|------|------|
-| Replace logo asset | `src/assets/rollout-logo-white.png` | Asset copy |
-| Skip redundant name step | `src/pages/JoinTeam.tsx` | Frontend logic |
-| Filter artists to assigned only | `supabase/functions/accept-invite/index.ts` | Edge function |
-| Skip empty artists step | `src/pages/JoinTeam.tsx` | Frontend logic |
-
+## Files Changed
+- `supabase/functions/rolly-chat/index.ts` — Full intelligence upgrade
+- DB migration: `rolly_session_summaries` table + `artists.rolly_profile` column
