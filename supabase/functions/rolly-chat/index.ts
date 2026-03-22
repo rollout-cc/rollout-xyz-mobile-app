@@ -107,6 +107,9 @@ DATE HANDLING:
 COST HANDLING:
 - When the user mentions a dollar amount with a task (e.g. "$500 for studio time"), set the expense_amount on the task.
 - If they want it logged as a transaction too, use create_expense as well.
+- When the user mentions REVENUE or INCOME (e.g. "$5,000 from Nike brand deal", "got paid $10k for the show"), use create_revenue.
+- Revenue categories: Royalty, Live/Touring, Merchandise, Brand Deal, Show Fee, Feature, Publishing, Other. Pick the best fit from context.
+- If the user says "send invoice to X for $Y", also use create_revenue to log the income.
 
 ASSIGNEE HANDLING:
 - Team member names will be provided in the system context. Match assignee references to the closest team member name.
@@ -177,6 +180,25 @@ const TOOLS = [
           artist_name: { type: "string", description: "Name of the artist" },
           description: { type: "string", description: "What the expense is for" },
           amount: { type: "number", description: "Dollar amount" },
+          transaction_date: { type: "string", description: "ISO date, defaults to today" },
+        },
+        required: ["artist_name", "description", "amount"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_revenue",
+      description: "Log a revenue/income transaction for an artist. Use when the user mentions income, payment received, brand deal payment, show fee, royalties, merch sales, etc.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+          description: { type: "string", description: "What the revenue is from (e.g. 'Nike brand deal', 'Coachella show fee')" },
+          amount: { type: "number", description: "Dollar amount" },
+          revenue_source: { type: "string", description: "Who paid / source name (e.g. 'Nike', 'Live Nation')" },
+          revenue_category: { type: "string", enum: ["Royalty", "Live/Touring", "Merchandise", "Brand Deal", "Show Fee", "Feature", "Publishing", "Other"], description: "Category of revenue" },
           transaction_date: { type: "string", description: "ISO date, defaults to today" },
         },
         required: ["artist_name", "description", "amount"],
@@ -674,6 +696,19 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
         }).select("id, description, amount").single();
         if (error) return { success: false, message: error.message };
         return { success: true, message: `Logged $${args.amount} expense: "${args.description}"`, data };
+      }
+
+      case "create_revenue": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        const { data, error } = await adminClient.from("transactions").insert({
+          artist_id: artistId, description: args.description, amount: args.amount, type: "revenue",
+          transaction_date: args.transaction_date || new Date().toISOString().split("T")[0], status: "completed",
+          revenue_source: args.revenue_source || null,
+          revenue_category: args.revenue_category || "Other",
+        }).select("id, description, amount, revenue_source, revenue_category").single();
+        if (error) return { success: false, message: error.message };
+        return { success: true, message: `Logged $${args.amount} revenue: "${args.description}"${args.revenue_source ? ` from ${args.revenue_source}` : ""}`, data };
       }
 
       case "create_milestone": {
