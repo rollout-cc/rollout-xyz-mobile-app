@@ -512,6 +512,7 @@ export type Database = {
           primary_focus: string | null
           primary_goal: string | null
           primary_metric: string | null
+          rolly_profile: string | null
           secondary_focus: string | null
           secondary_goal: string | null
           secondary_metric: string | null
@@ -540,6 +541,7 @@ export type Database = {
           primary_focus?: string | null
           primary_goal?: string | null
           primary_metric?: string | null
+          rolly_profile?: string | null
           secondary_focus?: string | null
           secondary_goal?: string | null
           secondary_metric?: string | null
@@ -568,6 +570,7 @@ export type Database = {
           primary_focus?: string | null
           primary_goal?: string | null
           primary_metric?: string | null
+          rolly_profile?: string | null
           secondary_focus?: string | null
           secondary_goal?: string | null
           secondary_metric?: string | null
@@ -2258,6 +2261,48 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "rolly_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rolly_session_summaries: {
+        Row: {
+          artist_id: string | null
+          created_at: string
+          id: string
+          summary: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          artist_id?: string | null
+          created_at?: string
+          id?: string
+          summary: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          artist_id?: string | null
+          created_at?: string
+          id?: string
+          summary?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rolly_session_summaries_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rolly_session_summaries_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
