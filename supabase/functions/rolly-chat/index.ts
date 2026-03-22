@@ -189,6 +189,25 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "create_revenue",
+      description: "Log a revenue/income transaction for an artist. Use when the user mentions income, payment received, brand deal payment, show fee, royalties, merch sales, etc.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+          description: { type: "string", description: "What the revenue is from (e.g. 'Nike brand deal', 'Coachella show fee')" },
+          amount: { type: "number", description: "Dollar amount" },
+          revenue_source: { type: "string", description: "Who paid / source name (e.g. 'Nike', 'Live Nation')" },
+          revenue_category: { type: "string", enum: ["Royalty", "Live/Touring", "Merchandise", "Brand Deal", "Show Fee", "Feature", "Publishing", "Other"], description: "Category of revenue" },
+          transaction_date: { type: "string", description: "ISO date, defaults to today" },
+        },
+        required: ["artist_name", "description", "amount"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "create_milestone",
       description: "Add a milestone/event to an artist's timeline.",
       parameters: {
