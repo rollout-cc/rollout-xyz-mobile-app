@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, DragEvent } from "react";
 import { Send, Square, Trash2, CheckCircle2, AlertCircle, ClipboardList, Camera, X } from "lucide-react";
 import rollyIcon from "@/assets/rolly-icon.png";
 import { PlanWizard } from "@/components/rolly/PlanWizard";
@@ -106,6 +106,53 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
   // Image attachment state
   const [pendingImage, setPendingImage] = useState<{ base64: string; mimeType: string; previewUrl: string } | null>(null);
 
+  // Drag-and-drop state
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
+
+  const handleDragEnter = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.types.includes("Files")) {
+      setIsDragging(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback(async (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounter.current = 0;
+
+    const file = e.dataTransfer.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+
+    try {
+      const compressed = await compressImage(file);
+      setPendingImage({
+        ...compressed,
+        previewUrl: `data:${compressed.mimeType};base64,${compressed.base64}`,
+      });
+    } catch (err) {
+      console.error("Image compression failed:", err);
+    }
+  }, []);
+
   const voice = useVoiceInput({
     onResult: (text) => {
       setInput((prev) => (prev ? prev + " " + text : text));
@@ -202,7 +249,22 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
     : "px-4";
 
   return (
-    <div className={cn("flex flex-col h-full", planMode && "bg-[hsl(0,0%,5%)]")}>
+    <div
+      className={cn("flex flex-col h-full relative", planMode && "bg-[hsl(0,0%,5%)]")}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Drop overlay */}
+      {isDragging && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center rounded-xl bg-primary/10 backdrop-blur-sm ring-2 ring-inset ring-primary/40 pointer-events-none">
+          <div className="flex flex-col items-center gap-2 text-primary">
+            <Camera className="h-8 w-8" />
+            <span className="text-sm font-semibold">Drop image here</span>
+          </div>
+        </div>
+      )}
       {/* Messages area or Wizard */}
       {wizardActive && onWizardComplete && onWizardCancel ? (
         <div className="flex-1 min-h-0">
