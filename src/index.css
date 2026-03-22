@@ -101,7 +101,6 @@
   }
 
   html {
-    overflow: hidden;
     height: 100%;
     width: 100%;
   }
@@ -111,7 +110,6 @@
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overflow: hidden;
     height: 100%;
     width: 100%;
     overscroll-behavior: none;
