@@ -585,6 +585,21 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "get_my_agenda",
+      description: "Fetch the current user's tasks, upcoming milestones, and recent activity across ALL artists or a specific artist. Use when the user asks 'what do I need to do today', 'what's on my plate', 'what should I focus on', 'my tasks', 'my agenda', or any variation of asking about their own workload. Returns tasks assigned to the current user, upcoming milestones, and overdue items.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Optional — filter to a specific artist. If omitted, returns across all artists." },
+          days_ahead: { type: "number", description: "How many days ahead to look. Default 7." },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "search_knowledge",
       description: "Search the industry knowledge base for best practices, strategies, and guidance.",
       parameters: {
