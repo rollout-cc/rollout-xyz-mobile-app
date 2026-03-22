@@ -29,6 +29,7 @@ import { LinksTab } from "@/components/artist/LinksTab";
 import { TimelinesTab } from "@/components/artist/TimelinesTab";
 import { BudgetSection, useTotalBudget, useTotalSpent } from "@/components/artist/BudgetSection";
 import { BannerUpload } from "@/components/artist/BannerUpload";
+import { AvatarUpload } from "@/components/artist/AvatarUpload";
 import { FinanceTab } from "@/components/artist/FinanceTab";
 import { InvoiceCreator } from "@/components/finance/InvoiceCreator";
 import { InvoiceList } from "@/components/finance/InvoiceList";
@@ -292,14 +293,18 @@ export default function ArtistDetail() {
 
             <div className="absolute inset-x-0 bottom-0 z-30 px-3 pb-3 pt-10 sm:px-5 sm:pb-4 sm:pt-14">
               <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                <div className="shrink-0">
-                  <Avatar className="h-14 w-14 border-2 border-white/25 shadow-[0_8px_28px_-6px_rgba(0,0,0,0.6)] ring-2 ring-black/20 sm:h-[4.25rem] sm:w-[4.25rem] md:h-[4.5rem] md:w-[4.5rem]">
-                    <AvatarImage src={avatarUrl ?? undefined} className="object-cover" />
-                    <AvatarFallback className="bg-white/10 text-lg font-semibold text-white sm:text-2xl">
-                      {artist.name[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
+                {canEditArtists ? (
+                  <AvatarUpload artistId={artist.id} artistName={artist.name} currentAvatarUrl={avatarUrl} />
+                ) : (
+                  <div className="shrink-0">
+                    <Avatar className="h-14 w-14 border-2 border-white/25 shadow-[0_8px_28px_-6px_rgba(0,0,0,0.6)] ring-2 ring-black/20 sm:h-[4.25rem] sm:w-[4.25rem] md:h-[4.5rem] md:w-[4.5rem]">
+                      <AvatarImage src={avatarUrl ?? undefined} className="object-cover" />
+                      <AvatarFallback className="bg-white/10 text-lg font-semibold text-white sm:text-2xl">
+                        {artist.name[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
                   <h2 className="text-pretty text-xl font-bold leading-tight tracking-[-0.02em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)] sm:text-2xl md:text-3xl">
                     {artist.name}
