@@ -111,6 +111,7 @@ export function jobTitlePermissions(jobTitle: string): PermissionFlags {
       perm_edit_artists: true,
       perm_view_billing: true,
       perm_distribution: true,
+      perm_view_full_roster: true,
     };
   }
 

@@ -323,6 +323,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
                     perm_edit_artists: rPerms.perm_edit_artists || titlePerms.perm_edit_artists,
                     perm_view_billing: rPerms.perm_view_billing || titlePerms.perm_view_billing,
                     perm_distribution: rPerms.perm_distribution || titlePerms.perm_distribution,
+                    perm_view_full_roster: rPerms.perm_view_full_roster || titlePerms.perm_view_full_roster,
                   });
                 }} />
               </div>
