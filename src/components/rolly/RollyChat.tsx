@@ -106,6 +106,53 @@ export function RollyChat({ prefillPrompt, onPrefillConsumed, planMode: external
   // Image attachment state
   const [pendingImage, setPendingImage] = useState<{ base64: string; mimeType: string; previewUrl: string } | null>(null);
 
+  // Drag-and-drop state
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
+
+  const handleDragEnter = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.types.includes("Files")) {
+      setIsDragging(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback(async (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounter.current = 0;
+
+    const file = e.dataTransfer.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+
+    try {
+      const compressed = await compressImage(file);
+      setPendingImage({
+        ...compressed,
+        previewUrl: `data:${compressed.mimeType};base64,${compressed.base64}`,
+      });
+    } catch (err) {
+      console.error("Image compression failed:", err);
+    }
+  }, []);
+
   const voice = useVoiceInput({
     onResult: (text) => {
       setInput((prev) => (prev ? prev + " " + text : text));
