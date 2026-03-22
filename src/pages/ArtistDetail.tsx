@@ -214,6 +214,8 @@ export default function ArtistDetail() {
   const getObjectiveCurrentValue = (type: string | null): number | null => {
     if (!type) return null;
     if (type === "monthly_listeners") return monthlyListeners || null;
+    if (type === "gross_revenue") return revenueTotals?.gross ?? null;
+    if (type === "merch_revenue") return revenueTotals?.merch ?? null;
     if (perfSnapshot) {
       if (type === "monthly_streams") return perfSnapshot.monthly_streams || null;
       if (type === "daily_streams") return perfSnapshot.daily_streams || null;
