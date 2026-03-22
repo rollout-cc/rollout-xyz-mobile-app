@@ -142,6 +142,28 @@ export default function ArtistDetail() {
   }, [spotifyData, artist?.id]);
 
   // Get completed tasks count
+  // Revenue totals for objective tracking (gross_revenue, merch_revenue)
+  const { data: revenueTotals } = useQuery({
+    queryKey: ["artist-revenue-totals", artistId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("amount, revenue_category")
+        .eq("artist_id", artistId!)
+        .eq("type", "revenue");
+      if (error) throw error;
+      let gross = 0;
+      let merch = 0;
+      for (const t of data ?? []) {
+        gross += Number(t.amount) || 0;
+        const cat = (t.revenue_category ?? "").toLowerCase();
+        if (cat === "merchandise" || cat === "merch") merch += Number(t.amount) || 0;
+      }
+      return { gross, merch };
+    },
+    enabled: !!artistId,
+  });
+
   const { data: completedCount = 0 } = useQuery({
     queryKey: ["tasks-completed-count", artistId],
     queryFn: async () => {
