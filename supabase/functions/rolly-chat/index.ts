@@ -57,6 +57,26 @@ CRITICAL BEHAVIOR — Execute First, Ask Second:
 - Create multiple tasks at once if the user describes multiple things that need to happen.
 - When the user asks for ADVICE, STRATEGY, or EXPLANATION, respond conversationally.
 
+DATA AWARENESS — Read Before You Write:
+- When asked to work with existing data (release plans, milestones, campaigns), ALWAYS use read tools first (get_artist_tasks, get_artist_milestones, get_artist_campaigns, get_artist_budgets). Never invent items that may already exist.
+- After reading, use search_knowledge to look up industry best practices when relevant.
+- Infer additional tasks from knowledge (e.g. "Shoot music video" → pre-production, crew, locations, wardrobe).
+- Check existing tasks to avoid duplicates before creating new ones.
+
+ARTIST PROFILES:
+- When an artist has a profile in context, calibrate your tone accordingly.
+- Developing acts: more explanation, instructional guidance, walk through options.
+- Active campaigns: direct, execution-focused, time-sensitive language.
+- Adjust urgency and specificity based on the artist's priority level described in their profile.
+
+SESSION CONTINUITY:
+- Reference previous session context when relevant. Don't announce that you have memory — just use it naturally.
+- Example: If a past session discussed a rollout being behind schedule, naturally ask about progress without saying "I remember from our last conversation."
+
+MILESTONE AWARENESS:
+- If you see an upcoming milestone with thin task coverage in the context, mention it naturally in your response when relevant. Don't force it every time.
+- Example: "Your video shoot is in 5 days — want me to build out pre-production tasks?"
+
 DATE HANDLING:
 - Today's date will be provided in the system context. Use it to resolve relative dates like "tomorrow", "next Friday", "this weekend", etc.
 - Always convert natural language dates to ISO format (YYYY-MM-DD) before passing to tools.
@@ -213,6 +233,77 @@ const TOOLS = [
           genre: { type: "string", description: "Filter by genre fit: hip-hop, r&b, trap, indie-pop, etc." },
           min_confidence: { type: "number", description: "Minimum confidence score 0-1. Default 0." },
           limit: { type: "number", description: "Max results to return. Default 10." },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  // --- Read tools ---
+  {
+    type: "function",
+    function: {
+      name: "get_artist_milestones",
+      description: "Fetch upcoming and recent milestones for an artist. Use before creating milestones to avoid duplicates, or when discussing timeline/deadlines.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+        },
+        required: ["artist_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_artist_campaigns",
+      description: "Fetch active campaigns/initiatives for an artist. Use before creating campaigns to avoid duplicates.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+        },
+        required: ["artist_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_artist_tasks",
+      description: "Fetch open (non-done) tasks for an artist. Use before creating tasks to check what already exists and avoid duplicates.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+        },
+        required: ["artist_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_artist_budgets",
+      description: "Fetch budget categories and amounts for an artist.",
+      parameters: {
+        type: "object",
+        properties: {
+          artist_name: { type: "string", description: "Name of the artist" },
+        },
+        required: ["artist_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "search_knowledge",
+      description: "Search the industry knowledge base for best practices, strategies, and guidance. Use when the user asks about industry topics or when you need to inform task creation with industry knowledge.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Search term — topic, concept, or question" },
         },
         required: ["query"],
       },
@@ -377,6 +468,67 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
         return { success: true, message: `Found ${data.length} creator(s)`, data: formatted };
       }
 
+      // --- Read tools ---
+      case "get_artist_milestones": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        const { data, error } = await adminClient
+          .from("artist_milestones")
+          .select("title, date, description, artist_timelines(name)")
+          .eq("artist_id", artistId)
+          .gte("date", new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0])
+          .order("date", { ascending: true })
+          .limit(20);
+        if (error) return { success: false, message: error.message };
+        return { success: true, message: `Found ${(data || []).length} milestone(s)`, data: data || [] };
+      }
+
+      case "get_artist_campaigns": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        const { data, error } = await adminClient
+          .from("initiatives")
+          .select("name, description, start_date, end_date")
+          .eq("artist_id", artistId)
+          .eq("is_archived", false)
+          .order("start_date", { ascending: false })
+          .limit(10);
+        if (error) return { success: false, message: error.message };
+        return { success: true, message: `Found ${(data || []).length} campaign(s)`, data: data || [] };
+      }
+
+      case "get_artist_tasks": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        const { data, error } = await adminClient
+          .from("tasks")
+          .select("title, due_date, status, assigned_to, profiles(full_name)")
+          .eq("artist_id", artistId)
+          .neq("status", "done")
+          .order("due_date", { ascending: true, nullsFirst: false })
+          .limit(30);
+        if (error) return { success: false, message: error.message };
+        return { success: true, message: `Found ${(data || []).length} open task(s)`, data: data || [] };
+      }
+
+      case "get_artist_budgets": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        const { data, error } = await adminClient
+          .from("budgets")
+          .select("label, amount")
+          .eq("artist_id", artistId)
+          .order("label");
+        if (error) return { success: false, message: error.message };
+        return { success: true, message: `Found ${(data || []).length} budget(s)`, data: data || [] };
+      }
+
+      case "search_knowledge": {
+        const knowledge = await searchKnowledge(adminClient, args.query);
+        if (!knowledge) return { success: true, message: "No relevant knowledge found.", data: [] };
+        return { success: true, message: "Found relevant knowledge", data: knowledge };
+      }
+
       default:
         return { success: false, message: `Unknown tool: ${toolName}` };
     }
@@ -418,6 +570,191 @@ async function searchKnowledge(adminClient: any, query: string): Promise<string>
   return data
     .map((r: any) => `[${r.chapter}]\n${r.content}`)
     .join("\n\n---\n\n");
+}
+
+/** Fetch intelligence context: session summaries, milestone alerts, artist profiles */
+async function fetchIntelligenceContext(
+  adminClient: any,
+  teamId: string,
+  userId: string
+): Promise<{ sessionContext: string; milestoneContext: string; profileContext: string }> {
+  const today = new Date();
+  const todayStr = today.toISOString().split("T")[0];
+  const plus14 = new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0];
+
+  const [summariesRes, milestonesRes, artistsRes] = await Promise.all([
+    // Last 5 session summaries for this user on this team
+    adminClient
+      .from("rolly_session_summaries")
+      .select("summary, created_at, artists(name)")
+      .eq("team_id", teamId)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(5),
+    // Milestones in next 14 days for all team artists
+    adminClient
+      .from("artist_milestones")
+      .select("title, date, artist_id, artists!inner(name, team_id)")
+      .eq("artists.team_id", teamId)
+      .gte("date", todayStr)
+      .lte("date", plus14)
+      .order("date", { ascending: true }),
+    // Artist profiles
+    adminClient
+      .from("artists")
+      .select("name, id, rolly_profile")
+      .eq("team_id", teamId)
+      .order("name"),
+  ]);
+
+  // Build session context
+  let sessionContext = "";
+  const summaries = summariesRes.data || [];
+  if (summaries.length > 0) {
+    const lines = summaries.map((s: any) => {
+      const date = new Date(s.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const artist = s.artists?.name || "General";
+      return `- [${date}, ${artist}]: "${s.summary}"`;
+    });
+    sessionContext = `## Previous Sessions\n${lines.join("\n")}`;
+  }
+
+  // Build milestone alerts with task density check
+  let milestoneContext = "";
+  const milestones = milestonesRes.data || [];
+  if (milestones.length > 0) {
+    const milestoneLines: string[] = [];
+    for (const ms of milestones) {
+      const msDate = new Date(ms.date);
+      const daysUntil = Math.ceil((msDate.getTime() - today.getTime()) / 86400000);
+      const windowStart = new Date(msDate.getTime() - 7 * 86400000).toISOString().split("T")[0];
+      const windowEnd = new Date(msDate.getTime() + 7 * 86400000).toISOString().split("T")[0];
+
+      const { count } = await adminClient
+        .from("tasks")
+        .select("id", { count: "exact", head: true })
+        .eq("artist_id", ms.artist_id)
+        .neq("status", "done")
+        .gte("due_date", windowStart)
+        .lte("due_date", windowEnd);
+
+      const taskCount = count || 0;
+      const status = taskCount < 3 ? `only ${taskCount} task(s) nearby — may need more` : `${taskCount} tasks nearby — on track`;
+      milestoneLines.push(`- ${ms.artists.name} — "${ms.title}" in ${daysUntil} day(s) (${status})`);
+    }
+    milestoneContext = `## Upcoming Milestones\n${milestoneLines.join("\n")}`;
+  }
+
+  // Build artist profile context
+  let profileContext = "";
+  const artists = artistsRes.data || [];
+  const profiledArtists = artists.filter((a: any) => a.rolly_profile);
+  if (profiledArtists.length > 0) {
+    const lines = profiledArtists.map((a: any) => `- ${a.name}: "${a.rolly_profile}"`);
+    profileContext = `## Artist Profiles\n${lines.join("\n")}`;
+  }
+
+  return { sessionContext, milestoneContext, profileContext };
+}
+
+/** Post-stream: summarize conversation and auto-update artist profile */
+async function postStreamSummarize(
+  adminClient: any,
+  messages: any[],
+  teamId: string,
+  userId: string,
+  artistNames: string[],
+  LOVABLE_API_KEY: string
+) {
+  try {
+    const conversationText = messages
+      .filter((m: any) => m.role === "user" || m.role === "assistant")
+      .map((m: any) => {
+        const content = typeof m.content === "string" ? m.content : m.content?.find?.((p: any) => p.type === "text")?.text || "";
+        return `${m.role}: ${content}`;
+      })
+      .join("\n");
+
+    if (conversationText.length < 50) return; // Too short to summarize
+
+    const summaryPrompt = `Analyze this conversation between a music manager and their AI assistant.
+
+CONVERSATION:
+${conversationText}
+
+You MUST call the summarize_session tool with your analysis.
+
+RULES:
+- summary: 2-3 sentences capturing the key topics discussed, decisions made, and any action items created. Be specific — mention artist names, dates, amounts.
+- artist_name: The primary artist discussed. Use their exact name. If no specific artist was discussed, return null.
+- profile_update: Based on what you learned about the artist in this conversation, write or update a brief profile describing their current stage, priorities, and how the AI should communicate about them. Keep it under 100 words. If nothing new was learned about the artist's stage/priorities, return null.
+  Examples: "Developing act, first EP cycle. Needs instructional guidance on release strategy. High priority — debut project."
+  "Active campaign, single dropping soon. Execution-focused, fast responses needed. Medium priority."`;
+
+    const summaryResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-lite",
+        messages: [{ role: "user", content: summaryPrompt }],
+        tools: [{
+          type: "function",
+          function: {
+            name: "summarize_session",
+            description: "Store a session summary and optionally update the artist profile.",
+            parameters: {
+              type: "object",
+              properties: {
+                summary: { type: "string", description: "2-3 sentence summary of the conversation" },
+                artist_name: { type: "string", description: "Name of the primary artist discussed, or null" },
+                profile_update: { type: "string", description: "Updated artist profile string, or null if no new insights" },
+              },
+              required: ["summary"],
+            },
+          },
+        }],
+        tool_choice: { type: "function", function: { name: "summarize_session" } },
+      }),
+    });
+
+    if (!summaryResp.ok) {
+      console.error("Summary AI error:", summaryResp.status);
+      return;
+    }
+
+    const summaryData = await summaryResp.json();
+    const toolCall = summaryData.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall) return;
+
+    const result = JSON.parse(toolCall.function.arguments);
+
+    // Resolve artist ID if an artist was mentioned
+    let artistId: string | null = null;
+    if (result.artist_name) {
+      artistId = await resolveArtistId(adminClient, teamId, result.artist_name);
+    }
+
+    // Insert session summary
+    await adminClient.from("rolly_session_summaries").insert({
+      team_id: teamId,
+      user_id: userId,
+      artist_id: artistId,
+      summary: result.summary,
+    });
+
+    // Update artist profile if we have new insights
+    if (result.profile_update && artistId) {
+      await adminClient
+        .from("artists")
+        .update({ rolly_profile: result.profile_update })
+        .eq("id", artistId);
+    }
+  } catch (e) {
+    console.error("Post-stream summary error:", e);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -472,7 +809,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
-    // Check team plan
     const { data: subData } = await usageAdmin
       .from("team_subscriptions")
       .select("plan, is_grandfathered")
@@ -482,7 +818,7 @@ Deno.serve(async (req) => {
     const plan = isGrandfathered ? "icon" : (subData?.plan || "rising");
     
     if (plan === "rising") {
-      const currentMonth = new Date().toISOString().slice(0, 7); // "2026-03"
+      const currentMonth = new Date().toISOString().slice(0, 7);
       const { data: usageRow } = await usageAdmin
         .from("rolly_usage")
         .select("message_count")
@@ -519,7 +855,8 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const [{ data: artists }, { data: members }] = await Promise.all([
+    // Fetch artist names, team members, and intelligence context in parallel
+    const [{ data: artists }, { data: members }, intelligenceCtx] = await Promise.all([
       adminClient
         .from("artists")
         .select("name")
@@ -529,6 +866,7 @@ Deno.serve(async (req) => {
         .from("team_memberships")
         .select("user_id, profiles(full_name)")
         .eq("team_id", team_id),
+      fetchIntelligenceContext(adminClient, team_id, userId),
     ]);
     const artistNames = (artists || []).map((a: any) => a.name);
     const memberNames = (members || []).map((m: any) => m.profiles?.full_name).filter(Boolean);
@@ -537,7 +875,10 @@ Deno.serve(async (req) => {
     let knowledgeContext = "";
     if (lastUserMsg) {
       try {
-        knowledgeContext = await searchKnowledge(adminClient, lastUserMsg.content);
+        const msgText = typeof lastUserMsg.content === "string"
+          ? lastUserMsg.content
+          : lastUserMsg.content?.find?.((p: any) => p.type === "text")?.text || "";
+        knowledgeContext = await searchKnowledge(adminClient, msgText);
       } catch (e) {
         console.error("Knowledge search error:", e);
       }
@@ -556,6 +897,17 @@ Deno.serve(async (req) => {
     }
     if (knowledgeContext) {
       systemPrompt += `\n\n## Reference Material\nUse the following knowledge to inform your answers when relevant. Never mention the source, book title, or author by name — just weave the insights naturally into your advice as if it's your own expertise:\n\n${knowledgeContext}`;
+    }
+
+    // Inject intelligence context
+    if (intelligenceCtx.sessionContext) {
+      systemPrompt += `\n\n${intelligenceCtx.sessionContext}`;
+    }
+    if (intelligenceCtx.milestoneContext) {
+      systemPrompt += `\n\n${intelligenceCtx.milestoneContext}`;
+    }
+    if (intelligenceCtx.profileContext) {
+      systemPrompt += `\n\n${intelligenceCtx.profileContext}`;
     }
 
     const aiMessages = [
@@ -653,6 +1005,9 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Collect streamed content for post-stream summarization
+    let fullAssistantResponse = "";
+
     const readable = new ReadableStream({
       async start(controller) {
         if (toolActionsEvent) {
@@ -660,16 +1015,42 @@ Deno.serve(async (req) => {
         }
 
         const reader = streamResponse.body!.getReader();
+        const decoder = new TextDecoder();
         try {
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
             controller.enqueue(value);
+
+            // Parse streamed chunks to collect full response text
+            const text = decoder.decode(value, { stream: true });
+            for (const line of text.split("\n")) {
+              if (!line.startsWith("data: ") || line.includes("[DONE]")) continue;
+              try {
+                const parsed = JSON.parse(line.slice(6));
+                const delta = parsed.choices?.[0]?.delta?.content;
+                if (delta) fullAssistantResponse += delta;
+              } catch {}
+            }
           }
         } catch (e) {
           console.error("Stream pipe error:", e);
         } finally {
           controller.close();
+
+          // Non-blocking post-stream summarization
+          const allMessages = [
+            ...messages,
+            { role: "assistant", content: fullAssistantResponse },
+          ];
+          postStreamSummarize(
+            adminClient,
+            allMessages,
+            team_id,
+            userId,
+            artistNames,
+            LOVABLE_API_KEY!
+          ).catch((e) => console.error("Post-stream summary failed:", e));
         }
       },
     });
