@@ -645,7 +645,7 @@ async function fetchIntelligenceContext(
         .from("tasks")
         .select("id", { count: "exact", head: true })
         .eq("artist_id", ms.artist_id)
-        .neq("status", "done")
+        .eq("is_completed", false)
         .gte("due_date", windowStart)
         .lte("due_date", windowEnd);
 
