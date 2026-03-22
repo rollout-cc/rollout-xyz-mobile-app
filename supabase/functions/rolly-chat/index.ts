@@ -698,6 +698,19 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
         return { success: true, message: `Logged $${args.amount} expense: "${args.description}"`, data };
       }
 
+      case "create_revenue": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        const { data, error } = await adminClient.from("transactions").insert({
+          artist_id: artistId, description: args.description, amount: args.amount, type: "revenue",
+          transaction_date: args.transaction_date || new Date().toISOString().split("T")[0], status: "completed",
+          revenue_source: args.revenue_source || null,
+          revenue_category: args.revenue_category || "Other",
+        }).select("id, description, amount, revenue_source, revenue_category").single();
+        if (error) return { success: false, message: error.message };
+        return { success: true, message: `Logged $${args.amount} revenue: "${args.description}"${args.revenue_source ? ` from ${args.revenue_source}` : ""}`, data };
+      }
+
       case "create_milestone": {
         const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
         if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
