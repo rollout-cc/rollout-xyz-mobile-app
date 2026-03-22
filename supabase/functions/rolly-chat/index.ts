@@ -130,7 +130,7 @@ const TOOLS = [
     type: "function",
     function: {
       name: "create_tasks",
-      description: "Create one or more tasks/work items for an artist. Use when the user mentions work that needs to be done, things to book, coordinate, or follow up on.",
+      description: "Create one or more tasks/work items for an artist. When creating tasks for a milestone or major deliverable, always generate 3-6 granular sub-tasks covering the real steps involved — never a single vague summary task. Use search_knowledge to inform the breakdown.",
       parameters: {
         type: "object",
         properties: {
