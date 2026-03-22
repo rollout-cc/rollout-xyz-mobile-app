@@ -107,6 +107,9 @@ DATE HANDLING:
 COST HANDLING:
 - When the user mentions a dollar amount with a task (e.g. "$500 for studio time"), set the expense_amount on the task.
 - If they want it logged as a transaction too, use create_expense as well.
+- When the user mentions REVENUE or INCOME (e.g. "$5,000 from Nike brand deal", "got paid $10k for the show"), use create_revenue.
+- Revenue categories: Royalty, Live/Touring, Merchandise, Brand Deal, Show Fee, Feature, Publishing, Other. Pick the best fit from context.
+- If the user says "send invoice to X for $Y", also use create_revenue to log the income.
 
 ASSIGNEE HANDLING:
 - Team member names will be provided in the system context. Match assignee references to the closest team member name.
