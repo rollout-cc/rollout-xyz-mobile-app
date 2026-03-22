@@ -970,6 +970,60 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
         return { success: true, message: `Found ${(data || []).length} split project(s)`, data: data || [] };
       }
 
+      case "get_my_agenda": {
+        const todayStr = new Date().toISOString().split("T")[0];
+        const daysAhead = args.days_ahead || 7;
+        const futureDate = new Date(Date.now() + daysAhead * 86400000).toISOString().split("T")[0];
+
+        // Build artist filter if specified
+        let artistFilter: string | null = null;
+        if (args.artist_name) {
+          artistFilter = await resolveArtistId(adminClient, teamId, args.artist_name);
+          if (!artistFilter) return { success: false, message: `Artist "${args.artist_name}" not found` };
+        }
+
+        // Fetch tasks assigned to user (or all open tasks if no assignee filter needed)
+        let tasksQuery = adminClient.from("tasks")
+          .select("title, description, due_date, is_completed, priority, expense_amount, artists(name)")
+          .eq("team_id", teamId)
+          .eq("assigned_to", userId)
+          .eq("is_completed", false)
+          .order("priority", { ascending: true, nullsFirst: false })
+          .order("due_date", { ascending: true, nullsFirst: false })
+          .limit(30);
+        if (artistFilter) tasksQuery = tasksQuery.eq("artist_id", artistFilter);
+        const { data: myTasks } = await tasksQuery;
+
+        // Separate overdue, today, and upcoming
+        const overdue = (myTasks || []).filter((t: any) => t.due_date && t.due_date < todayStr);
+        const today = (myTasks || []).filter((t: any) => t.due_date === todayStr);
+        const upcoming = (myTasks || []).filter((t: any) => t.due_date && t.due_date > todayStr && t.due_date <= futureDate);
+        const noDueDate = (myTasks || []).filter((t: any) => !t.due_date);
+
+        // Fetch upcoming milestones
+        let msQuery = adminClient.from("artist_milestones")
+          .select("title, date, description, artists!inner(name, team_id)")
+          .eq("artists.team_id", teamId)
+          .gte("date", todayStr)
+          .lte("date", futureDate)
+          .order("date", { ascending: true })
+          .limit(10);
+        if (artistFilter) msQuery = msQuery.eq("artist_id", artistFilter);
+        const { data: milestones } = await msQuery;
+
+        return {
+          success: true,
+          message: `Found ${overdue.length} overdue, ${today.length} due today, ${upcoming.length} upcoming, ${noDueDate.length} undated tasks, and ${(milestones || []).length} milestones`,
+          data: {
+            overdue: overdue.map((t: any) => ({ title: t.title, due_date: t.due_date, priority: t.priority, artist: t.artists?.name })),
+            due_today: today.map((t: any) => ({ title: t.title, priority: t.priority, artist: t.artists?.name, description: t.description })),
+            upcoming: upcoming.map((t: any) => ({ title: t.title, due_date: t.due_date, priority: t.priority, artist: t.artists?.name })),
+            no_due_date: noDueDate.slice(0, 10).map((t: any) => ({ title: t.title, priority: t.priority, artist: t.artists?.name })),
+            milestones: (milestones || []).map((m: any) => ({ title: m.title, date: m.date, artist: m.artists?.name })),
+          },
+        };
+      }
+
       case "search_knowledge": {
         const knowledge = await searchKnowledge(adminClient, args.query);
         if (!knowledge) return { success: true, message: "No relevant knowledge found.", data: [] };
