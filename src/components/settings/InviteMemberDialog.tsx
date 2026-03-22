@@ -80,7 +80,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
   const [permissions, setPermissions] = useState<PermissionFlags>({ ...roleDefaults("manager") });
   const [artistAccess, setArtistAccess] = useState<ArtistAccess[]>([]);
 
-  const showArtistPicker = inviteRole === "artist" || inviteRole === "guest";
+  const showArtistPicker = inviteRole !== "team_owner";
 
   const { data: teamArtists = [] } = useQuery({
     queryKey: ["team-artists-for-invite", teamId],
