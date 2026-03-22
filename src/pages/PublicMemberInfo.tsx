@@ -30,7 +30,7 @@ export default function PublicMemberInfo() {
   const displayName = `${firstName} ${lastName}`.trim() || "Member Info";
 
   return (
-    <div className="min-h-screen bg-background p-6 sm:p-10">
+    <div className="min-h-screen bg-background p-6 sm:p-10 overflow-y-auto">
       <div className="max-w-2xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold">{displayName}</h1>
 
