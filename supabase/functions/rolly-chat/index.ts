@@ -550,6 +550,26 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
         return { success: true, message: `Found ${(data || []).length} budget(s)`, data: data || [] };
       }
 
+      case "delete_tasks": {
+        const artistId = await resolveArtistId(adminClient, teamId, args.artist_name);
+        if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
+
+        let query = adminClient.from("tasks").delete().eq("artist_id", artistId);
+
+        if (!args.delete_completed_too) {
+          query = query.eq("is_completed", false);
+        }
+
+        if (args.task_titles && args.task_titles.length > 0) {
+          query = query.in("title", args.task_titles);
+        }
+
+        const { data, error, count } = await query.select("id");
+        if (error) return { success: false, message: error.message };
+        const deleted = data?.length || 0;
+        return { success: true, message: `Deleted ${deleted} task(s) for "${args.artist_name}"`, data: { deleted } };
+      }
+
       case "search_knowledge": {
         const knowledge = await searchKnowledge(adminClient, args.query);
         if (!knowledge) return { success: true, message: "No relevant knowledge found.", data: [] };
