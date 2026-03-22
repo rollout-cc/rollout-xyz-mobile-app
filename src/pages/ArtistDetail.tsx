@@ -29,6 +29,7 @@ import { LinksTab } from "@/components/artist/LinksTab";
 import { TimelinesTab } from "@/components/artist/TimelinesTab";
 import { BudgetSection, useTotalBudget, useTotalSpent } from "@/components/artist/BudgetSection";
 import { BannerUpload } from "@/components/artist/BannerUpload";
+import { AvatarUpload } from "@/components/artist/AvatarUpload";
 import { FinanceTab } from "@/components/artist/FinanceTab";
 import { InvoiceCreator } from "@/components/finance/InvoiceCreator";
 import { InvoiceList } from "@/components/finance/InvoiceList";
