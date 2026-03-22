@@ -513,9 +513,9 @@ async function executeTool(adminClient: any, toolName: string, args: any, teamId
         if (!artistId) return { success: false, message: `Artist "${args.artist_name}" not found` };
         const { data, error } = await adminClient
           .from("tasks")
-          .select("title, due_date, status, assigned_to")
+          .select("title, due_date, is_completed, assigned_to")
           .eq("artist_id", artistId)
-          .neq("status", "done")
+          .eq("is_completed", false)
           .order("due_date", { ascending: true, nullsFirst: false })
           .limit(30);
         if (error) return { success: false, message: error.message };
@@ -645,7 +645,7 @@ async function fetchIntelligenceContext(
         .from("tasks")
         .select("id", { count: "exact", head: true })
         .eq("artist_id", ms.artist_id)
-        .neq("status", "done")
+        .eq("is_completed", false)
         .gte("due_date", windowStart)
         .lte("due_date", windowEnd);
 
